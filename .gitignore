@@ -1,0 +1,88 @@
+# These are some examples of commonly ignored file patterns.
+# You should customize this list as applicable to your project.
+# Learn more about .gitignore:
+#     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
+
+# General
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.venv.bak/
+
+# Logs
+*.log
+*.out
+*.err
+
+# Test reports
+TEST*.xml
+*.pytest_cache
+.coverage
+coverage.xml
+*.cover
+htmlcov/
+
+# MyPy
+.mypy_cache/
+
+# Pylint
+pylint_report.txt
+
+# JetBrains IDEs
+.idea/
+
+# Poetry
+poetry.lock
+*.toml~
+
+# Data files (specific to your project)
+data/
+
+# Miscellaneous
+*.swp
+*.swo
+*.bak
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Large files
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+*.wav
+*.mkv
+*.zip
+*.tar
+*.gz
+
+# Node.js
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+~$*

@@ -1,0 +1,25 @@
+[project]
+name = "bhu-text-mining"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Kwang-Seuk",email = "kjeong@bhug.ac.kr"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ipykernel (>=6.29.5,<7.0.0)",
+    "qtconsole (>=5.6.1,<6.0.0)",
+    "pyqt5 (>=5.15.11,<6.0.0)",
+    "jupyter (>=1.1.1,<2.0.0)",
+    "pytest (>=8.3.4,<9.0.0)",
+    "pylint (>=3.3.3,<4.0.0)",
+    "black (>=24.10.0,<25.0.0)",
+    "konlpy (>=0.6.0,<0.7.0)",
+    "requests (>=2.32.3,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
