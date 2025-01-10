@@ -3,8 +3,7 @@ import requests
 import uuid
 import time
 import json
-from typing import Dict, Union, List, Tuple
-from pathlib import Path
+from typing import Dict, List, Tuple
 import base64
 
 
