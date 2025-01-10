@@ -2,16 +2,6 @@
 typehint:
 	mypy --ignore-missing-imports src
 
-.PHONY: install
-install:
-	pip install --upgrade pip &&\
-		pip install -r requirements.txt
-
-.PHONY: uninstall
-uninstall:
-	pip install --upgrade pip &&\
-		pip uninstall -r requirements.txt -y
-
 .PHONY: ptest
 ptest:
 	pytest -n auto -vv --cov=src\
@@ -37,11 +27,11 @@ lint:
 
 .PHONY: qtconsole
 qtconsole:
-	jupyter qtconsole --kernel=disclosure_data_analysis &
+	jupyter qtconsole &
 
 .PHONY: jupyter
 jupyter:
-	jupyter notebook --kernel=disclosure_data_analysis &
+	jupyter notebook &
 
 .PHONY: clean
 clean:
