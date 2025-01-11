@@ -54,6 +54,24 @@ def show_image(image_path):
     plt.title("Click on the top left and bottom right corners")
     plt.axis("on")
 
+def crop_and_save_images(
+    image_dir: str,
+    crop_coordinates: tuple[int, int, int, int],
+    output_prefix: str
+):
+    supported_formats = (".jpg", ".jpeg", ".png")
+
+    for filename in os.listdir(image_dir):
+        if filename.lower().endswith(supported_formats):
+           image_path = os.path.join(image_dir, filename)
+           img = Image.open(image_path)
+           cropped_img = img.crop(crop_coordinates)
+           timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+           output_filename = f"{output_prefix}_{timestamp}_{filename}"
+           output_path = os.path.join(image_dir, output_filename)
+           cropped_img.save(output_path)
+           print(f"Saved the cropped image to: {output_path}")
+
 
 # 백엔드 변경 확인
 print("Current backend:", matplotlib.get_backend())
