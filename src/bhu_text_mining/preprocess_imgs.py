@@ -113,14 +113,3 @@ def crop_and_save_images(
             output_path = os.path.join(image_dir, output_filename)
             cropped_img.save(output_path)
             print(f"Saved the cropped image to: {output_path}")
-
-
-# 백엔드 변경 확인
-print("Current backend:", matplotlib.get_backend())
-
-# 이미지 경로
-image_path = "/home/kjeong/localgit/bhu_text_mining/data"
-sample_image_file = image_path + "/fig01.jpg"
-print(sample_image_file)
-crop_coordinates = show_image(sample_image_file)
-crop_and_save_images(image_path, crop_coordinates, "cropped")
