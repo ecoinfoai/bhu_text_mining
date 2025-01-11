@@ -9,7 +9,7 @@ ptest:
 
 .PHONY: test
 test:
-	pytest -vv --cov=src\
+	pytest -vv --cov=tests\
 		tests --cov-report term-missing -s
 
 .PHONY: nrtest
