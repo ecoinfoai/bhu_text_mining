@@ -84,6 +84,33 @@ def create_request_json(image_files: List[str]) -> Dict:
     }
 
 
+def prepare_image_files_list(image_path: str, prefix: str) -> List[str]:
+    """
+    Get a list of image files with a specific prefix in the given directory.
+
+    Args:
+        image_path (str): Path to the directory containing image files.
+        prefix (str): Prefix to filter image files. Default is "cropped_".
+
+    Returns:
+        list: A list of image file paths with the specified prefix.
+
+    Example:
+        >>> image_path = "/home/user/images"
+        >>> get_cropped_images(image_path, prefix="cropped_")
+        ["/home/user/images/cropped_image1.jpg", "/home/user/images/cropped_image2.png"]
+    """
+    image_file = []
+    for file_name in os.listdir(image_path):
+        if file_name.startswith(prefix) and file_name.lower().endswith(
+            (".jpg", ".jpeg", ".png")
+        ):
+            full_path = os.path.join(image_path, file_name)
+            image_file.append(full_path)
+
+    return image_file
+
+
 def send_images_receive_ocr(
     api_url: str, secret_key: str, image_files: List[str]
 ) -> List[Dict]:
