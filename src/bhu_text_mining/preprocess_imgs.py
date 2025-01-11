@@ -109,7 +109,8 @@ def crop_and_save_images(
             img = Image.open(image_path)
             cropped_img = img.crop(crop_coordinates)
             timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            output_filename = f"{output_prefix}_{timestamp}_{filename}"
+            file_extension = os.path.splitext(filename)[-1]
+            output_filename = f"{output_prefix}_{timestamp}_{filename.split('.')[0]}{file_extension}"
             output_path = os.path.join(image_dir, output_filename)
             cropped_img.save(output_path)
             print(f"Saved the cropped image to: {output_path}")
