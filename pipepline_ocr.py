@@ -1,5 +1,6 @@
 from matplotlib import font_manager as fm
 from matplotlib import pyplot as plt
+import yaml
 from src.bhu_text_mining.preprocess_imgs import (
     show_image,
     crop_and_save_images,
@@ -29,7 +30,11 @@ stopwords_path = "./data/stopwords-ko.txt"
 image_path = "/home/kjeong/localgit/bhu_text_mining/data"
 sample_image_file = image_path + "/fig01.jpg"
 prefix = "cropped"
+yaml_path = "/home/kjeong/localgit/bhu_text_mining/data/text_data.yaml"
 
+# If you have scanned images from students' documents, please use the
+# following Image OCR pipeline to extract text and build a network graph
+# based on the extracted keywords.
 
 ## Image OCR process
 # Crop your image
@@ -45,6 +50,13 @@ extracted_data = extract_text(response_data)
 
 print(extracted_data)  # Just for check
 
+# If your data is in YAML format, you can save it as a YAML file, please us the
+
+with open(yaml_path, "r", encoding="UTF-8") as f:
+    extracted_data = yaml.safe_load(f)
+
+type(extracted_data)  # Just for check
+print(extracted_data)
 
 ## Network analysis
 # Load stopwords data
@@ -56,8 +68,10 @@ for filename, text in extracted_data.items():
     filtered_keywords = extract_keywords(text, stopwords)
     extracted_keywords_dict[filename] = filtered_keywords
 
+print(extracted_keywords_dict)
+
 network_graph = build_network_from_keywords(
-    extracted_keywords_dict, "cropped_20250112151804_fig01.jpg", 10
+    extracted_keywords_dict, "professor", 5
 )
 
 # Korean font setting on the network node figure
