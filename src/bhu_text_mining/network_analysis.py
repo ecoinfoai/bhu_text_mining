@@ -3,7 +3,6 @@ from collections import Counter
 import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 from typing import List, Dict
 
 
