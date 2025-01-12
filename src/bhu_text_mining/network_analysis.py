@@ -51,13 +51,11 @@ def visualize_network(G, font_prop, title="Keyword Network"):
 
     pos = nx.spring_layout(G, seed=42)
 
-    weights = nx.get_edge_attributes(
-        G, "weight"
-    ).values()  # 엣지 가중치 가져오기
-    max_weight = max(weights) if weights else 1  # 가중치 정규화 대비
+    weights = nx.get_edge_attributes(G, "weight").values()  # Get edges weights
+    max_weight = max(weights) if weights else 1  # for weights normalization
     edge_widths = [
         3 * (weight / max_weight) for weight in weights
-    ]  # 굵기 설정
+    ]  # thickness of edges
 
     nx.draw(
         G,
@@ -70,7 +68,7 @@ def visualize_network(G, font_prop, title="Keyword Network"):
         width=edge_widths,
     )
 
-    labels = nx.get_edge_attributes(G, "weight")
+    # labels = nx.get_edge_attributes(G, "weight")
     # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
 
     plt.title(title, fontproperties=font_prop)
