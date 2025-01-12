@@ -7,26 +7,26 @@ import matplotlib.font_manager as fm
 from typing import List, Dict
 
 
-def load_stopwords(file_path: str):
+def load_stopwords(file_path: str) -> set:
     with open(file_path, "r", encoding="UTF-8") as f:
         stopwords = f.read().splitlines()
 
     return set(stopwords)
 
 
-def extract_keywords(text: str, stopwords: set):
+def extract_keywords(text: str, stopwords: set) -> List[str]:
     okt = Okt()
     nouns = okt.nouns(text)
 
-    filtered_keywords = []
+    extracted_keywords = []
     for word in nouns:
         if word not in stopwords and len(word) > 1:
-            filtered_keywords.append(word)
+            extracted_keywords.append(word)
 
-    return filtered_keywords
+    return extracted_keywords
 
 
-def create_network(keywords: List[str], window_size=2):
+def create_network(keywords: List[str], window_size=2) -> nx.Graph:
     edges = Counter()
     for i in range(len(keywords) - window_size + 1):
         window = keywords[i : i + window_size]
@@ -41,7 +41,7 @@ def create_network(keywords: List[str], window_size=2):
 
 def build_network_from_keywords(
     keywords_dict: Dict[str, List], target_filename: str, window_size=2
-):
+) -> nx.Graph:
     keywords = keywords_dict[target_filename]
     return create_network(keywords, window_size=window_size)
 
