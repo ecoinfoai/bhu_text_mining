@@ -14,11 +14,15 @@ from src.bhu_text_mining.topic_analysis import (
     analyze_topics_with_bertopic,
     generate_topic_dataframe,
     generate_topic_keywords_table,
+)
+from src.bhu_text_mining.cohesion_analysis import (
     calculate_overall_similarity,
     calculate_topicwise_similarity,
     compare_students_overall,
-    compare_topic_lengths_with_xy,
     extract_keywords_from_sentences,
+)
+from src.bhu_text_mining.visualize_cohesion import (
+    compare_topic_lengths_with_xy,
     generate_person_networks_from_sentences,
 )
 
@@ -93,11 +97,19 @@ font_prop = fm.FontProperties(fname=font_path)
     pairwise_results,
 ) = make_bertopic_model(yaml_path, env_config)
 
+# Examine topics
 print(topic_df)
 print(topic_table)
 print(topic_lengths_df)
+
+# Examine cohesion
+# BERTscore from all sentences of each student compared with the professor's
 print(overall_results)
+
+# BERTscore from sentences of each topic of each student compared with the professor's
 print(topicwise_results)
+
+# BERTscore from all sentences of each student compared with each other
 print(pairwise_results)
 
 # Create network graphs for each person
