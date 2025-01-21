@@ -1,12 +1,7 @@
 import pandas as pd
 from matplotlib import font_manager as fm
 from typing import Dict
-from src.bhu_text_mining.network_analysis import (
-    extract_keywords,
-    load_stopwords,
-    create_network,
-    visualize_network,
-)
+from src.bhu_text_mining.network_analysis import load_stopwords
 from src.bhu_text_mining.topic_analysis import (
     load_yaml_data,
     split_sentences,
@@ -20,6 +15,8 @@ from src.bhu_text_mining.cohesion_analysis import (
     calculate_topicwise_similarity,
     compare_students_overall,
     extract_keywords_from_sentences,
+    calculate_pairwise_sentence_similarity,
+    calculate_topic_statistics,
 )
 from src.bhu_text_mining.visualize_cohesion import (
     compare_topic_lengths_with_xy,
@@ -111,6 +108,14 @@ print(topicwise_results)
 
 # BERTscore from all sentences of each student compared with each other
 print(pairwise_results)
+
+# Pairwise sentence comparison per topic per student
+pairwise_cohesion = calculate_pairwise_sentence_similarity(topic_df)
+print(pairwise_cohesion)
+
+# Calculate avg and std for student's pairwise BERTscore
+topic_statistics_df = calculate_topic_statistics(pairwise_cohesion)
+print(topic_statistics_df)
 
 # Create network graphs for each person
 stopwords = load_stopwords(stopwords_path)
