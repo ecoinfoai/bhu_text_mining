@@ -200,3 +200,94 @@ def extract_keywords_from_sentences(
         keywords_dict[person] = all_keywords
 
     return keywords_dict
+
+
+def calculate_pairwise_sentence_similarity(
+    topic_df: pd.DataFrame, lang="ko"
+) -> pd.DataFrame:
+    """
+    각 학생의 문장들을 자신의 주제별로 pairwise 비교하여 BERTScore 계산.
+    Args:
+        topic_df (pd.DataFrame): DataFrame with columns ['Person', 'Topic No.', 'Sentence', 'Sentence No.'].
+        lang (str): Language code for BERTScore.
+    Returns:
+        pd.DataFrame: 각 학생의 각 주제별 문장 간 BERTScore를 포함한 DataFrame.
+    """
+    results = []
+    # 교수 데이터 제외
+    students_df = topic_df[topic_df["Person"] != "professor"]
+
+    # 각 학생별로 데이터 처리
+    for person in students_df["Person"].unique():
+        # 해당 학생의 데이터 필터링
+        person_df = students_df[students_df["Person"] == person]
+
+        # 해당 학생이 실제 작성한 문장의 토픽 번호만 가져오기
+        person_topics = person_df["Topic No."].unique()
+
+        for topic in person_topics:
+            # 주제별 문장들을 DataFrame으로 추출 (원래 인덱스 유지)
+            topic_sentences_df = person_df[person_df["Topic No."] == topic]
+
+            # 문장이 2개 이상인 경우만 비교
+            if len(topic_sentences_df) < 2:
+                continue
+
+            # 문장 쌍 생성 및 비교
+            for (idx1, row1), (idx2, row2) in combinations(
+                topic_sentences_df.iterrows(), 2
+            ):
+                sentence1 = row1["Sentence"]
+                sentence2 = row2["Sentence"]
+                sentence_no1 = row1["Sentence No."]
+                sentence_no2 = row2["Sentence No."]
+
+                P, R, F1 = score([sentence1], [sentence2], lang=lang)
+
+                # 결과 저장
+                results.append(
+                    {
+                        "Person": person,
+                        "Topic No.": topic,
+                        "Sentence Pair": f"{sentence_no1} vs {sentence_no2}",
+                        "Precision": P.mean().item(),
+                        "Recall": R.mean().item(),
+                        "F1": F1.mean().item(),
+                    }
+                )
+
+    # DataFrame 생성 및 정렬
+    result_df = pd.DataFrame(results)
+    result_df = result_df.sort_values(by=["Person", "Topic No."]).reset_index(
+        drop=True
+    )
+
+    return result_df
+
+
+def calculate_topic_statistics(pairwise_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    각 학생의 각 주제별 pairwise BERTScore의 평균과 표준편차 계산.
+
+    Args:
+        pairwise_df (pd.DataFrame): pairwise sentence similarity 결과 DataFrame
+                                    Columns: ['Person', 'Topic No.', 'Precision', 'Recall', 'F1'].
+
+    Returns:
+        pd.DataFrame: 각 학생의 각 주제별 평균 및 표준편차를 포함한 DataFrame.
+    """
+    # 필요한 컬럼만 사용하여 그룹별 통계 계산
+    grouped = (
+        pairwise_df.groupby(["Person", "Topic No."])
+        .agg(
+            Precision_Mean=("Precision", "mean"),
+            Precision_Std=("Precision", "std"),
+            Recall_Mean=("Recall", "mean"),
+            Recall_Std=("Recall", "std"),
+            F1_Mean=("F1", "mean"),
+            F1_Std=("F1", "std"),
+        )
+        .reset_index()
+    )
+
+    return grouped
