@@ -22,6 +22,13 @@ from src.bhu_text_mining.visualize_cohesion import (
     compare_topic_lengths_with_xy,
     generate_person_networks_from_sentences,
 )
+from src.bhu_text_mining.knowledge_graph_analysis import (
+    create_student_knowledge_graph,
+    create_reference_knowledge_graph,
+    compare_graphs,
+    display_comparison_results,
+    visualize_superimposed_graph,
+)
 
 
 def make_bertopic_model(yaml_path: str, env_config: Dict):
@@ -121,3 +128,30 @@ print(topic_statistics_df)
 stopwords = load_stopwords(stopwords_path)
 keywords_dict = extract_keywords_from_sentences(topic_df, stopwords)
 generate_person_networks_from_sentences(topic_df, stopwords, font_prop)
+
+
+# Knowledge graph analysis
+reference_graph = create_reference_knowledge_graph(topic_df, stopwords)
+students = ["student1", "student2"]
+
+comparison_results = {}
+for student in students:
+    student_graph = create_student_knowledge_graph(
+        student, topic_df, stopwords
+    )
+    results = compare_graphs(reference_graph, student_graph)
+    comparison_results[student] = results
+
+
+display_comparison_results(comparison_results)  # in DataFrame
+
+for student in students:  # in graphs
+    student_graph = create_student_knowledge_graph(
+        student, topic_df, stopwords
+    )
+    visualize_superimposed_graph(
+        reference_graph,
+        student_graph,
+        font_prop,
+        title=f"Superimposed Graph: {student}",
+    )
