@@ -88,6 +88,9 @@ def prepare_image_files_list(image_path: str, prefix: str) -> List[str]:
     """
     Get a list of image files with a specific prefix in the given directory.
 
+    Only includes files with extensions .jpg, .jpeg, or .png that start with
+    the specified prefix. Returns full paths to the matching image files.
+
     Args:
         image_path (str): Path to the directory containing image files.
         prefix (str): Prefix to filter image files. Default is "cropped_".
@@ -192,8 +195,9 @@ def extract_text(responses: List[Dict]) -> Dict[str, str]:
     """
     Extract and aggregate text from OCR API responses.
 
-    This function processes the responses from an OCR API, extracting recognized
-    text for each image and aggregating the text into a single string for each image.
+    This function processes the responses from an OCR API, extracting
+    recognized text for each image and aggregating the text into a single
+    string for each image.
 
     Args:
         responses (List[Dict]): A list of dictionaries containing OCR API responses.

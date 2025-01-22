@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib import font_manager as fm
 from collections import defaultdict
 from math import ceil
 from src.cohesion_analysis import (
@@ -14,14 +13,38 @@ from src.network_analysis import (
 
 def compare_topic_lengths_with_xy(topic_df: pd.DataFrame):
     """
-    Compare topic-wise sentence count and average length per person,
-    and plot XY graphs for each Person in groups of 6.
+    Compare topic-wise sentence counts and average sentence lengths per person,
+    and visualize the results using XY scatter plots in grouped subplots.
+
+    This function computes the total sentence count and average sentence length
+    for each topic-person pair in the input DataFrame. It generates scatter plots
+    for each person, where the x-axis represents sentence count and the y-axis
+    represents average sentence length, with topics annotated on the points.
 
     Args:
-        topic_df (pd.DataFrame): DataFrame containing topic assignments, sentences, and person identifiers.
+        topic_df (pd.DataFrame): A DataFrame containing topic assignments, sentences,
+            and person identifiers. Expected columns: ['Person', 'Topic No.', 'Sentence'].
 
     Returns:
-        pd.DataFrame: A summary table of topic-wise statistics per person.
+        pd.DataFrame: A summary DataFrame containing topic-wise statistics for each person.
+            Columns include:
+            - 'Person': Identifier for the individual.
+            - 'Topic No.': Topic number.
+            - 'Sentence Count': Total number of sentences for the topic.
+            - 'Avg Sentence Length': Average character length of sentences for the topic.
+
+    Examples:
+        >>> topic_df = pd.DataFrame({
+        ...     "Person": ["Alice", "Alice", "Bob"],
+        ...     "Topic No.": [0, 1, 0],
+        ...     "Sentence": ["This is a sentence.", "Another sentence.", "Yet another one."]
+        ... })
+        >>> summary_df = compare_topic_lengths_with_xy(topic_df)
+        >>> summary_df.head()
+          Person  Topic No.  Sentence Count  Avg Sentence Length
+        0  Alice          0               1                 18.0
+        1  Alice          1               1                 17.0
+        2    Bob          0               1                 17.0
     """
     # Initialize data structure to store stats
     topic_stats = defaultdict(
@@ -121,16 +144,33 @@ def generate_person_networks_from_sentences(
     topic_df: pd.DataFrame, stopwords: set, font_prop, window_size=2
 ):
     """
-    Generate and visualize network graphs for each person based on their sentences.
+    Generate and visualize keyword co-occurrence network graphs for each person.
+
+    This function processes the sentences for each person in the input DataFrame,
+    extracts keywords while excluding stopwords, and constructs a network graph
+    of keyword co-occurrences for each person. Each network graph is displayed
+    with node sizes proportional to keyword frequency and edge weights based on
+    co-occurrence strength.
 
     Args:
-        topic_df (pd.DataFrame): DataFrame with columns ['Person', 'Sentence'].
-        stopwords (set): Set of stopwords to exclude.
-        font_prop: FontProperties object for Korean font rendering.
-        window_size (int): Window size for creating edges in the network graph.
+        topic_df (pd.DataFrame): A DataFrame containing sentences grouped by person.
+            Expected columns: ['Person', 'Sentence'].
+        stopwords (set): A set of words to exclude from keyword extraction.
+        font_prop: A FontProperties object for rendering Korean fonts in the network graph.
+        window_size (int): The size of the sliding window for creating edges in the
+            keyword co-occurrence network (default is 2).
 
     Returns:
-        None: Displays network graphs for each person.
+        None: The function displays network graphs for each person.
+
+    Examples:
+        >>> topic_df = pd.DataFrame({
+        ...     "Person": ["Alice", "Alice", "Bob"],
+        ...     "Sentence": ["Data analysis is fun.", "Python is great.", "Graphs are useful."]
+        ... })
+        >>> stopwords = {"is", "are"}
+        >>> font_prop = FontProperties(fname="path/to/font.ttf")
+        >>> generate_person_networks_from_sentences(topic_df, stopwords, font_prop)
     """
     # Extract keywords grouped by person
     keywords_dict = extract_keywords_from_sentences(topic_df, stopwords)
