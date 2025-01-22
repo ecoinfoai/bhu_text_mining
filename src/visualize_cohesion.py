@@ -3,10 +3,10 @@ import pandas as pd
 from matplotlib import font_manager as fm
 from collections import defaultdict
 from math import ceil
-from src.bhu_text_mining.cohesion_analysis import (
+from src.cohesion_analysis import (
     extract_keywords_from_sentences,
 )
-from src.bhu_text_mining.network_analysis import (
+from src.network_analysis import (
     create_network,
     visualize_network,
 )

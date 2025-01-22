@@ -1,18 +1,18 @@
 from matplotlib import font_manager as fm
 from matplotlib import pyplot as plt
 import yaml
-from src.bhu_text_mining.preprocess_imgs import (
+from src.preprocess_imgs import (
     show_image,
     crop_and_save_images,
 )
-from src.bhu_text_mining.naver_ocr import (
+from src.naver_ocr import (
     load_naver_ocr_env,
     create_request_json,
     prepare_image_files_list,
     send_images_receive_ocr,
     extract_text,
 )
-from src.bhu_text_mining.network_analysis import (
+from src.network_analysis import (
     load_stopwords,
     extract_keywords,
     build_network_from_keywords,

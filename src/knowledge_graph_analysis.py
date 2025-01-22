@@ -2,7 +2,7 @@ import networkx as nx
 import pandas as pd
 from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
-from src.bhu_text_mining.network_analysis import (
+from src.network_analysis import (
     create_network,
     extract_keywords,
 )
