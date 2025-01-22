@@ -3,7 +3,7 @@ import yaml
 from bertopic import BERTopic
 import pandas as pd
 from unittest.mock import MagicMock
-from src.bhu_text_mining.topic_analysis import (
+from src.topic_analysis import (
     load_yaml_data,
     split_sentences,
     generate_topic_dataframe,

@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 from typing import Dict, List
 
-from src.bhu_text_mining.knowledge_graph_analysis import (
+from src.knowledge_graph_analysis import (
     display_comparison_results,
 )
 

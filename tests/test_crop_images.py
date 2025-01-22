@@ -3,7 +3,7 @@ from PIL import Image
 import pandas as pd
 import numpy as np
 import pytest
-from src.bhu_text_mining.preprocess_imgs import (
+from src.preprocess_imgs import (
     crop_and_save_images,
 )
 

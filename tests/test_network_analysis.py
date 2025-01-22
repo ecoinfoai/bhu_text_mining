@@ -1,7 +1,7 @@
 import pytest
 import networkx as nx
 from matplotlib.font_manager import FontProperties
-from src.bhu_text_mining.network_analysis import (
+from src.network_analysis import (
     load_stopwords,
     extract_keywords,
     create_network,
