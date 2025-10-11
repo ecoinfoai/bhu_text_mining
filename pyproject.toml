@@ -1,43 +1,42 @@
-[project]
+[tool.poetry]
 name = "bhu-text-mining"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Kwang-Seuk",email = "kjeong@bhug.ac.kr"}
-]
+authors = ["Kwang-Seuk <kjeong@bhug.ac.kr>"]
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "ipykernel (>=6.29.5,<7.0.0)",
-    "qtconsole (>=5.6.1,<6.0.0)",
-    "pyqt5 (>=5.15.11,<6.0.0)",
-    "jupyter (>=1.1.1,<2.0.0)",
-    "pytest (>=8.3.4,<9.0.0)",
-    "pylint (>=3.3.3,<4.0.0)",
-    "black (>=24.10.0,<25.0.0)",
-    "konlpy (>=0.6.0,<0.7.0)",
-    "requests (>=2.32.3,<3.0.0)",
-    "pillow (>=11.1.0,<12.0.0)",
-    "matplotlib (>=3.10.0,<4.0.0)",
-    "pandas (>=2.2.3,<3.0.0)",
-    "networkx (>=3.4.2,<4.0.0)",
-    "llvmlite (>=0.39.0)",
-    "numpy (<2.1.0)",
-    "kss (>=6.0.4,<7.0.0)",
-    "mecab-python3 (>=1.0.10,<2.0.0)",
-    "wordcloud (>=1.9.4,<2.0.0)",
-    "scikit-learn (>=1.6.1,<2.0.0)",
-    "hdbscan (>=0.8.40,<0.9.0)",
-    "bertopic (>=0.16.4,<0.17.0)",
-    "umap-learn (>=0.5.7,<0.6.0)",
-    "bert-score (>=0.3.13,<0.4.0)",
+packages = [
+    {include = "src"}
 ]
 
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.dependencies]
+python = ">=3.11"
+ipykernel = ">=6.29.5,<7.0.0"
+qtconsole = ">=5.6.1,<6.0.0"
+pyqt5 = ">=5.15.11,<6.0.0"
+jupyter = ">=1.1.1,<2.0.0"
+pytest = ">=8.3.4,<9.0.0"
+pylint = ">=3.3.3,<4.0.0"
+black = ">=24.10.0,<25.0.0"
+konlpy = ">=0.6.0,<0.7.0"
+requests = ">=2.32.3,<3.0.0"
+pillow = ">=11.1.0,<12.0.0"
+matplotlib = ">=3.10.0,<4.0.0"
+pandas = ">=2.2.3,<3.0.0"
+networkx = ">=3.4.2,<4.0.0"
+llvmlite = ">=0.39.0"
+numpy = "<2.1.0"
+kss = ">=6.0.4,<7.0.0"
+mecab-python3 = ">=1.0.10,<2.0.0"
+wordcloud = ">=1.9.4,<2.0.0"
+scikit-learn = ">=1.6.1,<2.0.0"
+hdbscan = ">=0.8.40,<0.9.0"
+bertopic = ">=0.16.4,<0.17.0"
+umap-learn = ">=0.5.7,<0.6.0"
+bert-score = ">=0.3.13,<0.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "^6.0.0"
 
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
