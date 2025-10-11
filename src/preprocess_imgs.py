@@ -97,8 +97,8 @@ def crop_and_save_images(
         >>> crop_coordinates = (50, 100, 400, 300)
         >>> output_prefix = "cropped"
         >>> crop_and_save_images(image_dir, crop_coordinates, output_prefix)
-        Saved the cropped image to: images/cropped_20250111123045_image1.jpg
-        Saved the cropped image to: images/cropped_20250111123046_image2.jpg
+        Saved the cropped image to: images/cropped_image1.jpg
+        Saved the cropped image to: images/cropped_image2.jpg
     """
 
     supported_formats = (".jpg", ".jpeg", ".png")
@@ -108,9 +108,10 @@ def crop_and_save_images(
             image_path = os.path.join(image_dir, filename)
             img = Image.open(image_path)
             cropped_img = img.crop(crop_coordinates)
-            timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            ## timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             file_extension = os.path.splitext(filename)[-1]
-            output_filename = f"{output_prefix}_{timestamp}_{filename.split('.')[0]}{file_extension}"
+            output_filename = f"{output_prefix}_{filename.split('.')[0]}{file_extension}"
+            ## output_filename = f"{output_prefix}_{timestamp}_{filename.split('.')[0]}{file_extension}"
             output_path = os.path.join(image_dir, output_filename)
             cropped_img.save(output_path)
             print(f"Saved the cropped image to: {output_path}")
