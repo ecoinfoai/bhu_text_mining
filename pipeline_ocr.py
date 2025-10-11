@@ -28,8 +28,8 @@ font_path = "/usr/share/fonts/nanum/NanumGothic.ttf"
 stopwords_path = "./data/stopwords-ko.txt"
 
 # Data for the analysis
-image_path = "/home/kjeong/localgit/bhu_text_mining/data"
-sample_image_file = image_path + "/fig01.jpg"
+image_path = "/home/kjeong/localgit/bhu_text_mining/data/W6_1A"
+image_file = image_path + "/W6_1A_0001.jpg"
 prefix = "cropped"
 yaml_path = "/home/kjeong/localgit/bhu_text_mining/data/text_data.yaml"
 
@@ -40,7 +40,7 @@ yaml_path = "/home/kjeong/localgit/bhu_text_mining/data/text_data.yaml"
 ## OCR your Images
 
 # Crop your image
-crop_coordinates = show_image(sample_image_file)
+crop_coordinates = show_image(image_file)
 crop_and_save_images(image_path, crop_coordinates, prefix)
 
 # Text OCR and extraction
