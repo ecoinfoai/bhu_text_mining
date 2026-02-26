@@ -20,6 +20,9 @@ dist/
 *.egg
 *.whl
 
+# direnv
+.direnv/
+
 # Virtual environments
 .venv/
 venv/
