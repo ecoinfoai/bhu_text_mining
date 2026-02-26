@@ -6,7 +6,7 @@ import tempfile
 import pytest
 import yaml
 
-from src.cli import _load_questions, _parse_args, main
+from src.cli import _load_config, _load_questions, _parse_args, main
 
 
 class TestParseArgs:
@@ -89,6 +89,56 @@ class TestLoadQuestions:
         assert result[0]["topic"] == "T1"
 
 
+class TestLoadConfig:
+    """_load_config tests for unified and legacy YAML formats."""
+
+    def test_load_config_unified_yaml(self, tmp_path):
+        """통합 YAML에서 메타데이터 + 문제 추출."""
+        unified = {
+            "year": 2026,
+            "grade": 1,
+            "semester": 1,
+            "course": "감염미생물학",
+            "week": 5,
+            "num-papers": 200,
+            "form-url": "https://example.com/{student_id}",
+            "questions": [
+                {"topic": "개념이해", "text": "Q1", "limit": "200자 내외"},
+                {"topic": "적용", "text": "Q2", "limit": "200자 내외"},
+            ],
+        }
+        yaml_file = tmp_path / "exam.yaml"
+        yaml_file.write_text(
+            yaml.dump(unified, allow_unicode=True), encoding="utf-8",
+        )
+        result = _load_config(str(yaml_file))
+        assert isinstance(result, dict)
+        assert result["year"] == 2026
+        assert result["course"] == "감염미생물학"
+        assert result["num-papers"] == 200
+        assert result["form-url"] == "https://example.com/{student_id}"
+        assert len(result["questions"]) == 2
+        assert result["questions"][0]["topic"] == "개념이해"
+
+    def test_load_config_legacy_yaml(self, tmp_path):
+        """기존 리스트 형식 하위 호환."""
+        legacy = [
+            {"topic": "개념이해", "text": "Q1", "limit": "100자 내외"},
+        ]
+        yaml_file = tmp_path / "q.yaml"
+        yaml_file.write_text(
+            yaml.dump(legacy, allow_unicode=True), encoding="utf-8",
+        )
+        result = _load_config(str(yaml_file))
+        assert isinstance(result, dict)
+        assert "questions" in result
+        assert len(result["questions"]) == 1
+        assert result["questions"][0]["text"] == "Q1"
+        # 메타데이터 키는 없어야 함
+        assert "year" not in result
+        assert "num-papers" not in result
+
+
 class TestMainIntegration:
     """Integration test: CLI → PDF generation."""
 
@@ -107,6 +157,33 @@ class TestMainIntegration:
         main([
             "--questions", str(yaml_file),
             "--num-papers", "2",
+            "--output", str(output_pdf),
+        ])
+
+        assert output_pdf.exists()
+        assert output_pdf.stat().st_size > 0
+
+    def test_main_config_generates_pdf(self, tmp_path):
+        """--config로 통합 YAML → PDF 생성."""
+        unified = {
+            "year": 2026,
+            "grade": 1,
+            "semester": 1,
+            "course": "감염미생물학",
+            "week": 5,
+            "num-papers": 2,
+            "questions": [
+                {"topic": "개념이해", "text": "테스트 문제입니다.", "limit": "100자 내외"},
+            ],
+        }
+        yaml_file = tmp_path / "exam.yaml"
+        yaml_file.write_text(
+            yaml.dump(unified, allow_unicode=True), encoding="utf-8",
+        )
+        output_pdf = tmp_path / "exam.pdf"
+
+        main([
+            "--config", str(yaml_file),
             "--output", str(output_pdf),
         ])
 

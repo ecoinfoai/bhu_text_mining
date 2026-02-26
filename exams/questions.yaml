@@ -1,0 +1,15 @@
+year: 2026
+grade: 1
+semester: 2
+course: "감염미생물학"
+week: 1 
+num-papers: 200
+# form-url: "https://docs.google.com/forms/d/e/ID/viewform?entry.1={student_id}"
+
+questions:
+  - topic: "개념이해"
+    text: "생체항상성(homeostasis)의 의미와 이를 유지하기 위한 음성되먹임기전의 작동 원리를 수용체, 통합센터, 효과기의 역할을 포함하여 설명하시오."
+    limit: "200자 내외"
+  - topic: 적용
+    text: 출산 과정에서 자궁 수축이 점점 강해지는 현상은 양성되먹임기전의 대표적인 예이다. 이 과정이 음성되먹임기전과 어떻게 다른지 비교하고, 양성되먹임기전이 항상성 유지에 적합하지 않은 이유를 설명하시오.
+    limit: 200자 내외
