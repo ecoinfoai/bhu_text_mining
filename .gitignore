@@ -56,6 +56,10 @@ poetry.lock
 # Data files (specific to your project)
 data/
 
+# Dev snapshots & personal files
+dev-snapshots/
+resume-text
+
 # Miscellaneous
 *.swp
 *.swo
