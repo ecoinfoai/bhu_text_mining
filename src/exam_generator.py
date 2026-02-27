@@ -31,7 +31,7 @@ class ExamPDFGenerator:
     FONT_SIZE_TITLE: int = 20
     FONT_SIZE_BODY: int = 14
     FONT_SIZE_FOOTER: int = 14
-    QR_SIZE_MM: int = 44
+    QR_SIZE_MM: int = 22
     ANSWER_HEIGHT_MM: int = 63
     ANSWER_NUM_LINES: int = 7
     _REQUIRED_KEYS = {"topic", "text", "limit"}
