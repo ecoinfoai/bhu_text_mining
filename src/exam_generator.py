@@ -31,8 +31,8 @@ class ExamPDFGenerator:
     FONT_SIZE_TITLE: int = 20
     FONT_SIZE_BODY: int = 14
     FONT_SIZE_FOOTER: int = 14
-    QR_SIZE_MM: int = 22
-    ANSWER_HEIGHT_MM: int = 56
+    QR_SIZE_MM: int = 44
+    ANSWER_HEIGHT_MM: int = 63
     ANSWER_NUM_LINES: int = 7
     _REQUIRED_KEYS = {"topic", "text", "limit"}
 
@@ -269,31 +269,31 @@ class ExamPDFGenerator:
         y_pos: float,
     ) -> float:
         """Draw student info fields. Returns y_pos."""
-        y = y_pos - 10 * mm
-        c.setFont("NanumGothic", self.FONT_SIZE_BODY)
+        y = y_pos - 8 * mm
+        body = self.FONT_SIZE_BODY
+        c.setFont("NanumGothic", body)
+        c.setLineWidth(0.5)
+        # Line 1: 학년, 분반, 학번
         c.drawString(self.margin, y, "학년:")
-        c.rect(
-            self.margin + 15 * mm, y - 3 * mm,
-            25 * mm, 6 * mm,
+        ul1 = self.margin + 15 * mm
+        c.line(ul1, y - 1 * mm, ul1 + 20 * mm, y - 1 * mm)
+        c.drawString(ul1 + 25 * mm, y, "분반:")
+        ul2 = ul1 + 40 * mm
+        c.line(ul2, y - 1 * mm, ul2 + 20 * mm, y - 1 * mm)
+        c.drawString(ul2 + 25 * mm, y, "학번:")
+        ul3 = ul2 + 40 * mm
+        c.line(
+            ul3, y - 1 * mm,
+            self.page_width - self.margin, y - 1 * mm,
         )
-        c.drawString(self.margin + 50 * mm, y, "분반:")
-        c.rect(
-            self.margin + 65 * mm, y - 3 * mm,
-            25 * mm, 6 * mm,
-        )
-        y -= 10 * mm
-        c.drawString(self.margin, y, "학번:")
-        c.rect(
-            self.margin + 15 * mm, y - 3 * mm,
-            70 * mm, 6 * mm,
-        )
-        y -= 10 * mm
-        c.drawString(self.margin, y, "이름:")
-        c.rect(
-            self.margin + 15 * mm, y - 3 * mm,
-            40 * mm, 6 * mm,
-        )
+        # Line 2: 이름
         y -= 8 * mm
+        c.drawString(self.margin, y, "이름:")
+        c.line(
+            ul1, y - 1 * mm,
+            ul1 + 40 * mm, y - 1 * mm,
+        )
+        y -= 6 * mm
         c.setLineWidth(0.5)
         c.line(
             self.margin, y,

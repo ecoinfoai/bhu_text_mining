@@ -283,9 +283,9 @@ class TestPageRendering:
 
     def test_layout_constants(self, generator):
         """FR-LAYOUT-002: answer area and guideline constants."""
-        assert generator.ANSWER_HEIGHT_MM == 56
+        assert generator.ANSWER_HEIGHT_MM == 63
         assert generator.ANSWER_NUM_LINES == 7
-        assert generator.QR_SIZE_MM == 22
+        assert generator.QR_SIZE_MM == 44
 
     def test_qr_import_error_when_missing(self):
         """Verify ImportError when qrcode is unavailable."""

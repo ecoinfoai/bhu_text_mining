@@ -50,12 +50,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="PDF 출력 경로",
     )
 
-    # Optional arguments with defaults
-    parser.add_argument("--year", type=int, default=2025, help="학년도")
-    parser.add_argument("--grade", type=int, default=1, help="학년")
-    parser.add_argument("--semester", type=int, default=2, help="학기")
-    parser.add_argument("--course", default="감염미생물학", help="과목명")
-    parser.add_argument("--week", type=int, default=3, help="주차")
+    # Optional arguments — all default to None so
+    # config YAML values are not shadowed by argparse.
+    parser.add_argument("--year", type=int, default=None, help="학년도")
+    parser.add_argument("--grade", type=int, default=None, help="학년")
+    parser.add_argument("--semester", type=int, default=None, help="학기")
+    parser.add_argument("--course", default=None, help="과목명")
+    parser.add_argument("--week", type=int, default=None, help="주차")
     parser.add_argument("--form-url", default=None, help="Google Forms URL 템플릿")
     parser.add_argument("--student-ids", nargs="+", default=None, help="학생 ID 목록")
     parser.add_argument("--font-path", default=None, help="폰트 경로")
@@ -117,7 +118,19 @@ def main(argv: list[str] | None = None) -> None:
         questions = _load_questions(args.questions_json)
 
     if args.num_papers is None:
-        raise SystemExit("error: --num-papers is required (via CLI or config YAML)")
+        raise SystemExit(
+            "error: --num-papers is required "
+            "(via CLI or config YAML)",
+        )
+
+    # Final fallbacks for fields not in YAML or CLI
+    _FALLBACKS = {
+        "year": 2025, "grade": 1, "semester": 2,
+        "course": "감염미생물학", "week": 3,
+    }
+    for attr, default in _FALLBACKS.items():
+        if getattr(args, attr) is None:
+            setattr(args, attr, default)
 
     generator = ExamPDFGenerator(font_path=args.font_path)
     generator.create_exam_papers(

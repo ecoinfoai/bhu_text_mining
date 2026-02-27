@@ -1,10 +1,10 @@
 year: 2026
 grade: 1
-semester: 2
-course: "감염미생물학"
+semester: 1 
+course: "인체구조와기능"
 week: 1 
-num-papers: 200
-# form-url: "https://docs.google.com/forms/d/e/ID/viewform?entry.1={student_id}"
+num-papers: 220
+form-url: "https://docs.google.com/forms/d/e/1FAIpQLSfqQJT87j6c579-4Pxca4m79oBfO4GcZyZcbEGEZ5BRzUTY9g/viewform?usp=pp_url&entry.1064397072={student_id}"
 
 questions:
   - topic: "개념이해"
