@@ -29,6 +29,10 @@ dependencies = [
     "pytesseract>=0.3.13",
     "opencv-python>=4.12.0.88",
     "pyyaml>=6.0",
+    "anthropic>=0.25.0",
+    "scipy>=1.11.0",
+    "girth>=0.8.0",
+    "stepmix>=2.2.0",
 ]
 
 [project.optional-dependencies]
