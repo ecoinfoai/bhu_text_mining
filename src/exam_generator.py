@@ -155,6 +155,7 @@ class ExamPDFGenerator:
         course_name: str,
         week_num: int,
         form_url_template: Optional[str] = None,
+        q_num: Optional[int] = None,
     ) -> str:
         """Format QR code content string.
 
@@ -164,17 +165,25 @@ class ExamPDFGenerator:
             week_num: week number.
             form_url_template: Google Forms URL with
                 {student_id}, {course_name}, {week_num}.
+            q_num: question number for per-question QR.
+                None omits the question field.
 
         Returns:
             URL string or plain-text fallback.
         """
         if form_url_template is None:
-            return f"{student_id}|{course_name}|{week_num}주차"
-        return form_url_template.format(
+            base = f"{student_id}|{course_name}|{week_num}주차"
+            if q_num is not None:
+                return f"{base}|Q{q_num}"
+            return base
+        url = form_url_template.format(
             student_id=quote(student_id, safe=""),
             course_name=quote(course_name, safe=""),
             week_num=week_num,
         )
+        if q_num is not None:
+            url = f"{url}&q={q_num}"
+        return url
 
     # ── QR image generation ──────────────────────
 
@@ -442,18 +451,26 @@ class ExamPDFGenerator:
         semester: int,
         course_name: str,
         week_num: int,
-        qr_image: Optional["PILImage.Image"] = None,
+        student_id: Optional[str] = None,
+        form_url_template: Optional[str] = None,
     ) -> None:
-        """Draw a single exam page."""
+        """Draw a single exam page with per-question QR codes."""
         y = self._draw_header(
             c, paper_num, year, grade,
             semester, course_name, week_num,
         )
         y = self._draw_student_info(c, y)
         for q_num, q in enumerate(questions, 1):
-            y = self._draw_question(
-                c, y, q_num, q, qr_image,
-            )
+            qr_img = None
+            if student_id and form_url_template:
+                content = self._format_qr_content(
+                    student_id, course_name, week_num,
+                    form_url_template, q_num=q_num,
+                )
+                qr_img = self._generate_qr_image(
+                    content, self.QR_SIZE_MM,
+                )
+            y = self._draw_question(c, y, q_num, q, qr_img)
         self._draw_footer(c)
 
     # ── input orchestration ────────────────────────
@@ -540,19 +557,12 @@ class ExamPDFGenerator:
         """Render all pages to a PDF file."""
         c = canvas.Canvas(output_path, pagesize=A4)
         for i, sid in enumerate(ids):
-            qr_img = None
-            if form_url_template is not None:
-                content = self._format_qr_content(
-                    sid, course_name, week_num,
-                    form_url_template,
-                )
-                qr_img = self._generate_qr_image(
-                    content, self.QR_SIZE_MM,
-                )
             self._draw_page(
                 c, questions, i + 1,
                 year, grade, semester,
-                course_name, week_num, qr_img,
+                course_name, week_num,
+                student_id=sid if form_url_template else None,
+                form_url_template=form_url_template,
             )
             c.showPage()
         c.save()

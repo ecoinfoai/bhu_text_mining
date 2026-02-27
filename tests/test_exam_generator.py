@@ -303,6 +303,63 @@ class TestPageRendering:
 
 
 # ──────────────────────────────────────────────────
+# Group 5b: 문제별 QR 코드 (3개)
+# ──────────────────────────────────────────────────
+
+class TestPerQuestionQR:
+    """FR-QR-005: per-question QR code generation tests."""
+
+    def test_format_qr_content_plain_with_q_num(self):
+        content = ExamPDFGenerator._format_qr_content(
+            student_id="S001",
+            course_name="인체구조와기능",
+            week_num=1,
+            q_num=1,
+        )
+        assert content == "S001|인체구조와기능|1주차|Q1"
+
+    def test_format_qr_content_url_with_q_num(self):
+        template = (
+            "https://forms.example.com"
+            "?sid={student_id}&w={week_num}"
+        )
+        content = ExamPDFGenerator._format_qr_content(
+            student_id="S001",
+            course_name="인체구조와기능",
+            week_num=1,
+            form_url_template=template,
+            q_num=2,
+        )
+        assert "S001" in content
+        assert "&q=2" in content
+
+    def test_create_exam_per_question_qr_produces_pdf(
+        self, generator, sample_questions,
+    ):
+        """Each question gets its own QR — PDF must be valid."""
+        template = (
+            "https://forms.example.com"
+            "?sid={student_id}&w={week_num}"
+        )
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdf", delete=False,
+        ) as f:
+            path = f.name
+        try:
+            generator.create_exam_papers(
+                questions=sample_questions,
+                num_papers=1,
+                output_path=path,
+                form_url_template=template,
+                student_ids=["S001"],
+            )
+            with open(path, "rb") as f:
+                assert f.read(5) == b"%PDF-"
+        finally:
+            os.unlink(path)
+
+
+# ──────────────────────────────────────────────────
 # Group 6: 통합 / 하위호환 (2개)
 # ──────────────────────────────────────────────────
 

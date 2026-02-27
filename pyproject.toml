@@ -47,6 +47,7 @@ jupyter = [
 
 [project.scripts]
 bhu-exam = "src.cli:main"
+bhu-ocr = "src.cli_ocr:main"
 
 [build-system]
 requires = ["hatchling"]
