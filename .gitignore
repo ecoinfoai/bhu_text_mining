@@ -45,6 +45,7 @@ htmlcov/
 
 # Exam data
 exams/
+results/
 
 # MyPy
 .mypy_cache/
