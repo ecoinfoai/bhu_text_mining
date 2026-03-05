@@ -1,14 +1,20 @@
 # src/qr_decode.py
 """QR code decoding utilities for scanned exam sheets.
 
-Uses OpenCV QRCodeDetector (already available via opencv-python).
-No additional dependencies required.
+Uses pyzbar (zbar) as primary decoder for robust scanning,
+with OpenCV QRCodeDetector as fallback.
 """
 from __future__ import annotations
 
 import re
 from typing import Optional
 from urllib.parse import parse_qs, unquote, urlparse
+
+try:
+    from pyzbar.pyzbar import decode as _pyzbar_decode
+    _HAS_PYZBAR = True
+except ImportError:
+    _HAS_PYZBAR = False
 
 try:
     import cv2
@@ -20,34 +26,93 @@ except ImportError:  # pragma: no cover
 def decode_qr_from_image(image_path: str) -> Optional[str]:
     """Decode QR code from an image file.
 
-    Attempts decoding on the original image first, then falls
-    back to grayscale + Otsu binarization for low-contrast scans.
+    Tries pyzbar first (more reliable for scanned images),
+    then falls back to OpenCV QRCodeDetector with preprocessing.
 
     Args:
         image_path: path to the image file (.jpg/.png).
 
     Returns:
         Decoded QR content string, or None if not found.
+
+    Raises:
+        ImportError: if neither pyzbar nor opencv is available.
     """
-    if not _HAS_CV2:
+    if not _HAS_PYZBAR and not _HAS_CV2:
         raise ImportError(
-            "opencv-python is required. Install: "
-            "pip install opencv-python-headless. "
-            "[decode_qr_from_image]"
+            "QR 디코딩에 pyzbar 또는 opencv-python-headless가 필요합니다. "
+            "Install: pip install pyzbar"
         )
-    img = cv2.imread(image_path)
-    if img is None:
+
+    from PIL import Image, ImageFilter
+
+    img = Image.open(image_path)
+
+    if _HAS_PYZBAR:
+        result = _decode_pyzbar_with_preprocess(img)
+        if result:
+            return result
+
+    if _HAS_CV2:
+        result = _decode_cv2_with_preprocess(image_path)
+        if result:
+            return result
+
+    return None
+
+
+def _decode_pyzbar_with_preprocess(img: "Image.Image") -> Optional[str]:
+    """Try pyzbar with progressively stronger preprocessing."""
+    from PIL import Image, ImageFilter
+
+    # 1) Original
+    results = _pyzbar_decode(img)
+    if results:
+        return results[0].data.decode("utf-8")
+
+    gray = img.convert("L")
+
+    # 2) Grayscale
+    results = _pyzbar_decode(gray)
+    if results:
+        return results[0].data.decode("utf-8")
+
+    # 3) Sharpen + contrast
+    sharpened = gray.filter(ImageFilter.SHARPEN)
+    results = _pyzbar_decode(sharpened)
+    if results:
+        return results[0].data.decode("utf-8")
+
+    # 4) Binary threshold (scan noise removal)
+    threshold = 128
+    binary = gray.point(lambda p: 255 if p > threshold else 0)
+    results = _pyzbar_decode(binary)
+    if results:
+        return results[0].data.decode("utf-8")
+
+    # 5) Upscale 2x (helps with small QR codes)
+    w, h = gray.size
+    upscaled = gray.resize((w * 2, h * 2), Image.LANCZOS)
+    results = _pyzbar_decode(upscaled)
+    if results:
+        return results[0].data.decode("utf-8")
+
+    return None
+
+
+def _decode_cv2_with_preprocess(image_path: str) -> Optional[str]:
+    """Try OpenCV QRCodeDetector with preprocessing."""
+    img_cv = cv2.imread(image_path)
+    if img_cv is None:
         return None
 
     detector = cv2.QRCodeDetector()
 
-    # First attempt: original image
-    data, _, _ = detector.detectAndDecode(img)
+    data, _, _ = detector.detectAndDecode(img_cv)
     if data:
         return data
 
-    # Fallback: grayscale + Otsu binarization
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(
         gray, 0, 255,
         cv2.THRESH_BINARY + cv2.THRESH_OTSU,

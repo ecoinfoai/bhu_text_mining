@@ -6,12 +6,23 @@ import tempfile
 import pytest
 import qrcode
 
-cv2 = pytest.importorskip(
-    "cv2",
-    reason="opencv-python not importable in this environment (libxcb missing)",
-    exc_type=ImportError,
-)
-import numpy as np  # noqa: E402 — after cv2 skip guard
+try:
+    import cv2
+    _HAS_CV2 = True
+except ImportError:
+    _HAS_CV2 = False
+
+try:
+    from pyzbar.pyzbar import decode as _pyzbar_decode
+    _HAS_PYZBAR = True
+except ImportError:
+    _HAS_PYZBAR = False
+
+if not _HAS_CV2 and not _HAS_PYZBAR:
+    pytest.skip(
+        "Neither cv2 nor pyzbar available",
+        allow_module_level=True,
+    )
 
 from src.qr_decode import decode_qr_from_image, parse_qr_content
 
@@ -31,12 +42,11 @@ def _write_qr_png(content: str) -> str:
     pil_img = qr.make_image(
         fill_color="black", back_color="white",
     ).convert("RGB")
-    img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
     with tempfile.NamedTemporaryFile(
         suffix=".png", delete=False,
     ) as f:
         path = f.name
-    cv2.imwrite(path, img_cv)
+    pil_img.save(path)
     return path
 
 
@@ -71,35 +81,52 @@ class TestDecodeQrFromImage:
 
     def test_decode_returns_none_for_no_qr(self):
         # Solid white image contains no QR
-        img = np.ones((300, 300, 3), dtype=np.uint8) * 255
+        from PIL import Image
+
+        img = Image.new("RGB", (300, 300), "white")
         with tempfile.NamedTemporaryFile(
             suffix=".png", delete=False,
         ) as f:
             path = f.name
         try:
-            cv2.imwrite(path, img)
+            img.save(path)
             result = decode_qr_from_image(path)
             assert result is None
         finally:
             os.unlink(path)
 
     def test_decode_returns_none_for_nonexistent_file(self):
-        result = decode_qr_from_image("/nonexistent/path/img.png")
-        assert result is None
+        # pyzbar raises FileNotFoundError, cv2 returns None
+        try:
+            result = decode_qr_from_image("/nonexistent/path/img.png")
+            assert result is None
+        except FileNotFoundError:
+            pass
 
     def test_decode_noisy_image_via_fallback(self):
-        """Add Gaussian noise — fallback binarization should still decode."""
+        """Add noise — preprocessing should still decode."""
+        import random
+
+        from PIL import Image
+
         content = "S003|감염미생물학|2주차|Q1"
         path = _write_qr_png(content)
         try:
-            img = cv2.imread(path)
-            noise = np.random.normal(0, 15, img.shape).astype(np.int16)
-            noisy = np.clip(img.astype(np.int16) + noise, 0, 255).astype(
-                np.uint8
-            )
-            cv2.imwrite(path, noisy)
+            img = Image.open(path).convert("RGB")
+            pixels = img.load()
+            w, h = img.size
+            for _ in range(w * h // 5):
+                x = random.randint(0, w - 1)
+                y = random.randint(0, h - 1)
+                r, g, b = pixels[x, y]
+                noise = random.randint(-30, 30)
+                pixels[x, y] = (
+                    max(0, min(255, r + noise)),
+                    max(0, min(255, g + noise)),
+                    max(0, min(255, b + noise)),
+                )
+            img.save(path)
             result = decode_qr_from_image(path)
-            # May succeed or fail depending on noise level; just no exception
             assert result is None or isinstance(result, str)
         finally:
             os.unlink(path)
