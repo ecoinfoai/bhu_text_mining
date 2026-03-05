@@ -230,9 +230,30 @@ def _save_yaml(
     """Save *data* as YAML to *output_path*, creating dirs as needed."""
     out_dir = os.path.dirname(os.path.abspath(output_path))
     os.makedirs(out_dir, exist_ok=True)
+    # Dumper that quotes string values but not keys
+    class _QuotedDumper(yaml.SafeDumper):
+        pass
+
+    def _quoted_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
+        return dumper.represent_scalar(
+            "tag:yaml.org,2002:str", data, style='"',
+        )
+
+    def _mapping(dumper: yaml.SafeDumper, data: dict) -> yaml.MappingNode:
+        pairs = []
+        for key, value in data.items():
+            key_node = dumper.represent_str(key)  # plain key
+            val_node = dumper.represent_data(value)
+            pairs.append((key_node, val_node))
+        return yaml.MappingNode("tag:yaml.org,2002:map", pairs)
+
+    _QuotedDumper.add_representer(str, _quoted_str)
+    _QuotedDumper.add_representer(dict, _mapping)
+
     with open(output_path, "w", encoding="utf-8") as f:
         yaml.dump(
             data, f,
+            Dumper=_QuotedDumper,
             allow_unicode=True,
             default_flow_style=False,
             sort_keys=False,
