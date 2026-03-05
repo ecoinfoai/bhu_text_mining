@@ -43,6 +43,9 @@ coverage.xml
 *.cover
 htmlcov/
 
+# Exam data
+exams/
+
 # MyPy
 .mypy_cache/
 

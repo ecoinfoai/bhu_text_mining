@@ -12,6 +12,7 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           python311
+          python311Packages.pyqt5
           uv
           bun
         ];
@@ -22,9 +23,12 @@
           UV_PYTHON_PREFERENCE = "only-system";
         };
 
-        # Provide libstdc++ for native node modules (Backlog.md)
+        # Provide libstdc++ and Qt5/zlib for PyQt5 via pip
         LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
           pkgs.stdenv.cc.cc.lib
+          pkgs.qt5.qtbase
+          pkgs.zbar
+          pkgs.zlib
         ];
       };
     };
