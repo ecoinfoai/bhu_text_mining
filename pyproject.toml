@@ -1,6 +1,6 @@
 [project]
 name = "bhu-text-mining"
-version = "0.2.2"
+version = "0.3.0"
 description = ""
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},
