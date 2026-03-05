@@ -5,19 +5,13 @@ from __future__ import annotations
 import csv
 import json
 import os
-import sys
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
 
-# preprocess_imgs calls matplotlib.use("Qt5Agg") at module level.
-# Mock it before cli_ocr → ocr_pipeline → preprocess_imgs import chain.
-if "src.preprocess_imgs" not in sys.modules:
-    sys.modules["src.preprocess_imgs"] = MagicMock()
-
-from src.cli_ocr import _load_ocr_config, _parse_args, main  # noqa: E402
+from src.cli_ocr import _load_ocr_config, _parse_args, main
 
 
 # ── fixtures ──────────────────────────────────────

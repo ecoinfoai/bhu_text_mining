@@ -4,22 +4,14 @@ from __future__ import annotations
 
 import csv
 import os
-import sys
 import tempfile
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
 
-# preprocess_imgs calls matplotlib.use("Qt5Agg") at module level which
-# requires a display.  Mock the whole module before any import of
-# ocr_pipeline so the lazy imports inside its functions also resolve
-# against the mock.
-if "src.preprocess_imgs" not in sys.modules:
-    sys.modules["src.preprocess_imgs"] = MagicMock()
-
-from src.ocr_pipeline import (  # noqa: E402 — after sys.modules patch
+from src.ocr_pipeline import (
     _list_raw_images,
     _save_yaml,
     run_join_pipeline,
@@ -184,7 +176,7 @@ class TestRunScanPipeline:
         # will find.  Mock both I/O-heavy parts.
         with (
             patch(
-                "src.preprocess_imgs.crop_and_save_images",
+                "src.ocr_pipeline.crop_and_save_images",
             ) as mock_crop,
             patch(
                 "src.ocr_pipeline.prepare_image_files_list",
@@ -218,7 +210,7 @@ class TestRunScanPipeline:
         open(fake_img, "wb").close()
 
         with (
-            patch("src.preprocess_imgs.crop_and_save_images"),
+            patch("src.ocr_pipeline.crop_and_save_images"),
             patch(
                 "src.ocr_pipeline.prepare_image_files_list",
                 return_value=[fake_img],

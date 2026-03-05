@@ -22,12 +22,8 @@ from src.naver_ocr import (
     prepare_image_files_list,
     send_images_receive_ocr,
 )
+from src.preprocess_imgs import crop_and_save_images, show_image
 from src.qr_decode import decode_qr_from_image, parse_qr_content
-
-# preprocess_imgs is imported lazily inside functions that need it
-# because it calls matplotlib.use("Qt5Agg") at module level, which
-# requires a display.  Lazy import keeps this module importable in
-# headless / test environments.
 
 
 def run_scan_pipeline(
@@ -71,7 +67,6 @@ def run_scan_pipeline(
     if crop_coords is not None:
         coords_list = list(crop_coords)
     else:
-        from src.preprocess_imgs import show_image  # lazy: needs display
         coords_list = []
         for q_idx in range(1, num_questions + 1):
             print(
@@ -81,7 +76,6 @@ def run_scan_pipeline(
             coords_list.append(show_image(sample_image))
 
     # ── step 2: batch crop per question ──────────
-    from src.preprocess_imgs import crop_and_save_images  # lazy
     prefixes: list[str] = []
     for q_idx, coords in enumerate(coords_list, 1):
         prefix = f"q{q_idx}"
@@ -89,52 +83,65 @@ def run_scan_pipeline(
         prefixes.append(prefix)
 
     # ── steps 3 & 4: QR decode + OCR ─────────────
+    # Collect all cropped files upfront for progress tracking
+    all_cropped: list[tuple[int, str]] = []
+    for q_idx, prefix in enumerate(prefixes, 1):
+        for img_path in sorted(
+            prepare_image_files_list(image_dir, prefix + "_")
+        ):
+            all_cropped.append((q_idx, img_path))
+
+    total_files = len(all_cropped)
     results: list[dict[str, Any]] = []
     qr_decoded = 0
     qr_failed = 0
+    file_counter: dict[int, int] = {}
 
-    for q_idx, prefix in enumerate(prefixes, 1):
-        cropped_files = sorted(
-            prepare_image_files_list(image_dir, prefix + "_")
+    print(f"\nQR 디코딩 + OCR 처리 중 ({total_files}개 이미지)...")
+    for processed, (q_idx, img_path) in enumerate(all_cropped, 1):
+        file_counter[q_idx] = file_counter.get(q_idx, 0) + 1
+        file_idx = file_counter[q_idx]
+        source_file = os.path.basename(img_path)
+        pct = processed * 100 // total_files
+        print(
+            f"\r  [{pct:3d}%] {processed}/{total_files}  {source_file}",
+            end="", flush=True,
         )
 
-        for file_idx, img_path in enumerate(cropped_files):
-            source_file = os.path.basename(img_path)
-
-            # QR decode
-            raw_qr = decode_qr_from_image(img_path)
-            if raw_qr is not None:
-                try:
-                    parsed = parse_qr_content(raw_qr)
-                    student_id: str = parsed["student_id"]
-                    q_num: int = parsed.get("q_num") or q_idx
-                    qr_decoded += 1
-                except ValueError:
-                    student_id = f"UNKNOWN_{file_idx + 1:04d}"
-                    q_num = q_idx
-                    qr_failed += 1
-            else:
-                student_id = f"UNKNOWN_{file_idx + 1:04d}"
+        # QR decode
+        raw_qr = decode_qr_from_image(img_path)
+        if raw_qr is not None:
+            try:
+                parsed = parse_qr_content(raw_qr)
+                student_id: str = parsed["student_id"]
+                q_num: int = parsed.get("q_num") or q_idx
+                qr_decoded += 1
+            except ValueError:
+                student_id = f"UNKNOWN_{file_idx:04d}"
                 q_num = q_idx
                 qr_failed += 1
+        else:
+            student_id = f"UNKNOWN_{file_idx:04d}"
+            q_num = q_idx
+            qr_failed += 1
 
-            # Naver OCR
-            text = ""
-            try:
-                ocr_responses = send_images_receive_ocr(
-                    api_url, secret_key, [img_path],
-                )
-                text_map = extract_text(ocr_responses)
-                text = next(iter(text_map.values()), "")
-            except Exception:
-                pass
+        # Naver OCR
+        text = ""
+        try:
+            ocr_responses = send_images_receive_ocr(
+                api_url, secret_key, [img_path],
+            )
+            text_map = extract_text(ocr_responses)
+            text = next(iter(text_map.values()), "")
+        except Exception:
+            pass
 
-            results.append({
-                "student_id": student_id,
-                "q_num": q_num,
-                "text": text,
-                "source_file": source_file,
-            })
+        results.append({
+            "student_id": student_id,
+            "q_num": q_num,
+            "text": text,
+            "source_file": source_file,
+        })
 
     total = qr_decoded + qr_failed
     print(

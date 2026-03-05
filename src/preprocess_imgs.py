@@ -1,10 +1,6 @@
 from PIL import Image
 import os
-import datetime
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.use("Qt5Agg")
+import re
 
 
 def show_image(image_path):
@@ -30,6 +26,20 @@ def show_image(image_path):
         >>> print(crop_coords)
         (50, 100, 400, 300)
     """
+    import matplotlib
+
+    try:
+        matplotlib.use("Qt5Agg")
+        import matplotlib.pyplot as plt
+        plt.figure()  # 백엔드 실제 로드 확인
+        plt.close()
+    except ImportError:
+        raise ImportError(
+            "Qt5 백엔드를 로드할 수 없습니다. "
+            "NixOS: nix-shell에 python3Packages.pyqt5를 추가하세요. "
+            "기타: pip install PyQt5"
+        ) from None
+
     # Local variable to store coordinates
     coordinates = []
 
@@ -102,9 +112,10 @@ def crop_and_save_images(
     """
 
     supported_formats = (".jpg", ".jpeg", ".png")
+    _cropped_re = re.compile(r"^q\d+_")
 
-    for filename in os.listdir(image_dir):
-        if filename.lower().endswith(supported_formats):
+    for filename in sorted(os.listdir(image_dir)):
+        if filename.lower().endswith(supported_formats) and not _cropped_re.match(filename):
             image_path = os.path.join(image_dir, filename)
             img = Image.open(image_path)
             cropped_img = img.crop(crop_coordinates)
