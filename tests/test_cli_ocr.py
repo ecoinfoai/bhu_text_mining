@@ -84,7 +84,7 @@ class TestParseArgs:
         )
         assert args.num_questions == 3
 
-    def test_join_subcommand_parsed(self, tmp_path):
+    def test_join_subcommand_parsed_with_csv(self, tmp_path):
         args = _parse_args(
             [
                 "join",
@@ -97,6 +97,20 @@ class TestParseArgs:
         assert args.ocr_results == "results.yaml"
         assert args.forms_csv == "responses.csv"
         assert args.output == "final.yaml"
+        assert args.spreadsheet_url is None
+
+    def test_join_subcommand_parsed_with_sheets(self):
+        url = "https://docs.google.com/spreadsheets/d/abc"
+        args = _parse_args(
+            [
+                "join",
+                "--ocr-results", "r.yaml",
+                "--output", "o.yaml",
+                "--spreadsheet-url", url,
+            ]
+        )
+        assert args.spreadsheet_url == url
+        assert args.forms_csv is None
 
     def test_join_default_student_id_column(self):
         args = _parse_args(
@@ -121,6 +135,41 @@ class TestParseArgs:
         )
         assert args.student_id_column == "sid"
 
+    def test_join_credentials_default(self):
+        args = _parse_args(
+            [
+                "join",
+                "--ocr-results", "r.yaml",
+                "--output", "o.yaml",
+                "--forms-csv", "f.csv",
+            ]
+        )
+        assert args.credentials == "credentials.json"
+
+    def test_join_credentials_custom(self):
+        args = _parse_args(
+            [
+                "join",
+                "--ocr-results", "r.yaml",
+                "--output", "o.yaml",
+                "--forms-csv", "f.csv",
+                "--credentials", "my_creds.json",
+            ]
+        )
+        assert args.credentials == "my_creds.json"
+
+    def test_join_manual_mapping_arg(self):
+        args = _parse_args(
+            [
+                "join",
+                "--ocr-results", "r.yaml",
+                "--output", "o.yaml",
+                "--forms-csv", "f.csv",
+                "--manual-mapping", "mapping.yaml",
+            ]
+        )
+        assert args.manual_mapping == "mapping.yaml"
+
     def test_missing_subcommand_raises(self):
         with pytest.raises(SystemExit):
             _parse_args([])
@@ -129,7 +178,7 @@ class TestParseArgs:
         with pytest.raises(SystemExit):
             _parse_args(["scan"])
 
-    def test_join_missing_required_args_raises(self):
+    def test_join_missing_output_raises(self):
         with pytest.raises(SystemExit):
             _parse_args(["join", "--ocr-results", "r.yaml"])
 
@@ -219,7 +268,7 @@ class TestMainScan:
 
 
 class TestMainJoin:
-    def test_main_join_calls_pipeline(
+    def test_main_join_calls_pipeline_with_csv(
         self, ocr_results_yaml, forms_csv, tmp_path
     ):
         out = str(tmp_path / "final.yaml")
@@ -240,7 +289,29 @@ class TestMainJoin:
         assert call_kwargs["ocr_results_path"] == ocr_results_yaml
         assert call_kwargs["forms_csv_path"] == forms_csv
         assert call_kwargs["output_path"] == out
+        assert call_kwargs["spreadsheet_url"] is None
         assert call_kwargs["student_id_column"] == "student_id"
+
+    def test_main_join_with_spreadsheet_url(
+        self, ocr_results_yaml, tmp_path
+    ):
+        out = str(tmp_path / "final.yaml")
+        url = "https://docs.google.com/spreadsheets/d/abc"
+        with patch(
+            "src.cli_ocr.run_join_pipeline",
+            return_value=[],
+        ) as mock_join:
+            main(
+                [
+                    "join",
+                    "--ocr-results", ocr_results_yaml,
+                    "--output", out,
+                    "--spreadsheet-url", url,
+                ]
+            )
+        call_kwargs = mock_join.call_args.kwargs
+        assert call_kwargs["spreadsheet_url"] == url
+        assert call_kwargs["forms_csv_path"] is None
 
     def test_main_join_custom_student_id_column(
         self, ocr_results_yaml, forms_csv, tmp_path
@@ -261,4 +332,38 @@ class TestMainJoin:
             )
         assert (
             mock_join.call_args.kwargs["student_id_column"] == "sid"
+        )
+
+    def test_main_join_no_source_exits(self, ocr_results_yaml, tmp_path):
+        """Exit with error when neither --spreadsheet-url nor --forms-csv."""
+        out = str(tmp_path / "final.yaml")
+        with pytest.raises(SystemExit):
+            main(
+                [
+                    "join",
+                    "--ocr-results", ocr_results_yaml,
+                    "--output", out,
+                ]
+            )
+
+    def test_main_join_passes_manual_mapping(
+        self, ocr_results_yaml, forms_csv, tmp_path
+    ):
+        out = str(tmp_path / "final.yaml")
+        mapping = str(tmp_path / "mapping.yaml")
+        with patch(
+            "src.cli_ocr.run_join_pipeline",
+            return_value=[],
+        ) as mock_join:
+            main(
+                [
+                    "join",
+                    "--ocr-results", ocr_results_yaml,
+                    "--forms-csv", forms_csv,
+                    "--output", out,
+                    "--manual-mapping", mapping,
+                ]
+            )
+        assert (
+            mock_join.call_args.kwargs["manual_mapping_path"] == mapping
         )

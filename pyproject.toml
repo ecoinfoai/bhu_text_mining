@@ -34,6 +34,8 @@ dependencies = [
     "scipy>=1.11.0",
     "girth>=0.8.0",
     "stepmix>=2.2.0",
+    "gspread>=6.0.0",
+    "google-auth-oauthlib>=1.2.0",
 ]
 
 [project.optional-dependencies]

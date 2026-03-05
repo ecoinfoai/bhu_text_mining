@@ -155,40 +155,91 @@ def run_scan_pipeline(
 
 def run_join_pipeline(
     ocr_results_path: str,
-    forms_csv_path: str,
     output_path: str,
+    forms_csv_path: str | None = None,
+    spreadsheet_url: str | None = None,
+    credentials_path: str = "credentials.json",
+    manual_mapping_path: str | None = None,
     student_id_column: str = "student_id",
 ) -> list[dict[str, Any]]:
-    """Join OCR results YAML with Google Forms CSV data.
+    """Join OCR results YAML with Google Forms data.
+
+    Data source priority:
+        1. *spreadsheet_url* → Google Sheets fetch
+        2. On failure, *forms_csv_path* → CSV fallback
+        3. Neither provided → ``ValueError``
 
     Args:
         ocr_results_path: path to OCR results YAML file.
-        forms_csv_path: path to Google Forms CSV download.
         output_path: YAML file path for joined results.
+        forms_csv_path: path to Google Forms CSV download (optional).
+        spreadsheet_url: Google Sheets URL (optional).
+        credentials_path: path to OAuth2 credentials JSON
+            (used with *spreadsheet_url*).
+        manual_mapping_path: YAML file mapping student IDs to
+            form fields for students missing from Forms/CSV.
         student_id_column: column name for the student ID
-            in the CSV file (default: ``"student_id"``).
+            in the CSV / sheet (default: ``"student_id"``).
 
     Returns:
         List of joined result dicts.  Each entry includes all
         OCR result fields plus a ``"forms_data"`` sub-dict
-        when a matching CSV row is found.
+        when a matching row is found.
+
+    Raises:
+        ValueError: if neither *spreadsheet_url* nor
+            *forms_csv_path* is provided.
     """
+    if spreadsheet_url is None and forms_csv_path is None:
+        raise ValueError(
+            "At least one data source required: "
+            "--spreadsheet-url or --forms-csv"
+        )
+
     with open(ocr_results_path, encoding="utf-8") as f:
         ocr_results: list[dict[str, Any]] = yaml.safe_load(f)
 
-    # Load CSV keyed by student_id
+    # ── load forms data ──────────────────────────
     forms_data: dict[str, dict[str, str]] = {}
-    with open(
-        forms_csv_path, encoding="utf-8-sig", newline="",
-    ) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            sid = row.get(student_id_column, "").strip()
-            if sid:
-                forms_data[sid] = dict(row)
+    source_label = ""
 
-    # Join
+    if spreadsheet_url is not None:
+        try:
+            from src.google_sheets import fetch_sheet_as_records
+
+            records = fetch_sheet_as_records(
+                spreadsheet_url,
+                credentials_path=credentials_path,
+            )
+            for row in records:
+                sid = str(row.get(student_id_column, "")).strip()
+                if sid:
+                    forms_data[sid] = {str(k): str(v) for k, v in row.items()}
+            source_label = "Google Sheets"
+        except Exception as exc:
+            if forms_csv_path is not None:
+                print(
+                    f"⚠ Google Sheets 접근 실패 ({exc}), "
+                    f"CSV 폴백: {forms_csv_path}"
+                )
+            else:
+                raise
+
+    if not forms_data and forms_csv_path is not None:
+        forms_data = _load_forms_csv(forms_csv_path, student_id_column)
+        source_label = "CSV"
+
+    # ── manual mapping supplement ────────────────
+    if manual_mapping_path is not None:
+        with open(manual_mapping_path, encoding="utf-8") as f:
+            manual: dict[str, dict[str, str]] = yaml.safe_load(f) or {}
+        for sid, fields in manual.items():
+            if sid not in forms_data:
+                forms_data[sid] = fields
+
+    # ── join ─────────────────────────────────────
     joined: list[dict[str, Any]] = []
+    matched_sids: set[str] = set()
     for entry in ocr_results:
         sid = entry.get("student_id", "")
         forms_row = forms_data.get(sid, {})
@@ -200,10 +251,39 @@ def run_join_pipeline(
                 if k != student_id_column
             }
             record["forms_data"] = extra
+            matched_sids.add(sid)
         joined.append(record)
+
+    # ── match report ─────────────────────────────
+    all_sids = {
+        e.get("student_id", "")
+        for e in ocr_results
+        if not e.get("student_id", "").startswith("UNKNOWN_")
+    }
+    unmatched = sorted(all_sids - matched_sids)
+    total = len(all_sids)
+    matched = len(matched_sids)
+    print(f"✓ {matched}/{total} 학생 매칭 완료")
+    if unmatched:
+        print(f"⚠ {len(unmatched)}명 미매칭: {', '.join(unmatched)}")
 
     _save_yaml(joined, output_path)
     return joined
+
+
+def _load_forms_csv(
+    csv_path: str,
+    student_id_column: str,
+) -> dict[str, dict[str, str]]:
+    """Load a Google Forms CSV keyed by student ID."""
+    forms_data: dict[str, dict[str, str]] = {}
+    with open(csv_path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            sid = row.get(student_id_column, "").strip()
+            if sid:
+                forms_data[sid] = dict(row)
+    return forms_data
 
 
 # ── internal helpers ─────────────────────────────

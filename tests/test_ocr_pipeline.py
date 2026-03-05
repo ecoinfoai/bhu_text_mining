@@ -248,8 +248,8 @@ class TestRunJoinPipeline:
         out = str(tmp_path / "final.yaml")
         joined = run_join_pipeline(
             ocr_results_path=ocr_results_yaml,
-            forms_csv_path=forms_csv_file,
             output_path=out,
+            forms_csv_path=forms_csv_file,
         )
         s001_entries = [e for e in joined if e["student_id"] == "S001"]
         assert len(s001_entries) == 2
@@ -277,8 +277,8 @@ class TestRunJoinPipeline:
         out = str(tmp_path / "final.yaml")
         joined = run_join_pipeline(
             ocr_results_path=ocr_results_yaml,
-            forms_csv_path=forms_csv_file,
             output_path=out,
+            forms_csv_path=forms_csv_file,
         )
         s999 = next(e for e in joined if e["student_id"] == "S999")
         assert "forms_data" not in s999
@@ -289,8 +289,8 @@ class TestRunJoinPipeline:
         out = str(tmp_path / "final.yaml")
         run_join_pipeline(
             ocr_results_path=ocr_results_yaml,
-            forms_csv_path=forms_csv_file,
             output_path=out,
+            forms_csv_path=forms_csv_file,
         )
         assert os.path.exists(out)
         with open(out, encoding="utf-8") as f:
@@ -314,8 +314,129 @@ class TestRunJoinPipeline:
         out = str(tmp_path / "out.yaml")
         joined = run_join_pipeline(
             ocr_results_path=str(ocr_yaml),
-            forms_csv_path=str(csv_path),
             output_path=out,
+            forms_csv_path=str(csv_path),
             student_id_column="sid",
         )
         assert joined[0]["forms_data"]["이름"] == "테스트"
+
+    def test_join_raises_without_any_source(self, ocr_results_yaml, tmp_path):
+        """ValueError when neither spreadsheet_url nor forms_csv given."""
+        out = str(tmp_path / "final.yaml")
+        with pytest.raises(ValueError, match="At least one data source"):
+            run_join_pipeline(
+                ocr_results_path=ocr_results_yaml,
+                output_path=out,
+            )
+
+    def test_join_sheets_success_skips_csv(
+        self, ocr_results_yaml, forms_csv_file, tmp_path
+    ):
+        """When Sheets fetch succeeds, CSV is not used."""
+        out = str(tmp_path / "final.yaml")
+        mock_records = [
+            {"student_id": "S001", "학번": "2026194001", "이름": "시트홍"},
+            {"student_id": "S002", "학번": "2026194002", "이름": "시트김"},
+        ]
+        with patch(
+            "src.google_sheets.fetch_sheet_as_records",
+            return_value=mock_records,
+        ):
+            joined = run_join_pipeline(
+                ocr_results_path=ocr_results_yaml,
+                output_path=out,
+                forms_csv_path=forms_csv_file,
+                spreadsheet_url="https://docs.google.com/spreadsheets/d/abc",
+            )
+        s001 = [e for e in joined if e["student_id"] == "S001"]
+        assert s001[0]["forms_data"]["이름"] == "시트홍"
+
+    def test_join_sheets_failure_falls_back_to_csv(
+        self, ocr_results_yaml, forms_csv_file, tmp_path
+    ):
+        """When Sheets fetch fails and CSV is available, use CSV."""
+        out = str(tmp_path / "final.yaml")
+        with patch(
+            "src.google_sheets.fetch_sheet_as_records",
+            side_effect=RuntimeError("Network error"),
+        ):
+            joined = run_join_pipeline(
+                ocr_results_path=ocr_results_yaml,
+                output_path=out,
+                forms_csv_path=forms_csv_file,
+                spreadsheet_url="https://docs.google.com/spreadsheets/d/abc",
+            )
+        s001 = [e for e in joined if e["student_id"] == "S001"]
+        assert s001[0]["forms_data"]["이름"] == "홍길동"
+
+    def test_join_manual_mapping_supplements(
+        self, ocr_results_yaml, forms_csv_file, tmp_path
+    ):
+        """Manual mapping adds missing students without overwriting."""
+        # Add S003 to OCR results
+        with open(ocr_results_yaml, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        data.append(
+            {
+                "student_id": "S003",
+                "q_num": 1,
+                "text": "missing student",
+                "source_file": "q1_W1_0003.jpg",
+            }
+        )
+        with open(ocr_results_yaml, "w", encoding="utf-8") as f:
+            yaml.dump(data, f, allow_unicode=True)
+
+        # Manual mapping for S003 (and S001 which should NOT overwrite)
+        mapping_path = tmp_path / "mapping.yaml"
+        mapping_path.write_text(
+            yaml.dump(
+                {
+                    "S003": {"이름": "수동추가", "학번": "2026194003"},
+                    "S001": {"이름": "덮어쓰면안됨"},
+                },
+                allow_unicode=True,
+            )
+        )
+
+        out = str(tmp_path / "final.yaml")
+        joined = run_join_pipeline(
+            ocr_results_path=ocr_results_yaml,
+            output_path=out,
+            forms_csv_path=forms_csv_file,
+            manual_mapping_path=str(mapping_path),
+        )
+        s003 = next(e for e in joined if e["student_id"] == "S003")
+        assert s003["forms_data"]["이름"] == "수동추가"
+        # S001 should still have CSV data, not manual mapping
+        s001 = next(e for e in joined if e["student_id"] == "S001")
+        assert s001["forms_data"]["이름"] == "홍길동"
+
+    def test_join_match_report_output(
+        self, ocr_results_yaml, forms_csv_file, tmp_path, capsys
+    ):
+        """Match report prints matched/unmatched counts."""
+        # Add unmatched student
+        with open(ocr_results_yaml, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        data.append(
+            {
+                "student_id": "S099",
+                "q_num": 1,
+                "text": "unmatched",
+                "source_file": "q1_W1_0099.jpg",
+            }
+        )
+        with open(ocr_results_yaml, "w", encoding="utf-8") as f:
+            yaml.dump(data, f, allow_unicode=True)
+
+        out = str(tmp_path / "final.yaml")
+        run_join_pipeline(
+            ocr_results_path=ocr_results_yaml,
+            output_path=out,
+            forms_csv_path=forms_csv_file,
+        )
+        captured = capsys.readouterr().out
+        assert "매칭 완료" in captured
+        assert "미매칭" in captured
+        assert "S099" in captured

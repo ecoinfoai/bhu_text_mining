@@ -6,13 +6,12 @@ Usage:
     bhu-ocr scan --config ocr_config.yaml --num-questions 3
 
     bhu-ocr join --ocr-results results.yaml \\
-                 --forms-csv responses.csv \\
-                 --output final.yaml
-
-    bhu-ocr join --ocr-results results.yaml \\
-                 --forms-csv responses.csv \\
                  --output final.yaml \\
-                 --student-id-column "sid"
+                 --spreadsheet-url "https://docs.google.com/spreadsheets/d/XXX" \\
+                 [--forms-csv fallback.csv] \\
+                 [--credentials credentials.json] \\
+                 [--manual-mapping mapping.yaml] \\
+                 [--student-id-column "sid"]
 """
 from __future__ import annotations
 
@@ -49,19 +48,31 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # ── join subcommand ───────────────────────────
     join_p = subparsers.add_parser(
         "join",
-        help="OCR 결과 + Google Forms CSV 조인",
+        help="OCR 결과 + Google Forms/Sheets 조인",
     )
     join_p.add_argument(
         "--ocr-results", required=True,
         help="OCR 결과 YAML 파일 경로",
     )
     join_p.add_argument(
-        "--forms-csv", required=True,
-        help="Google Forms CSV 파일 경로",
-    )
-    join_p.add_argument(
         "--output", required=True,
         help="출력 YAML 파일 경로",
+    )
+    join_p.add_argument(
+        "--spreadsheet-url", default=None,
+        help="Google Sheets URL (우선 사용)",
+    )
+    join_p.add_argument(
+        "--forms-csv", default=None,
+        help="Google Forms CSV 파일 경로 (폴백)",
+    )
+    join_p.add_argument(
+        "--credentials", default="credentials.json",
+        help="OAuth2 자격증명 JSON 경로 (기본값: credentials.json)",
+    )
+    join_p.add_argument(
+        "--manual-mapping", default=None,
+        help="수동 매핑 YAML 파일 경로 (미매칭 학생 보완)",
     )
     join_p.add_argument(
         "--student-id-column", default="student_id",
@@ -124,10 +135,19 @@ def main(argv: list[str] | None = None) -> None:
         )
 
     elif args.command == "join":
+        if args.spreadsheet_url is None and args.forms_csv is None:
+            print(
+                "오류: --spreadsheet-url 또는 --forms-csv 중 "
+                "하나 이상 필요합니다."
+            )
+            sys.exit(1)
         run_join_pipeline(
             ocr_results_path=args.ocr_results,
-            forms_csv_path=args.forms_csv,
             output_path=args.output,
+            forms_csv_path=args.forms_csv,
+            spreadsheet_url=args.spreadsheet_url,
+            credentials_path=args.credentials,
+            manual_mapping_path=args.manual_mapping,
             student_id_column=args.student_id_column,
         )
 
