@@ -110,11 +110,17 @@ def main(argv: list[str] | None = None) -> None:
             if args.num_questions is not None
             else int(cfg.get("num-questions", 2))
         )
+        crop_coords = None
+        raw_coords = cfg.get("crop-coords")
+        if raw_coords is not None:
+            crop_coords = [tuple(c) for c in raw_coords]
+
         run_scan_pipeline(
             image_dir=cfg["image-dir"],
             naver_ocr_config=cfg["naver-ocr-config"],
             output_path=cfg["output"],
             num_questions=num_questions,
+            crop_coords=crop_coords,
         )
 
     elif args.command == "join":
