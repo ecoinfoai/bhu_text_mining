@@ -49,7 +49,7 @@ API 키 설정 (택 1):
 # 환경 변수
 export GOOGLE_API_KEY="your-key"
 
-# 또는 설정 파일: ~/.config/forma/config.json
+# 또는 설정 파일: ~/.config/formative-analysis/forma.json
 {
   "naver_ocr": {"secret_key": "...", "api_url": "..."},
   "llm": {"provider": "gemini", "api_key": "your-key"}

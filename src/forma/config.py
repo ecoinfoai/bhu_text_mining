@@ -1,6 +1,6 @@
 """Unified configuration management for formative-analysis.
 
-Searches ``~/.config/forma/config.json`` first, then falls
+Searches ``~/.config/formative-analysis/forma.json`` first, then falls
 back to legacy paths.
 """
 
@@ -12,8 +12,9 @@ from typing import Optional
 
 
 AGENIX_CONFIG_PATH = "/run/agenix/forma-config"
-DEFAULT_CONFIG_PATH = "~/.config/forma/config.json"
+DEFAULT_CONFIG_PATH = "~/.config/formative-analysis/forma.json"
 LEGACY_CONFIG_PATHS = [
+    "~/.config/forma/config.json",
     "~/.config/bhu_text_mining/config.json",
     "~/.config/naver_ocr/naver_ocr_config.json",
 ]
@@ -25,9 +26,10 @@ def load_config(config_path: Optional[str] = None) -> dict:
     Resolution order:
     1. Explicit ``config_path`` argument.
     2. ``/run/agenix/forma-config`` (NixOS agenix).
-    3. ``~/.config/forma/config.json``
-    4. ``~/.config/bhu_text_mining/config.json`` (legacy).
-    5. ``~/.config/naver_ocr/naver_ocr_config.json`` (legacy).
+    3. ``~/.config/formative-analysis/forma.json``
+    4. ``~/.config/forma/config.json`` (legacy).
+    5. ``~/.config/bhu_text_mining/config.json`` (legacy).
+    6. ``~/.config/naver_ocr/naver_ocr_config.json`` (legacy).
 
     Args:
         config_path: Explicit path to config file (optional).

@@ -43,6 +43,10 @@ from forma.evaluation_io import (
     load_evaluation_yaml,
     save_evaluation_yaml,
 )
+from forma.response_converter import (
+    convert_join_to_responses,
+    filter_exam_config,
+)
 from forma.evaluation_types import (
     AggregatedLLMResult,
     EnsembleResult,
@@ -611,6 +615,7 @@ def run_evaluation_pipeline(
     lecture_transcript: Optional[str] = None,
     longitudinal_store: Optional[str] = None,
     generate_reports: bool = False,
+    questions_used: Optional[list[int]] = None,
 ) -> None:
     """Run the full multi-layer concept evaluation pipeline.
 
@@ -631,6 +636,11 @@ def run_evaluation_pipeline(
         lecture_transcript: Path to lecture transcript file.
         longitudinal_store: Path to longitudinal data store.
         generate_reports: Whether to generate PDF reports.
+        questions_used: Exam ``sn`` numbers in q_num order.
+            e.g. ``[1, 3]`` means OCR q1 maps to exam sn1, q2 to sn3.
+            When provided, *responses_path* is treated as OCR join
+            output (flat list) and the exam config is filtered to
+            only the selected questions.
     """
     # Handle deprecated --skip-llm
     if skip_llm and not skip_feedback:
@@ -642,8 +652,30 @@ def run_evaluation_pipeline(
         skip_feedback = True
 
     config_data = load_evaluation_yaml(config_path)
-    responses_data = load_evaluation_yaml(responses_path)
-    student_responses = extract_student_responses(responses_data)
+
+    if questions_used:
+        # Filter exam config to selected questions
+        config_data = filter_exam_config(config_data, questions_used)
+        print(
+            f"[pipeline] questions_used={questions_used} → "
+            f"sn {[q['sn'] for q in config_data['questions']]}"
+        )
+
+        # Load OCR join output and remap q_num → sn
+        import yaml
+
+        with open(responses_path, "r", encoding="utf-8") as f:
+            join_data = yaml.safe_load(f)
+        if isinstance(join_data, list):
+            responses_data = convert_join_to_responses(
+                join_data, questions_used
+            )
+        else:
+            responses_data = join_data
+        student_responses = extract_student_responses(responses_data)
+    else:
+        responses_data = load_evaluation_yaml(responses_path)
+        student_responses = extract_student_responses(responses_data)
 
     # Validate config
     errors = validate_exam_config(config_data)
@@ -1024,6 +1056,13 @@ def main() -> None:
         action="store_true",
         help="Generate student PDF reports",
     )
+    parser.add_argument(
+        "--questions-used",
+        nargs="+",
+        type=int,
+        default=None,
+        help="출제 문항의 exam sn 번호를 q 순서대로 지정 (예: 1 3 → q1=sn1, q2=sn3)",
+    )
     args = parser.parse_args()
 
     run_evaluation_pipeline(
@@ -1040,6 +1079,7 @@ def main() -> None:
         lecture_transcript=args.lecture_transcript,
         longitudinal_store=args.longitudinal_store,
         generate_reports=args.generate_reports,
+        questions_used=args.questions_used,
     )
 
 

@@ -39,6 +39,7 @@ def run_batch_evaluation(
     generate_reports: bool = False,
     lecture_transcript: Optional[str] = None,
     longitudinal_store: Optional[str] = None,
+    questions_used: Optional[list[int]] = None,
 ) -> None:
     """Run evaluation pipeline for multiple class sections.
 
@@ -96,7 +97,7 @@ def run_batch_evaluation(
         # Convert join → responses format
         responses_path = os.path.join(class_dir, "responses.yaml")
         print(f"[batch] Converting: {join_path} → {responses_path}")
-        convert_join_file(join_path, responses_path)
+        convert_join_file(join_path, responses_path, questions_used)
 
         # Per-class longitudinal store
         cls_longitudinal = None
@@ -120,6 +121,7 @@ def run_batch_evaluation(
             lecture_transcript=lecture_transcript,
             longitudinal_store=cls_longitudinal,
             generate_reports=generate_reports,
+            questions_used=questions_used,
         )
 
         # Generate PDF reports if requested
@@ -227,6 +229,13 @@ def main() -> None:
         action="store_true",
         help="Generate student PDF reports",
     )
+    parser.add_argument(
+        "--questions-used",
+        nargs="+",
+        type=int,
+        default=None,
+        help="출제 문항의 exam sn 번호를 q 순서대로 지정 (예: 1 3 → q1=sn1, q2=sn3)",
+    )
     args = parser.parse_args()
 
     run_batch_evaluation(
@@ -245,6 +254,7 @@ def main() -> None:
         generate_reports=args.generate_reports,
         lecture_transcript=args.lecture_transcript,
         longitudinal_store=args.longitudinal_store,
+        questions_used=args.questions_used,
     )
 
 

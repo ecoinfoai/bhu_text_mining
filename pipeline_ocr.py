@@ -23,7 +23,7 @@ from forma.network_analysis import (
 ## Setup parameters
 
 # Analysis environment setup
-config_path = "~/.config/naver_ocr/naver_ocr_config.json"
+config_path = "~/.config/formative-analysis/forma.json"
 font_path = "/usr/share/fonts/nanum/NanumGothic.ttf"
 stopwords_path = "./data/stopwords-ko.txt"
 

@@ -14,7 +14,7 @@ def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
 
     If ``config_path`` is provided and exists, it is used directly
     (legacy behaviour).  Otherwise falls back to the unified config
-    system (``~/.config/forma/config.json`` → legacy path).
+    system (``~/.config/formative-analysis/forma.json`` → legacy paths).
 
     Args:
         config_path (str): Path to the configuration file (optional).
