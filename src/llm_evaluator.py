@@ -1,9 +1,10 @@
 """Layer 2: LLM-as-a-Judge rubric evaluation with 3-call reliability protocol.
 
-Uses the Anthropic Claude API with temperature=0.0 (note: not guaranteed
-deterministic across API calls) and median-aggregates three independent
-calls to improve reliability.  ICC(2,1) < 0.7 triggers automatic weight
-down-weighting in the ensemble layer.
+Uses an LLM provider (Gemini by default, Claude optional) with
+temperature=0.0 (note: not guaranteed deterministic across API calls)
+and median-aggregates three independent calls to improve reliability.
+ICC(2,1) < 0.7 triggers automatic weight down-weighting in the ensemble
+layer.
 """
 
 from __future__ import annotations
@@ -13,11 +14,11 @@ import re
 import statistics
 from typing import Optional
 
-import anthropic
 import numpy as np
 import yaml
 
 from src.evaluation_types import AggregatedLLMResult, LLMJudgeResult
+from src.llm_provider import LLMProvider, create_provider
 from src.prompt_templates import render_rubric_prompt
 
 
@@ -67,48 +68,44 @@ def compute_icc_2_1(ratings: np.ndarray) -> float:
 
 
 class LLMEvaluator:
-    """Rubric evaluator backed by Claude API with 3-call reliability protocol.
+    """Rubric evaluator backed by LLM with 3-call reliability protocol.
 
     Implements the 3-call median aggregation required by the plan.
     Per-student ICC(2,1) can be computed externally using
     ``compute_icc_2_1()``.
 
     Args:
-        api_key: Anthropic API key.  If None, reads ``ANTHROPIC_API_KEY``
-            environment variable.
-        model: Claude model ID (default claude-sonnet-4-6).
+        api_key: API key for the LLM provider.  If None, reads the
+            appropriate environment variable for the selected provider.
+        model: Model ID override (uses provider default if None).
         n_calls: Number of independent API calls per evaluation (default 3).
         temperature: Sampling temperature (default 0.0).
+        provider: LLM provider name — ``"gemini"`` (default) or
+            ``"anthropic"``.
 
     Raises:
         EnvironmentError: If no API key is available.
 
     Examples:
         >>> import os
-        >>> os.environ["ANTHROPIC_API_KEY"] = "sk-..."
+        >>> os.environ["GOOGLE_API_KEY"] = "test-key"
         >>> evaluator = LLMEvaluator()
         >>> evaluator.n_calls
         3
     """
 
-    DEFAULT_MODEL: str = "claude-sonnet-4-6"
-
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = DEFAULT_MODEL,
+        model: Optional[str] = None,
         n_calls: int = 3,
         temperature: float = 0.0,
+        provider: str = "gemini",
     ) -> None:
-        resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
-        if not resolved_key:
-            raise EnvironmentError(
-                "Anthropic API key required in LLMEvaluator.__init__(). "
-                "Set the ANTHROPIC_API_KEY environment variable or pass "
-                "api_key= explicitly."
-            )
-        self.client = anthropic.Anthropic(api_key=resolved_key)
-        self.model = model
+        self.provider = create_provider(
+            provider=provider, api_key=api_key, model=model,
+        )
+        self.model = self.provider.model_name
         self.n_calls = n_calls
         self.temperature = temperature
 
@@ -158,13 +155,11 @@ class LLMEvaluator:
         Returns:
             LLMJudgeResult parsed from the API response.
         """
-        message = self.client.messages.create(
-            model=self.model,
+        content = self.provider.generate(
+            prompt=prompt,
             max_tokens=1024,
             temperature=self.temperature,
-            messages=[{"role": "user", "content": prompt}],
         )
-        content = message.content[0].text
         parsed = self._parse_yaml_response(content)
 
         misconceptions = parsed.get("misconceptions") or []

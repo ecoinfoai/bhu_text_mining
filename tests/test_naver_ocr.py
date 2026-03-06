@@ -34,8 +34,9 @@ def test_load_naver_ocr_env():
         "api_url": "https://mock.api.url",
     }
 
-    with patch("builtins.open", mock_open(read_data=json.dumps(mock_config))):
-        secret_key, api_url = load_naver_ocr_env("mock/config/path")
+    with patch("os.path.isfile", return_value=True):
+        with patch("builtins.open", mock_open(read_data=json.dumps(mock_config))):
+            secret_key, api_url = load_naver_ocr_env("mock/config/path")
 
     assert secret_key == "mock_secret_key"
     assert api_url == "https://mock.api.url"

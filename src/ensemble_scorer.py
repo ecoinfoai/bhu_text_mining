@@ -21,6 +21,7 @@ from src.evaluation_types import (
     AggregatedLLMResult,
     ConceptMatchResult,
     EnsembleResult,
+    GraphComparisonResult,
     GraphMetricResult,
     StatisticalResult,
 )
@@ -29,12 +30,25 @@ from src.evaluation_types import (
 # Constants
 # ---------------------------------------------------------------------------
 
+# v1 weights (no knowledge_graph triplet comparison)
 DEFAULT_WEIGHTS: dict[str, float] = {
     "concept_coverage": 0.35,
     "llm_rubric": 0.30,
     "rasch_ability": 0.15,
     "kg_node_recall": 0.10,
     "bertscore": 0.10,
+}
+
+WEIGHTS_V1: dict[str, float] = dict(DEFAULT_WEIGHTS)
+
+# v2 weights (with knowledge_graph triplet comparison)
+WEIGHTS_V2: dict[str, float] = {
+    "concept_coverage": 0.25,
+    "graph_f1": 0.30,
+    "rasch_ability": 0.15,
+    "rubric_level": 0.15,
+    "bertscore": 0.10,
+    "misconception_penalty": -0.05,
 }
 
 UNDERSTANDING_THRESHOLDS: dict[str, float] = {
@@ -180,6 +194,48 @@ class EnsembleScorer:
         """Return node recall directly (already in [0, 1])."""
         return float(np.clip(graph_result.node_recall, 0.0, 1.0))
 
+    def _graph_f1_score(self, graph_comparison: GraphComparisonResult) -> float:
+        """Return graph comparison F1 (already in [0, 1])."""
+        return float(np.clip(graph_comparison.f1, 0.0, 1.0))
+
+    def _misconception_penalty_score(
+        self, graph_comparison: GraphComparisonResult
+    ) -> float:
+        """Compute misconception penalty from wrong-direction edges.
+
+        Returns a value in [0, 1] proportional to wrong-direction count.
+        """
+        total = (
+            len(graph_comparison.matched_edges)
+            + len(graph_comparison.missing_edges)
+            + len(graph_comparison.extra_edges)
+            + len(graph_comparison.wrong_direction_edges)
+        )
+        if total == 0:
+            return 0.0
+        return float(
+            np.clip(len(graph_comparison.wrong_direction_edges) / total, 0.0, 1.0)
+        )
+
+    def _deterministic_rubric_score(
+        self,
+        graph_comparison: GraphComparisonResult,
+        rubric_tiers: Optional[list] = None,
+    ) -> float:
+        """Compute deterministic rubric score from graph F1 and tier config.
+
+        Without rubric_tiers, maps F1 linearly to [0, 1].
+        With rubric_tiers, returns tier_level / 3.
+        """
+        if rubric_tiers:
+            f1 = graph_comparison.f1
+            best_level = 0
+            for tier in rubric_tiers:
+                if f1 >= tier.min_graph_f1:
+                    best_level = max(best_level, tier.level)
+            return float(best_level) / 3.0
+        return float(np.clip(graph_comparison.f1, 0.0, 1.0))
+
     def compute_score(
         self,
         concept_results: list[ConceptMatchResult],
@@ -189,9 +245,12 @@ class EnsembleScorer:
         bertscore_f1: Optional[float],
         student_id: str,
         question_sn: int,
+        graph_comparison: Optional[GraphComparisonResult] = None,
+        rubric_tiers: Optional[list] = None,
     ) -> EnsembleResult:
         """Compute the weighted ensemble score from all available layers.
 
+        Auto-selects v1 or v2 weights based on ``graph_comparison`` presence.
         Missing layers (None) are dropped and their weights redistributed
         proportionally.  Concept coverage is always required.
 
@@ -203,6 +262,8 @@ class EnsembleScorer:
             bertscore_f1: BERTScore F1 from cohesion analysis (or None).
             student_id: Student identifier for result stamping.
             question_sn: Question serial number for result stamping.
+            graph_comparison: v2 directed triplet comparison (or None).
+            rubric_tiers: Optional list of RubricTier for deterministic rubric.
 
         Returns:
             EnsembleResult with score, level, and component breakdown.
@@ -210,51 +271,86 @@ class EnsembleScorer:
         component_scores: dict[str, float] = {}
         active_weights: dict[str, float] = {}
 
+        # Auto-select weight preset
+        use_v2 = graph_comparison is not None
+        weights = self.weights
+
         # --- concept_coverage (always computed) ---
         cc = self._concept_coverage_score(concept_results)
         component_scores["concept_coverage"] = cc
-        active_weights["concept_coverage"] = self.weights.get(
-            "concept_coverage", 0.35
+        active_weights["concept_coverage"] = weights.get(
+            "concept_coverage", 0.35 if not use_v2 else 0.25
         )
 
-        # --- llm_rubric ---
-        if llm_result is not None:
-            lr = self._llm_rubric_score(llm_result)
-            component_scores["llm_rubric"] = lr
-            active_weights["llm_rubric"] = self.weights.get("llm_rubric", 0.30)
+        if use_v2 and graph_comparison is not None:
+            # --- v2 mode: graph-based scoring ---
 
-        # --- rasch_ability ---
+            # graph_f1
+            gf1 = self._graph_f1_score(graph_comparison)
+            component_scores["graph_f1"] = gf1
+            active_weights["graph_f1"] = weights.get("graph_f1", 0.30)
+
+            # rubric_level (deterministic)
+            rl = self._deterministic_rubric_score(graph_comparison, rubric_tiers)
+            component_scores["rubric_level"] = rl
+            active_weights["rubric_level"] = weights.get("rubric_level", 0.15)
+
+            # misconception_penalty
+            mp = self._misconception_penalty_score(graph_comparison)
+            component_scores["misconception_penalty"] = mp
+            active_weights["misconception_penalty"] = weights.get(
+                "misconception_penalty", -0.05
+            )
+        else:
+            # --- v1 mode: LLM-based scoring ---
+            if llm_result is not None:
+                lr = self._llm_rubric_score(llm_result)
+                component_scores["llm_rubric"] = lr
+                active_weights["llm_rubric"] = weights.get("llm_rubric", 0.30)
+
+            # kg_node_recall (v1 only)
+            if graph_result is not None:
+                kg = self._kg_node_recall_score(graph_result)
+                component_scores["kg_node_recall"] = kg
+                active_weights["kg_node_recall"] = weights.get(
+                    "kg_node_recall", 0.10
+                )
+
+        # --- rasch_ability (both modes) ---
         if statistical_result is not None:
             ra = self._rasch_ability_score(statistical_result)
             if ra is not None:
                 component_scores["rasch_ability"] = ra
-                active_weights["rasch_ability"] = self.weights.get(
+                active_weights["rasch_ability"] = weights.get(
                     "rasch_ability", 0.15
                 )
 
-        # --- kg_node_recall ---
-        if graph_result is not None:
-            kg = self._kg_node_recall_score(graph_result)
-            component_scores["kg_node_recall"] = kg
-            active_weights["kg_node_recall"] = self.weights.get(
-                "kg_node_recall", 0.10
-            )
-
-        # --- bertscore ---
+        # --- bertscore (both modes) ---
         if bertscore_f1 is not None:
             bs = float(np.clip(bertscore_f1, 0.0, 1.0))
             component_scores["bertscore"] = bs
-            active_weights["bertscore"] = self.weights.get("bertscore", 0.10)
+            active_weights["bertscore"] = weights.get("bertscore", 0.10)
 
         # --- weighted sum with proportional redistribution ---
-        total_weight = sum(active_weights.values())
-        if total_weight <= 0:
+        # Separate positive and negative weights
+        pos_weights = {
+            k: v for k, v in active_weights.items() if v >= 0
+        }
+        neg_weights = {
+            k: v for k, v in active_weights.items() if v < 0
+        }
+
+        total_pos = sum(pos_weights.values())
+        if total_pos <= 0:
             ensemble_score = 0.0
         else:
             ensemble_score = sum(
-                component_scores[k] * active_weights[k] / total_weight
-                for k in component_scores
+                component_scores[k] * pos_weights[k] / total_pos
+                for k in pos_weights
             )
+            # Apply negative weights (penalties) directly
+            for k, w in neg_weights.items():
+                ensemble_score += component_scores[k] * abs(w)  # penalty reduces score
 
         ensemble_score = float(np.clip(ensemble_score, 0.0, 1.0))
         level = classify_understanding_level(ensemble_score, self.thresholds)

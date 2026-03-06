@@ -227,3 +227,136 @@ class EnsembleResult:
     understanding_level: str
     component_scores: dict[str, float]
     weights_used: dict[str, float]
+
+
+# ---------------------------------------------------------------------------
+# v2 dataclasses: triplet graph comparison pipeline
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class TripletEdge:
+    """A single (subject, relation, object) knowledge triplet.
+
+    Examples:
+        >>> e = TripletEdge("수용체", "감지", "한계점 일탈")
+        >>> e.subject
+        '수용체'
+    """
+
+    subject: str
+    relation: str
+    object: str
+
+
+@dataclass
+class TripletExtractionResult:
+    """Result of LLM-based triplet extraction from a student response.
+
+    Args:
+        student_id: Student identifier.
+        question_sn: Question serial number.
+        triplets: Consensus triplets (majority across calls).
+        call_results: Raw triplets from each LLM call.
+        consensus_method: Method used for consensus (e.g. "majority_2of3").
+    """
+
+    student_id: str
+    question_sn: int
+    triplets: list[TripletEdge]
+    call_results: list[list[TripletEdge]]
+    consensus_method: str = "majority_2of3"
+
+
+@dataclass
+class GraphComparisonResult:
+    """Directed triplet graph comparison between student and master.
+
+    Args:
+        student_id: Student identifier.
+        question_sn: Question serial number.
+        precision: Fraction of student edges matching master.
+        recall: Fraction of master edges matched by student.
+        f1: Harmonic mean of precision and recall.
+        matched_edges: Edges correctly matched.
+        missing_edges: Master edges absent from student graph.
+        extra_edges: Student edges not in master graph.
+        wrong_direction_edges: Edges with reversed direction.
+        lecture_excluded_edges: Master edges excluded (not covered in lecture).
+        fuzzy_matched: Count of edges matched via fuzzy embedding similarity.
+    """
+
+    student_id: str
+    question_sn: int
+    precision: float
+    recall: float
+    f1: float
+    matched_edges: list[TripletEdge]
+    missing_edges: list[TripletEdge]
+    extra_edges: list[TripletEdge]
+    wrong_direction_edges: list[TripletEdge] = field(default_factory=list)
+    lecture_excluded_edges: list[TripletEdge] = field(default_factory=list)
+    fuzzy_matched: int = 0
+
+
+@dataclass
+class FeedbackResult:
+    """LLM-generated coaching feedback based on quantitative data.
+
+    Args:
+        student_id: Student identifier.
+        question_sn: Question serial number.
+        feedback_text: Korean coaching feedback (≤ 2000 chars).
+        char_count: Actual character count (including spaces).
+        data_sources_used: List of data sources used in generation.
+        tier_level: Rubric tier level (0-3).
+        tier_label: Rubric tier label.
+    """
+
+    student_id: str
+    question_sn: int
+    feedback_text: str
+    char_count: int
+    data_sources_used: list[str]
+    tier_level: int
+    tier_label: str
+
+
+@dataclass
+class LongitudinalRecord:
+    """Single week's evaluation record for longitudinal tracking.
+
+    Args:
+        student_id: Student identifier.
+        week: Week number.
+        question_sn: Question serial number.
+        scores: Dict of metric name → score value.
+        tier_level: Rubric tier level (0-3).
+        tier_label: Rubric tier label.
+    """
+
+    student_id: str
+    week: int
+    question_sn: int
+    scores: dict[str, float]
+    tier_level: int
+    tier_label: str
+
+
+@dataclass
+class RubricTier:
+    """A single rubric tier definition for graph-based evaluation.
+
+    Args:
+        level: Tier level (0-3).
+        label: Human-readable label.
+        min_graph_f1: Minimum graph F1 score for this tier.
+        requires_terminology: Whether proper terminology is required.
+        description: Optional description.
+    """
+
+    level: int
+    label: str
+    min_graph_f1: float
+    requires_terminology: bool
+    description: str = ""

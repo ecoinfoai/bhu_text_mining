@@ -1,0 +1,554 @@
+# =============================================================================
+# bhu_text_mining 4-Layer 평가 파이프라인 v2.0 종합 개선 계획서
+# 작성일: 2026-03-06
+# 작성: Planner A (Architecture) + Planner B (Implementation) 통합
+# =============================================================================
+
+system_overview:
+  title: "4-Layer 형성평가 파이프라인 v2.0"
+  subtitle: "관계 그래프 + 결정론적 채점 + 팩트 기반 피드백 생성"
+
+  design_principles:
+    - "모든 점수(score) 산출은 코드 기반 결정론적 연산으로 수행"
+    - "LLM은 두 가지 역할만 담당: (a) 트리플릿 구조화 추출, (b) 코칭 피드백 텍스트 생성"
+    - "교수자의 마스터 지식그래프가 정답 기준"
+    - "강의 텍스트는 보조 자료 (마스터 그래프 초안 생성, 평가 범위 한정, 피드백 톤 참조)"
+    - "하위 호환성: 새 필드(knowledge_graph, rubric_tiers) 없으면 기존 파이프라인 그대로 작동"
+
+  data_flow_diagram: |
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                        INPUT LAYER                              │
+    │  exam_config.yaml ─┬─ questions[].keywords (기존)              │
+    │                    ├─ questions[].knowledge_graph (신규)        │
+    │                    ├─ questions[].rubric_tiers (신규, 선택)     │
+    │                    └─ lecture (신규, 선택)                      │
+    │  responses.yaml ──── student_id -> {qsn -> text}               │
+    └──────────────────────────┬──────────────────────────────────────┘
+                               │
+    ┌──────────────────────────▼──────────────────────────────────────┐
+    │  LAYER 1: 개념 체크리스트 + 관계 그래프 비교 (결정론적)        │
+    │                                                                 │
+    │  1a. concept_checker (키워드 임베딩 매칭) ── 기존 유지          │
+    │  1b. triplet_extractor (LLM 3-call -> 트리플릿 추출)           │
+    │  1c. graph_comparator (집합 연산 + 퍼지 매칭 -> P/R/F1)        │
+    │                                                                 │
+    │  출력: ConceptMatchResult[] + GraphComparisonResult             │
+    └──────────────────────────┬──────────────────────────────────────┘
+                               │
+    ┌──────────────────────────▼──────────────────────────────────────┐
+    │  LAYER 2: 피드백 생성기 (LLM — 해석 전용, 채점 없음)           │
+    │                                                                 │
+    │  입력: Layer1 결과 + 루브릭 + 앙상블 레벨 (Layer4 1차)         │
+    │  LLM 역할: 정량 데이터 기반 2000자 코칭 피드백 생성            │
+    │  구조: (1)루브릭 평가결과 해설 (2)분석 상세 (3)학습 제안        │
+    │                                                                 │
+    │  출력: FeedbackResult (텍스트 only, 점수 없음)                  │
+    └──────────────────────────┬──────────────────────────────────────┘
+                               │
+    ┌──────────────────────────▼──────────────────────────────────────┐
+    │  LAYER 3: Rasch IRT 통계 분석 (기존 유지, 변경 없음)           │
+    └──────────────────────────┬──────────────────────────────────────┘
+                               │
+    ┌──────────────────────────▼──────────────────────────────────────┐
+    │  LAYER 4: 앙상블 + 시각화 + 리포트 + 종단 데이터               │
+    │                                                                 │
+    │  4a. 가중 앙상블 (concept + graph_f1 + rasch + rubric_level)   │
+    │  4b. 그래프 중첩 시각화 (matplotlib DiGraph -> PNG -> PDF)     │
+    │  4c. PDF 리포트 (피드백 텍스트 + 그래프 이미지 포함)           │
+    │  4d. 종단 데이터 누적                                           │
+    └─────────────────────────────────────────────────────────────────┘
+
+  execution_order: |
+    [Phase 1] Layer 1 실행 (1a, 1b 병렬 가능 -> 1c)
+    [Phase 2] Layer 3 실행 (Layer 1a 결과 의존)
+    [Phase 3] Layer 4 1차 (앙상블 점수 + understanding_level 산출)
+    [Phase 4] Layer 2 실행 (정량 데이터 + 레벨 -> 피드백 생성)
+    [Phase 5] Layer 4 최종 (PDF 리포트 + 시각화 + 종단 데이터)
+
+# =============================================================================
+# CONFIG YAML 스키마 확장
+# =============================================================================
+
+config_schema:
+
+  example_full_config: |
+    metadata:
+      chapter: 1
+      chapter_name: 서론
+      course_name: 인체구조와기능
+      year: 2026
+      grade: 1
+      semester: 1
+      week_num: 1
+      answer_limit: 200자 내외
+      total_questions: 5
+      generated_date: '2026-02-17'
+
+    # 신규: 강의 녹취록 참조 (최상위, 챕터 단위)
+    lecture:
+      transcript_path: "data/lectures/ch01_lecture.txt"
+      tone_sample: ""                  # 선택: 교수 말투 샘플
+      covered_concepts:                # 자동 추출 후 교수 검토 완료
+        - 항상성
+        - 음성되먹임기전
+        - 양성되먹임
+      reviewed: false                  # 교수 검토 완료 여부
+
+    # 신규: 종단 데이터 설정
+    longitudinal:
+      store_path: "data/longitudinal/anp_2026_1.yaml"
+      enabled: true
+
+    questions:
+      - sn: 1
+        topic: 개념이해
+        question: "생체항상성(homeostasis)의 의미와..."
+        limit: 200자 내외
+        model_answer: "항상성이란..."
+        purpose: "..."
+        keywords: [항상성, 음성되먹임기전, 수용체, 통합센터, 효과기, 한계점]
+
+        # 기존 rubric (하위 호환성 유지)
+        rubric:
+          high: "항상성의 정의와 음성되먹임기전..."
+          mid: "항상성의 기본 의미는 알고 있으나..."
+          low: "항상성의 개념 자체를 이해하지 못하거나..."
+        support:
+          high: "..."
+          mid: "..."
+          low: "..."
+
+        # 신규: 마스터 지식 그래프
+        knowledge_graph:
+          nodes: [항상성, 음성되먹임기전, 수용체, 통합센터, 효과기, 한계점]
+          edges:
+            - {subject: "수용체", relation: "감지", object: "한계점으로부터의 일탈"}
+            - {subject: "수용체", relation: "전달", object: "통합센터"}
+            - {subject: "통합센터", relation: "명령", object: "효과기"}
+            - {subject: "효과기", relation: "되돌림", object: "변화"}
+            - {subject: "음성되먹임기전", relation: "유지", object: "항상성"}
+          similarity_threshold: 0.80   # 퍼지 매칭 임계값
+
+        # 신규: 4단계 루브릭 티어 (선택)
+        rubric_tiers:
+          level_3:
+            label: "전문적 구조화"
+            min_graph_f1: 0.85
+            requires_terminology: true
+            description: "전문 용어를 사용한 정확한 관계 서술"
+          level_2:
+            label: "기전 + 용어"
+            min_graph_f1: 0.6
+            requires_terminology: true
+            description: "기전 이해 + 핵심 용어 매칭"
+          level_1:
+            label: "기전 이해"
+            min_graph_f1: 0.6
+            requires_terminology: false
+            description: "기전은 이해하나 용어 미매칭"
+          level_0:
+            label: "미달"
+            min_graph_f1: 0.0
+            requires_terminology: false
+            description: "기전 이해 부족"
+
+# =============================================================================
+# 신규 모듈 사양
+# =============================================================================
+
+new_modules:
+
+  triplet_extractor:
+    file: "src/triplet_extractor.py"
+    description: "LLM 기반 학생 텍스트에서 (S, R, O) 트리플릿 추출"
+    class: TripletExtractor
+    constructor:
+      provider: "str = 'gemini'"
+      api_key: "Optional[str] = None"
+      model: "Optional[str] = None"
+      n_calls: "int = 3"
+      temperature: "float = 0.0"
+    methods:
+      extract_triplets:
+        signature: |
+          (student_text: str, master_nodes: list[str],
+           question: str, model_answer: str,
+           student_id: str = '', question_sn: int = 0) -> TripletExtractionResult
+        description: |
+          3-call 프로토콜로 학생 답변에서 트리플릿 추출.
+          과반수 합의 알고리즘: 3개 call 중 2개 이상 동의한 트리플릿만 채택.
+          트리플릿 동일성: 임베딩 유사도 >= threshold.
+      _consensus_triplets:
+        signature: "(all_calls: list[list[TripletEdge]], threshold: float = 0.80) -> list[TripletEdge]"
+    dependencies: [llm_provider, prompt_templates, embedding_cache]
+    test_file: "tests/test_triplet_extractor.py"
+
+  graph_comparator:
+    file: "src/graph_comparator.py"
+    description: "마스터 vs 학생 그래프 결정론적 비교 (퍼지 에지 매칭 + P/R/F1)"
+    class: GraphComparator
+    constructor:
+      similarity_threshold: "float = 0.75"
+      use_fuzzy: "bool = True"
+      model_name: "str = 'jhgan/ko-sroberta-multitask'"
+    methods:
+      compare:
+        signature: |
+          (master_edges: list[tuple[str,str,str]],
+           student_edges: list[tuple[str,str,str]],
+           lecture_covered_concepts: Optional[set[str]] = None,
+           student_id: str = '', question_sn: int = 0) -> GraphComparisonResult
+        description: |
+          결정론적 비교:
+          1. 퍼지 에지 매칭 (embedding_cache 재사용)
+          2. 분류: matched / missing / direction_error / extra
+          3. 강의 미다룸 에지 -> lecture_excluded (감점 제외)
+          4. P/R/F1 계산
+      _fuzzy_match_node:
+        signature: "(node_a: str, node_b: str) -> bool"
+      _normalize_relation:
+        signature: "(relation: str) -> str"
+    dependencies: [embedding_cache, evaluation_types]
+    test_file: "tests/test_graph_comparator.py"
+
+  graph_visualizer:
+    file: "src/graph_visualizer.py"
+    description: "마스터/학생 DiGraph 중첩 시각화"
+    class: GraphVisualizer
+    constructor:
+      font_path: "Optional[str] = None"
+      figsize: "tuple[int, int] = (14, 10)"
+    methods:
+      visualize_comparison:
+        signature: |
+          (master_edges: list[tuple[str,str,str]],
+           student_edges: list[tuple[str,str,str]],
+           comparison_result: GraphComparisonResult,
+           output_path: Optional[str] = None,
+           title: str = '지식 그래프 비교') -> str
+        description: |
+          색상 코딩:
+            초록 실선: 마스터와 일치
+            빨강 실선: 방향/관계 오류
+            회색 점선: 학생에게 없는 마스터 에지 (누락)
+            주황 점선: 학생만의 에지 (오개념 또는 추가 지식)
+          matplotlib -> PNG -> PDF 임베드용 경로 반환
+    dependencies: [matplotlib, networkx, font_utils, graph_comparator]
+    test_file: "tests/test_graph_visualizer.py"
+
+  feedback_generator:
+    file: "src/feedback_generator.py"
+    description: "정량 데이터 기반 LLM 코칭 피드백 생성 (2000자, 팩트 기반)"
+    class: FeedbackGenerator
+    constructor:
+      provider: "str = 'gemini'"
+      api_key: "Optional[str] = None"
+      model: "Optional[str] = None"
+      max_chars: "int = 2000"
+    methods:
+      generate_feedback:
+        signature: |
+          (student_id: str, question_sn: int,
+           graph_comparison: GraphComparisonResult,
+           concept_coverage: float,
+           tier_result: dict,
+           support_guidance: str,
+           question_text: str,
+           model_answer: str,
+           student_response: str,
+           lecture_tone_sample: str = '') -> FeedbackResult
+        description: |
+          단일 호출 (채점이 아닌 텍스트 생성이므로 3-call 불필요).
+          피드백 구조:
+            (1) 루브릭 기반 평가 결과 및 수준 해설
+            (2) 임베딩/그래프 분석 상세 근거
+            (3) 학습 격차 기반 제안
+          프롬프트 제약: "제공된 데이터 이상의 정보를 추가하지 마시오"
+          2000자 초과 시 마지막 완전 문장에서 절단.
+    dependencies: [llm_provider, prompt_templates]
+    test_file: "tests/test_feedback_generator.py"
+
+  lecture_processor:
+    file: "src/lecture_processor.py"
+    description: "강의 녹취록 처리 (트리플릿 추출 보조, 범위 한정, 톤 참조)"
+    functions:
+      load_transcript: "(path: str) -> str"
+      segment_text: "(text: str, segment_size: int = 1000) -> list[LectureSegment]"
+      extract_triplets_from_lecture: "(transcript_path: str) -> list[TripletEdge]"
+      filter_by_covered_concepts: "(triplets: list[TripletEdge], covered: list[str]) -> list[TripletEdge]"
+      extract_lecture_covered_concepts: "(lecture_text: str, all_keywords: list[str], threshold: float = 0.70) -> set[str]"
+      extract_lecture_tone_sample: "(lecture_text: str, max_chars: int = 500) -> str"
+    dependencies: [llm_provider, triplet_extractor, embedding_cache]
+    test_file: "tests/test_lecture_processor.py"
+
+  longitudinal_store:
+    file: "src/longitudinal_store.py"
+    description: "주차별 점수 누적 YAML 저장소"
+    class: LongitudinalStore
+    constructor:
+      store_path: "str"
+    methods:
+      append_record: "(record: LongitudinalRecord) -> None"
+      get_student_history: "(student_id: str, question_sn: Optional[int] = None) -> list[LongitudinalRecord]"
+      get_class_summary: "(week: int) -> dict[str, float]"
+      save: "() -> None"
+      load: "() -> None"
+    dependencies: [pyyaml]
+    test_file: "tests/test_longitudinal_store.py"
+
+# =============================================================================
+# 기존 모듈 수정 사양
+# =============================================================================
+
+existing_module_changes:
+
+  evaluation_types:
+    file: "src/evaluation_types.py"
+    new_dataclasses:
+      - TripletEdge: {subject: str, relation: str, object: str}
+      - StudentGraph: {student_id: str, question_sn: int, edges: list[TripletEdge]}
+      - GraphComparisonResult: {student_id, question_sn, precision, recall, f1, matched_edges, missing_edges, extra_edges, wrong_direction_edges, fuzzy_matched}
+      - FeedbackResult: {student_id, question_sn, feedback_text, char_count, data_sources_used, tier_level, tier_label}
+      - LongitudinalRecord: {student_id, week, question_sn, scores: dict, tier_level, tier_label}
+      - RubricTier: {level, label, min_graph_f1, requires_terminology, description}
+    note: "기존 dataclass(ConceptMatchResult, LLMJudgeResult, AggregatedLLMResult 등)는 모두 유지"
+
+  ensemble_scorer:
+    file: "src/ensemble_scorer.py"
+    weight_changes:
+      before: {concept_coverage: 0.35, llm_rubric: 0.30, rasch_ability: 0.15, kg_node_recall: 0.10, bertscore: 0.10}
+      after: {concept_coverage: 0.30, graph_f1: 0.30, rasch_ability: 0.15, rubric_level: 0.15, bertscore: 0.10}
+    new_methods:
+      - "_deterministic_rubric_score(concept_coverage, graph_f1, rubric_thresholds) -> float"
+    note: "llm_rubric 가중치 제거 -> graph_f1 + rubric_level로 재배분. LLM ICC 신뢰도 문제 원천 제거."
+
+  prompt_templates:
+    file: "src/prompt_templates.py"
+    new_templates:
+      - TRIPLET_EXTRACTION_TEMPLATE
+      - FEEDBACK_GENERATION_TEMPLATE
+      - LECTURE_TRIPLET_EXTRACTION_TEMPLATE
+    new_functions:
+      - render_triplet_extraction_prompt
+      - render_feedback_prompt
+      - render_lecture_triplet_prompt
+
+  pipeline_evaluation:
+    file: "pipeline_evaluation.py"
+    changes:
+      - "실행 순서 변경: L1 -> L3 -> L4(1차) -> L2(피드백) -> L4(최종)"
+      - "신규 함수: _run_triplet_extraction(), _run_graph_comparison(), _run_feedback_generation()"
+      - "CLI 플래그 추가: --skip-graph, --skip-feedback, --lecture-transcript, --longitudinal-store"
+      - "기존 --skip-llm -> --skip-feedback으로 의미 변경"
+
+  report_generator:
+    file: "src/report_generator.py"
+    changes:
+      - "generate_report()에 graph_image_path, feedback_text, graph_comparison 입력 추가"
+      - "PDF에 중첩 그래프 이미지 삽입 (ReportLab Image)"
+      - "PDF에 코칭 피드백 텍스트 섹션 추가"
+
+  llm_evaluator:
+    file: "src/llm_evaluator.py"
+    changes: "단계적 deprecation. 기존 코드 유지하되 pipeline에서 호출 경로 FeedbackGenerator로 전환."
+
+# =============================================================================
+# 단계별 구현 계획
+# =============================================================================
+
+implementation_phases:
+
+  phase_0:
+    title: "스키마 확장 + 새 Dataclass"
+    complexity: S
+    deliverables:
+      - "src/evaluation_types.py에 6개 새 dataclass 추가"
+      - "exam config YAML에 knowledge_graph, rubric_tiers, lecture 필드"
+    tdd_tests:
+      - "새 dataclass 인스턴스 생성, 필드 접근, default 값 검증"
+      - "knowledge_graph 있는/없는 config YAML 로드 (하위 호환)"
+    files_create: []
+    files_modify:
+      - src/evaluation_types.py
+      - tests/test_evaluation_types.py
+    dependencies: "없음"
+
+  phase_1:
+    title: "트리플릿 추출 + 그래프 비교 (핵심 결정론적 채점)"
+    complexity: L
+    deliverables:
+      - src/triplet_extractor.py
+      - src/graph_comparator.py
+      - "src/prompt_templates.py에 TRIPLET_EXTRACTION_TEMPLATE 추가"
+    tdd_tests:
+      - "LLM mock으로 JSON 트리플릿 파싱 검증"
+      - "완전 매칭 (P=R=F1=1.0)"
+      - "부분 매칭, wrong_direction 탐지"
+      - "퍼지 매칭 ('인슐린' vs '이자')"
+      - "빈 edge 리스트, 비정상 응답 핸들링"
+    files_create:
+      - src/triplet_extractor.py
+      - src/graph_comparator.py
+      - tests/test_triplet_extractor.py
+      - tests/test_graph_comparator.py
+    files_modify:
+      - src/prompt_templates.py
+    dependencies: [phase_0]
+
+  phase_2:
+    title: "그래프 중첩 시각화"
+    complexity: M
+    deliverables:
+      - src/graph_visualizer.py
+    tdd_tests:
+      - "DiGraph 생성 (노드/에지 수 검증)"
+      - "PNG 파일 출력 존재 확인"
+      - "빈 그래프 핸들링"
+      - "plt.show() mock"
+    files_create:
+      - src/graph_visualizer.py
+      - tests/test_graph_visualizer.py
+    dependencies: [phase_1]
+
+  phase_3:
+    title: "피드백 생성기 (LLM 역할 전환)"
+    complexity: M
+    deliverables:
+      - src/feedback_generator.py
+      - "src/prompt_templates.py에 FEEDBACK_GENERATION_TEMPLATE 추가"
+    tdd_tests:
+      - "LLM mock으로 피드백 생성 검증"
+      - "2000자 제한 준수 (절단 로직)"
+      - "data_sources_used 정확성"
+      - "빈 GraphComparisonResult 핸들링"
+    files_create:
+      - src/feedback_generator.py
+      - tests/test_feedback_generator.py
+    files_modify:
+      - src/prompt_templates.py
+    dependencies: [phase_0, phase_1]
+
+  phase_4:
+    title: "강의 녹취록 통합"
+    complexity: M
+    deliverables:
+      - src/lecture_processor.py
+      - "src/prompt_templates.py에 LECTURE_TRIPLET_EXTRACTION_TEMPLATE 추가"
+    tdd_tests:
+      - "텍스트 세그먼트 분절 (문장 경계)"
+      - "개념 필터링 정확성"
+      - "파일 존재 에러"
+    files_create:
+      - src/lecture_processor.py
+      - tests/test_lecture_processor.py
+    files_modify:
+      - src/prompt_templates.py
+    dependencies: [phase_1]
+
+  phase_5:
+    title: "종단적 데이터 저장소"
+    complexity: S
+    deliverables:
+      - src/longitudinal_store.py
+    tdd_tests:
+      - "append -> save -> load 라운드트립"
+      - "중복 방지 (student_id + week + question_sn)"
+      - "get_student_history 시간순 정렬"
+    files_create:
+      - src/longitudinal_store.py
+      - tests/test_longitudinal_store.py
+    dependencies: [phase_0]
+
+  phase_6:
+    title: "파이프라인 통합 + 앙상블 업데이트"
+    complexity: L
+    deliverables:
+      - "src/ensemble_scorer.py 수정 (graph_f1 + rubric_level)"
+      - "pipeline_evaluation.py 리팩터 (실행 순서 변경)"
+      - "src/report_generator.py 확장 (그래프 + 피드백)"
+      - "pipeline_batch_evaluation.py 업데이트"
+    tdd_tests:
+      - "graph_f1 컴포넌트 포함 앙상블 계산"
+      - "knowledge_graph 있는 config로 end-to-end (모든 LLM mock)"
+      - "knowledge_graph 없는 config로 하위 호환성"
+    files_modify:
+      - src/ensemble_scorer.py
+      - pipeline_evaluation.py
+      - pipeline_batch_evaluation.py
+      - src/report_generator.py
+      - tests/test_ensemble_scorer.py
+    files_create:
+      - tests/test_pipeline_integration.py
+    dependencies: [phase_1, phase_2, phase_3, phase_4, phase_5]
+
+  phase_7:
+    title: "End-to-End 테스트"
+    complexity: M
+    deliverables:
+      - "전체 통합 테스트"
+      - "배치 파이프라인 종단 저장소 연동"
+    tdd_tests:
+      - "전체 플로우: config -> 추출 -> 비교 -> 시각화 -> 피드백 -> 앙상블"
+      - "강의 녹취록 통합 플로우"
+      - "종단 데이터 축적 플로우"
+    files_create:
+      - tests/test_e2e_graph_pipeline.py
+    dependencies: [phase_6]
+
+# =============================================================================
+# 출력 파일 구조
+# =============================================================================
+
+output_file_structure: |
+  {output_dir}/
+  ├── res_lvl1/
+  │   ├── concept_results.yaml            # 기존 유지
+  │   ├── graph_comparison_results.yaml    # 신규: P/R/F1 + 에지 분류
+  │   └── triplet_extraction_raw.yaml      # 신규: 3-call 원본 (디버깅)
+  ├── res_lvl2/
+  │   └── feedback_results.yaml            # 신규: 코칭 피드백 (기존 llm_results.yaml 대체)
+  ├── res_lvl3/
+  │   └── statistical_results.yaml         # 기존 유지
+  ├── res_lvl4/
+  │   ├── ensemble_results.yaml            # 기존 구조 유지 (가중치 변경)
+  │   ├── counseling_summary.yaml          # 확장: 피드백 텍스트 포함
+  │   ├── technical_report.yaml            # 확장: 그래프 비교 상세 포함
+  │   ├── graphs/
+  │   │   ├── S001_q1_graph.png
+  │   │   └── ...
+  │   └── reports/
+  │       ├── S001_report.pdf
+  │       └── ...
+  └── longitudinal/
+      └── student_progress.yaml            # 주차별 누적
+
+# =============================================================================
+# 잠재적 도전 과제
+# =============================================================================
+
+potential_challenges:
+
+  triplet_consistency:
+    title: "LLM 트리플릿 추출의 일관성"
+    risk: "3-call에서 관계 표현이 달라질 수 있음 ('분비하다' vs '분비')"
+    mitigation:
+      - "퍼지 매칭으로 relation 유사도 비교"
+      - "프롬프트에서 '동사형으로 간결하게' 지시"
+      - "과반수 합의 시 임베딩 유사도 >= 0.85면 동일로 간주"
+
+  api_cost:
+    title: "API 비용"
+    risk: "학생x문항x3 call (추출) + 학생x문항x1 call (피드백)"
+    mitigation:
+      - "--skip-graph, --skip-feedback 옵션"
+      - "동일 답변 트리플릿 결과 캐시"
+
+  execution_order:
+    title: "Layer 실행 순서 변경에 따른 복잡도"
+    risk: "기존 L1->L2->L3->L4에서 L1->L3->L4(1차)->L2->L4(최종)으로 변경"
+    mitigation: "Layer4의 점수 계산과 리포트 생성을 분리하여 2회 호출"
+
+  korean_font:
+    title: "DiGraph 시각화 한국어 렌더링"
+    risk: "matplotlib에서 한국어 폰트 미설정 시 글자 깨짐"
+    mitigation: "font_utils.py의 find_korean_font() 재사용"

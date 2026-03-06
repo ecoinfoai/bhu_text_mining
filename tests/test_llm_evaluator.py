@@ -1,7 +1,8 @@
 """Tests for llm_evaluator.py LLM-as-a-Judge with 3-call protocol.
 
 RED phase: validates API key handling, YAML response parsing, 3-call
-aggregation, and error paths.  All Anthropic API calls are mocked.
+aggregation, and error paths.  All LLM API calls are mocked via
+the provider abstraction layer.
 """
 
 import os
@@ -20,19 +21,13 @@ from src.llm_evaluator import LLMEvaluator, compute_icc_2_1
 
 
 @pytest.fixture()
-def mock_anthropic():
-    """Patch anthropic.Anthropic so no real API calls are made."""
-    with patch("src.llm_evaluator.anthropic.Anthropic") as mock_cls:
-        mock_client = MagicMock()
-        mock_cls.return_value = mock_client
-        yield mock_cls, mock_client
-
-
-def _make_message(text: str) -> MagicMock:
-    """Build a fake Anthropic message response."""
-    msg = MagicMock()
-    msg.content = [MagicMock(text=text)]
-    return msg
+def mock_provider():
+    """Patch create_provider so no real API calls are made."""
+    with patch("src.llm_evaluator.create_provider") as mock_factory:
+        mock_prov = MagicMock()
+        mock_prov.model_name = "mock-model"
+        mock_factory.return_value = mock_prov
+        yield mock_factory, mock_prov
 
 
 VALID_YAML_RESPONSE = """\
@@ -63,36 +58,40 @@ uncertain: false
 class TestLLMEvaluatorInit:
     """Tests for LLMEvaluator.__init__()."""
 
-    def test_init_with_explicit_api_key(self, mock_anthropic):
-        """Explicit api_key is accepted without env var."""
-        mock_cls, _ = mock_anthropic
-        evaluator = LLMEvaluator(api_key="test-key-abc")
-        mock_cls.assert_called_once_with(api_key="test-key-abc")
+    def test_init_with_provider(self, mock_provider):
+        """Provider is created via factory."""
+        mock_factory, mock_prov = mock_provider
+        evaluator = LLMEvaluator(api_key="test-key-abc", provider="gemini")
+        mock_factory.assert_called_once_with(
+            provider="gemini", api_key="test-key-abc", model=None,
+        )
         assert evaluator.n_calls == 3
 
-    def test_init_reads_env_var(self, mock_anthropic):
-        """Missing api_key falls back to ANTHROPIC_API_KEY env var."""
-        mock_cls, _ = mock_anthropic
-        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "env-key-xyz"}):
-            evaluator = LLMEvaluator()
-        mock_cls.assert_called_once_with(api_key="env-key-xyz")
-
-    def test_init_missing_key_raises(self, mock_anthropic):
-        """Missing API key raises EnvironmentError."""
-        with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("ANTHROPIC_API_KEY", None)
-            with pytest.raises(EnvironmentError, match="API key"):
-                LLMEvaluator()
-
-    def test_init_default_n_calls(self, mock_anthropic):
+    def test_init_default_n_calls(self, mock_provider):
         """Default number of calls is 3."""
         evaluator = LLMEvaluator(api_key="k")
         assert evaluator.n_calls == 3
 
-    def test_init_temperature_default(self, mock_anthropic):
+    def test_init_temperature_default(self, mock_provider):
         """Default temperature is 0.0."""
         evaluator = LLMEvaluator(api_key="k")
         assert evaluator.temperature == 0.0
+
+    def test_init_anthropic_provider(self, mock_provider):
+        """provider='anthropic' is forwarded to factory."""
+        mock_factory, _ = mock_provider
+        LLMEvaluator(api_key="k", provider="anthropic")
+        mock_factory.assert_called_once_with(
+            provider="anthropic", api_key="k", model=None,
+        )
+
+    def test_init_custom_model(self, mock_provider):
+        """Custom model is forwarded to factory."""
+        mock_factory, _ = mock_provider
+        LLMEvaluator(api_key="k", model="custom-model")
+        mock_factory.assert_called_once_with(
+            provider="gemini", api_key="k", model="custom-model",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +103,7 @@ class TestParseYamlResponse:
     """Tests for LLMEvaluator._parse_yaml_response()."""
 
     @pytest.fixture()
-    def evaluator(self, mock_anthropic):
+    def evaluator(self, mock_provider):
         return LLMEvaluator(api_key="k")
 
     def test_parses_yaml_block(self, evaluator):
@@ -136,11 +135,9 @@ class TestEvaluateResponse:
     """Tests for LLMEvaluator.evaluate_response() 3-call protocol."""
 
     @pytest.fixture()
-    def evaluator(self, mock_anthropic):
-        _, mock_client = mock_anthropic
-        mock_client.messages.create.return_value = _make_message(
-            VALID_YAML_RESPONSE
-        )
+    def evaluator(self, mock_provider):
+        _, mock_prov = mock_provider
+        mock_prov.generate.return_value = VALID_YAML_RESPONSE
         return LLMEvaluator(api_key="k")
 
     def _call_evaluate(self, evaluator: LLMEvaluator) -> AggregatedLLMResult:
@@ -161,14 +158,12 @@ class TestEvaluateResponse:
         result = self._call_evaluate(evaluator)
         assert isinstance(result, AggregatedLLMResult)
 
-    def test_makes_three_api_calls(self, mock_anthropic, evaluator):
+    def test_makes_three_api_calls(self, mock_provider, evaluator):
         """3-call protocol makes exactly 3 API calls."""
-        _, mock_client = mock_anthropic
-        mock_client.messages.create.return_value = _make_message(
-            VALID_YAML_RESPONSE
-        )
+        _, mock_prov = mock_provider
+        mock_prov.generate.return_value = VALID_YAML_RESPONSE
         self._call_evaluate(evaluator)
-        assert mock_client.messages.create.call_count == 3
+        assert mock_prov.generate.call_count == 3
 
     def test_individual_calls_stored(self, evaluator):
         """AggregatedLLMResult stores all 3 individual calls."""
@@ -186,20 +181,19 @@ class TestEvaluateResponse:
         result = self._call_evaluate(evaluator)
         assert isinstance(result.median_rubric_score, (int, float))
 
-    def test_median_aggregation_with_mixed_scores(self, mock_anthropic):
+    def test_median_aggregation_with_mixed_scores(self, mock_provider):
         """Median of [2, 2, 3] == 2.0."""
-        _, mock_client = mock_anthropic
-        responses = [
-            _make_message(VALID_YAML_RESPONSE),   # score=2
-            _make_message(VALID_YAML_RESPONSE),   # score=2
-            _make_message(HIGH_SCORE_RESPONSE),   # score=3
+        _, mock_prov = mock_provider
+        mock_prov.generate.side_effect = [
+            VALID_YAML_RESPONSE,   # score=2
+            VALID_YAML_RESPONSE,   # score=2
+            HIGH_SCORE_RESPONSE,   # score=3
         ]
-        mock_client.messages.create.side_effect = responses
         evaluator = LLMEvaluator(api_key="k")
         result = self._call_evaluate(evaluator)
         assert result.median_rubric_score == pytest.approx(2.0)
 
-    def test_misconceptions_union_across_calls(self, mock_anthropic):
+    def test_misconceptions_union_across_calls(self, mock_provider):
         """Misconceptions from all calls are merged (union, no duplicates)."""
         resp1 = """\
 ```yaml
@@ -219,18 +213,14 @@ misconceptions:
   - 확산 오개념
 uncertain: false
 ```"""
-        _, mock_client = mock_anthropic
-        mock_client.messages.create.side_effect = [
-            _make_message(resp1),
-            _make_message(resp2),
-            _make_message(VALID_YAML_RESPONSE),
-        ]
+        _, mock_prov = mock_provider
+        mock_prov.generate.side_effect = [resp1, resp2, VALID_YAML_RESPONSE]
         evaluator = LLMEvaluator(api_key="k")
         result = self._call_evaluate(evaluator)
         assert "삼투 혼동" in result.misconceptions
         assert "확산 오개념" in result.misconceptions
 
-    def test_uncertain_true_if_any_call_uncertain(self, mock_anthropic):
+    def test_uncertain_true_if_any_call_uncertain(self, mock_provider):
         """uncertain=True if any of the 3 calls flagged uncertainty."""
         uncertain_resp = """\
 ```yaml
@@ -240,11 +230,11 @@ reasoning: test
 misconceptions: []
 uncertain: true
 ```"""
-        _, mock_client = mock_anthropic
-        mock_client.messages.create.side_effect = [
-            _make_message(VALID_YAML_RESPONSE),
-            _make_message(uncertain_resp),
-            _make_message(VALID_YAML_RESPONSE),
+        _, mock_prov = mock_provider
+        mock_prov.generate.side_effect = [
+            VALID_YAML_RESPONSE,
+            uncertain_resp,
+            VALID_YAML_RESPONSE,
         ]
         evaluator = LLMEvaluator(api_key="k")
         result = self._call_evaluate(evaluator)

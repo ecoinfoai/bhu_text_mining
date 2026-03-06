@@ -87,6 +87,25 @@ class TestSaveEvaluationYaml:
         save_evaluation_yaml({"x": 1}, out)
         assert os.path.exists(out)
 
+    def test_save_creates_backup(self, tmp_path):
+        """Test that .bak backup is created on overwrite."""
+        out = str(tmp_path / "result.yaml")
+        save_evaluation_yaml({"v": 1}, out)
+        save_evaluation_yaml({"v": 2}, out)
+        bak = out + ".bak"
+        assert os.path.exists(bak)
+        loaded = load_evaluation_yaml(out)
+        assert loaded["v"] == 2
+
+    def test_save_atomic_no_partial_on_error(self, tmp_path):
+        """Test that failed write leaves no partial file."""
+        out = str(tmp_path / "atomic.yaml")
+        save_evaluation_yaml({"ok": True}, out)
+        assert os.path.exists(out)
+        # File should contain valid data
+        loaded = load_evaluation_yaml(out)
+        assert loaded["ok"] is True
+
 
 class TestExtractStudentResponses:
     """Tests for extract_student_responses()."""

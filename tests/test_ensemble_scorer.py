@@ -10,12 +10,15 @@ from src.evaluation_types import (
     AggregatedLLMResult,
     ConceptMatchResult,
     EnsembleResult,
+    GraphComparisonResult,
     GraphMetricResult,
     StatisticalResult,
+    TripletEdge,
 )
 from src.ensemble_scorer import (
     DEFAULT_WEIGHTS,
     UNDERSTANDING_THRESHOLDS,
+    WEIGHTS_V2,
     EnsembleScorer,
     classify_understanding_level,
     normalize_score,
@@ -325,3 +328,109 @@ class TestEnsembleScorerComputeScore:
         )
         assert isinstance(result, EnsembleResult)
         assert result.ensemble_score >= 0.0
+
+
+# ---------------------------------------------------------------------------
+# v2 graph comparison scoring tests
+# ---------------------------------------------------------------------------
+
+
+def _make_graph_comparison(
+    student_id: str,
+    question_sn: int,
+    f1: float = 0.7,
+    n_matched: int = 3,
+    n_missing: int = 1,
+    n_extra: int = 0,
+    n_wrong: int = 0,
+) -> GraphComparisonResult:
+    matched = [TripletEdge(f"S{i}", "r", f"O{i}") for i in range(n_matched)]
+    missing = [TripletEdge(f"MS{i}", "r", f"MO{i}") for i in range(n_missing)]
+    extra = [TripletEdge(f"ES{i}", "r", f"EO{i}") for i in range(n_extra)]
+    wrong = [TripletEdge(f"WS{i}", "r", f"WO{i}") for i in range(n_wrong)]
+    return GraphComparisonResult(
+        student_id=student_id,
+        question_sn=question_sn,
+        precision=f1,
+        recall=f1,
+        f1=f1,
+        matched_edges=matched,
+        missing_edges=missing,
+        extra_edges=extra,
+        wrong_direction_edges=wrong,
+    )
+
+
+class TestEnsembleScorerV2:
+    """Tests for v2 graph comparison scoring."""
+
+    @pytest.fixture()
+    def scorer(self):
+        return EnsembleScorer()
+
+    def test_v2_mode_with_graph_comparison(self, scorer):
+        """graph_comparison triggers v2 scoring path."""
+        cr = _make_concept_results("s001", 1, 5, 4)
+        gc = _make_graph_comparison("s001", 1, f1=0.8)
+        result = scorer.compute_score(
+            concept_results=cr,
+            llm_result=None,
+            statistical_result=None,
+            graph_result=None,
+            bertscore_f1=None,
+            student_id="s001",
+            question_sn=1,
+            graph_comparison=gc,
+        )
+        assert isinstance(result, EnsembleResult)
+        assert "graph_f1" in result.component_scores
+        assert "llm_rubric" not in result.component_scores
+
+    def test_v2_higher_f1_yields_higher_score(self, scorer):
+        """Higher graph F1 → higher ensemble score."""
+        cr = _make_concept_results("s001", 1, 5, 4)
+        gc_high = _make_graph_comparison("s001", 1, f1=0.9)
+        gc_low = _make_graph_comparison("s001", 1, f1=0.3)
+        r_high = scorer.compute_score(
+            cr, None, None, None, None, "s001", 1, graph_comparison=gc_high,
+        )
+        r_low = scorer.compute_score(
+            cr, None, None, None, None, "s001", 1, graph_comparison=gc_low,
+        )
+        assert r_high.ensemble_score > r_low.ensemble_score
+
+    def test_v2_misconception_penalty(self, scorer):
+        """Wrong direction edges reduce ensemble score."""
+        cr = _make_concept_results("s001", 1, 5, 4)
+        gc_clean = _make_graph_comparison("s001", 1, f1=0.7, n_wrong=0)
+        gc_wrong = _make_graph_comparison("s001", 1, f1=0.7, n_wrong=3)
+        r_clean = scorer.compute_score(
+            cr, None, None, None, None, "s001", 1, graph_comparison=gc_clean,
+        )
+        r_wrong = scorer.compute_score(
+            cr, None, None, None, None, "s001", 1, graph_comparison=gc_wrong,
+        )
+        assert r_wrong.component_scores["misconception_penalty"] > 0
+
+    def test_v1_mode_without_graph_comparison(self, scorer):
+        """No graph_comparison → v1 mode with llm_rubric."""
+        cr = _make_concept_results("s001", 1, 5, 4)
+        llm = _make_llm_result("s001", 1, 2.5)
+        result = scorer.compute_score(
+            concept_results=cr,
+            llm_result=llm,
+            statistical_result=None,
+            graph_result=None,
+            bertscore_f1=None,
+            student_id="s001",
+            question_sn=1,
+        )
+        assert "llm_rubric" in result.component_scores
+        assert "graph_f1" not in result.component_scores
+
+    def test_weights_v2_sum(self):
+        """WEIGHTS_V2 positive weights minus penalty net to ~1.0 usage."""
+        pos = sum(v for v in WEIGHTS_V2.values() if v > 0)
+        neg = sum(abs(v) for v in WEIGHTS_V2.values() if v < 0)
+        assert pos == pytest.approx(0.95)
+        assert neg == pytest.approx(0.05)

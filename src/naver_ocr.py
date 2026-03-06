@@ -7,13 +7,17 @@ from typing import Dict, List, Tuple
 import base64
 
 
-def load_naver_ocr_env(config_path: str) -> Tuple[str, str]:
+def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
     """
     Settings for Naver OCR API. Load the secret key and API URL from the
     configuration file.
 
+    If ``config_path`` is provided and exists, it is used directly
+    (legacy behaviour).  Otherwise falls back to the unified config
+    system (``~/.config/bhu_text_mining/config.json`` → legacy path).
+
     Args:
-        config_path (str): Path to the configuration file.
+        config_path (str): Path to the configuration file (optional).
 
     Returns:
         Tuple[str, str]:
@@ -25,14 +29,19 @@ def load_naver_ocr_env(config_path: str) -> Tuple[str, str]:
         >>> print(secret_key)
         >>> print(api_url)
     """
+    # Try explicit path first (legacy behaviour)
+    if config_path:
+        expanded_path = os.path.expanduser(config_path)
+        if os.path.isfile(expanded_path):
+            with open(expanded_path, "r") as f:
+                config = json.load(f)
+            return config["secret_key"], config["api_url"]
 
-    expanded_path = os.path.expanduser(config_path)
-    with open(expanded_path, "r") as f:
-        config = json.load(f)
-    secret_key = config["secret_key"]
-    api_url = config["api_url"]
+    # Fall back to unified config system
+    from src.config import get_naver_ocr_config, load_config
 
-    return secret_key, api_url
+    config = load_config(config_path if config_path else None)
+    return get_naver_ocr_config(config)
 
 
 def create_request_json(image_files: List[str]) -> Dict:

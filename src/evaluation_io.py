@@ -7,6 +7,7 @@ provides save/extract helpers for evaluation data.
 from __future__ import annotations
 
 import os
+import tempfile
 from typing import Any
 
 import yaml
@@ -45,10 +46,11 @@ def load_evaluation_yaml(yaml_path: str) -> dict[str, Any]:
 def save_evaluation_yaml(
     data: dict[str, Any], output_path: str
 ) -> None:
-    """Save evaluation results to a YAML file.
+    """Save evaluation results to a YAML file using atomic write.
 
-    Creates parent directories automatically.  Uses ``allow_unicode=True``
-    so Korean text is written as-is (not escaped).
+    Writes to a temporary file first, then atomically replaces the
+    target via ``os.replace()``.  Creates a ``.bak`` backup of any
+    existing file before overwriting.
 
     Args:
         data: Result data to serialise.
@@ -63,8 +65,29 @@ def save_evaluation_yaml(
     parent = os.path.dirname(output_path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as fh:
-        yaml.dump(data, fh, allow_unicode=True, default_flow_style=False)
+
+    # Backup existing file
+    if os.path.isfile(output_path):
+        bak_path = output_path + ".bak"
+        try:
+            os.replace(output_path, bak_path)
+        except OSError:
+            pass
+
+    # Atomic write: tempfile → os.replace
+    fd, tmp_path = tempfile.mkstemp(
+        dir=parent or ".", suffix=".tmp", prefix=".eval_"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            yaml.dump(data, fh, allow_unicode=True, default_flow_style=False)
+        os.replace(tmp_path, output_path)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def extract_student_responses(

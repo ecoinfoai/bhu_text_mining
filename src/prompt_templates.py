@@ -125,6 +125,161 @@ def render_rubric_prompt(
     )
 
 
+TRIPLET_EXTRACTION_TEMPLATE = Template("""\
+다음 학생의 서술형 답변에서 지식 관계를 (주어, 관계, 목적어) 트리플릿으로 추출하세요.
+
+## 질문
+$question
+
+## 마스터 개념 노드 (참고용)
+$master_nodes
+
+## 학생 답변
+<student_response>
+$student_response
+</student_response>
+
+## 출력 형식
+다음 JSON 형식으로 정확하게 응답하세요 (다른 텍스트 없이):
+
+```json
+[
+  {"subject": "주어", "relation": "관계동사", "object": "목적어"},
+  ...
+]
+```
+
+## 지침
+- 관계(relation)는 동사형으로 표현 (예: "감지하다", "명령하다", "구성하다")
+- 학생 답변에 명시적으로 나타난 관계만 추출 (추론하지 마시오)
+- 마스터 개념 노드에 해당하는 용어가 있으면 해당 표현을 사용
+- 답변이 비어있거나 관계를 추출할 수 없으면 빈 배열 []을 반환
+""")
+
+
+FEEDBACK_GENERATION_TEMPLATE = Template("""\
+다음은 학생의 서술형 답변에 대한 정량적 평가 결과입니다.
+이 데이터를 바탕으로 학생에게 건설적인 학습 코칭 피드백을 작성하세요.
+
+## 질문
+$question
+
+## 학생 답변
+<student_response>
+$student_response
+</student_response>
+
+## 정량 평가 결과
+- 개념 커버리지: $concept_coverage
+- 그래프 F1 점수: $graph_f1
+- 이해도 수준: $tier_label (Level $tier_level)
+- 매칭된 에지 수: $matched_count
+- 누락된 에지 수: $missing_count
+- 방향 오류 에지 수: $wrong_direction_count
+
+## 누락된 관계 (학생이 언급하지 않은 핵심 관계)
+$missing_edges_text
+
+## 방향 오류 관계 (학생이 방향을 잘못 이해한 관계)
+$wrong_direction_text
+
+$lecture_tone_section
+
+## 피드백 작성 지침
+1. 루브릭 평가결과를 해설하세요
+2. 임베딩/그래프 분석 결과를 구체적으로 설명하세요
+3. 학습 제안을 제시하세요
+4. 제공된 데이터 이상의 정보를 추가하지 마시오
+5. 2000자(공백 포함) 이내로 작성하세요
+6. $length_guidance
+""")
+
+
+def render_triplet_extraction_prompt(
+    question: str,
+    student_response: str,
+    master_nodes: list[str],
+) -> str:
+    """Render the triplet extraction prompt for a student response.
+
+    Wraps student text in XML tags for prompt injection defense.
+
+    Args:
+        question: Exam question text.
+        student_response: Student's raw answer (wrapped in XML tags).
+        master_nodes: List of master concept node names for guidance.
+
+    Returns:
+        Formatted prompt string.
+    """
+    nodes_str = (
+        "\n".join(f"- {n}" for n in master_nodes)
+        if master_nodes
+        else "- (노드 목록 없음)"
+    )
+    return TRIPLET_EXTRACTION_TEMPLATE.substitute(
+        question=question,
+        student_response=student_response,
+        master_nodes=nodes_str,
+    )
+
+
+def render_feedback_prompt(
+    question: str,
+    student_response: str,
+    concept_coverage: float,
+    graph_f1: float,
+    tier_level: int,
+    tier_label: str,
+    matched_count: int,
+    missing_count: int,
+    wrong_direction_count: int,
+    missing_edges_text: str,
+    wrong_direction_text: str,
+    lecture_tone: str = "",
+    length_guidance: str = "Level 0은 ~2000자, Level 3은 ~500자로 작성",
+) -> str:
+    """Render the feedback generation prompt.
+
+    Args:
+        question: Exam question text.
+        student_response: Student's raw answer.
+        concept_coverage: Concept coverage ratio.
+        graph_f1: Graph comparison F1 score.
+        tier_level: Rubric tier level (0-3).
+        tier_label: Rubric tier label.
+        matched_count: Number of matched edges.
+        missing_count: Number of missing edges.
+        wrong_direction_count: Number of wrong direction edges.
+        missing_edges_text: Formatted text of missing edges.
+        wrong_direction_text: Formatted text of wrong direction edges.
+        lecture_tone: Optional lecture tone sample.
+        length_guidance: Feedback length guidance string.
+
+    Returns:
+        Formatted prompt string.
+    """
+    lecture_section = ""
+    if lecture_tone:
+        lecture_section = f"\n## 강의 톤 참조\n{lecture_tone}\n"
+
+    return FEEDBACK_GENERATION_TEMPLATE.substitute(
+        question=question,
+        student_response=student_response,
+        concept_coverage=f"{concept_coverage:.0%}",
+        graph_f1=f"{graph_f1:.2f}",
+        tier_level=tier_level,
+        tier_label=tier_label,
+        matched_count=matched_count,
+        missing_count=missing_count,
+        wrong_direction_count=wrong_direction_count,
+        missing_edges_text=missing_edges_text or "(없음)",
+        wrong_direction_text=wrong_direction_text or "(없음)",
+        lecture_tone_section=lecture_section,
+        length_guidance=length_guidance,
+    )
+
+
 def render_concept_reasoning_prompt(
     concept: str,
     student_response: str,
@@ -150,3 +305,35 @@ def render_concept_reasoning_prompt(
         concept=concept,
         student_response=student_response,
     )
+
+
+# ---------------------------------------------------------------------------
+# Lecture triplet extraction
+# ---------------------------------------------------------------------------
+
+LECTURE_TRIPLET_EXTRACTION_TEMPLATE = Template("""\
+다음 강의 내용에서 핵심 지식을 (주어, 관계, 목적어) 트리플릿으로 추출하세요.
+
+## 강의 내용
+$lecture_text
+
+## 출력 형식
+다음 JSON 형식으로 응답하세요 (다른 텍스트 없이):
+
+```json
+[
+  {"subject": "주어", "relation": "관계동사", "object": "목적어"},
+  ...
+]
+```
+
+## 지침
+- 관계는 동사형으로 표현 (예: "구성하다", "조절하다", "포함하다")
+- 핵심 개념 간의 관계만 추출
+- 최대 15개 트리플릿
+""")
+
+
+def render_lecture_triplet_prompt(lecture_text: str) -> str:
+    """Render the lecture triplet extraction prompt."""
+    return LECTURE_TRIPLET_EXTRACTION_TEMPLATE.substitute(lecture_text=lecture_text)
