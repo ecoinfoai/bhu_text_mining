@@ -246,28 +246,40 @@ def _run_layer2_v1(
     evaluator = LLMEvaluator(api_key=api_key, provider=provider, model=model)
     results: dict[str, dict[int, AggregatedLLMResult]] = {}
 
+    # Build work list for progress tracking
+    work: list[tuple[dict, str]] = []
     for q in config_data.get("questions", []):
         if _is_v2_question(q):
             continue
-        qsn: int = q["sn"]
-        rubric = q.get("rubric", {})
-
         for student_id, responses in student_responses.items():
-            text = responses.get(qsn, "")
-            if not text:
-                continue
-            agg = evaluator.evaluate_response(
-                student_id=student_id,
-                question_sn=qsn,
-                question=q.get("question", ""),
-                student_response=text,
-                model_answer=q.get("model_answer", ""),
-                rubric_high=rubric.get("high", ""),
-                rubric_mid=rubric.get("mid", ""),
-                rubric_low=rubric.get("low", ""),
-                concepts=q.get("keywords", []),
-            )
-            results.setdefault(student_id, {})[qsn] = agg
+            if responses.get(q["sn"], ""):
+                work.append((q, student_id))
+
+    total = len(work)
+    for idx, (q, student_id) in enumerate(work, 1):
+        qsn = q["sn"]
+        rubric = q.get("rubric", {})
+        text = student_responses[student_id][qsn]
+        print(
+            f"\r[pipeline] LLM eval: {idx}/{total} "
+            f"({student_id}, q{qsn}) …",
+            end="", flush=True,
+        )
+        agg = evaluator.evaluate_response(
+            student_id=student_id,
+            question_sn=qsn,
+            question=q.get("question", ""),
+            student_response=text,
+            model_answer=q.get("model_answer", ""),
+            rubric_high=rubric.get("high", ""),
+            rubric_mid=rubric.get("mid", ""),
+            rubric_low=rubric.get("low", ""),
+            concepts=q.get("keywords", []),
+        )
+        results.setdefault(student_id, {})[qsn] = agg
+
+    if total:
+        print()  # newline after progress
 
     return results
 
@@ -290,44 +302,58 @@ def _run_feedback(
     gen = FeedbackGenerator(llm_prov)
     results: dict[str, dict[int, FeedbackResult]] = {}
 
+    # Build work list for progress tracking
+    work: list[tuple[dict, str]] = []
     for q in config_data.get("questions", []):
         qsn = q["sn"]
-        tiers = _get_rubric_tiers(q) if _is_v2_question(q) else []
-
-        for student_id, responses in student_responses.items():
-            text = responses.get(qsn, "")
+        for student_id in student_responses:
             er = (ensemble_results.get(student_id) or {}).get(qsn)
-            if er is None:
-                continue
+            if er is not None:
+                work.append((q, student_id))
 
-            gc = None
-            if graph_results:
-                gc = (graph_results.get(student_id) or {}).get(qsn)
+    total = len(work)
+    for idx, (q, student_id) in enumerate(work, 1):
+        qsn = q["sn"]
+        tiers = _get_rubric_tiers(q) if _is_v2_question(q) else []
+        text = student_responses[student_id].get(qsn, "")
+        er = ensemble_results[student_id][qsn]
 
-            # Determine tier
-            tier_level = 0
-            tier_label = "미달"
-            if gc and tiers:
-                for tier in sorted(tiers, key=lambda t: t.level, reverse=True):
-                    if gc.f1 >= tier.min_graph_f1:
-                        tier_level = tier.level
-                        tier_label = tier.label
-                        break
+        gc = None
+        if graph_results:
+            gc = (graph_results.get(student_id) or {}).get(qsn)
 
-            coverage = er.component_scores.get("concept_coverage", 0.0)
+        # Determine tier
+        tier_level = 0
+        tier_label = "미달"
+        if gc and tiers:
+            for tier in sorted(tiers, key=lambda t: t.level, reverse=True):
+                if gc.f1 >= tier.min_graph_f1:
+                    tier_level = tier.level
+                    tier_label = tier.label
+                    break
 
-            fr = gen.generate(
-                student_id=student_id,
-                question_sn=qsn,
-                question=q.get("question", ""),
-                student_response=text,
-                concept_coverage=coverage,
-                graph_comparison=gc,
-                tier_level=tier_level,
-                tier_label=tier_label,
-                lecture_tone=lecture_tone,
-            )
-            results.setdefault(student_id, {})[qsn] = fr
+        coverage = er.component_scores.get("concept_coverage", 0.0)
+
+        print(
+            f"\r[pipeline] Feedback: {idx}/{total} "
+            f"({student_id}, q{qsn}) …",
+            end="", flush=True,
+        )
+        fr = gen.generate(
+            student_id=student_id,
+            question_sn=qsn,
+            question=q.get("question", ""),
+            student_response=text,
+            concept_coverage=coverage,
+            graph_comparison=gc,
+            tier_level=tier_level,
+            tier_label=tier_label,
+            lecture_tone=lecture_tone,
+        )
+        results.setdefault(student_id, {})[qsn] = fr
+
+    if total:
+        print()  # newline after progress
 
     return results
 
@@ -1011,90 +1037,137 @@ def _generate_pdf_reports(
 # ---------------------------------------------------------------------------
 
 
+def _load_eval_config(path: str) -> dict:
+    """Load an eval-config YAML and return a flat options dict.
+
+    The YAML keys map directly to ``run_evaluation_pipeline()`` kwargs.
+    Paths inside the YAML are resolved relative to the YAML file's
+    directory so the user can write relative paths naturally.
+    """
+    import yaml
+
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    # Resolve relative paths against the YAML file's directory
+    base = os.path.dirname(os.path.abspath(path))
+    for key in ("config", "responses", "output", "lecture_transcript",
+                "longitudinal_store"):
+        val = cfg.get(key)
+        if val and not os.path.isabs(val):
+            cfg[key] = os.path.join(base, val)
+
+    return cfg
+
+
 def main() -> None:
-    """Parse arguments and run the evaluation pipeline."""
+    """Parse arguments and run the evaluation pipeline.
+
+    Supports two usage modes:
+
+    1. ``forma-eval --eval-config eval_w1_A.yaml``
+       — all options in a single YAML file.
+    2. ``forma-eval --config ... --responses ... --output ...``
+       — traditional CLI flags (CLI flags override eval-config values).
+    """
+    # Suppress noisy pecab overflow warnings
+    warnings.filterwarnings("ignore", message="overflow", category=RuntimeWarning)
+
     parser = argparse.ArgumentParser(
         description="Multi-layer concept evaluation pipeline (v2)"
     )
     parser.add_argument(
-        "--config", required=True, help="Exam YAML config path"
+        "--eval-config",
+        default=None,
+        help="평가 환경설정 YAML (모든 옵션을 파일 하나에 지정)",
     )
     parser.add_argument(
-        "--responses", required=True, help="Student responses YAML path"
+        "--config", default=None, help="Exam YAML config path"
     )
     parser.add_argument(
-        "--output", required=True, help="Output directory"
+        "--responses", default=None, help="Student responses YAML path"
+    )
+    parser.add_argument(
+        "--output", default=None, help="Output directory"
     )
     parser.add_argument(
         "--api-key", default=None, help="LLM API key (overrides env var)"
     )
     parser.add_argument(
-        "--provider",
-        default="gemini",
-        help="LLM provider: gemini (default) or anthropic",
+        "--provider", default=None, help="LLM provider: gemini | anthropic"
     )
     parser.add_argument(
         "--model", default=None, help="LLM model ID override"
     )
     parser.add_argument(
-        "--skip-feedback",
-        action="store_true",
+        "--skip-feedback", action="store_true", default=None,
         help="Skip feedback generation",
     )
     parser.add_argument(
-        "--skip-llm",
-        action="store_true",
+        "--skip-llm", action="store_true", default=None,
         help="Deprecated: use --skip-feedback instead",
     )
     parser.add_argument(
-        "--skip-graph",
-        action="store_true",
+        "--skip-graph", action="store_true", default=None,
         help="Skip triplet extraction and graph comparison",
     )
     parser.add_argument(
-        "--skip-stats",
-        action="store_true",
+        "--skip-stats", action="store_true", default=None,
         help="Skip Layer 3 statistical analysis",
     )
     parser.add_argument(
-        "--lecture-transcript",
-        default=None,
+        "--lecture-transcript", default=None,
         help="Path to lecture transcript file",
     )
     parser.add_argument(
-        "--longitudinal-store",
-        default=None,
+        "--longitudinal-store", default=None,
         help="Path to longitudinal data store",
     )
     parser.add_argument(
-        "--generate-reports",
-        action="store_true",
+        "--generate-reports", action="store_true", default=None,
         help="Generate student PDF reports",
     )
     parser.add_argument(
-        "--questions-used",
-        nargs="+",
-        type=int,
-        default=None,
-        help="출제 문항의 exam sn 번호를 q 순서대로 지정 (예: 1 3 → q1=sn1, q2=sn3)",
+        "--questions-used", nargs="+", type=int, default=None,
+        help="출제 문항의 exam sn 번호를 q 순서대로 (예: 1 3)",
     )
     args = parser.parse_args()
 
+    # --- Merge eval-config YAML with CLI flags (CLI wins) ---
+    ecfg: dict = {}
+    if args.eval_config:
+        ecfg = _load_eval_config(args.eval_config)
+
+    def _resolve(cli_val, yaml_key, default=None):
+        """CLI flag > eval-config YAML > default."""
+        if cli_val is not None:
+            return cli_val
+        return ecfg.get(yaml_key, default)
+
+    config_path = _resolve(args.config, "config")
+    responses_path = _resolve(args.responses, "responses")
+    output_dir = _resolve(args.output, "output")
+
+    if not config_path or not responses_path or not output_dir:
+        parser.error(
+            "--eval-config 또는 --config/--responses/--output 을 지정하세요."
+        )
+
     run_evaluation_pipeline(
-        config_path=args.config,
-        responses_path=args.responses,
-        output_dir=args.output,
-        api_key=args.api_key,
-        skip_llm=args.skip_llm,
-        skip_feedback=args.skip_feedback,
-        skip_graph=args.skip_graph,
-        skip_statistical=args.skip_stats,
-        provider=args.provider,
-        model=args.model,
-        lecture_transcript=args.lecture_transcript,
-        longitudinal_store=args.longitudinal_store,
-        generate_reports=args.generate_reports,
-        questions_used=args.questions_used,
+        config_path=config_path,
+        responses_path=responses_path,
+        output_dir=output_dir,
+        api_key=_resolve(args.api_key, "api_key"),
+        skip_llm=_resolve(args.skip_llm, "skip_llm", False),
+        skip_feedback=_resolve(args.skip_feedback, "skip_feedback", False),
+        skip_graph=_resolve(args.skip_graph, "skip_graph", False),
+        skip_statistical=_resolve(args.skip_stats, "skip_stats", False),
+        provider=_resolve(args.provider, "provider", "gemini"),
+        model=_resolve(args.model, "model"),
+        lecture_transcript=_resolve(args.lecture_transcript, "lecture_transcript"),
+        longitudinal_store=_resolve(args.longitudinal_store, "longitudinal_store"),
+        generate_reports=_resolve(args.generate_reports, "generate_reports", False),
+        questions_used=_resolve(args.questions_used, "questions_used"),
     )
 
 

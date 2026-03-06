@@ -18,6 +18,7 @@ dependencies = [
     "numpy<2.1.0",
     "kss>=6.0.4",
     "mecab-python3>=1.0.10",
+    "mecab-ko-dic>=1.0.0",
     "wordcloud>=1.9.4",
     "scikit-learn>=1.6.1",
     "hdbscan>=0.8.40",

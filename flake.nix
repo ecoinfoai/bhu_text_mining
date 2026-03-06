@@ -15,6 +15,7 @@
           python311Packages.pyqt5
           uv
           bun
+          mecab
         ];
         # python312 removed from local shell — CI matrix covers 3.12 testing.
 
@@ -23,12 +24,22 @@
           UV_PYTHON_PREFERENCE = "only-system";
         };
 
+        # mecab: use Korean dictionary from mecab-ko-dic pip package
+        shellHook = ''
+          DICDIR=$(python3 -c "import mecab_ko_dic; print(mecab_ko_dic.DICDIR)" 2>/dev/null || true)
+          if [ -n "$DICDIR" ] && [ -d "$DICDIR" ]; then
+            export MECABRC=$(mktemp)
+            echo "dicdir = $DICDIR" > "$MECABRC"
+          fi
+        '';
+
         # Provide libstdc++ and Qt5/zlib for PyQt5 via pip
         LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
           pkgs.stdenv.cc.cc.lib
           pkgs.qt5.qtbase
           pkgs.zbar
           pkgs.zlib
+          pkgs.mecab
         ];
       };
     };

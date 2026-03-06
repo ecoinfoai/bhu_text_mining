@@ -97,7 +97,7 @@ class GeminiProvider(LLMProvider):
     Requires ``GOOGLE_API_KEY`` environment variable or explicit api_key.
     """
 
-    DEFAULT_MODEL: str = "gemini-2.0-flash-001"
+    DEFAULT_MODEL: str = "gemini-2.5-flash"
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None) -> None:
         resolved_key = api_key or os.environ.get("GOOGLE_API_KEY")

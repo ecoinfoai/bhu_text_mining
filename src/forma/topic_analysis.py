@@ -1,16 +1,15 @@
+import warnings
+
 import yaml
 from typing import Dict, List, Tuple
 from bertopic import BERTopic
 from umap import UMAP
 from hdbscan import HDBSCAN
 from sentence_transformers import SentenceTransformer
-import kss
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    import kss
 import pandas as pd
-
-
-# It is strongly recommended to install Mecab on your linux environment,
-# before using kss.split_sentences. The kss library prefers to use
-# Mecab for Korean sentence splitting.
 
 
 # Prepare your data

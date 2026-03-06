@@ -938,7 +938,7 @@ wheels = [
 
 [[package]]
 name = "formative-analysis"
-version = "0.4.0"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
@@ -953,6 +953,7 @@ dependencies = [
     { name = "kss" },
     { name = "llvmlite" },
     { name = "matplotlib" },
+    { name = "mecab-ko-dic" },
     { name = "mecab-python3" },
     { name = "networkx" },
     { name = "numpy" },
@@ -1003,6 +1004,7 @@ requires-dist = [
     { name = "kss", specifier = ">=6.0.4" },
     { name = "llvmlite", specifier = ">=0.39.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },
+    { name = "mecab-ko-dic", specifier = ">=1.0.0" },
     { name = "mecab-python3", specifier = ">=1.0.10" },
     { name = "networkx", specifier = ">=3.4.2" },
     { name = "numpy", specifier = "<2.1.0" },
@@ -2255,6 +2257,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec9
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
 ]
+
+[[package]]
+name = "mecab-ko-dic"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/86/b88d823b0c912bb8e86584d697d51c866df567bd328f9196efab7835b8ab/mecab-ko-dic-1.0.0.tar.gz", hash = "sha256:3ba22858736e02e8a0e92f2a7f099528c733ae47701b29d12c75e982a85d1f11", size = 33150228, upload-time = "2021-02-19T20:41:22.16Z" }
 
 [[package]]
 name = "mecab-python3"

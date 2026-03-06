@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import math
 import unicodedata
+import warnings
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-import kss
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    import kss
 
 from forma.embedding_cache import encode_texts, DEFAULT_MODEL
 from forma.evaluation_types import ConceptMatchResult

@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import re
 import statistics
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -109,11 +110,143 @@ class LLMEvaluator:
         self.n_calls = n_calls
         self.temperature = temperature
 
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        """Remove markdown code fences from LLM response text.
+
+        Args:
+            text: Raw LLM response that may contain ```yaml ... ``` fencing.
+
+        Returns:
+            Text with code fences stripped.
+        """
+        # Try fenced ```yaml ... ``` first
+        pattern = r"```(?:yaml)?\s*\n(.*?)```"
+        match = re.search(pattern, text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        # Strip leading/trailing ``` lines if regex missed
+        yaml_str = text.strip()
+        if yaml_str.startswith("```"):
+            first_nl = yaml_str.find("\n")
+            if first_nl != -1:
+                yaml_str = yaml_str[first_nl + 1:]
+        if yaml_str.endswith("```"):
+            yaml_str = yaml_str[:-3]
+        return yaml_str.strip()
+
+    @staticmethod
+    def _sanitize_yaml_str(yaml_str: str) -> str:
+        """Sanitize YAML string to handle problematic quoting.
+
+        LLM responses often contain Korean text with embedded single quotes
+        (e.g. ``'생체항상성'을 '생체합산성'으로 오인함.``) which break
+        YAML list parsing. This wraps bare values in double quotes.
+
+        Args:
+            yaml_str: YAML string that may have quoting issues.
+
+        Returns:
+            Sanitized YAML string.
+        """
+        lines = yaml_str.split("\n")
+        sanitized = []
+        for line in lines:
+            stripped = line.lstrip()
+            # Fix list items with problematic quotes: "- 'text'..." patterns
+            if stripped.startswith("- '") and not stripped.startswith("- ''"):
+                indent = line[: len(line) - len(stripped)]
+                value = stripped[2:]  # after "- "
+                # Wrap the value in double quotes, escaping existing ones
+                value = value.replace('"', '\\"')
+                line = f'{indent}- "{value}"'
+            # Fix bare key values that start with quotes
+            elif ": '" in stripped and not stripped.endswith("'"):
+                colon_idx = line.index(": '")
+                key_part = line[: colon_idx + 2]  # "key: "
+                value = line[colon_idx + 2:]
+                value = value.replace('"', '\\"')
+                line = f'{key_part}"{value}"'
+            sanitized.append(line)
+        return "\n".join(sanitized)
+
+    @staticmethod
+    def _fallback_parse(yaml_str: str) -> dict:
+        """Best-effort key-value extraction when YAML parsing fails.
+
+        Extracts top-level ``key: value`` pairs and ``key:`` followed by
+        ``- item`` lists using simple regex, so the pipeline can continue
+        even with malformed YAML.
+
+        Args:
+            yaml_str: YAML-like string that failed ``yaml.safe_load``.
+
+        Returns:
+            Dict with extracted key-value pairs.
+
+        Raises:
+            ValueError: If no key-value pairs could be extracted.
+        """
+        result: dict = {}
+        current_key: str | None = None
+        current_list: list[str] | None = None
+
+        for line in yaml_str.split("\n"):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            # List item under a key
+            if stripped.startswith("- ") and current_key is not None:
+                if current_list is None:
+                    current_list = []
+                item = stripped[2:].strip().strip("'\"")
+                current_list.append(item)
+                continue
+
+            # Flush any pending list
+            if current_key is not None and current_list is not None:
+                result[current_key] = current_list
+                current_list = None
+                current_key = None
+
+            # Key: value pair
+            kv_match = re.match(r"^(\w[\w_]*):\s*(.*)", stripped)
+            if kv_match:
+                key = kv_match.group(1)
+                val = kv_match.group(2).strip()
+                if val:
+                    # Strip quotes and try numeric conversion
+                    val = val.strip("'\"")
+                    try:
+                        val = int(val)
+                    except ValueError:
+                        try:
+                            val = float(val)
+                        except ValueError:
+                            if val.lower() in ("true", "false"):
+                                val = val.lower() == "true"
+                    result[key] = val
+                    current_key = None
+                else:
+                    # Value on next lines (list or block)
+                    current_key = key
+
+        # Flush trailing list
+        if current_key is not None and current_list is not None:
+            result[current_key] = current_list
+
+        if not result:
+            raise ValueError("Fallback parser extracted no key-value pairs")
+        return result
+
     def _parse_yaml_response(self, response_text: str) -> dict:
         """Parse a YAML block from an LLM response string.
 
-        Tries to extract a ```yaml … ``` fenced block first; falls back to
-        parsing the entire response as YAML.
+        Tries multiple strategies in order:
+        1. Strip code fences and ``yaml.safe_load``
+        2. Sanitize problematic quoting and retry ``yaml.safe_load``
+        3. Fallback regex-based key-value extraction
 
         Args:
             response_text: Raw text returned by the LLM.
@@ -122,20 +255,38 @@ class LLMEvaluator:
             Parsed dict.
 
         Raises:
-            ValueError: If the response does not parse to a dict.
+            ValueError: If all parsing strategies fail.
         """
-        pattern = r"```yaml\s*(.*?)\s*```"
-        match = re.search(pattern, response_text, re.DOTALL)
-        yaml_str = match.group(1) if match else response_text
+        yaml_str = self._strip_code_fence(response_text)
 
-        parsed = yaml.safe_load(yaml_str)
-        if not isinstance(parsed, dict):
-            raise ValueError(
-                f"LLM response did not parse to a dict in "
-                f"_parse_yaml_response(). "
-                f"Got: {response_text[:200]}"
-            )
-        return parsed
+        # Strategy 1: direct YAML parse
+        try:
+            parsed = yaml.safe_load(yaml_str)
+            if isinstance(parsed, dict):
+                return parsed
+        except yaml.YAMLError:
+            pass
+
+        # Strategy 2: sanitize quoting and retry
+        try:
+            sanitized = self._sanitize_yaml_str(yaml_str)
+            parsed = yaml.safe_load(sanitized)
+            if isinstance(parsed, dict):
+                return parsed
+        except yaml.YAMLError:
+            pass
+
+        # Strategy 3: fallback regex extraction
+        try:
+            return self._fallback_parse(yaml_str)
+        except ValueError:
+            pass
+
+        raise ValueError(
+            f"All YAML parsing strategies failed in "
+            f"_parse_yaml_response(). "
+            f"Raw response: {response_text[:300]}"
+        )
 
     def _single_call(
         self,
@@ -160,7 +311,26 @@ class LLMEvaluator:
             max_tokens=1024,
             temperature=self.temperature,
         )
-        parsed = self._parse_yaml_response(content)
+
+        try:
+            parsed = self._parse_yaml_response(content)
+        except ValueError as exc:
+            warnings.warn(
+                f"LLM response parsing failed (call {call_index}, "
+                f"{student_id} q{question_sn}): {exc}. "
+                f"Using fallback low-confidence result.",
+                stacklevel=2,
+            )
+            return LLMJudgeResult(
+                student_id=student_id,
+                question_sn=question_sn,
+                rubric_score=1,
+                rubric_label="low",
+                reasoning=f"[parse error] {content[:200]}",
+                misconceptions=[],
+                uncertain=True,
+                call_index=call_index,
+            )
 
         misconceptions = parsed.get("misconceptions") or []
         if isinstance(misconceptions, str):
