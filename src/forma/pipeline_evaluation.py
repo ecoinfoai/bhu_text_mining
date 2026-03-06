@@ -651,6 +651,21 @@ def run_evaluation_pipeline(
         )
         skip_feedback = True
 
+    # --- Resolve API key from forma config if not provided ---
+    if api_key is None:
+        try:
+            from forma.config import get_llm_config, load_config
+
+            app_config = load_config()
+            llm_cfg = get_llm_config(app_config)
+            if llm_cfg.get("api_key"):
+                api_key = llm_cfg["api_key"]
+                if not provider or provider == "gemini":
+                    provider = llm_cfg.get("provider", provider)
+                print(f"[pipeline] API key loaded from forma config ({provider})")
+        except FileNotFoundError:
+            pass
+
     config_data = load_evaluation_yaml(config_path)
 
     if questions_used:
