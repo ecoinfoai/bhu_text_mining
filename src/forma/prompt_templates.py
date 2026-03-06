@@ -44,14 +44,18 @@ $concepts
 
 다음 YAML 형식으로 정확하게 응답하세요 (다른 텍스트 없이):
 
-```yaml
 rubric_score: [1, 2, 또는 3]
 rubric_label: [high, mid, 또는 low]
-reasoning: [평가 근거를 2-3문장으로 설명]
+reasoning: "[평가 근거를 2-3문장으로 완결된 문장으로 설명. 반드시 큰따옴표로 감싸세요]"
 misconceptions:
-  - [오개념 1 (없으면 이 줄 삭제)]
+  - "[오개념 1을 큰따옴표로 감싸세요 (없으면 이 줄 삭제)]"
 uncertain: [true 또는 false]
-```"""
+
+주의사항:
+- reasoning과 misconceptions 값은 반드시 큰따옴표(")로 감싸세요.
+- 값 안에서 큰따옴표가 필요하면 작은따옴표(')를 사용하세요.
+- 코드 블록(```)으로 감싸지 마세요. 위 형식 그대로 출력하세요.
+- 문장을 중간에 끊지 마세요. 반드시 마침표로 끝나는 완결된 문장을 쓰세요."""
 )
 
 CONCEPT_REASONING_TEMPLATE = Template(
@@ -194,8 +198,19 @@ $lecture_tone_section
 3. 임베딩/그래프 분석 결과를 구체적으로 설명하세요
 4. 학습 제안을 제시하세요
 5. 제공된 데이터 이상의 정보를 추가하지 마시오
-6. 2000자(공백 포함) 이내로 작성하세요
-7. $length_guidance
+6. $length_guidance
+
+## 출력 형식 규칙 (반드시 준수)
+- 마크다운 문법(#, **, *, ---, ```)을 사용하지 마세요. 순수 텍스트만 작성하세요.
+- 따옴표는 작은따옴표(')만 사용하세요. 큰따옴표("), 이중 작은따옴표(''), 꺾쇠(「」) 등 다른 따옴표를 쓰지 마세요.
+- 글머리 기호는 숫자(1. 2. 3.)만 사용하세요. 불릿(-, *, •)을 쓰지 마세요.
+- 반드시 다음 3개 단락 구조로 작성하세요:
+  [평가 요약] 이해도 수준, 개념 커버리지, 점수를 2~3문장으로 요약
+  [분석 결과] 잘한 점과 부족한 점을 구체적으로 설명 (3~5문장)
+  [학습 제안] 보완할 내용과 학습 방법을 구체적으로 제안 (2~3문장)
+- 각 단락은 [평가 요약], [분석 결과], [학습 제안]으로 시작하세요.
+- 문장을 중간에 끊지 마세요. 반드시 완결된 문장으로 작성하세요.
+- 글자 수: $length_guidance_chars자 이상 작성하세요.
 """)
 
 
@@ -267,6 +282,10 @@ def render_feedback_prompt(
     if lecture_tone:
         lecture_section = f"\n## 강의 톤 참조\n{lecture_tone}\n"
 
+    # Compute minimum character count for the prompt
+    tier_char_targets = {3: 500, 2: 1000, 1: 1500, 0: 2000}
+    length_chars = tier_char_targets.get(tier_level, 2000)
+
     return FEEDBACK_GENERATION_TEMPLATE.substitute(
         question=question,
         student_response=student_response,
@@ -281,6 +300,7 @@ def render_feedback_prompt(
         wrong_direction_text=wrong_direction_text or "(없음)",
         lecture_tone_section=lecture_section,
         length_guidance=length_guidance,
+        length_guidance_chars=length_chars,
     )
 
 
