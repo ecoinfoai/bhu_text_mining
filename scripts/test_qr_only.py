@@ -6,7 +6,7 @@ Usage:
 import os
 import sys
 
-from src.qr_decode import decode_qr_from_image
+from forma.qr_decode import decode_qr_from_image
 
 d = sys.argv[1] if len(sys.argv) > 1 else "exams/anp_w1/anp_1A_W1"
 files = sorted(f for f in os.listdir(d) if f.lower().endswith((".jpg", ".jpeg", ".png")))

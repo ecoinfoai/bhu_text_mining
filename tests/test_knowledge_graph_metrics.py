@@ -33,7 +33,7 @@ class TestAlignGraphNodes:
 
     def test_exact_match_returns_same_node(self):
         """Exact string match maps node to itself."""
-        from src.knowledge_graph_analysis import align_graph_nodes
+        from forma.knowledge_graph_analysis import align_graph_nodes
 
         G_ref = nx.Graph()
         G_ref.add_nodes_from(["세포막", "삼투"])
@@ -44,7 +44,7 @@ class TestAlignGraphNodes:
 
     def test_no_match_below_threshold(self):
         """Non-matching nodes return None."""
-        from src.knowledge_graph_analysis import align_graph_nodes
+        from forma.knowledge_graph_analysis import align_graph_nodes
 
         G_ref = nx.Graph()
         G_ref.add_node("A")
@@ -55,7 +55,7 @@ class TestAlignGraphNodes:
 
     def test_empty_student_graph_returns_empty(self):
         """Empty student graph returns empty dict."""
-        from src.knowledge_graph_analysis import align_graph_nodes
+        from forma.knowledge_graph_analysis import align_graph_nodes
 
         G_ref = _make_triangle()
         G_stu = nx.Graph()
@@ -64,7 +64,7 @@ class TestAlignGraphNodes:
 
     def test_empty_ref_graph_maps_all_none(self):
         """Empty reference graph maps all student nodes to None."""
-        from src.knowledge_graph_analysis import align_graph_nodes
+        from forma.knowledge_graph_analysis import align_graph_nodes
 
         G_ref = nx.Graph()
         G_stu = nx.Graph()
@@ -83,7 +83,7 @@ class TestComputeNodeRecall:
 
     def test_perfect_recall(self):
         """Student graph with all reference nodes → recall=1.0."""
-        from src.knowledge_graph_analysis import compute_node_recall
+        from forma.knowledge_graph_analysis import compute_node_recall
 
         G_ref = nx.Graph()
         G_ref.add_nodes_from(["A", "B", "C"])
@@ -93,7 +93,7 @@ class TestComputeNodeRecall:
 
     def test_zero_recall_no_overlap(self):
         """No shared nodes → recall=0.0."""
-        from src.knowledge_graph_analysis import compute_node_recall
+        from forma.knowledge_graph_analysis import compute_node_recall
 
         G_ref = nx.Graph()
         G_ref.add_nodes_from(["A", "B"])
@@ -103,7 +103,7 @@ class TestComputeNodeRecall:
 
     def test_partial_recall(self):
         """Half reference nodes present → recall=0.5."""
-        from src.knowledge_graph_analysis import compute_node_recall
+        from forma.knowledge_graph_analysis import compute_node_recall
 
         G_ref = nx.Graph()
         G_ref.add_nodes_from(["A", "B"])
@@ -113,7 +113,7 @@ class TestComputeNodeRecall:
 
     def test_empty_ref_returns_zero(self):
         """Empty reference graph → recall=0.0."""
-        from src.knowledge_graph_analysis import compute_node_recall
+        from forma.knowledge_graph_analysis import compute_node_recall
 
         G_ref = nx.Graph()
         G_stu = nx.Graph()
@@ -131,14 +131,14 @@ class TestComputeEdgeJaccard:
 
     def test_identical_graphs_jaccard_one(self):
         """Identical edge sets → Jaccard=1.0."""
-        from src.knowledge_graph_analysis import compute_edge_jaccard
+        from forma.knowledge_graph_analysis import compute_edge_jaccard
 
         G = _make_triangle()
         assert compute_edge_jaccard(G, G.copy()) == pytest.approx(1.0)
 
     def test_no_shared_edges_jaccard_zero(self):
         """Disjoint edge sets → Jaccard=0.0."""
-        from src.knowledge_graph_analysis import compute_edge_jaccard
+        from forma.knowledge_graph_analysis import compute_edge_jaccard
 
         G_ref = nx.Graph()
         G_ref.add_edge("A", "B")
@@ -148,7 +148,7 @@ class TestComputeEdgeJaccard:
 
     def test_partial_overlap(self):
         """Partial overlap → Jaccard between 0 and 1."""
-        from src.knowledge_graph_analysis import compute_edge_jaccard
+        from forma.knowledge_graph_analysis import compute_edge_jaccard
 
         G_ref = _make_triangle()  # A-B, B-C, C-A
         G_stu = _make_edge_ab()   # A-B only
@@ -157,7 +157,7 @@ class TestComputeEdgeJaccard:
 
     def test_both_edgeless_returns_zero(self):
         """Both graphs have no edges → Jaccard=0.0."""
-        from src.knowledge_graph_analysis import compute_edge_jaccard
+        from forma.knowledge_graph_analysis import compute_edge_jaccard
 
         G1, G2 = nx.Graph(), nx.Graph()
         G1.add_node("A")
@@ -175,14 +175,14 @@ class TestComputeCentralityDeviation:
 
     def test_identical_graphs_deviation_zero(self):
         """Identical graphs → deviation=0.0."""
-        from src.knowledge_graph_analysis import compute_centrality_deviation
+        from forma.knowledge_graph_analysis import compute_centrality_deviation
 
         G = _make_triangle()
         assert compute_centrality_deviation(G, G.copy()) == pytest.approx(0.0)
 
     def test_edgeless_student_graph_returns_one(self):
         """Student with no edges → CD=1.0 (defined)."""
-        from src.knowledge_graph_analysis import compute_centrality_deviation
+        from forma.knowledge_graph_analysis import compute_centrality_deviation
 
         G_ref = _make_triangle()
         G_stu = nx.Graph()
@@ -192,7 +192,7 @@ class TestComputeCentralityDeviation:
 
     def test_empty_ref_returns_zero(self):
         """Empty reference → deviation=0.0."""
-        from src.knowledge_graph_analysis import compute_centrality_deviation
+        from forma.knowledge_graph_analysis import compute_centrality_deviation
 
         G_ref = nx.Graph()
         G_stu = _make_triangle()
@@ -209,7 +209,7 @@ class TestComputeNormalizedGed:
 
     def test_identical_small_graphs_ged_zero(self):
         """Identical small graphs → normalised GED=0.0."""
-        from src.knowledge_graph_analysis import compute_normalized_ged
+        from forma.knowledge_graph_analysis import compute_normalized_ged
 
         G = _make_edge_ab()
         result = compute_normalized_ged(G, G.copy(), timeout=10)
@@ -217,7 +217,7 @@ class TestComputeNormalizedGed:
 
     def test_empty_graphs_return_zero(self):
         """Both empty graphs → GED=0.0."""
-        from src.knowledge_graph_analysis import compute_normalized_ged
+        from forma.knowledge_graph_analysis import compute_normalized_ged
 
         G1, G2 = nx.Graph(), nx.Graph()
         result = compute_normalized_ged(G1, G2, timeout=5)
@@ -225,7 +225,7 @@ class TestComputeNormalizedGed:
 
     def test_result_in_zero_one_range(self):
         """GED is normalised to [0, 1]."""
-        from src.knowledge_graph_analysis import compute_normalized_ged
+        from forma.knowledge_graph_analysis import compute_normalized_ged
 
         G_ref = _make_edge_ab()
         G_stu = nx.Graph()
@@ -236,7 +236,7 @@ class TestComputeNormalizedGed:
 
     def test_returns_none_or_float(self):
         """Return type is float or None."""
-        from src.knowledge_graph_analysis import compute_normalized_ged
+        from forma.knowledge_graph_analysis import compute_normalized_ged
 
         G = _make_edge_ab()
         result = compute_normalized_ged(G, G.copy(), timeout=5)

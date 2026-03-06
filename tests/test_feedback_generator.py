@@ -9,12 +9,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.evaluation_types import (
+from forma.evaluation_types import (
     FeedbackResult,
     GraphComparisonResult,
     TripletEdge,
 )
-from src.feedback_generator import (
+from forma.feedback_generator import (
     EMPTY_RESPONSE_FEEDBACK,
     FeedbackGenerator,
     _format_edges,

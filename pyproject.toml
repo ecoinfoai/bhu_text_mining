@@ -1,7 +1,7 @@
 [project]
-name = "bhu-text-mining"
-version = "0.3.0"
-description = ""
+name = "formative-analysis"
+version = "0.4.0"
+description = "Formative assessment analysis tool for evaluating student understanding via knowledge graph matching"
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},
 ]
@@ -53,14 +53,14 @@ jupyter = [
 ]
 
 [project.scripts]
-bhu-exam = "src.cli:main"
-bhu-ocr = "src.cli_ocr:main"
-bhu-eval = "src.pipeline_evaluation:main"
-bhu-eval-batch = "src.pipeline_batch_evaluation:main"
+forma-exam = "forma.cli:main"
+forma-ocr = "forma.cli_ocr:main"
+forma-eval = "forma.pipeline_evaluation:main"
+forma-eval-batch = "forma.pipeline_batch_evaluation:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src/forma"]

@@ -14,7 +14,7 @@ def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
 
     If ``config_path`` is provided and exists, it is used directly
     (legacy behaviour).  Otherwise falls back to the unified config
-    system (``~/.config/bhu_text_mining/config.json`` → legacy path).
+    system (``~/.config/forma/config.json`` → legacy path).
 
     Args:
         config_path (str): Path to the configuration file (optional).
@@ -38,7 +38,7 @@ def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
             return config["secret_key"], config["api_url"]
 
     # Fall back to unified config system
-    from src.config import get_naver_ocr_config, load_config
+    from forma.config import get_naver_ocr_config, load_config
 
     config = load_config(config_path if config_path else None)
     return get_naver_ocr_config(config)

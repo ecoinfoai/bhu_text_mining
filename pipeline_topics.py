@@ -1,8 +1,8 @@
 import pandas as pd
 from matplotlib import font_manager as fm
 from typing import Dict
-from src.network_analysis import load_stopwords
-from src.topic_analysis import (
+from forma.network_analysis import load_stopwords
+from forma.topic_analysis import (
     load_yaml_data,
     split_sentences,
     configure_bertopic,
@@ -10,7 +10,7 @@ from src.topic_analysis import (
     generate_topic_dataframe,
     generate_topic_keywords_table,
 )
-from src.cohesion_analysis import (
+from forma.cohesion_analysis import (
     calculate_overall_similarity,
     calculate_topicwise_similarity,
     compare_students_overall,
@@ -18,11 +18,11 @@ from src.cohesion_analysis import (
     calculate_pairwise_sentence_similarity,
     calculate_topic_statistics,
 )
-from src.visualize_cohesion import (
+from forma.visualize_cohesion import (
     compare_topic_lengths_with_xy,
     generate_person_networks_from_sentences,
 )
-from src.knowledge_graph_analysis import (
+from forma.knowledge_graph_analysis import (
     create_student_knowledge_graph,
     create_reference_knowledge_graph,
     compare_graphs,

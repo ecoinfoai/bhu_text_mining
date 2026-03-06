@@ -24,7 +24,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
-from src.font_utils import find_korean_font
+from forma.font_utils import find_korean_font
 
 
 # Understanding level → colour mapping

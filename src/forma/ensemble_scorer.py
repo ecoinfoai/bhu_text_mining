@@ -17,7 +17,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.evaluation_types import (
+from forma.evaluation_types import (
     AggregatedLLMResult,
     ConceptMatchResult,
     EnsembleResult,

@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
 from math import ceil
-from src.cohesion_analysis import (
+from forma.cohesion_analysis import (
     extract_keywords_from_sentences,
 )
-from src.network_analysis import (
+from forma.network_analysis import (
     create_network,
     visualize_network,
 )

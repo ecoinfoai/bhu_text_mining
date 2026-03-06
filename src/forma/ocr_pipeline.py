@@ -16,14 +16,14 @@ from typing import Any, Optional
 
 import yaml
 
-from src.naver_ocr import (
+from forma.naver_ocr import (
     extract_text,
     load_naver_ocr_env,
     prepare_image_files_list,
     send_images_receive_ocr,
 )
-from src.preprocess_imgs import crop_and_save_images, show_image
-from src.qr_decode import decode_qr_from_image, parse_qr_content
+from forma.preprocess_imgs import crop_and_save_images, show_image
+from forma.qr_decode import decode_qr_from_image, parse_qr_content
 
 
 def run_scan_pipeline(
@@ -205,7 +205,7 @@ def run_join_pipeline(
 
     if spreadsheet_url is not None:
         try:
-            from src.google_sheets import fetch_sheet_as_records
+            from forma.google_sheets import fetch_sheet_as_records
 
             records = fetch_sheet_as_records(
                 spreadsheet_url,

@@ -12,10 +12,10 @@ import re
 
 import numpy as np
 
-from src.embedding_cache import encode_texts
-from src.evaluation_types import TripletEdge
-from src.llm_provider import LLMProvider
-from src.prompt_templates import render_lecture_triplet_prompt
+from forma.embedding_cache import encode_texts
+from forma.evaluation_types import TripletEdge
+from forma.llm_provider import LLMProvider
+from forma.prompt_templates import render_lecture_triplet_prompt
 
 MAX_TRANSCRIPT_LENGTH: int = 10_000
 

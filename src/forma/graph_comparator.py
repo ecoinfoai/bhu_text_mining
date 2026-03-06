@@ -12,8 +12,8 @@ from typing import Optional
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.embedding_cache import encode_texts
-from src.evaluation_types import GraphComparisonResult, TripletEdge
+from forma.embedding_cache import encode_texts
+from forma.evaluation_types import GraphComparisonResult, TripletEdge
 
 logger = logging.getLogger(__name__)
 

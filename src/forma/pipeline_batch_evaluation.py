@@ -20,7 +20,7 @@ import argparse
 import os
 from typing import Optional
 
-from src.response_converter import convert_join_file
+from forma.response_converter import convert_join_file
 
 
 def run_batch_evaluation(
@@ -66,7 +66,7 @@ def run_batch_evaluation(
     """
     import warnings
 
-    from src.pipeline_evaluation import run_evaluation_pipeline
+    from forma.pipeline_evaluation import run_evaluation_pipeline
 
     if skip_llm and not skip_feedback:
         warnings.warn(
@@ -131,7 +131,7 @@ def run_batch_evaluation(
 
 def _generate_class_reports(class_dir: str, config_path: str) -> None:
     """Generate student PDF reports for a single class."""
-    from src.evaluation_io import load_evaluation_yaml
+    from forma.evaluation_io import load_evaluation_yaml
 
     counseling_path = os.path.join(class_dir, "res_lvl4", "counseling_summary.yaml")
     if not os.path.isfile(counseling_path):
@@ -139,7 +139,7 @@ def _generate_class_reports(class_dir: str, config_path: str) -> None:
         return
 
     try:
-        from src.report_generator import StudentReportGenerator
+        from forma.report_generator import StudentReportGenerator
 
         config_data = load_evaluation_yaml(config_path)
         counseling_data = load_evaluation_yaml(counseling_path)

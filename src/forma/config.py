@@ -1,6 +1,6 @@
-"""Unified configuration management for bhu_text_mining.
+"""Unified configuration management for formative-analysis.
 
-Searches ``~/.config/bhu_text_mining/config.json`` first, then falls
+Searches ``~/.config/forma/config.json`` first, then falls
 back to legacy paths.
 """
 
@@ -11,9 +11,10 @@ import os
 from typing import Optional
 
 
-AGENIX_CONFIG_PATH = "/run/agenix/bhu-text-mining-config"
-DEFAULT_CONFIG_PATH = "~/.config/bhu_text_mining/config.json"
+AGENIX_CONFIG_PATH = "/run/agenix/forma-config"
+DEFAULT_CONFIG_PATH = "~/.config/forma/config.json"
 LEGACY_CONFIG_PATHS = [
+    "~/.config/bhu_text_mining/config.json",
     "~/.config/naver_ocr/naver_ocr_config.json",
 ]
 
@@ -23,9 +24,10 @@ def load_config(config_path: Optional[str] = None) -> dict:
 
     Resolution order:
     1. Explicit ``config_path`` argument.
-    2. ``/run/agenix/bhu-text-mining-config`` (NixOS agenix).
-    3. ``~/.config/bhu_text_mining/config.json``
-    4. ``~/.config/naver_ocr/naver_ocr_config.json`` (legacy).
+    2. ``/run/agenix/forma-config`` (NixOS agenix).
+    3. ``~/.config/forma/config.json``
+    4. ``~/.config/bhu_text_mining/config.json`` (legacy).
+    5. ``~/.config/naver_ocr/naver_ocr_config.json`` (legacy).
 
     Args:
         config_path: Explicit path to config file (optional).

@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 import networkx as nx  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
-from src.evaluation_types import TripletEdge  # noqa: E402
-from src.font_utils import find_korean_font  # noqa: E402
+from forma.evaluation_types import TripletEdge  # noqa: E402
+from forma.font_utils import find_korean_font  # noqa: E402
 
 
 class GraphVisualizer:

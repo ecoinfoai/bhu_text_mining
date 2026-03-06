@@ -24,7 +24,7 @@ if not _HAS_CV2 and not _HAS_PYZBAR:
         allow_module_level=True,
     )
 
-from src.qr_decode import decode_qr_from_image, parse_qr_content
+from forma.qr_decode import decode_qr_from_image, parse_qr_content
 
 
 # ── helpers ──────────────────────────────────────

@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-from src.topic_analysis import load_yaml_data
+from forma.topic_analysis import load_yaml_data
 
 
 def load_evaluation_yaml(yaml_path: str) -> dict[str, Any]:

@@ -11,8 +11,8 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from src.evaluation_types import LLMJudgeResult, AggregatedLLMResult
-from src.llm_evaluator import LLMEvaluator, compute_icc_2_1
+from forma.evaluation_types import LLMJudgeResult, AggregatedLLMResult
+from forma.llm_evaluator import LLMEvaluator, compute_icc_2_1
 
 
 # ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ from src.llm_evaluator import LLMEvaluator, compute_icc_2_1
 @pytest.fixture()
 def mock_provider():
     """Patch create_provider so no real API calls are made."""
-    with patch("src.llm_evaluator.create_provider") as mock_factory:
+    with patch("forma.llm_evaluator.create_provider") as mock_factory:
         mock_prov = MagicMock()
         mock_prov.model_name = "mock-model"
         mock_factory.return_value = mock_prov

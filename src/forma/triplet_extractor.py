@@ -13,10 +13,10 @@ from typing import Optional
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.embedding_cache import encode_texts
-from src.evaluation_types import TripletEdge, TripletExtractionResult
-from src.llm_provider import LLMProvider
-from src.prompt_templates import render_triplet_extraction_prompt
+from forma.embedding_cache import encode_texts
+from forma.evaluation_types import TripletEdge, TripletExtractionResult
+from forma.llm_provider import LLMProvider
+from forma.prompt_templates import render_triplet_extraction_prompt
 
 logger = logging.getLogger(__name__)
 

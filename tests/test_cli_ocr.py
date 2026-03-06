@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from src.cli_ocr import _load_ocr_config, _parse_args, main
+from forma.cli_ocr import _load_ocr_config, _parse_args, main
 
 
 # ── fixtures ──────────────────────────────────────
@@ -225,7 +225,7 @@ class TestLoadOcrConfig:
 class TestMainScan:
     def test_main_scan_calls_pipeline(self, ocr_config_yaml):
         with patch(
-            "src.cli_ocr.run_scan_pipeline",
+            "forma.cli_ocr.run_scan_pipeline",
             return_value=[],
         ) as mock_scan:
             main(["scan", "--config", ocr_config_yaml])
@@ -239,7 +239,7 @@ class TestMainScan:
     def test_main_scan_num_questions_from_config(self, ocr_config_yaml):
         """num-questions from YAML (2) used when CLI not given."""
         with patch(
-            "src.cli_ocr.run_scan_pipeline",
+            "forma.cli_ocr.run_scan_pipeline",
             return_value=[],
         ) as mock_scan:
             main(["scan", "--config", ocr_config_yaml])
@@ -249,7 +249,7 @@ class TestMainScan:
         self, ocr_config_yaml
     ):
         with patch(
-            "src.cli_ocr.run_scan_pipeline",
+            "forma.cli_ocr.run_scan_pipeline",
             return_value=[],
         ) as mock_scan:
             main(
@@ -273,7 +273,7 @@ class TestMainJoin:
     ):
         out = str(tmp_path / "final.yaml")
         with patch(
-            "src.cli_ocr.run_join_pipeline",
+            "forma.cli_ocr.run_join_pipeline",
             return_value=[],
         ) as mock_join:
             main(
@@ -298,7 +298,7 @@ class TestMainJoin:
         out = str(tmp_path / "final.yaml")
         url = "https://docs.google.com/spreadsheets/d/abc"
         with patch(
-            "src.cli_ocr.run_join_pipeline",
+            "forma.cli_ocr.run_join_pipeline",
             return_value=[],
         ) as mock_join:
             main(
@@ -318,7 +318,7 @@ class TestMainJoin:
     ):
         out = str(tmp_path / "final.yaml")
         with patch(
-            "src.cli_ocr.run_join_pipeline",
+            "forma.cli_ocr.run_join_pipeline",
             return_value=[],
         ) as mock_join:
             main(
@@ -352,7 +352,7 @@ class TestMainJoin:
         out = str(tmp_path / "final.yaml")
         mapping = str(tmp_path / "mapping.yaml")
         with patch(
-            "src.cli_ocr.run_join_pipeline",
+            "forma.cli_ocr.run_join_pipeline",
             return_value=[],
         ) as mock_join:
             main(

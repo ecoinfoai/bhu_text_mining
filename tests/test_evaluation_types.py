@@ -4,7 +4,7 @@ RED phase: ensures dataclasses exist with correct fields and types.
 """
 
 import pytest
-from src.evaluation_types import (
+from forma.evaluation_types import (
     ConceptMatchResult,
     LLMJudgeResult,
     AggregatedLLMResult,

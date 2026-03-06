@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.google_sheets import fetch_sheet_as_records
+from forma.google_sheets import fetch_sheet_as_records
 
 
 # ── fixtures ──────────────────────────────────────

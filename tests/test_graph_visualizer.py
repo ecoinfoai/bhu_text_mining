@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.evaluation_types import TripletEdge
+from forma.evaluation_types import TripletEdge
 
 
 @pytest.fixture()
@@ -16,19 +16,19 @@ def _mock_font(monkeypatch):
     from matplotlib.font_manager import FontProperties
 
     monkeypatch.setattr(
-        "src.graph_visualizer.find_korean_font",
+        "forma.graph_visualizer.find_korean_font",
         lambda: "/fake/NanumGothic.ttf",
     )
     # Use a real FontProperties with the default font so matplotlib can render
     monkeypatch.setattr(
-        "src.graph_visualizer.FontProperties",
+        "forma.graph_visualizer.FontProperties",
         lambda fname: FontProperties(),
     )
 
 
 @pytest.fixture()
 def visualizer(_mock_font):
-    from src.graph_visualizer import GraphVisualizer
+    from forma.graph_visualizer import GraphVisualizer
 
     return GraphVisualizer()
 
@@ -143,7 +143,7 @@ class TestGraphVisualizer:
 
     def test_custom_font_path(self, _mock_font):
         """Should accept a custom font path."""
-        from src.graph_visualizer import GraphVisualizer
+        from forma.graph_visualizer import GraphVisualizer
 
         viz = GraphVisualizer(font_path="/custom/font.ttf")
         assert viz._font_path == "/custom/font.ttf"

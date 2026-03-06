@@ -16,9 +16,9 @@ class TestGetEncoder:
         """Test that two calls with same model return the same object."""
         mock_model = MagicMock()
         with patch(
-            "src.embedding_cache.SentenceTransformer", return_value=mock_model
+            "forma.embedding_cache.SentenceTransformer", return_value=mock_model
         ) as mock_cls:
-            from src.embedding_cache import get_encoder
+            from forma.embedding_cache import get_encoder
 
             get_encoder.cache_clear()
             enc1 = get_encoder("test-model")
@@ -35,10 +35,10 @@ class TestGetEncoder:
             return mock_a if "a" in name else mock_b
 
         with patch(
-            "src.embedding_cache.SentenceTransformer",
+            "forma.embedding_cache.SentenceTransformer",
             side_effect=side_effect,
         ):
-            from src.embedding_cache import get_encoder
+            from forma.embedding_cache import get_encoder
 
             get_encoder.cache_clear()
             enc_a = get_encoder("model-a")
@@ -47,7 +47,7 @@ class TestGetEncoder:
 
     def test_get_encoder_uses_default_model(self):
         """Test default model name is ko-sroberta-multitask."""
-        from src.embedding_cache import DEFAULT_MODEL
+        from forma.embedding_cache import DEFAULT_MODEL
 
         assert "ko-sroberta" in DEFAULT_MODEL
 
@@ -61,8 +61,8 @@ class TestEncodeTexts:
         mock_encoder = MagicMock()
         mock_encoder.encode.return_value = dummy_embeddings
 
-        with patch("src.embedding_cache.get_encoder", return_value=mock_encoder):
-            from src.embedding_cache import encode_texts
+        with patch("forma.embedding_cache.get_encoder", return_value=mock_encoder):
+            from forma.embedding_cache import encode_texts
 
             result = encode_texts(["문장1", "문장2", "문장3"])
             assert isinstance(result, np.ndarray)
@@ -74,8 +74,8 @@ class TestEncodeTexts:
         mock_encoder = MagicMock()
         mock_encoder.encode.return_value = dummy
 
-        with patch("src.embedding_cache.get_encoder", return_value=mock_encoder):
-            from src.embedding_cache import encode_texts
+        with patch("forma.embedding_cache.get_encoder", return_value=mock_encoder):
+            from forma.embedding_cache import encode_texts
 
             texts = ["세포막", "인지질 이중층"]
             encode_texts(texts)
@@ -85,8 +85,8 @@ class TestEncodeTexts:
 
     def test_encode_texts_empty_list_raises(self):
         """Test that encoding an empty list raises ValueError."""
-        with patch("src.embedding_cache.get_encoder", return_value=MagicMock()):
-            from src.embedding_cache import encode_texts
+        with patch("forma.embedding_cache.get_encoder", return_value=MagicMock()):
+            from forma.embedding_cache import encode_texts
 
             with pytest.raises(ValueError, match="empty"):
                 encode_texts([])

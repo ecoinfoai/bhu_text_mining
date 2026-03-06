@@ -2,7 +2,7 @@ import os
 import json
 import pytest
 from unittest.mock import patch, mock_open
-from src.naver_ocr import (
+from forma.naver_ocr import (
     load_naver_ocr_env,
     create_request_json,
     prepare_image_files_list,

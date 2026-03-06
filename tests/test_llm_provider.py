@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.llm_provider import (
+from forma.llm_provider import (
     AnthropicProvider,
     GeminiProvider,
     LLMProvider,
@@ -250,7 +250,7 @@ class TestRetryLogic:
         ]
 
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
-            with patch("src.llm_provider.time.sleep"):
+            with patch("forma.llm_provider.time.sleep"):
                 provider = AnthropicProvider(api_key="k")
                 result = provider.generate("prompt")
         assert result == "ok"
@@ -263,7 +263,7 @@ class TestRetryLogic:
         api_mock.create.side_effect = ValueError("bad format")
 
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
-            with patch("src.llm_provider.time.sleep"):
+            with patch("forma.llm_provider.time.sleep"):
                 provider = AnthropicProvider(api_key="k")
                 with pytest.raises(ValueError, match="bad format"):
                     provider.generate("prompt")
@@ -276,7 +276,7 @@ class TestRetryLogic:
         api_mock.create.side_effect = Exception("429 Too Many Requests")
 
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
-            with patch("src.llm_provider.time.sleep"):
+            with patch("forma.llm_provider.time.sleep"):
                 provider = AnthropicProvider(api_key="k")
                 with pytest.raises(Exception, match="429"):
                     provider.generate("prompt")

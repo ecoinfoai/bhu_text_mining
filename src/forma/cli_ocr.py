@@ -20,7 +20,7 @@ import sys
 
 import yaml
 
-from src.ocr_pipeline import run_join_pipeline, run_scan_pipeline
+from forma.ocr_pipeline import run_join_pipeline, run_scan_pipeline
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

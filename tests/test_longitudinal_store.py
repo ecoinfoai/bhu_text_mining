@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from src.evaluation_types import LongitudinalRecord
-from src.longitudinal_store import LongitudinalStore
+from forma.evaluation_types import LongitudinalRecord
+from forma.longitudinal_store import LongitudinalStore
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +156,7 @@ class TestFileLocking:
         store = LongitudinalStore(path)
         store.add_record(_make_record())
 
-        with patch("src.longitudinal_store.fcntl") as mock_fcntl:
+        with patch("forma.longitudinal_store.fcntl") as mock_fcntl:
             mock_fcntl.LOCK_EX = 2
             mock_fcntl.LOCK_UN = 8
             store.save()
@@ -171,7 +171,7 @@ class TestFileLocking:
         store.add_record(_make_record())
         store.save()
 
-        with patch("src.longitudinal_store.fcntl") as mock_fcntl:
+        with patch("forma.longitudinal_store.fcntl") as mock_fcntl:
             mock_fcntl.LOCK_SH = 1
             mock_fcntl.LOCK_UN = 8
             store2 = LongitudinalStore(path)

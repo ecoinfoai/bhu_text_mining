@@ -6,7 +6,7 @@ import tempfile
 import pytest
 import yaml
 
-from src.cli import _load_config, _load_questions, _parse_args, main
+from forma.cli import _load_config, _load_questions, _parse_args, main
 
 
 class TestParseArgs:

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from src.lecture_processor import (
+from forma.lecture_processor import (
     extract_lecture_covered_concepts,
     extract_lecture_tone_sample,
     extract_triplets_from_lecture,
@@ -90,7 +90,7 @@ class TestSegmentText:
 
 
 class TestExtractLectureCoveredConcepts:
-    @patch("src.lecture_processor.encode_texts")
+    @patch("forma.lecture_processor.encode_texts")
     def test_finds_matching_concepts(self, mock_encode):
         lecture_vec = np.array([[1.0, 0.0, 0.0]], dtype=np.float32)
         concept_vecs = np.array(
@@ -110,13 +110,13 @@ class TestExtractLectureCoveredConcepts:
         assert "세포막" in result
         assert "광합성" not in result
 
-    @patch("src.lecture_processor.encode_texts")
+    @patch("forma.lecture_processor.encode_texts")
     def test_empty_master_concepts(self, mock_encode):
         result = extract_lecture_covered_concepts("텍스트", [], threshold=0.75)
         assert result == []
         mock_encode.assert_not_called()
 
-    @patch("src.lecture_processor.encode_texts")
+    @patch("forma.lecture_processor.encode_texts")
     def test_threshold_boundary(self, mock_encode):
         vec = np.array([[1.0, 0.0]], dtype=np.float32)
         mock_encode.side_effect = [vec, vec]

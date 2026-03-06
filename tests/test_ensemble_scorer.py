@@ -6,7 +6,7 @@ and ensemble computation from mocked layer results.
 
 import pytest
 
-from src.evaluation_types import (
+from forma.evaluation_types import (
     AggregatedLLMResult,
     ConceptMatchResult,
     EnsembleResult,
@@ -15,7 +15,7 @@ from src.evaluation_types import (
     StatisticalResult,
     TripletEdge,
 )
-from src.ensemble_scorer import (
+from forma.ensemble_scorer import (
     DEFAULT_WEIGHTS,
     UNDERSTANDING_THRESHOLDS,
     WEIGHTS_V2,

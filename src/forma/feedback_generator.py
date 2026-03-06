@@ -10,13 +10,13 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from src.evaluation_types import (
+from forma.evaluation_types import (
     FeedbackResult,
     GraphComparisonResult,
     TripletEdge,
 )
-from src.llm_provider import LLMProvider
-from src.prompt_templates import render_feedback_prompt
+from forma.llm_provider import LLMProvider
+from forma.prompt_templates import render_feedback_prompt
 
 logger = logging.getLogger(__name__)
 

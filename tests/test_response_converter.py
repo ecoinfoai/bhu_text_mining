@@ -4,7 +4,7 @@ import yaml
 
 import pytest
 
-from src.response_converter import convert_join_file, convert_join_to_responses
+from forma.response_converter import convert_join_file, convert_join_to_responses
 
 
 # ---------------------------------------------------------------------------

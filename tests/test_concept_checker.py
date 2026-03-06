@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from unittest.mock import patch, MagicMock
 
-from src.concept_checker import (
+from forma.concept_checker import (
     _select_particle,
     build_concept_template,
     split_student_response,
@@ -20,7 +20,7 @@ from src.concept_checker import (
     check_concept_presence,
     check_all_concepts,
 )
-from src.evaluation_types import ConceptMatchResult
+from forma.evaluation_types import ConceptMatchResult
 
 
 class TestSelectParticle:
@@ -83,7 +83,7 @@ class TestSplitStudentResponse:
     def test_split_multiple_sentences(self):
         """Korean text with two sentences splits into two."""
         text = "세포막은 인지질 이중층으로 구성됩니다. 선택적 투과성을 가집니다."
-        with patch("src.concept_checker.kss") as mock_kss:
+        with patch("forma.concept_checker.kss") as mock_kss:
             mock_kss.split_sentences.return_value = [
                 "세포막은 인지질 이중층으로 구성됩니다.",
                 "선택적 투과성을 가집니다.",
@@ -94,7 +94,7 @@ class TestSplitStudentResponse:
     def test_kss_failure_fallback_to_full_text(self):
         """If KSS raises, returns the whole text as single sentence."""
         text = "세포막은 인지질 이중층입니다."
-        with patch("src.concept_checker.kss") as mock_kss:
+        with patch("forma.concept_checker.kss") as mock_kss:
             mock_kss.split_sentences.side_effect = RuntimeError("kss error")
             result = split_student_response(text)
         assert result == [text]
@@ -102,7 +102,7 @@ class TestSplitStudentResponse:
     def test_kss_empty_result_fallback(self):
         """If KSS returns [], falls back to full text."""
         text = "짧은 답변"
-        with patch("src.concept_checker.kss") as mock_kss:
+        with patch("forma.concept_checker.kss") as mock_kss:
             mock_kss.split_sentences.return_value = []
             result = split_student_response(text)
         assert result == [text]
@@ -190,9 +190,9 @@ class TestCheckConceptPresence:
     def test_present_when_high_similarity(self):
         """Concept detected when sentences align with concept embedding."""
         all_embs = self._patch_encode(2, high_sim=True)
-        with patch("src.concept_checker.encode_texts", return_value=all_embs):
+        with patch("forma.concept_checker.encode_texts", return_value=all_embs):
             with patch(
-                "src.concept_checker.split_student_response",
+                "forma.concept_checker.split_student_response",
                 return_value=["s1", "s2"],
             ):
                 result = check_concept_presence(
@@ -206,9 +206,9 @@ class TestCheckConceptPresence:
     def test_absent_when_low_similarity(self):
         """Concept not detected when sentences orthogonal to concept."""
         all_embs = self._patch_encode(2, high_sim=False)
-        with patch("src.concept_checker.encode_texts", return_value=all_embs):
+        with patch("forma.concept_checker.encode_texts", return_value=all_embs):
             with patch(
-                "src.concept_checker.split_student_response",
+                "forma.concept_checker.split_student_response",
                 return_value=["s1", "s2"],
             ):
                 result = check_concept_presence(
@@ -236,9 +236,9 @@ class TestCheckConceptPresence:
     def test_result_fields_populated(self):
         """Check that returned ConceptMatchResult has non-default fields."""
         all_embs = self._patch_encode(1, high_sim=True)
-        with patch("src.concept_checker.encode_texts", return_value=all_embs):
+        with patch("forma.concept_checker.encode_texts", return_value=all_embs):
             with patch(
-                "src.concept_checker.split_student_response",
+                "forma.concept_checker.split_student_response",
                 return_value=["s1"],
             ):
                 result = check_concept_presence(
@@ -268,9 +268,9 @@ class TestCheckAllConcepts:
             embs = np.eye(max(n, 1), 4, dtype=np.float32)[:n]
             return embs
 
-        with patch("src.concept_checker.encode_texts", side_effect=mock_encode):
+        with patch("forma.concept_checker.encode_texts", side_effect=mock_encode):
             with patch(
-                "src.concept_checker.split_student_response",
+                "forma.concept_checker.split_student_response",
                 return_value=["s1", "s2", "s3"],
             ):
                 results = check_all_concepts(
@@ -288,9 +288,9 @@ class TestCheckAllConcepts:
             n = len(texts)
             return np.ones((n, 4), dtype=np.float32)
 
-        with patch("src.concept_checker.encode_texts", side_effect=mock_encode):
+        with patch("forma.concept_checker.encode_texts", side_effect=mock_encode):
             with patch(
-                "src.concept_checker.split_student_response",
+                "forma.concept_checker.split_student_response",
                 return_value=["s1"],
             ):
                 results = check_all_concepts(

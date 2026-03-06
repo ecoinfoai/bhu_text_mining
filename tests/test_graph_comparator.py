@@ -10,8 +10,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from src.evaluation_types import GraphComparisonResult, TripletEdge
-from src.graph_comparator import GraphComparator
+from forma.evaluation_types import GraphComparisonResult, TripletEdge
+from forma.graph_comparator import GraphComparator
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ class TestGraphComparator:
         student = [_e("A", "causes", "B"), _e("B", "leads_to", "C")]
 
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts") as mock_enc:
+        with patch("forma.graph_comparator.encode_texts") as mock_enc:
             embs = np.eye(6)  # 2 master + 2 student + 2 reversed
             # Make student[0] match master[0], student[1] match master[1]
             embs[2] = embs[0]  # student[0] == master[0]
@@ -63,7 +63,7 @@ class TestGraphComparator:
 
         gc = GraphComparator()
         # Use exact fallback
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, master, student)
 
         assert len(result.matched_edges) == 1
@@ -76,7 +76,7 @@ class TestGraphComparator:
         student = [_e("A", "r", "B"), _e("X", "r", "Y")]
 
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, master, student)
 
         assert len(result.extra_edges) == 1
@@ -88,7 +88,7 @@ class TestGraphComparator:
         student = [_e("B", "r", "A")]  # reversed
 
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, master, student)
 
         assert len(result.wrong_direction_edges) == 1
@@ -102,7 +102,7 @@ class TestGraphComparator:
         master = [_e("항상성", "유지", "체온")]
         student = [_e("homeostasis", "유지", "체온")]
 
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, master, student)
 
         assert len(result.matched_edges) == 1
@@ -116,7 +116,7 @@ class TestGraphComparator:
         student = [_e("A", "r", "B")]
 
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare(
                 "s001", 1, master, student,
                 lecture_covered_concepts=["A", "B"],
@@ -142,7 +142,7 @@ class TestGraphComparator:
         """No student edges → recall = 0, precision = 0."""
         master = [_e("A", "r", "B")]
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, master, [])
         assert result.recall == pytest.approx(0.0)
         assert len(result.missing_edges) == 1
@@ -151,6 +151,6 @@ class TestGraphComparator:
         """No master edges → all student edges are extra."""
         student = [_e("A", "r", "B")]
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, [], student)
         assert len(result.extra_edges) == 1

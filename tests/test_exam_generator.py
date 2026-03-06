@@ -6,7 +6,7 @@ import tempfile
 import pytest
 from PIL import Image as PILImage
 
-from src.exam_generator import ExamPDFGenerator
+from forma.exam_generator import ExamPDFGenerator
 
 
 # ──────────────────────────────────────────────────
@@ -289,7 +289,7 @@ class TestPageRendering:
 
     def test_qr_import_error_when_missing(self):
         """Verify ImportError when qrcode is unavailable."""
-        import src.exam_generator as mod
+        import forma.exam_generator as mod
 
         original = mod._HAS_QRCODE
         try:

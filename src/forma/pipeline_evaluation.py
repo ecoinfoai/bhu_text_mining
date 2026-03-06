@@ -35,15 +35,15 @@ import os
 import warnings
 from typing import Optional
 
-from src.concept_checker import check_all_concepts
-from src.config_validator import validate_exam_config
-from src.ensemble_scorer import EnsembleScorer
-from src.evaluation_io import (
+from forma.concept_checker import check_all_concepts
+from forma.config_validator import validate_exam_config
+from forma.ensemble_scorer import EnsembleScorer
+from forma.evaluation_io import (
     extract_student_responses,
     load_evaluation_yaml,
     save_evaluation_yaml,
 )
-from src.evaluation_types import (
+from forma.evaluation_types import (
     AggregatedLLMResult,
     EnsembleResult,
     FeedbackResult,
@@ -162,8 +162,8 @@ def _run_triplet_extraction(
     model: Optional[str] = None,
 ) -> dict[str, dict[int, TripletExtractionResult]]:
     """Run triplet extraction for v2 questions."""
-    from src.llm_provider import create_provider
-    from src.triplet_extractor import TripletExtractor
+    from forma.llm_provider import create_provider
+    from forma.triplet_extractor import TripletExtractor
 
     llm_prov = create_provider(provider=provider, api_key=api_key, model=model)
     extractor = TripletExtractor(llm_prov)
@@ -195,7 +195,7 @@ def _run_graph_comparison(
     lecture_covered_concepts: Optional[list[str]] = None,
 ) -> dict[str, dict[int, GraphComparisonResult]]:
     """Run graph comparison for v2 questions."""
-    from src.graph_comparator import GraphComparator
+    from forma.graph_comparator import GraphComparator
 
     results: dict[str, dict[int, GraphComparisonResult]] = {}
 
@@ -237,7 +237,7 @@ def _run_layer2_v1(
     model: Optional[str] = None,
 ) -> dict[str, dict[int, AggregatedLLMResult]]:
     """Run v1 Layer 2 LLM evaluation for non-v2 questions."""
-    from src.llm_evaluator import LLMEvaluator
+    from forma.llm_evaluator import LLMEvaluator
 
     evaluator = LLMEvaluator(api_key=api_key, provider=provider, model=model)
     results: dict[str, dict[int, AggregatedLLMResult]] = {}
@@ -279,8 +279,8 @@ def _run_feedback(
     lecture_tone: str = "",
 ) -> dict[str, dict[int, FeedbackResult]]:
     """Run feedback generation for all students and questions."""
-    from src.feedback_generator import FeedbackGenerator
-    from src.llm_provider import create_provider
+    from forma.feedback_generator import FeedbackGenerator
+    from forma.llm_provider import create_provider
 
     llm_prov = create_provider(provider=provider, api_key=api_key, model=model)
     gen = FeedbackGenerator(llm_prov)
@@ -665,7 +665,7 @@ def run_evaluation_pipeline(
     lecture_tone = ""
     lecture_covered_concepts: Optional[list[str]] = None
     if lecture_transcript:
-        from src.lecture_processor import (
+        from forma.lecture_processor import (
             extract_lecture_covered_concepts,
             extract_lecture_tone_sample,
             load_transcript,
@@ -710,7 +710,7 @@ def run_evaluation_pipeline(
     # === Phase 2: Layer 3 (Rasch IRT) ===
     stat_results: Optional[dict] = None
     if not skip_statistical:
-        from src.statistical_analysis import RaschAnalyzer, compute_concept_matrix
+        from forma.statistical_analysis import RaschAnalyzer, compute_concept_matrix
         import numpy as np
 
         print("[pipeline] Phase 2: statistical analysis …")
@@ -872,7 +872,7 @@ def _generate_graph_visualizations(
 ) -> None:
     """Generate graph overlay PNGs for v2 questions."""
     try:
-        from src.graph_visualizer import GraphVisualizer
+        from forma.graph_visualizer import GraphVisualizer
 
         viz = GraphVisualizer()
         graphs_dir = os.path.join(output_dir, "res_lvl4", "graphs")
@@ -910,8 +910,8 @@ def _save_longitudinal(
 ) -> None:
     """Save results to longitudinal store."""
     try:
-        from src.evaluation_types import LongitudinalRecord
-        from src.longitudinal_store import LongitudinalStore
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
 
         store = LongitudinalStore(store_path)
         store.load()
@@ -945,7 +945,7 @@ def _generate_pdf_reports(
 ) -> None:
     """Generate student PDF reports."""
     try:
-        from src.report_generator import StudentReportGenerator
+        from forma.report_generator import StudentReportGenerator
 
         generator = StudentReportGenerator()
         reports_dir = os.path.join(output_dir, "res_lvl4", "reports")

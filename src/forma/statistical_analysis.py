@@ -19,7 +19,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.evaluation_types import ConceptMatchResult
+from forma.evaluation_types import ConceptMatchResult
 
 
 # ---------------------------------------------------------------------------

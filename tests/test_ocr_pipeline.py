@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from src.ocr_pipeline import (
+from forma.ocr_pipeline import (
     _list_raw_images,
     _save_yaml,
     run_join_pipeline,
@@ -176,14 +176,14 @@ class TestRunScanPipeline:
         # will find.  Mock both I/O-heavy parts.
         with (
             patch(
-                "src.ocr_pipeline.crop_and_save_images",
+                "forma.ocr_pipeline.crop_and_save_images",
             ) as mock_crop,
             patch(
-                "src.ocr_pipeline.prepare_image_files_list",
+                "forma.ocr_pipeline.prepare_image_files_list",
                 return_value=[],
             ),
             patch(
-                "src.ocr_pipeline.send_images_receive_ocr",
+                "forma.ocr_pipeline.send_images_receive_ocr",
                 return_value=[],
             ),
         ):
@@ -210,17 +210,17 @@ class TestRunScanPipeline:
         open(fake_img, "wb").close()
 
         with (
-            patch("src.ocr_pipeline.crop_and_save_images"),
+            patch("forma.ocr_pipeline.crop_and_save_images"),
             patch(
-                "src.ocr_pipeline.prepare_image_files_list",
+                "forma.ocr_pipeline.prepare_image_files_list",
                 return_value=[fake_img],
             ),
             patch(
-                "src.ocr_pipeline.decode_qr_from_image",
+                "forma.ocr_pipeline.decode_qr_from_image",
                 return_value=None,
             ),
             patch(
-                "src.ocr_pipeline.send_images_receive_ocr",
+                "forma.ocr_pipeline.send_images_receive_ocr",
                 return_value=[],
             ),
         ):
@@ -339,7 +339,7 @@ class TestRunJoinPipeline:
             {"student_id": "S002", "학번": "2026194002", "이름": "시트김"},
         ]
         with patch(
-            "src.google_sheets.fetch_sheet_as_records",
+            "forma.google_sheets.fetch_sheet_as_records",
             return_value=mock_records,
         ):
             joined = run_join_pipeline(
@@ -357,7 +357,7 @@ class TestRunJoinPipeline:
         """When Sheets fetch fails and CSV is available, use CSV."""
         out = str(tmp_path / "final.yaml")
         with patch(
-            "src.google_sheets.fetch_sheet_as_records",
+            "forma.google_sheets.fetch_sheet_as_records",
             side_effect=RuntimeError("Network error"),
         ):
             joined = run_join_pipeline(

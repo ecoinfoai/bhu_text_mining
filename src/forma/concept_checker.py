@@ -18,8 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 import kss
 
-from src.embedding_cache import encode_texts, DEFAULT_MODEL
-from src.evaluation_types import ConceptMatchResult
+from forma.embedding_cache import encode_texts, DEFAULT_MODEL
+from forma.evaluation_types import ConceptMatchResult
 
 
 # ---------------------------------------------------------------------------

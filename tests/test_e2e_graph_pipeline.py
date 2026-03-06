@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import yaml
 
-from src.evaluation_types import (
+from forma.evaluation_types import (
     EnsembleResult,
     GraphComparisonResult,
     TripletEdge,
@@ -130,9 +130,9 @@ PARTIAL_TRIPLETS = _mock_triplet_json([
 class TestE2EGraphPipeline:
     """End-to-end tests for the v2 graph-based pipeline."""
 
-    @patch("src.graph_comparator.encode_texts")
-    @patch("src.triplet_extractor.encode_texts")
-    @patch("src.concept_checker.encode_texts")
+    @patch("forma.graph_comparator.encode_texts")
+    @patch("forma.triplet_extractor.encode_texts")
+    @patch("forma.concept_checker.encode_texts")
     def test_v2_full_flow(
         self,
         mock_concept_enc,
@@ -155,13 +155,13 @@ class TestE2EGraphPipeline:
         mock_graph_enc.side_effect = Exception("use exact matching")
 
         # Mock LLM provider
-        with patch("src.triplet_extractor.TripletExtractor._single_extraction") as mock_extract:
+        with patch("forma.triplet_extractor.TripletExtractor._single_extraction") as mock_extract:
             mock_extract.return_value = [
                 TripletEdge("수용체", "감지", "한계점 일탈"),
                 TripletEdge("통합센터", "명령", "효과기"),
             ]
-            with patch("src.feedback_generator.FeedbackGenerator.generate") as mock_feedback:
-                from src.evaluation_types import FeedbackResult
+            with patch("forma.feedback_generator.FeedbackGenerator.generate") as mock_feedback:
+                from forma.evaluation_types import FeedbackResult
                 mock_feedback.return_value = FeedbackResult(
                     student_id="test",
                     question_sn=1,
@@ -172,7 +172,7 @@ class TestE2EGraphPipeline:
                     tier_label="기전+용어",
                 )
 
-                from src.pipeline_evaluation import run_evaluation_pipeline
+                from forma.pipeline_evaluation import run_evaluation_pipeline
 
                 run_evaluation_pipeline(
                     config_path=v2_config_file,
@@ -189,7 +189,7 @@ class TestE2EGraphPipeline:
         assert os.path.isfile(os.path.join(output_dir, "res_lvl4", "ensemble_results.yaml"))
         assert os.path.isfile(os.path.join(output_dir, "res_lvl4", "counseling_summary.yaml"))
 
-    @patch("src.concept_checker.encode_texts")
+    @patch("forma.concept_checker.encode_texts")
     def test_v1_compat(
         self,
         mock_enc,
@@ -201,7 +201,7 @@ class TestE2EGraphPipeline:
         output_dir = str(tmp_path / "output_v1")
         mock_enc.return_value = np.random.rand(2, 10).astype(np.float32)
 
-        from src.pipeline_evaluation import run_evaluation_pipeline
+        from forma.pipeline_evaluation import run_evaluation_pipeline
 
         run_evaluation_pipeline(
             config_path=v1_config_file,
@@ -218,7 +218,7 @@ class TestE2EGraphPipeline:
             os.path.join(output_dir, "res_lvl1", "graph_comparison_results.yaml")
         )
 
-    @patch("src.concept_checker.encode_texts")
+    @patch("forma.concept_checker.encode_texts")
     def test_empty_response_produces_result(
         self,
         mock_enc,
@@ -233,7 +233,7 @@ class TestE2EGraphPipeline:
         output_dir = str(tmp_path / "output_empty")
         mock_enc.return_value = np.random.rand(2, 10).astype(np.float32)
 
-        from src.pipeline_evaluation import run_evaluation_pipeline
+        from forma.pipeline_evaluation import run_evaluation_pipeline
 
         run_evaluation_pipeline(
             config_path=v2_config_file,
@@ -266,7 +266,7 @@ class TestConfigValidation:
         resp_file = tmp_path / "resp.yaml"
         resp_file.write_text(yaml.dump(responses, allow_unicode=True), encoding="utf-8")
 
-        from src.pipeline_evaluation import run_evaluation_pipeline
+        from forma.pipeline_evaluation import run_evaluation_pipeline
 
         with pytest.raises(ValueError, match="validation failed"):
             run_evaluation_pipeline(
@@ -283,7 +283,7 @@ class TestTripletExtractorE2E:
 
     def test_triplet_extraction_with_mock_llm(self):
         """TripletExtractor extracts and achieves consensus with mock LLM."""
-        from src.triplet_extractor import TripletExtractor
+        from forma.triplet_extractor import TripletExtractor
 
         triplet_json = json.dumps([
             {"subject": "A", "relation": "causes", "object": "B"},
@@ -293,7 +293,7 @@ class TestTripletExtractorE2E:
 
         extractor = TripletExtractor(mock_prov)
 
-        with patch("src.triplet_extractor.encode_texts", side_effect=Exception):
+        with patch("forma.triplet_extractor.encode_texts", side_effect=Exception):
             result = extractor.extract("s001", 1, "Q?", "A causes B", ["A", "B"])
 
         assert isinstance(result, TripletExtractionResult)
@@ -305,13 +305,13 @@ class TestGraphComparatorE2E:
 
     def test_exact_match_f1_one(self):
         """Identical edges yield F1 = 1.0 with exact matching."""
-        from src.graph_comparator import GraphComparator
+        from forma.graph_comparator import GraphComparator
 
         master = [TripletEdge("A", "r", "B"), TripletEdge("C", "r", "D")]
         student = [TripletEdge("A", "r", "B"), TripletEdge("C", "r", "D")]
 
         gc = GraphComparator()
-        with patch("src.graph_comparator.encode_texts", side_effect=Exception):
+        with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare("s001", 1, master, student)
 
         assert result.f1 == pytest.approx(1.0)
@@ -323,7 +323,7 @@ class TestFeedbackGeneratorE2E:
 
     def test_generates_feedback_text(self):
         """FeedbackGenerator produces feedback text from mock LLM."""
-        from src.feedback_generator import FeedbackGenerator
+        from forma.feedback_generator import FeedbackGenerator
 
         mock_prov = MagicMock()
         mock_prov.generate.return_value = "개념 이해도가 좋습니다. 추가 학습이 필요합니다."

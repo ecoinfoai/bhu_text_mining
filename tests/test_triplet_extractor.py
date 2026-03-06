@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.evaluation_types import TripletEdge, TripletExtractionResult
-from src.triplet_extractor import TripletExtractor
+from forma.evaluation_types import TripletEdge, TripletExtractionResult
+from forma.triplet_extractor import TripletExtractor
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ class TestTripletExtractor:
         assert result.triplets == []
         assert result.student_id == "s001"
 
-    @patch("src.triplet_extractor.encode_texts")
+    @patch("forma.triplet_extractor.encode_texts")
     def test_extraction_with_consensus(self, mock_encode):
         """3-call consensus returns agreed triplets."""
         import numpy as np
@@ -79,7 +79,7 @@ class TestTripletExtractor:
 
         ext = TripletExtractor(prov)
         # Use exact consensus fallback to avoid embedding dependency
-        with patch("src.triplet_extractor.encode_texts", side_effect=Exception("no model")):
+        with patch("forma.triplet_extractor.encode_texts", side_effect=Exception("no model")):
             result = ext.extract("s001", 1, "Q?", "answer", ["A"])
 
         assert isinstance(result, TripletExtractionResult)
@@ -157,7 +157,7 @@ class TestTripletExtractor:
         prov.generate.side_effect = Exception("API error")
 
         ext = TripletExtractor(prov)
-        with patch("src.triplet_extractor.encode_texts", side_effect=Exception("no model")):
+        with patch("forma.triplet_extractor.encode_texts", side_effect=Exception("no model")):
             result = ext.extract("s001", 1, "Q?", "answer", ["A"])
 
         assert all(len(cr) == 0 for cr in result.call_results)

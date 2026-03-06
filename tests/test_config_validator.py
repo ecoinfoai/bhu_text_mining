@@ -6,7 +6,7 @@ import warnings
 
 import pytest
 
-from src.config_validator import (
+from forma.config_validator import (
     validate_exam_config,
     validate_edge_answer_ratio,
     validate_question_config,

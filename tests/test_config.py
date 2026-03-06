@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.config import (
+from forma.config import (
     AGENIX_CONFIG_PATH,
     DEFAULT_CONFIG_PATH,
     LEGACY_CONFIG_PATHS,
@@ -39,7 +39,7 @@ class TestLoadConfig:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps(cfg), encoding="utf-8")
 
-        with patch("src.config.DEFAULT_CONFIG_PATH", str(cfg_file)):
+        with patch("forma.config.DEFAULT_CONFIG_PATH", str(cfg_file)):
             result = load_config()
         assert result == cfg
 
@@ -49,8 +49,8 @@ class TestLoadConfig:
         cfg_file = tmp_path / "legacy.json"
         cfg_file.write_text(json.dumps(cfg), encoding="utf-8")
 
-        with patch("src.config.DEFAULT_CONFIG_PATH", "/nonexistent/path.json"):
-            with patch("src.config.LEGACY_CONFIG_PATHS", [str(cfg_file)]):
+        with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/path.json"):
+            with patch("forma.config.LEGACY_CONFIG_PATHS", [str(cfg_file)]):
                 result = load_config()
         assert result == cfg
 
@@ -60,17 +60,17 @@ class TestLoadConfig:
         cfg_file = tmp_path / "agenix.json"
         cfg_file.write_text(json.dumps(cfg), encoding="utf-8")
 
-        with patch("src.config.AGENIX_CONFIG_PATH", str(cfg_file)):
-            with patch("src.config.DEFAULT_CONFIG_PATH", "/nonexistent/a.json"):
-                with patch("src.config.LEGACY_CONFIG_PATHS", ["/nonexistent/b.json"]):
+        with patch("forma.config.AGENIX_CONFIG_PATH", str(cfg_file)):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/a.json"):
+                with patch("forma.config.LEGACY_CONFIG_PATHS", ["/nonexistent/b.json"]):
                     result = load_config()
         assert result == cfg
 
     def test_no_config_raises(self):
         """Raises FileNotFoundError when no config file found."""
-        with patch("src.config.AGENIX_CONFIG_PATH", "/nonexistent/z.json"):
-            with patch("src.config.DEFAULT_CONFIG_PATH", "/nonexistent/a.json"):
-                with patch("src.config.LEGACY_CONFIG_PATHS", ["/nonexistent/b.json"]):
+        with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/z.json"):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/a.json"):
+                with patch("forma.config.LEGACY_CONFIG_PATHS", ["/nonexistent/b.json"]):
                     with pytest.raises(FileNotFoundError, match="No config file"):
                         load_config()
 

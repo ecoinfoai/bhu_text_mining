@@ -8,7 +8,7 @@ import tempfile
 
 import yaml
 
-from src.evaluation_types import LongitudinalRecord
+from forma.evaluation_types import LongitudinalRecord
 
 
 def _record_key(student_id: str, week: int, question_sn: int) -> str:

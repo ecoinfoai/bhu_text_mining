@@ -15,7 +15,7 @@ import sys
 
 import yaml
 
-from src.exam_generator import ExamPDFGenerator
+from forma.exam_generator import ExamPDFGenerator
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

@@ -77,10 +77,10 @@ def mock_font(tmp_path):
 @pytest.fixture()
 def generator(mock_font):
     """Create a StudentReportGenerator with mocked font registration."""
-    with patch("src.report_generator.find_korean_font", return_value=mock_font):
-        with patch("src.report_generator.pdfmetrics.registerFont"):
-            with patch("src.report_generator.TTFont"):
-                from src.report_generator import StudentReportGenerator
+    with patch("forma.report_generator.find_korean_font", return_value=mock_font):
+        with patch("forma.report_generator.pdfmetrics.registerFont"):
+            with patch("forma.report_generator.TTFont"):
+                from forma.report_generator import StudentReportGenerator
                 return StudentReportGenerator(font_path=mock_font)
 
 
@@ -106,9 +106,9 @@ class TestStudentReportGenerator:
     def test_generate_report_creates_pdf(self, generator, tmp_path):
         """generate_report creates a PDF file."""
         output = str(tmp_path / "S001_report.pdf")
-        with patch("src.report_generator.SimpleDocTemplate") as mock_doc_cls:
-            with patch("src.report_generator.Paragraph"):
-                with patch("src.report_generator.Spacer"):
+        with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
+            with patch("forma.report_generator.Paragraph"):
+                with patch("forma.report_generator.Spacer"):
                     mock_doc = MagicMock()
                     mock_doc_cls.return_value = mock_doc
                     path = generator.generate_report(
@@ -123,9 +123,9 @@ class TestStudentReportGenerator:
     def test_generate_report_missing_student(self, generator, tmp_path):
         """generate_report handles missing student gracefully."""
         output = str(tmp_path / "S999_report.pdf")
-        with patch("src.report_generator.SimpleDocTemplate") as mock_doc_cls:
-            with patch("src.report_generator.Paragraph"):
-                with patch("src.report_generator.Spacer"):
+        with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
+            with patch("forma.report_generator.Paragraph"):
+                with patch("forma.report_generator.Spacer"):
                     mock_doc = MagicMock()
                     mock_doc_cls.return_value = mock_doc
                     generator.generate_report(
@@ -166,22 +166,22 @@ class TestFontUtils:
 
     def test_raises_when_no_font(self):
         """Raises FileNotFoundError when no font is found."""
-        from src.font_utils import find_korean_font
+        from forma.font_utils import find_korean_font
 
-        with patch("src.font_utils.os.path.exists", return_value=False):
-            with patch("src.font_utils.glob.glob", return_value=[]):
+        with patch("forma.font_utils.os.path.exists", return_value=False):
+            with patch("forma.font_utils.glob.glob", return_value=[]):
                 with pytest.raises(FileNotFoundError, match="Korean font"):
                     find_korean_font()
 
     def test_returns_first_found(self):
         """Returns the first font path found."""
-        from src.font_utils import find_korean_font
+        from forma.font_utils import find_korean_font
 
         def fake_exists(path):
             return path.endswith("NanumGothic.ttf") and "truetype" in path
 
-        with patch("src.font_utils.platform.system", return_value="Linux"):
-            with patch("src.font_utils.os.path.exists", side_effect=fake_exists):
-                with patch("src.font_utils.glob.glob", return_value=[]):
+        with patch("forma.font_utils.platform.system", return_value="Linux"):
+            with patch("forma.font_utils.os.path.exists", side_effect=fake_exists):
+                with patch("forma.font_utils.glob.glob", return_value=[]):
                     result = find_korean_font()
                     assert "NanumGothic.ttf" in result

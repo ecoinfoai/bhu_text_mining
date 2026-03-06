@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from sklearn.metrics.pairwise import cosine_similarity
-from src.network_analysis import (
+from forma.network_analysis import (
     create_network,
     extract_keywords,
 )

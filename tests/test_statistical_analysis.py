@@ -33,7 +33,7 @@ class TestRaschAnalyzerInit:
 
     def test_init_default_values(self):
         """RaschAnalyzer initialises with sensible defaults."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         ra = RaschAnalyzer(question_sn=1)
         assert ra.question_sn == 1
@@ -41,7 +41,7 @@ class TestRaschAnalyzerInit:
 
     def test_init_custom_bootstrap(self):
         """RaschAnalyzer accepts custom n_bootstrap."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         ra = RaschAnalyzer(question_sn=2, n_bootstrap=200)
         assert ra.n_bootstrap == 200
@@ -52,7 +52,7 @@ class TestRaschAnalyzerFit:
 
     def test_fit_returns_difficulty_estimates(self):
         """fit() returns item difficulty estimates of correct length."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         X = _make_binary_matrix(40, 6)
         mock_result = {
@@ -61,7 +61,7 @@ class TestRaschAnalyzerFit:
         }
 
         with patch(
-            "src.statistical_analysis._rasch_cml", return_value=mock_result
+            "forma.statistical_analysis._rasch_cml", return_value=mock_result
         ):
             ra = RaschAnalyzer(question_sn=1)
             ra.fit(X)
@@ -70,7 +70,7 @@ class TestRaschAnalyzerFit:
 
     def test_fit_handles_extreme_scores(self):
         """fit() removes extreme-score rows (all 0 or all 1)."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         X = _make_binary_matrix(40, 6)
         X[0] = 0  # all-zero row
@@ -82,7 +82,7 @@ class TestRaschAnalyzerFit:
         }
 
         with patch(
-            "src.statistical_analysis._rasch_cml", return_value=mock_result
+            "forma.statistical_analysis._rasch_cml", return_value=mock_result
         ):
             ra = RaschAnalyzer(question_sn=1)
             ra.fit(X)
@@ -91,7 +91,7 @@ class TestRaschAnalyzerFit:
 
     def test_fit_raises_on_too_few_items(self):
         """fit() raises ValueError if fewer than 2 items provided."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         X = _make_binary_matrix(40, 1)
         ra = RaschAnalyzer(question_sn=1)
@@ -104,7 +104,7 @@ class TestRaschAnalyzerAbilityEstimates:
 
     def test_ability_estimates_length_matches_students(self):
         """ability_estimates() returns one theta per student."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         X = _make_binary_matrix(40, 6)
         difficulties = np.linspace(-1.0, 1.0, 6)
@@ -114,7 +114,7 @@ class TestRaschAnalyzerAbilityEstimates:
         }
 
         with patch(
-            "src.statistical_analysis._rasch_cml", return_value=mock_result
+            "forma.statistical_analysis._rasch_cml", return_value=mock_result
         ):
             ra = RaschAnalyzer(question_sn=1)
             ra.fit(X)
@@ -125,7 +125,7 @@ class TestRaschAnalyzerAbilityEstimates:
 
     def test_ability_estimates_raises_if_not_fitted(self):
         """ability_estimates() raises RuntimeError if called before fit."""
-        from src.statistical_analysis import RaschAnalyzer
+        from forma.statistical_analysis import RaschAnalyzer
 
         ra = RaschAnalyzer(question_sn=1)
         X = _make_binary_matrix(40, 6)
@@ -143,14 +143,14 @@ class TestLCAAnalyzerInit:
 
     def test_init_default_n_classes(self):
         """LCAAnalyzer default max_classes is 4."""
-        from src.statistical_analysis import LCAAnalyzer
+        from forma.statistical_analysis import LCAAnalyzer
 
         lca = LCAAnalyzer()
         assert lca.max_classes == 4
 
     def test_init_exploratory_warning_present(self):
         """LCAAnalyzer carries the exploratory warning string."""
-        from src.statistical_analysis import LCAAnalyzer
+        from forma.statistical_analysis import LCAAnalyzer
 
         lca = LCAAnalyzer()
         assert "탐색적" in lca.exploratory_warning
@@ -168,12 +168,12 @@ class TestLCAAnalyzerFit:
 
     def test_fit_returns_class_labels(self):
         """fit() returns integer class labels."""
-        from src.statistical_analysis import LCAAnalyzer
+        from forma.statistical_analysis import LCAAnalyzer
 
         X = _make_binary_matrix(40, 6)
         mock_sm = self._make_mock_stepmix(2)
 
-        with patch("src.statistical_analysis.StepMix", return_value=mock_sm):
+        with patch("forma.statistical_analysis.StepMix", return_value=mock_sm):
             lca = LCAAnalyzer(max_classes=3)
             labels, probs = lca.fit_predict(X)
 
@@ -182,12 +182,12 @@ class TestLCAAnalyzerFit:
 
     def test_fit_predict_proba_shape(self):
         """fit_predict returns probabilities with shape (n_students, n_classes)."""
-        from src.statistical_analysis import LCAAnalyzer
+        from forma.statistical_analysis import LCAAnalyzer
 
         X = _make_binary_matrix(40, 6)
         mock_sm = self._make_mock_stepmix(2)
 
-        with patch("src.statistical_analysis.StepMix", return_value=mock_sm):
+        with patch("forma.statistical_analysis.StepMix", return_value=mock_sm):
             lca = LCAAnalyzer(max_classes=3)
             labels, probs = lca.fit_predict(X)
 
@@ -204,8 +204,8 @@ class TestComputeConceptMatrix:
 
     def test_matrix_shape(self):
         """Matrix has shape (n_students, n_concepts)."""
-        from src.statistical_analysis import compute_concept_matrix
-        from src.evaluation_types import ConceptMatchResult
+        from forma.statistical_analysis import compute_concept_matrix
+        from forma.evaluation_types import ConceptMatchResult
 
         students = ["s001", "s002"]
         concepts = ["세포막", "삼투", "확산"]
@@ -228,8 +228,8 @@ class TestComputeConceptMatrix:
 
     def test_matrix_values_are_binary(self):
         """Matrix contains only 0 and 1."""
-        from src.statistical_analysis import compute_concept_matrix
-        from src.evaluation_types import ConceptMatchResult
+        from forma.statistical_analysis import compute_concept_matrix
+        from forma.evaluation_types import ConceptMatchResult
 
         students = ["s001"]
         concepts = ["세포막"]

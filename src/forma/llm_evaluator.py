@@ -17,9 +17,9 @@ from typing import Optional
 import numpy as np
 import yaml
 
-from src.evaluation_types import AggregatedLLMResult, LLMJudgeResult
-from src.llm_provider import LLMProvider, create_provider
-from src.prompt_templates import render_rubric_prompt
+from forma.evaluation_types import AggregatedLLMResult, LLMJudgeResult
+from forma.llm_provider import LLMProvider, create_provider
+from forma.prompt_templates import render_rubric_prompt
 
 
 # ---------------------------------------------------------------------------

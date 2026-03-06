@@ -9,7 +9,7 @@ import tempfile
 import pytest
 import yaml
 
-from src.evaluation_io import (
+from forma.evaluation_io import (
     load_evaluation_yaml,
     save_evaluation_yaml,
     extract_student_responses,
