@@ -20,6 +20,10 @@ dist/
 *.egg
 *.whl
 
+# idea documents
+new_functions_specs/
+specs/
+
 # direnv
 .direnv/
 
