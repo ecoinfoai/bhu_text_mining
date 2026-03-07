@@ -151,6 +151,47 @@ class TestTripletExtractor:
         assert len(consensus) == 1
         assert consensus[0].subject == "A"
 
+    def test_n_calls_2_consensus_requires_2_votes(self):
+        """With n_calls=2, min_votes must be 2 (not 1). Bug fix test."""
+        prov = _make_provider([])
+        ext = TripletExtractor(prov, n_calls=2)
+
+        t1 = TripletEdge("A", "r", "B")
+        t2 = TripletEdge("C", "r", "D")
+        # t1 appears in only 1 call, t2 appears in only 1 call
+        call_results = [
+            [t1],
+            [t2],
+        ]
+        consensus = ext._exact_consensus(call_results)
+        # With min_votes=2, neither should pass (only 1 vote each)
+        assert len(consensus) == 0
+
+    def test_n_calls_2_consensus_passes_with_agreement(self):
+        """With n_calls=2, triplets in both calls pass consensus."""
+        prov = _make_provider([])
+        ext = TripletExtractor(prov, n_calls=2)
+
+        t1 = TripletEdge("A", "r", "B")
+        call_results = [
+            [t1],
+            [t1],
+        ]
+        consensus = ext._exact_consensus(call_results)
+        assert len(consensus) == 1
+
+    def test_n_calls_zero_raises(self):
+        """n_calls=0 raises ValueError."""
+        prov = _make_provider([])
+        with pytest.raises(ValueError, match="n_calls"):
+            TripletExtractor(prov, n_calls=0)
+
+    def test_n_calls_negative_raises(self):
+        """n_calls=-1 raises ValueError."""
+        prov = _make_provider([])
+        with pytest.raises(ValueError, match="n_calls"):
+            TripletExtractor(prov, n_calls=-1)
+
     def test_provider_exception_returns_empty_call(self):
         """LLM provider exception → empty list for that call."""
         prov = MagicMock()

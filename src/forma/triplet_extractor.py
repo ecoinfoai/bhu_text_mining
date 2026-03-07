@@ -43,6 +43,11 @@ class TripletExtractor:
         consensus_threshold: float = DEFAULT_CONSENSUS_THRESHOLD,
         n_calls: int = N_CALLS,
     ) -> None:
+        if n_calls < 1:
+            raise ValueError(
+                f"n_calls must be >= 1, got {n_calls}. "
+                "Use n_calls=1 for single-call mode (no consensus)."
+            )
         self._provider = provider
         self._threshold = consensus_threshold
         self._n_calls = n_calls
@@ -185,7 +190,7 @@ class TripletExtractor:
             return self._exact_consensus(call_results)
 
         sim_matrix = cosine_similarity(embeddings)
-        min_votes = (self._n_calls + 1) // 2  # ceil(n/2)
+        min_votes = max(2, (self._n_calls + 1) // 2)
 
         used = set()
         consensus: list[TripletEdge] = []
@@ -216,7 +221,7 @@ class TripletExtractor:
         self, call_results: list[list[TripletEdge]]
     ) -> list[TripletEdge]:
         """Fallback consensus using exact string matching."""
-        min_votes = (self._n_calls + 1) // 2
+        min_votes = max(2, (self._n_calls + 1) // 2)
         key_counts: dict[str, tuple[int, TripletEdge]] = {}
 
         for triplets in call_results:

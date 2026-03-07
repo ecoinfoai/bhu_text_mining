@@ -40,6 +40,7 @@ def run_batch_evaluation(
     lecture_transcript: Optional[str] = None,
     longitudinal_store: Optional[str] = None,
     questions_used: Optional[list[int]] = None,
+    n_calls: int = 3,
 ) -> None:
     """Run evaluation pipeline for multiple class sections.
 
@@ -122,6 +123,7 @@ def run_batch_evaluation(
             longitudinal_store=cls_longitudinal,
             generate_reports=generate_reports,
             questions_used=questions_used,
+            n_calls=n_calls,
         )
 
         # Generate PDF reports if requested

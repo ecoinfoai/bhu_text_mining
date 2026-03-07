@@ -360,3 +360,24 @@ class RubricTier:
     min_graph_f1: float
     requires_terminology: bool
     description: str = ""
+
+
+@dataclass
+class FailedCall:
+    """Record of a failed LLM call for retry after pipeline completion.
+
+    Args:
+        student_id: Student identifier.
+        question_sn: Question serial number.
+        call_index: Which call failed (1-based).
+        error_type: Exception class name.
+        error_message: Truncated error message.
+        prompt: The prompt that was used (for retry).
+    """
+
+    student_id: str
+    question_sn: int
+    call_index: int
+    error_type: str
+    error_message: str
+    prompt: str

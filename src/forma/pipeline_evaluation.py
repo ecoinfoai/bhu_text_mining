@@ -176,13 +176,14 @@ def _run_triplet_extraction(
     api_key: Optional[str],
     provider: str = "gemini",
     model: Optional[str] = None,
+    n_calls: int = 3,
 ) -> dict[str, dict[int, TripletExtractionResult]]:
     """Run triplet extraction for v2 questions."""
     from forma.llm_provider import create_provider
     from forma.triplet_extractor import TripletExtractor
 
     llm_prov = create_provider(provider=provider, api_key=api_key, model=model)
-    extractor = TripletExtractor(llm_prov)
+    extractor = TripletExtractor(llm_prov, n_calls=n_calls)
     results: dict[str, dict[int, TripletExtractionResult]] = {}
 
     for q in config_data.get("questions", []):
@@ -251,11 +252,19 @@ def _run_layer2_v1(
     api_key: Optional[str],
     provider: str = "gemini",
     model: Optional[str] = None,
-) -> dict[str, dict[int, AggregatedLLMResult]]:
-    """Run v1 Layer 2 LLM evaluation for non-v2 questions."""
+    n_calls: int = 3,
+) -> tuple[dict[str, dict[int, AggregatedLLMResult]], "LLMEvaluator"]:
+    """Run v1 Layer 2 LLM evaluation for non-v2 questions.
+
+    Returns:
+        Tuple of (results dict, evaluator instance). The evaluator is
+        returned so the pipeline can call retry_failed_calls() later.
+    """
     from forma.llm_evaluator import LLMEvaluator
 
-    evaluator = LLMEvaluator(api_key=api_key, provider=provider, model=model)
+    evaluator = LLMEvaluator(
+        api_key=api_key, provider=provider, model=model, n_calls=n_calls,
+    )
     results: dict[str, dict[int, AggregatedLLMResult]] = {}
 
     # Build work list for progress tracking
@@ -293,7 +302,7 @@ def _run_layer2_v1(
     if total:
         print()  # newline after progress
 
-    return results
+    return results, evaluator
 
 
 def _run_feedback(
@@ -654,6 +663,7 @@ def run_evaluation_pipeline(
     longitudinal_store: Optional[str] = None,
     generate_reports: bool = False,
     questions_used: Optional[list[int]] = None,
+    n_calls: int = 3,
 ) -> None:
     """Run the full multi-layer concept evaluation pipeline.
 
@@ -679,6 +689,8 @@ def run_evaluation_pipeline(
             When provided, *responses_path* is treated as OCR join
             output (flat list) and the exam config is filtered to
             only the selected questions.
+        n_calls: Number of independent LLM calls per evaluation
+            (default 3). Use 2 for cost savings.
     """
     # Handle deprecated --skip-llm
     if skip_llm and not skip_feedback:
@@ -794,10 +806,10 @@ def run_evaluation_pipeline(
     triplet_results: Optional[dict] = None
     graph_results: Optional[dict] = None
     if has_v2 and not skip_graph:
-        print(f"[pipeline] Phase 1: triplet extraction ({provider}) …")
+        print(f"[pipeline] Phase 1: triplet extraction ({provider}, {n_calls}-call) …")
         triplet_results = _run_triplet_extraction(
             student_responses, config_data, api_key,
-            provider=provider, model=model,
+            provider=provider, model=model, n_calls=n_calls,
         )
         print("[pipeline] Phase 1: graph comparison …")
         graph_results = _run_graph_comparison(
@@ -868,12 +880,13 @@ def run_evaluation_pipeline(
 
     # === Phase 3: LLM rubric evaluation (3-call per student×question) ===
     llm_results: Optional[dict] = None
+    llm_evaluator = None
     has_v1 = any(not _is_v2_question(q) for q in questions)
     if has_v1 and not skip_feedback:
         print(f"[pipeline] Phase 3: LLM rubric evaluation ({provider}) …")
-        llm_results = _run_layer2_v1(
+        llm_results, llm_evaluator = _run_layer2_v1(
             student_responses, config_data, api_key,
-            provider=provider, model=model,
+            provider=provider, model=model, n_calls=n_calls,
         )
 
     # --- Post-LLM: compute per-question ICC(2,1) across students ---
@@ -948,6 +961,22 @@ def run_evaluation_pipeline(
             graph_results, api_key,
             provider=provider, model=model,
             lecture_tone=lecture_tone,
+        )
+
+    # === Phase 5b: Retry failed LLM calls ===
+    if llm_evaluator and llm_evaluator.failed_calls:
+        n_failed = len(llm_evaluator.failed_calls)
+        print(f"[pipeline] Retrying {n_failed} failed LLM call(s) …")
+        results_map: dict[tuple[str, int], AggregatedLLMResult] = {}
+        if llm_results:
+            for sid, q_dict in llm_results.items():
+                for qsn, agg in q_dict.items():
+                    results_map[(sid, qsn)] = agg
+        retried = llm_evaluator.retry_failed_calls(results_map)
+        still_failed = len(llm_evaluator.failed_calls)
+        print(
+            f"[pipeline] Retry complete: {retried} recovered, "
+            f"{still_failed} still failed."
         )
 
     # === Phase 6: Output ===
@@ -1224,6 +1253,10 @@ def main() -> None:
         "--questions-used", nargs="+", type=int, default=None,
         help="출제 문항의 exam sn 번호를 q 순서대로 (예: 1 3)",
     )
+    parser.add_argument(
+        "--n-calls", type=int, default=None,
+        help="LLM 호출 횟수 (기본 3, 비용 절감시 2)",
+    )
     args = parser.parse_args()
 
     # --- Merge eval-config YAML with CLI flags (CLI wins) ---
@@ -1261,6 +1294,7 @@ def main() -> None:
         longitudinal_store=_resolve(args.longitudinal_store, "longitudinal_store"),
         generate_reports=_resolve(args.generate_reports, "generate_reports", False),
         questions_used=_resolve(args.questions_used, "questions_used"),
+        n_calls=_resolve(args.n_calls, "n_calls", 3),
     )
 
 

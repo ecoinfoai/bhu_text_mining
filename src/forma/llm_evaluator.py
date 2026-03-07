@@ -18,9 +18,12 @@ from typing import Optional
 import numpy as np
 import yaml
 
-from forma.evaluation_types import AggregatedLLMResult, LLMJudgeResult
+from forma.evaluation_types import AggregatedLLMResult, FailedCall, LLMJudgeResult
 from forma.llm_provider import LLMProvider, create_provider
-from forma.prompt_templates import render_rubric_prompt
+from forma.prompt_templates import (
+    RUBRIC_SYSTEM_INSTRUCTION,
+    render_rubric_prompt,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -103,12 +106,18 @@ class LLMEvaluator:
         temperature: float = 0.0,
         provider: str = "gemini",
     ) -> None:
+        if n_calls < 1:
+            raise ValueError(
+                f"n_calls must be >= 1, got {n_calls}. "
+                "Use n_calls=1 for single-call mode."
+            )
         self.provider = create_provider(
             provider=provider, api_key=api_key, model=model,
         )
         self.model = self.provider.model_name
         self.n_calls = n_calls
         self.temperature = temperature
+        self.failed_calls: list[FailedCall] = []
 
     @staticmethod
     def _strip_code_fence(text: str) -> str:
@@ -294,14 +303,16 @@ class LLMEvaluator:
         student_id: str,
         question_sn: int,
         call_index: int,
+        system_instruction: Optional[str] = None,
     ) -> LLMJudgeResult:
         """Execute one API call and return a parsed LLMJudgeResult.
 
         Args:
-            prompt: Rendered evaluation prompt.
+            prompt: Rendered evaluation prompt (user message).
             student_id: For result stamping.
             question_sn: For result stamping.
             call_index: 1-based index (1, 2, or 3).
+            system_instruction: Optional system-level instruction.
 
         Returns:
             LLMJudgeResult parsed from the API response.
@@ -311,6 +322,7 @@ class LLMEvaluator:
                 prompt=prompt,
                 max_tokens=2048,
                 temperature=self.temperature,
+                system_instruction=system_instruction,
             )
         except Exception as exc:
             warnings.warn(
@@ -319,6 +331,14 @@ class LLMEvaluator:
                 f"Using fallback low-confidence result.",
                 stacklevel=2,
             )
+            self.failed_calls.append(FailedCall(
+                student_id=student_id,
+                question_sn=question_sn,
+                call_index=call_index,
+                error_type=type(exc).__name__,
+                error_message=str(exc)[:200],
+                prompt=prompt,
+            ))
             return LLMJudgeResult(
                 student_id=student_id,
                 question_sn=question_sn,
@@ -413,6 +433,7 @@ class LLMEvaluator:
                 student_id=student_id,
                 question_sn=question_sn,
                 call_index=i,
+                system_instruction=RUBRIC_SYSTEM_INSTRUCTION,
             )
             calls.append(result)
 
@@ -442,3 +463,76 @@ class LLMEvaluator:
             icc_value=None,  # computed per-question in pipeline
             individual_calls=calls,
         )
+
+    def retry_failed_calls(
+        self,
+        results_map: dict[tuple[str, int], AggregatedLLMResult],
+    ) -> int:
+        """Retry previously failed LLM calls and replace fallback results.
+
+        After the pipeline completes, call this to retry any calls that
+        failed due to transient errors. Successfully retried calls replace
+        the fallback (uncertain) results in-place.
+
+        Args:
+            results_map: Mapping of (student_id, question_sn) to the
+                AggregatedLLMResult that should be patched.
+
+        Returns:
+            Number of calls successfully retried.
+        """
+        if not self.failed_calls:
+            return 0
+
+        remaining: list[FailedCall] = []
+        retried = 0
+
+        for fc in self.failed_calls:
+            try:
+                content = self.provider.generate(
+                    prompt=fc.prompt,
+                    max_tokens=2048,
+                    temperature=self.temperature,
+                    system_instruction=RUBRIC_SYSTEM_INSTRUCTION,
+                )
+                parsed = self._parse_yaml_response(content)
+                misconceptions = parsed.get("misconceptions") or []
+                if isinstance(misconceptions, str):
+                    misconceptions = [misconceptions] if misconceptions else []
+
+                new_result = LLMJudgeResult(
+                    student_id=fc.student_id,
+                    question_sn=fc.question_sn,
+                    rubric_score=int(parsed.get("rubric_score", 1)),
+                    rubric_label=str(parsed.get("rubric_label", "low")),
+                    reasoning=str(parsed.get("reasoning", "")),
+                    misconceptions=list(misconceptions),
+                    uncertain=bool(parsed.get("uncertain", False)),
+                    call_index=fc.call_index,
+                )
+
+                # Replace in aggregated result
+                key = (fc.student_id, fc.question_sn)
+                agg = results_map.get(key)
+                if agg is not None:
+                    for idx, call in enumerate(agg.individual_calls):
+                        if call.call_index == fc.call_index:
+                            agg.individual_calls[idx] = new_result
+                            break
+                    # Recompute median
+                    scores = [c.rubric_score for c in agg.individual_calls]
+                    agg.median_rubric_score = float(statistics.median(scores))
+                    median_call = min(
+                        agg.individual_calls,
+                        key=lambda c: abs(c.rubric_score - agg.median_rubric_score),
+                    )
+                    agg.rubric_label = median_call.rubric_label
+                    agg.reasoning = median_call.reasoning
+                    agg.uncertain = any(c.uncertain for c in agg.individual_calls)
+
+                retried += 1
+            except Exception:
+                remaining.append(fc)
+
+        self.failed_calls = remaining
+        return retried

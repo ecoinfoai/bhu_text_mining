@@ -89,6 +89,23 @@ class TestGeminiProvider:
 
         assert result == "Hello world"
 
+    def test_generate_with_system_instruction(self):
+        """generate() passes system_instruction to Gemini config."""
+        modules, mock_genai, mock_types = _mock_google_genai()
+        mock_response = MagicMock()
+        mock_response.text = "response"
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
+
+        with patch.dict(sys.modules, modules):
+            provider = GeminiProvider(api_key="k")
+            result = provider.generate(
+                "user prompt", system_instruction="You are an evaluator."
+            )
+        assert result == "response"
+        # Verify system_instruction was included in the config
+        call_kwargs = mock_genai.Client.return_value.models.generate_content.call_args
+        assert call_kwargs is not None
+
     def test_generate_impl_called(self):
         """_generate_impl is called by generate()."""
         modules, mock_genai, mock_types = _mock_google_genai()
@@ -141,6 +158,23 @@ class TestAnthropicProvider:
             result = provider.generate("prompt", max_tokens=256)
 
         assert result == "Response text"
+
+    def test_generate_with_system_instruction(self):
+        """generate() passes system_instruction as system parameter."""
+        mock_anthropic = MagicMock()
+        mock_msg = MagicMock()
+        mock_msg.content = [MagicMock(text="ok")]
+        mock_anthropic.Anthropic.return_value.messages.create.return_value = mock_msg
+
+        with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
+            provider = AnthropicProvider(api_key="k")
+            result = provider.generate(
+                "user prompt", system_instruction="You are an evaluator."
+            )
+        assert result == "ok"
+        # Verify system was passed to messages.create
+        call_kwargs = mock_anthropic.Anthropic.return_value.messages.create.call_args
+        assert call_kwargs.kwargs.get("system") == "You are an evaluator."
 
     def test_generate_impl_called(self):
         """_generate_impl is called by generate()."""

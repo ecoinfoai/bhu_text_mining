@@ -45,7 +45,11 @@ class LLMProvider(abc.ABC):
 
     @abc.abstractmethod
     def _generate_impl(
-        self, prompt: str, max_tokens: int = 1024, temperature: float = 0.0
+        self,
+        prompt: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        system_instruction: Optional[str] = None,
     ) -> str:
         """Provider-specific generation (no retry logic)."""
 
@@ -55,6 +59,7 @@ class LLMProvider(abc.ABC):
         max_tokens: int = 1024,
         temperature: float = 0.0,
         timeout: float = DEFAULT_TIMEOUT,
+        system_instruction: Optional[str] = None,
     ) -> str:
         """Generate a text response with exponential backoff retry.
 
@@ -62,10 +67,13 @@ class LLMProvider(abc.ABC):
         on parse errors or other non-transient failures.
 
         Args:
-            prompt: The input prompt.
+            prompt: The input prompt (user message).
             max_tokens: Maximum tokens in the response.
             temperature: Sampling temperature.
             timeout: Request timeout in seconds (default 60).
+            system_instruction: Optional system-level instruction for the
+                LLM. Passed as Gemini ``system_instruction`` config or
+                Anthropic ``system`` parameter.
 
         Returns:
             Generated text string.
@@ -76,7 +84,9 @@ class LLMProvider(abc.ABC):
         last_exc: Exception | None = None
         for attempt in range(MAX_RETRIES):
             try:
-                return self._generate_impl(prompt, max_tokens, temperature)
+                return self._generate_impl(
+                    prompt, max_tokens, temperature, system_instruction
+                )
             except Exception as exc:
                 last_exc = exc
                 if not _is_retryable(exc):
@@ -119,16 +129,26 @@ class GeminiProvider(LLMProvider):
     def model_name(self) -> str:
         return self._model
 
-    def _generate_impl(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.0) -> str:
+    def _generate_impl(
+        self,
+        prompt: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        system_instruction: Optional[str] = None,
+    ) -> str:
         from google.genai import types
+
+        config_kwargs: dict = {
+            "max_output_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if system_instruction:
+            config_kwargs["system_instruction"] = system_instruction
 
         response = self._client.models.generate_content(
             model=self._model,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                max_output_tokens=max_tokens,
-                temperature=temperature,
-            ),
+            config=types.GenerateContentConfig(**config_kwargs),
         )
         return response.text
 
@@ -157,13 +177,22 @@ class AnthropicProvider(LLMProvider):
     def model_name(self) -> str:
         return self._model
 
-    def _generate_impl(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.0) -> str:
-        message = self._client.messages.create(
-            model=self._model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[{"role": "user", "content": prompt}],
-        )
+    def _generate_impl(
+        self,
+        prompt: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        system_instruction: Optional[str] = None,
+    ) -> str:
+        kwargs: dict = {
+            "model": self._model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if system_instruction:
+            kwargs["system"] = system_instruction
+        message = self._client.messages.create(**kwargs)
         return message.content[0].text
 
 

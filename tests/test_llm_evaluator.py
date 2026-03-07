@@ -93,6 +93,16 @@ class TestLLMEvaluatorInit:
             provider="gemini", api_key="k", model="custom-model",
         )
 
+    def test_n_calls_zero_raises(self, mock_provider):
+        """n_calls=0 raises ValueError."""
+        with pytest.raises(ValueError, match="n_calls"):
+            LLMEvaluator(api_key="k", n_calls=0)
+
+    def test_n_calls_negative_raises(self, mock_provider):
+        """n_calls=-1 raises ValueError."""
+        with pytest.raises(ValueError, match="n_calls"):
+            LLMEvaluator(api_key="k", n_calls=-1)
+
 
 # ---------------------------------------------------------------------------
 # YAML parsing tests
@@ -275,3 +285,114 @@ class TestComputeICC21:
         import numpy as np
         ratings = np.array([[1, 2, 3], [2, 2, 2]], dtype=float)
         assert isinstance(compute_icc_2_1(ratings), float)
+
+
+# ---------------------------------------------------------------------------
+# System instruction tests
+# ---------------------------------------------------------------------------
+
+
+class TestSystemInstruction:
+    """Tests for system_instruction passthrough."""
+
+    def test_system_instruction_passed_to_provider(self, mock_provider):
+        """system_instruction is forwarded to provider.generate()."""
+        _, mock_prov = mock_provider
+        mock_prov.generate.return_value = VALID_YAML_RESPONSE
+        evaluator = LLMEvaluator(api_key="k")
+        evaluator.evaluate_response(
+            student_id="s001",
+            question_sn=1,
+            question="Q?",
+            student_response="A.",
+            model_answer="MA.",
+            rubric_high="high",
+            rubric_mid="mid",
+            rubric_low="low",
+            concepts=["c1"],
+        )
+        # Check that generate was called with system_instruction kwarg
+        for call_args in mock_prov.generate.call_args_list:
+            assert "system_instruction" in call_args.kwargs
+
+
+# ---------------------------------------------------------------------------
+# Failed call retry queue tests
+# ---------------------------------------------------------------------------
+
+
+class TestRetryQueue:
+    """Tests for failed call logging and retry mechanism."""
+
+    def test_failed_calls_logged(self, mock_provider):
+        """API failures are logged in evaluator.failed_calls."""
+        _, mock_prov = mock_provider
+        mock_prov.generate.side_effect = Exception("500 Server Error")
+        evaluator = LLMEvaluator(api_key="k")
+        result = evaluator.evaluate_response(
+            student_id="s001",
+            question_sn=1,
+            question="Q?",
+            student_response="A.",
+            model_answer="MA.",
+            rubric_high="high",
+            rubric_mid="mid",
+            rubric_low="low",
+            concepts=["c1"],
+        )
+        assert len(evaluator.failed_calls) == 3  # all 3 calls failed
+        assert evaluator.failed_calls[0].student_id == "s001"
+        assert evaluator.failed_calls[0].error_type == "Exception"
+        assert result.uncertain is True
+
+    def test_retry_failed_calls_replaces_results(self, mock_provider):
+        """retry_failed_calls() retries and replaces fallback results."""
+        _, mock_prov = mock_provider
+        # First 3 calls fail, then retry succeeds
+        mock_prov.generate.side_effect = [
+            Exception("500 Server Error"),
+            Exception("500 Server Error"),
+            Exception("500 Server Error"),
+        ]
+        evaluator = LLMEvaluator(api_key="k")
+        agg = evaluator.evaluate_response(
+            student_id="s001",
+            question_sn=1,
+            question="Q?",
+            student_response="A.",
+            model_answer="MA.",
+            rubric_high="high",
+            rubric_mid="mid",
+            rubric_low="low",
+            concepts=["c1"],
+        )
+        assert len(evaluator.failed_calls) == 3
+
+        # Now retry succeeds
+        mock_prov.generate.side_effect = None
+        mock_prov.generate.return_value = VALID_YAML_RESPONSE
+        results_map = {("s001", 1): agg}
+        retried = evaluator.retry_failed_calls(results_map)
+        assert retried > 0
+        # After retry, failed_calls should be cleared for successes
+        assert len(evaluator.failed_calls) < 3
+
+    def test_retry_no_failures_returns_zero(self, mock_provider):
+        """retry_failed_calls() with no failures returns 0."""
+        _, mock_prov = mock_provider
+        mock_prov.generate.return_value = VALID_YAML_RESPONSE
+        evaluator = LLMEvaluator(api_key="k")
+        evaluator.evaluate_response(
+            student_id="s001",
+            question_sn=1,
+            question="Q?",
+            student_response="A.",
+            model_answer="MA.",
+            rubric_high="high",
+            rubric_mid="mid",
+            rubric_low="low",
+            concepts=["c1"],
+        )
+        assert len(evaluator.failed_calls) == 0
+        retried = evaluator.retry_failed_calls({})
+        assert retried == 0
