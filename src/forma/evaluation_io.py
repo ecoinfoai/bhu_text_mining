@@ -21,12 +21,45 @@ from forma.topic_analysis import load_yaml_data
 
 
 class FormaDumper(yaml.SafeDumper):
-    """Custom YAML dumper for consistent output formatting."""
-    pass
+    """Custom YAML dumper: unquoted keys, quoted string values, 2dp floats."""
+
+    # Instance flag toggled by represent_mapping to distinguish keys vs values.
+    _is_key: bool = False
+
+    def represent_mapping(
+        self, tag: str, mapping: Any, flow_style: Any = None,
+    ) -> yaml.MappingNode:
+        """Override to set _is_key flag so str representer can skip quoting keys."""
+        value: list = []
+        if self.default_flow_style is not None:
+            node = yaml.MappingNode(tag, value, flow_style=self.default_flow_style)
+        else:
+            node = yaml.MappingNode(tag, value, flow_style=flow_style)
+        if self.alias_key is not None:
+            self.represented_objects[self.alias_key] = node
+        best_style = True
+        if hasattr(mapping, "items"):
+            mapping = list(mapping.items())
+        for item_key, item_value in mapping:
+            self._is_key = True
+            node_key = self.represent_data(item_key)
+            self._is_key = False
+            node_value = self.represent_data(item_value)
+            if not (isinstance(node_key, yaml.ScalarNode) and not node_key.style):
+                best_style = False
+            if not (isinstance(node_value, yaml.ScalarNode) and not node_value.style):
+                best_style = False
+            value.append((node_key, node_value))
+        if self.default_flow_style is None:
+            if len(value) != 0 and best_style:
+                node.flow_style = True
+        return node
 
 
-def _represent_quoted_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
-    """Represent strings with double quotes (or literal block for multiline)."""
+def _represent_str(dumper: FormaDumper, data: str) -> yaml.ScalarNode:
+    """Keys: plain (no quotes). Values: double-quoted (multiline → literal block)."""
+    if dumper._is_key:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
     if "\n" in data:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
@@ -43,7 +76,7 @@ def _represent_rounded_float(
     return dumper.represent_float(rounded)
 
 
-FormaDumper.add_representer(str, _represent_quoted_str)
+FormaDumper.add_representer(str, _represent_str)
 FormaDumper.add_representer(float, _represent_rounded_float)
 
 

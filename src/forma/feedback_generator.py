@@ -20,9 +20,7 @@ from forma.prompt_templates import FEEDBACK_SYSTEM_INSTRUCTION, render_feedback_
 
 logger = logging.getLogger(__name__)
 
-MAX_FEEDBACK_CHARS: int = 2000
-
-# Tier-based length targets
+# Tier-based length targets (guidance for LLM prompt, not enforced in code)
 TIER_LENGTH_TARGETS: dict[int, int] = {
     3: 500,
     2: 1000,
@@ -53,34 +51,18 @@ def _format_edges(edges: list[TripletEdge]) -> str:
     return "\n".join(lines)
 
 
-def _truncate_at_sentence(text: str, max_chars: int) -> str:
-    """Truncate text at the last complete sentence within max_chars."""
-    if len(text) <= max_chars:
-        return text
-    truncated = text[:max_chars]
-    # Find last sentence-ending punctuation
-    for punct in (".", "。", "!", "?"):
-        last_idx = truncated.rfind(punct)
-        if last_idx > 0:
-            return truncated[: last_idx + 1]
-    return truncated
-
-
 class FeedbackGenerator:
     """Generate coaching feedback from quantitative evaluation data.
 
     Args:
         provider: LLM provider instance.
-        max_chars: Maximum feedback length in characters (default 2000).
     """
 
     def __init__(
         self,
         provider: LLMProvider,
-        max_chars: int = MAX_FEEDBACK_CHARS,
     ) -> None:
         self._provider = provider
-        self._max_chars = max_chars
 
     def generate(
         self,
@@ -141,7 +123,7 @@ class FeedbackGenerator:
         )
 
         # Length guidance by tier
-        target_len = TIER_LENGTH_TARGETS.get(tier_level, self._max_chars)
+        target_len = TIER_LENGTH_TARGETS.get(tier_level, 2000)
         length_guidance = f"이 학생은 Level {tier_level}이므로 약 {target_len}자로 작성"
 
         data_sources = ["concept_coverage", "tier_level"]
@@ -171,7 +153,7 @@ class FeedbackGenerator:
                 temperature=0.3,
                 system_instruction=FEEDBACK_SYSTEM_INSTRUCTION,
             )
-            feedback = _truncate_at_sentence(raw_feedback.strip(), self._max_chars)
+            feedback = raw_feedback.strip()
         except Exception as exc:
             logger.error("Feedback generation failed: %s", exc)
             feedback = f"피드백 생성에 실패했습니다: {exc}"

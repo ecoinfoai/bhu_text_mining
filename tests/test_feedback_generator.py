@@ -18,7 +18,6 @@ from forma.feedback_generator import (
     EMPTY_RESPONSE_FEEDBACK,
     FeedbackGenerator,
     _format_edges,
-    _truncate_at_sentence,
 )
 
 
@@ -66,24 +65,6 @@ class TestFormatEdges:
         assert "A" in result
         assert "causes" in result
         assert "B" in result
-
-
-class TestTruncateAtSentence:
-    """Tests for _truncate_at_sentence()."""
-
-    def test_short_text_unchanged(self):
-        assert _truncate_at_sentence("짧은 문장.", 100) == "짧은 문장."
-
-    def test_truncates_at_period(self):
-        text = "첫 문장. 두 번째 문장. 세 번째 긴 문장입니다."
-        result = _truncate_at_sentence(text, 20)
-        assert result.endswith(".")
-        assert len(result) <= 20
-
-    def test_no_period_truncates_at_max(self):
-        text = "마침표 없는 긴 텍스트" * 10
-        result = _truncate_at_sentence(text, 30)
-        assert len(result) <= 30
 
 
 # ---------------------------------------------------------------------------
@@ -136,14 +117,15 @@ class TestFeedbackGenerator:
         assert result.student_id == "s001"
         assert mock_provider.generate.call_count == 1
 
-    def test_feedback_within_char_limit(self, mock_provider):
-        """Feedback is truncated to max_chars."""
-        mock_provider.generate.return_value = "A" * 3000
-        gen = FeedbackGenerator(mock_provider, max_chars=100)
+    def test_feedback_preserves_full_output(self, mock_provider):
+        """Feedback is not truncated — full LLM output is preserved."""
+        long_text = "A" * 3000
+        mock_provider.generate.return_value = long_text
+        gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
             "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해"
         )
-        assert result.char_count <= 100
+        assert result.char_count == 3000
 
     def test_data_sources_with_graph(self, mock_provider):
         """Data sources include graph_f1 when graph_comparison present."""
