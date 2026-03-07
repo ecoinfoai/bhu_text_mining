@@ -807,7 +807,9 @@ def run_evaluation_pipeline(
     # === Phase 2: Statistical analysis (Rasch IRT) ===
     stat_results: Optional[dict] = None
     if not skip_statistical:
-        from forma.statistical_analysis import RaschAnalyzer, compute_concept_matrix
+        from forma.statistical_analysis import (
+            RaschAnalyzer, LCAAnalyzer, compute_concept_matrix,
+        )
         import numpy as np
 
         print("[pipeline] Phase 2: statistical analysis …")
@@ -835,13 +837,30 @@ def run_evaluation_pipeline(
                 ra = RaschAnalyzer(question_sn=qsn)
                 ra.fit(mat)
                 thetas, ses = ra.ability_estimates(mat)
+
+                # LCA (exploratory, graceful if stepmix unavailable)
+                lca_labels = None
+                lca_probs = None
+                try:
+                    max_k = max(2, min(4, mat.shape[0] // 10))
+                    lca = LCAAnalyzer(max_classes=max_k)
+                    lca_labels, lca_probs = lca.fit_predict(mat)
+                except Exception:
+                    pass
+
                 for i, sid in enumerate(sids):
-                    stat_results.setdefault(sid, {})[qsn] = StatisticalResult(
+                    sr = StatisticalResult(
                         student_id=sid,
                         question_sn=qsn,
                         rasch_theta=float(thetas[i]),
                         rasch_theta_se=float(ses[i]),
                     )
+                    if lca_labels is not None:
+                        sr.lca_class = int(lca_labels[i])
+                        sr.lca_class_probability = float(
+                            lca_probs[i, lca_labels[i]]
+                        )
+                    stat_results.setdefault(sid, {})[qsn] = sr
             except Exception as exc:
                 print(f"\n[pipeline]   Rasch failed for q{qsn}: {exc}")
         if stat_questions:
@@ -856,6 +875,31 @@ def run_evaluation_pipeline(
             student_responses, config_data, api_key,
             provider=provider, model=model,
         )
+
+    # --- Post-LLM: compute per-question ICC(2,1) across students ---
+    if llm_results:
+        from forma.llm_evaluator import compute_icc_2_1
+        import numpy as _np
+
+        # Group by question
+        q_calls: dict[int, list[list[int]]] = {}
+        q_aggs: dict[int, list[AggregatedLLMResult]] = {}
+        for sid, q_dict in llm_results.items():
+            for qsn, agg in q_dict.items():
+                scores = [c.rubric_score for c in agg.individual_calls]
+                q_calls.setdefault(qsn, []).append(scores)
+                q_aggs.setdefault(qsn, []).append(agg)
+        for qsn, all_scores in q_calls.items():
+            try:
+                ratings = _np.array(all_scores, dtype=float)
+                if ratings.shape[0] >= 2 and ratings.shape[1] >= 2:
+                    icc = compute_icc_2_1(ratings)
+                else:
+                    icc = 1.0
+                for agg in q_aggs[qsn]:
+                    agg.icc_value = icc
+            except Exception:
+                pass
 
     # === Phase 4: Ensemble scoring ===
     print("[pipeline] Phase 4: ensemble scoring …")

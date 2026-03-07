@@ -308,7 +308,7 @@ class LLMEvaluator:
         """
         content = self.provider.generate(
             prompt=prompt,
-            max_tokens=1024,
+            max_tokens=2048,
             temperature=self.temperature,
         )
 
@@ -421,6 +421,6 @@ class LLMEvaluator:
             reasoning=median_call.reasoning,
             misconceptions=all_misconceptions,
             uncertain=uncertain,
-            icc_value=None,
+            icc_value=None,  # computed per-question in pipeline
             individual_calls=calls,
         )
