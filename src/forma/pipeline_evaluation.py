@@ -412,8 +412,8 @@ def _build_counseling_summary(
             q_entry: dict = {
                 "question_sn": qsn,
                 "understanding_level": er.understanding_level,
-                "concept_coverage": er.component_scores.get(
-                    "concept_coverage", 0.0
+                "concept_coverage": round(
+                    er.component_scores.get("concept_coverage", 0.0), 2
                 ),
                 "support_guidance": support.get(level_key, ""),
                 "misconceptions": misconceptions,
@@ -451,13 +451,13 @@ def _build_technical_report(
         for qsn, er in sorted(q_results.items()):
             q_entry: dict = {
                 "question_sn": qsn,
-                "ensemble_score": round(er.ensemble_score, 4),
+                "ensemble_score": round(er.ensemble_score, 2),
                 "understanding_level": er.understanding_level,
                 "component_scores": {
-                    k: round(v, 4) for k, v in er.component_scores.items()
+                    k: round(v, 2) for k, v in er.component_scores.items()
                 },
                 "weights_used": {
-                    k: round(v, 4) for k, v in er.weights_used.items()
+                    k: round(v, 2) for k, v in er.weights_used.items()
                 },
             }
 
@@ -467,8 +467,8 @@ def _build_technical_report(
                 {
                     "concept": r.concept,
                     "is_present": r.is_present,
-                    "similarity": round(r.similarity_score, 4),
-                    "threshold": round(r.threshold_used, 4),
+                    "similarity": round(r.similarity_score, 2),
+                    "threshold": round(r.threshold_used, 2),
                 }
                 for r in l1
             ]
@@ -478,12 +478,12 @@ def _build_technical_report(
                 lr = (llm_results.get(student_id) or {}).get(qsn)
                 if lr:
                     q_entry["llm_evaluation"] = {
-                        "median_score": lr.median_rubric_score,
+                        "median_score": round(lr.median_rubric_score, 2),
                         "label": lr.rubric_label,
                         "reasoning": lr.reasoning,
                         "misconceptions": lr.misconceptions,
                         "uncertain": lr.uncertain,
-                        "icc_value": lr.icc_value,
+                        "icc_value": round(lr.icc_value, 2) if lr.icc_value is not None else None,
                     }
 
             # Layer 3 detail
@@ -491,10 +491,10 @@ def _build_technical_report(
                 sr = (stat_results.get(student_id) or {}).get(qsn)
                 if sr:
                     q_entry["statistical_analysis"] = {
-                        "rasch_theta": sr.rasch_theta,
-                        "rasch_theta_se": sr.rasch_theta_se,
+                        "rasch_theta": round(sr.rasch_theta, 2) if sr.rasch_theta is not None else None,
+                        "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
                         "lca_class": sr.lca_class,
-                        "lca_class_probability": sr.lca_class_probability,
+                        "lca_class_probability": round(sr.lca_class_probability, 2) if sr.lca_class_probability is not None else None,
                         "lca_exploratory_warning": sr.lca_exploratory_warning,
                     }
 
@@ -503,9 +503,9 @@ def _build_technical_report(
                 gcr = (graph_results.get(student_id) or {}).get(qsn)
                 if gcr:
                     q_entry["graph_comparison"] = {
-                        "precision": round(gcr.precision, 4),
-                        "recall": round(gcr.recall, 4),
-                        "f1": round(gcr.f1, 4),
+                        "precision": round(gcr.precision, 2),
+                        "recall": round(gcr.recall, 2),
+                        "f1": round(gcr.f1, 2),
                         "matched_count": len(gcr.matched_edges),
                         "missing_count": len(gcr.missing_edges),
                         "extra_count": len(gcr.extra_edges),
@@ -536,8 +536,8 @@ def _serialize_layer1(results: dict[str, dict[int, list]]) -> dict:
                     {
                         "concept": r.concept,
                         "is_present": r.is_present,
-                        "similarity": round(r.similarity_score, 4),
-                        "threshold": round(r.threshold_used, 4),
+                        "similarity": round(r.similarity_score, 2),
+                        "threshold": round(r.threshold_used, 2),
                     }
                     for r in concepts
                 ],
@@ -556,9 +556,9 @@ def _serialize_graph_comparison(
         for qsn, gcr in sorted(q_results.items()):
             entry["questions"].append({
                 "question_sn": qsn,
-                "precision": round(gcr.precision, 4),
-                "recall": round(gcr.recall, 4),
-                "f1": round(gcr.f1, 4),
+                "precision": round(gcr.precision, 2),
+                "recall": round(gcr.recall, 2),
+                "f1": round(gcr.f1, 2),
                 "matched_count": len(gcr.matched_edges),
                 "missing_count": len(gcr.missing_edges),
                 "extra_count": len(gcr.extra_edges),
@@ -597,12 +597,12 @@ def _serialize_layer2(results: dict[str, dict[int, AggregatedLLMResult]]) -> dic
         for qsn, agg in sorted(q_results.items()):
             entry["questions"].append({
                 "question_sn": qsn,
-                "median_score": agg.median_rubric_score,
+                "median_score": round(agg.median_rubric_score, 2),
                 "label": agg.rubric_label,
                 "reasoning": agg.reasoning,
                 "misconceptions": agg.misconceptions,
                 "uncertain": agg.uncertain,
-                "icc_value": agg.icc_value,
+                "icc_value": round(agg.icc_value, 2) if agg.icc_value is not None else None,
             })
         out["students"].append(entry)
     return out
@@ -616,10 +616,10 @@ def _serialize_layer3(results: dict[str, dict[int, StatisticalResult]]) -> dict:
         for qsn, sr in sorted(q_results.items()):
             entry["questions"].append({
                 "question_sn": qsn,
-                "rasch_theta": sr.rasch_theta,
-                "rasch_theta_se": sr.rasch_theta_se,
+                "rasch_theta": round(sr.rasch_theta, 2) if sr.rasch_theta is not None else None,
+                "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
                 "lca_class": sr.lca_class,
-                "lca_class_probability": sr.lca_class_probability,
+                "lca_class_probability": round(sr.lca_class_probability, 2) if sr.lca_class_probability is not None else None,
             })
         out["students"].append(entry)
     return out
@@ -633,10 +633,10 @@ def _serialize_ensemble(results: dict[str, dict[int, EnsembleResult]]) -> dict:
         for qsn, er in sorted(q_results.items()):
             entry["questions"].append({
                 "question_sn": qsn,
-                "ensemble_score": round(er.ensemble_score, 4),
+                "ensemble_score": round(er.ensemble_score, 2),
                 "understanding_level": er.understanding_level,
                 "component_scores": {
-                    k: round(v, 4) for k, v in er.component_scores.items()
+                    k: round(v, 2) for k, v in er.component_scores.items()
                 },
             })
         out["students"].append(entry)
@@ -857,8 +857,11 @@ def run_evaluation_pipeline(
                     max_k = max(2, min(4, mat.shape[0] // 10))
                     lca = LCAAnalyzer(max_classes=max_k)
                     lca_labels, lca_probs = lca.fit_predict(mat)
-                except Exception:
-                    pass
+                except Exception as lca_exc:
+                    print(
+                        f"\n[pipeline]   LCA skipped for q{qsn}: "
+                        f"{type(lca_exc).__name__}: {lca_exc}"
+                    )
 
                 for i, sid in enumerate(sids):
                     sr = StatisticalResult(

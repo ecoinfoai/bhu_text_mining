@@ -15,6 +15,38 @@ import yaml
 from forma.topic_analysis import load_yaml_data
 
 
+# ---------------------------------------------------------------------------
+# Custom YAML Dumper: quotes string values, rounds floats to 2dp
+# ---------------------------------------------------------------------------
+
+
+class FormaDumper(yaml.SafeDumper):
+    """Custom YAML dumper for consistent output formatting."""
+    pass
+
+
+def _represent_quoted_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
+    """Represent strings with double quotes (or literal block for multiline)."""
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+
+
+def _represent_rounded_float(
+    dumper: yaml.SafeDumper, data: float,
+) -> yaml.ScalarNode:
+    """Represent floats rounded to 2 decimal places."""
+    rounded = round(data, 2)
+    # Avoid -0.0
+    if rounded == 0.0:
+        rounded = 0.0
+    return dumper.represent_float(rounded)
+
+
+FormaDumper.add_representer(str, _represent_quoted_str)
+FormaDumper.add_representer(float, _represent_rounded_float)
+
+
 def load_evaluation_yaml(yaml_path: str) -> dict[str, Any]:
     """Load an evaluation YAML file with path validation.
 
@@ -80,7 +112,13 @@ def save_evaluation_yaml(
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            yaml.dump(data, fh, allow_unicode=True, default_flow_style=False)
+            yaml.dump(
+                data, fh,
+                Dumper=FormaDumper,
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=False,
+            )
         os.replace(tmp_path, output_path)
     except BaseException:
         try:

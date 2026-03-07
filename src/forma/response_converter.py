@@ -10,6 +10,8 @@ from pathlib import Path
 
 import yaml
 
+from forma.evaluation_io import FormaDumper
+
 
 def convert_join_to_responses(
     join_data: list[dict],
@@ -76,7 +78,7 @@ def convert_join_file(
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:
-        yaml.dump(result, f, allow_unicode=True, default_flow_style=False)
+        yaml.dump(result, f, Dumper=FormaDumper, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 
 def filter_exam_config(

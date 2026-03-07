@@ -8,6 +8,7 @@ import tempfile
 
 import yaml
 
+from forma.evaluation_io import FormaDumper
 from forma.evaluation_types import LongitudinalRecord
 
 
@@ -74,7 +75,7 @@ class LongitudinalStore:
         try:
             with os.fdopen(fd, "w") as f:
                 fcntl.flock(f, fcntl.LOCK_EX)
-                yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+                yaml.dump(data, f, Dumper=FormaDumper, default_flow_style=False, allow_unicode=True, sort_keys=False)
                 fcntl.flock(f, fcntl.LOCK_UN)
             if os.path.exists(self.store_path):
                 os.replace(self.store_path, self.store_path + ".bak")

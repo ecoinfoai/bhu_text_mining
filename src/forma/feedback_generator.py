@@ -16,7 +16,7 @@ from forma.evaluation_types import (
     TripletEdge,
 )
 from forma.llm_provider import LLMProvider
-from forma.prompt_templates import render_feedback_prompt
+from forma.prompt_templates import FEEDBACK_SYSTEM_INSTRUCTION, render_feedback_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,16 @@ TIER_LENGTH_TARGETS: dict[int, int] = {
     1: 1500,
     0: 2000,
 }
+
+# Token budgets: Korean ≈ 2-3 tokens/char, use 3x multiplier
+TIER_TOKEN_BUDGETS: dict[int, int] = {
+    3: 1536,
+    2: 3072,
+    1: 4096,
+    0: 6144,
+}
+
+_REQUIRED_SECTIONS = ["[평가 요약]", "[분석 결과]", "[학습 제안]"]
 
 EMPTY_RESPONSE_FEEDBACK: str = (
     "답변이 제출되지 않았습니다. "
@@ -158,14 +168,32 @@ class FeedbackGenerator:
             length_guidance=length_guidance,
         )
 
+        token_budget = TIER_TOKEN_BUDGETS.get(tier_level, 6144)
+
         try:
             raw_feedback = self._provider.generate(
-                prompt, max_tokens=2048, temperature=0.3
+                prompt,
+                max_tokens=token_budget,
+                temperature=0.3,
+                system_instruction=FEEDBACK_SYSTEM_INSTRUCTION,
             )
             feedback = _truncate_at_sentence(raw_feedback.strip(), self._max_chars)
         except Exception as exc:
             logger.error("Feedback generation failed: %s", exc)
             feedback = f"피드백 생성에 실패했습니다: {exc}"
+
+        # Validate format compliance
+        for section in _REQUIRED_SECTIONS:
+            if section not in feedback:
+                logger.warning(
+                    "Feedback for %s q%d missing section: %s",
+                    student_id, question_sn, section,
+                )
+        if feedback and feedback.rstrip()[-1:] not in ".。!?":
+            logger.warning(
+                "Feedback for %s q%d appears truncated (no ending punctuation)",
+                student_id, question_sn,
+            )
 
         return FeedbackResult(
             student_id=student_id,
