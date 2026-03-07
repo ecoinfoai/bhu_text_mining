@@ -306,11 +306,29 @@ class LLMEvaluator:
         Returns:
             LLMJudgeResult parsed from the API response.
         """
-        content = self.provider.generate(
-            prompt=prompt,
-            max_tokens=2048,
-            temperature=self.temperature,
-        )
+        try:
+            content = self.provider.generate(
+                prompt=prompt,
+                max_tokens=2048,
+                temperature=self.temperature,
+            )
+        except Exception as exc:
+            warnings.warn(
+                f"LLM API call failed (call {call_index}, "
+                f"{student_id} q{question_sn}): {exc}. "
+                f"Using fallback low-confidence result.",
+                stacklevel=2,
+            )
+            return LLMJudgeResult(
+                student_id=student_id,
+                question_sn=question_sn,
+                rubric_score=1,
+                rubric_label="low",
+                reasoning=f"[API error] {type(exc).__name__}: {str(exc)[:150]}",
+                misconceptions=[],
+                uncertain=True,
+                call_index=call_index,
+            )
 
         try:
             parsed = self._parse_yaml_response(content)

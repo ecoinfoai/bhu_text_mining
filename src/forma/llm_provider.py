@@ -28,8 +28,12 @@ def _is_retryable(exc: Exception) -> bool:
         return True
     if "rate" in exc_str and "limit" in exc_str:
         return True
+    # Server errors (500, 502, 503, 504) are transient
+    for code in ("500", "502", "503", "504"):
+        if code in exc_str:
+            return True
     type_name = type(exc).__name__.lower()
-    if any(kw in type_name for kw in ("connection", "timeout", "network")):
+    if any(kw in type_name for kw in ("connection", "timeout", "network", "server")):
         return True
     if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
         return True
