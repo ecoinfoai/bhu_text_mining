@@ -775,6 +775,18 @@ def run_evaluation_pipeline(
             )
 
     # === Phase 1: Layer 1 (concept checker + triplet extraction + graph comparison) ===
+    # Pre-load embedding model and kss so their startup messages
+    # don't interfere with progress bars.
+    print("[pipeline] Phase 1: loading models …", end="", flush=True)
+    from forma.embedding_cache import get_encoder, _suppress_noisy_output
+    get_encoder()  # warm up — suppresses LOAD REPORT
+    with _suppress_noisy_output():
+        try:
+            import kss as _kss  # noqa: F811
+            _kss.split_sentences("_")  # triggers kss backend detection message
+        except Exception:
+            pass
+    print(" done.")
     print("[pipeline] Phase 1: concept checking …")
     layer1_results = _run_layer1(student_responses, config_data)
 
@@ -792,19 +804,20 @@ def run_evaluation_pipeline(
             triplet_results, config_data, lecture_covered_concepts
         )
 
-    # === Phase 2: Layer 3 (Rasch IRT) ===
+    # === Phase 2: Statistical analysis (Rasch IRT) ===
     stat_results: Optional[dict] = None
     if not skip_statistical:
         from forma.statistical_analysis import RaschAnalyzer, compute_concept_matrix
         import numpy as np
 
+        print("[pipeline] Phase 2: statistical analysis …")
         stat_results = {}
         stat_questions = [q for q in questions if q.get("keywords")]
         for qi, q in enumerate(stat_questions, 1):
             qsn = q["sn"]
             concepts = q["keywords"]
             print(
-                f"\r[pipeline] Statistical: q{qsn} ({qi}/{len(stat_questions)}) …",
+                f"\r[pipeline]   Rasch IRT: q{qsn} ({qi}/{len(stat_questions)}) …",
                 end="", flush=True,
             )
             student_ids = list(student_responses.keys())
@@ -830,24 +843,24 @@ def run_evaluation_pipeline(
                         rasch_theta_se=float(ses[i]),
                     )
             except Exception as exc:
-                print(f"\n[pipeline] Rasch failed for q{qsn}: {exc}")
+                print(f"\n[pipeline]   Rasch failed for q{qsn}: {exc}")
         if stat_questions:
             print()
 
-    # === Phase 3: Layer 4 first pass (ensemble score + understanding level) ===
-    print("[pipeline] Phase 3: ensemble scoring …")
-    scorer = EnsembleScorer()
-    ensemble_results: dict[str, dict[int, EnsembleResult]] = {}
-
-    # v1 LLM evaluation for non-v2 questions
+    # === Phase 3: LLM rubric evaluation (3-call per student×question) ===
     llm_results: Optional[dict] = None
     has_v1 = any(not _is_v2_question(q) for q in questions)
     if has_v1 and not skip_feedback:
-        print(f"[pipeline] v1 LLM evaluation (3-call, {provider}) …")
+        print(f"[pipeline] Phase 3: LLM rubric evaluation ({provider}) …")
         llm_results = _run_layer2_v1(
             student_responses, config_data, api_key,
             provider=provider, model=model,
         )
+
+    # === Phase 4: Ensemble scoring ===
+    print("[pipeline] Phase 4: ensemble scoring …")
+    scorer = EnsembleScorer()
+    ensemble_results: dict[str, dict[int, EnsembleResult]] = {}
 
     ensemble_work = [
         (sid, qsn)
@@ -856,7 +869,7 @@ def run_evaluation_pipeline(
     ]
     for idx, (student_id, qsn) in enumerate(ensemble_work, 1):
         print(
-            f"\r[pipeline] Ensemble: {idx}/{len(ensemble_work)} "
+            f"\r[pipeline]   Ensemble: {idx}/{len(ensemble_work)} "
             f"({student_id}, q{qsn}) …",
             end="", flush=True,
         )
@@ -882,10 +895,10 @@ def run_evaluation_pipeline(
     if ensemble_work:
         print()
 
-    # === Phase 4: Layer 2 (feedback generation) ===
+    # === Phase 5: Feedback generation ===
     feedback_results: Optional[dict] = None
     if not skip_feedback:
-        print(f"[pipeline] Phase 4: feedback generation ({provider}) …")
+        print(f"[pipeline] Phase 5: feedback generation ({provider}) …")
         feedback_results = _run_feedback(
             student_responses, config_data, ensemble_results,
             graph_results, api_key,
@@ -893,8 +906,8 @@ def run_evaluation_pipeline(
             lecture_tone=lecture_tone,
         )
 
-    # === Phase 5: Output ===
-    print("[pipeline] Phase 5: writing results …")
+    # === Phase 6: Output ===
+    print("[pipeline] Phase 6: writing results …")
 
     # Layer 1
     l1_dir = os.path.join(output_dir, "res_lvl1")
