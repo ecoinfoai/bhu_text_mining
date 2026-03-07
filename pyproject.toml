@@ -1,6 +1,6 @@
 [project]
 name = "formative-analysis"
-version = "0.5.5"
+version = "0.6.0"
 description = "Formative assessment analysis tool for evaluating student understanding via knowledge graph matching"
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},
@@ -58,6 +58,7 @@ forma-exam = "forma.cli:main"
 forma-ocr = "forma.cli_ocr:main"
 forma-eval = "forma.pipeline_evaluation:main"
 forma-eval-batch = "forma.pipeline_batch_evaluation:main"
+forma-report = "forma.cli_report:main"
 
 [build-system]
 requires = ["hatchling"]
