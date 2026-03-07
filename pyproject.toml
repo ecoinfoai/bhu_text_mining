@@ -20,7 +20,7 @@ dependencies = [
     "mecab-python3>=1.0.10",
     "mecab-ko-dic>=1.0.0",
     "wordcloud>=1.9.4",
-    "scikit-learn>=1.6.1",
+    "scikit-learn>=1.4.0,<=1.5.0",
     "hdbscan>=0.8.40",
     "bertopic>=0.16.4",
     "umap-learn>=0.5.7",
@@ -35,7 +35,7 @@ dependencies = [
     "google-genai>=1.0.0",
     "scipy>=1.11.0",
     "girth>=0.8.0",
-    "stepmix>=2.2.0",
+    "stepmix>=2.2.3",
     "gspread>=6.0.0",
     "google-auth-oauthlib>=1.2.0",
 ]

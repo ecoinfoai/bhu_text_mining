@@ -30,13 +30,9 @@ TIER_LENGTH_TARGETS: dict[int, int] = {
     0: 2000,
 }
 
-# Token budgets: Korean ≈ 2-3 tokens/char, use 3x multiplier
-TIER_TOKEN_BUDGETS: dict[int, int] = {
-    3: 1536,
-    2: 3072,
-    1: 4096,
-    0: 6144,
-}
+# Token budget for feedback generation.
+# Korean ≈ 2.5-3 tokens/char; 2000 chars target ≈ 5000-6000 tokens.
+MAX_FEEDBACK_TOKENS: int = 6000
 
 _REQUIRED_SECTIONS = ["[평가 요약]", "[분석 결과]", "[학습 제안]"]
 
@@ -168,12 +164,10 @@ class FeedbackGenerator:
             length_guidance=length_guidance,
         )
 
-        token_budget = TIER_TOKEN_BUDGETS.get(tier_level, 6144)
-
         try:
             raw_feedback = self._provider.generate(
                 prompt,
-                max_tokens=token_budget,
+                max_tokens=MAX_FEEDBACK_TOKENS,
                 temperature=0.3,
                 system_instruction=FEEDBACK_SYSTEM_INSTRUCTION,
             )

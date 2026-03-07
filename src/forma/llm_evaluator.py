@@ -13,6 +13,7 @@ import os
 import re
 import statistics
 import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 import numpy as np
@@ -427,15 +428,29 @@ class LLMEvaluator:
         )
 
         calls: list[LLMJudgeResult] = []
-        for i in range(1, self.n_calls + 1):
-            result = self._single_call(
+        if self.n_calls == 1:
+            calls.append(self._single_call(
                 prompt=prompt,
                 student_id=student_id,
                 question_sn=question_sn,
-                call_index=i,
+                call_index=1,
                 system_instruction=RUBRIC_SYSTEM_INSTRUCTION,
-            )
-            calls.append(result)
+            ))
+        else:
+            with ThreadPoolExecutor(max_workers=self.n_calls) as executor:
+                futures = {
+                    executor.submit(
+                        self._single_call,
+                        prompt=prompt,
+                        student_id=student_id,
+                        question_sn=question_sn,
+                        call_index=i,
+                        system_instruction=RUBRIC_SYSTEM_INSTRUCTION,
+                    ): i
+                    for i in range(1, self.n_calls + 1)
+                }
+                for future in as_completed(futures):
+                    calls.append(future.result())
 
         scores = [c.rubric_score for c in calls]
         median_score = float(statistics.median(scores))
