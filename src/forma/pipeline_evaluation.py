@@ -137,23 +137,35 @@ def _run_layer1(
     results: dict[str, dict[int, list]] = {}
     questions = config_data.get("questions", [])
 
+    # Build work list for progress tracking
+    work: list[tuple[dict, str]] = []
     for q in questions:
-        qsn: int = q["sn"]
-        concepts: list[str] = q.get("keywords", [])
-        if not concepts:
+        if not q.get("keywords"):
             continue
-
         for student_id, responses in student_responses.items():
-            text = responses.get(qsn, "")
-            if not text:
-                continue
-            cr = check_all_concepts(
-                student_text=text,
-                student_id=student_id,
-                question_sn=qsn,
-                concepts=concepts,
-            )
-            results.setdefault(student_id, {})[qsn] = cr
+            if responses.get(q["sn"], ""):
+                work.append((q, student_id))
+
+    total = len(work)
+    for idx, (q, student_id) in enumerate(work, 1):
+        qsn = q["sn"]
+        concepts = q["keywords"]
+        text = student_responses[student_id][qsn]
+        print(
+            f"\r[pipeline] Concept check: {idx}/{total} "
+            f"({student_id}, q{qsn}) …",
+            end="", flush=True,
+        )
+        cr = check_all_concepts(
+            student_text=text,
+            student_id=student_id,
+            question_sn=qsn,
+            concepts=concepts,
+        )
+        results.setdefault(student_id, {})[qsn] = cr
+
+    if total:
+        print()  # newline after progress
 
     return results
 
@@ -786,11 +798,15 @@ def run_evaluation_pipeline(
         from forma.statistical_analysis import RaschAnalyzer, compute_concept_matrix
         import numpy as np
 
-        print("[pipeline] Phase 2: statistical analysis …")
         stat_results = {}
-        for q in questions:
+        stat_questions = [q for q in questions if q.get("keywords")]
+        for qi, q in enumerate(stat_questions, 1):
             qsn = q["sn"]
-            concepts = q.get("keywords", [])
+            concepts = q["keywords"]
+            print(
+                f"\r[pipeline] Statistical: q{qsn} ({qi}/{len(stat_questions)}) …",
+                end="", flush=True,
+            )
             student_ids = list(student_responses.keys())
             flat = [
                 r
@@ -814,7 +830,9 @@ def run_evaluation_pipeline(
                         rasch_theta_se=float(ses[i]),
                     )
             except Exception as exc:
-                print(f"[pipeline] Rasch failed for q{qsn}: {exc}")
+                print(f"\n[pipeline] Rasch failed for q{qsn}: {exc}")
+        if stat_questions:
+            print()
 
     # === Phase 3: Layer 4 first pass (ensemble score + understanding level) ===
     print("[pipeline] Phase 3: ensemble scoring …")
@@ -831,27 +849,38 @@ def run_evaluation_pipeline(
             provider=provider, model=model,
         )
 
-    for student_id, q_responses in student_responses.items():
-        for qsn in q_responses:
-            q_cfg = _load_question_config(config_data, qsn)
-            cr = (layer1_results.get(student_id) or {}).get(qsn, [])
-            llm = (llm_results.get(student_id) or {}).get(qsn) if llm_results else None
-            stat = (stat_results.get(student_id) or {}).get(qsn) if stat_results else None
-            gc = (graph_results.get(student_id) or {}).get(qsn) if graph_results else None
-            rubric_tiers = _get_rubric_tiers(q_cfg) if _is_v2_question(q_cfg) else None
+    ensemble_work = [
+        (sid, qsn)
+        for sid, q_responses in student_responses.items()
+        for qsn in q_responses
+    ]
+    for idx, (student_id, qsn) in enumerate(ensemble_work, 1):
+        print(
+            f"\r[pipeline] Ensemble: {idx}/{len(ensemble_work)} "
+            f"({student_id}, q{qsn}) …",
+            end="", flush=True,
+        )
+        q_cfg = _load_question_config(config_data, qsn)
+        cr = (layer1_results.get(student_id) or {}).get(qsn, [])
+        llm = (llm_results.get(student_id) or {}).get(qsn) if llm_results else None
+        stat = (stat_results.get(student_id) or {}).get(qsn) if stat_results else None
+        gc = (graph_results.get(student_id) or {}).get(qsn) if graph_results else None
+        rubric_tiers = _get_rubric_tiers(q_cfg) if _is_v2_question(q_cfg) else None
 
-            er = scorer.compute_score(
-                concept_results=cr,
-                llm_result=llm,
-                statistical_result=stat,
-                graph_result=None,
-                bertscore_f1=None,
-                student_id=student_id,
-                question_sn=qsn,
-                graph_comparison=gc,
-                rubric_tiers=rubric_tiers,
-            )
-            ensemble_results.setdefault(student_id, {})[qsn] = er
+        er = scorer.compute_score(
+            concept_results=cr,
+            llm_result=llm,
+            statistical_result=stat,
+            graph_result=None,
+            bertscore_f1=None,
+            student_id=student_id,
+            question_sn=qsn,
+            graph_comparison=gc,
+            rubric_tiers=rubric_tiers,
+        )
+        ensemble_results.setdefault(student_id, {})[qsn] = er
+    if ensemble_work:
+        print()
 
     # === Phase 4: Layer 2 (feedback generation) ===
     feedback_results: Optional[dict] = None
@@ -1070,8 +1099,15 @@ def main() -> None:
     2. ``forma-eval --config ... --responses ... --output ...``
        — traditional CLI flags (CLI flags override eval-config values).
     """
-    # Suppress noisy pecab overflow warnings
+    # Suppress noisy warnings from dependencies
     warnings.filterwarnings("ignore", message="overflow", category=RuntimeWarning)
+    # HuggingFace Hub: suppress "unauthenticated requests" warning
+    os.environ.setdefault("HF_HUB_DISABLE_IMPLICIT_TOKEN", "1")
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    # Suppress sentence-transformers / RobertaModel LOAD REPORT noise
+    import logging
+    logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+    logging.getLogger("transformers").setLevel(logging.WARNING)
 
     parser = argparse.ArgumentParser(
         description="Multi-layer concept evaluation pipeline (v2)"

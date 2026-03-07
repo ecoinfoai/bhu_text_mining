@@ -7,6 +7,9 @@ of how many modules call encode_texts().
 
 from __future__ import annotations
 
+import logging
+import os
+from contextlib import contextmanager
 from functools import lru_cache
 
 import numpy as np
@@ -15,13 +18,36 @@ from sentence_transformers import SentenceTransformer
 DEFAULT_MODEL: str = "jhgan/ko-sroberta-multitask"
 
 
+@contextmanager
+def _suppress_noisy_output():
+    """Suppress stdout/stderr at the file-descriptor level.
+
+    sentence-transformers and huggingface_hub print LOAD REPORT and
+    HF_TOKEN warnings via a mix of Python print(), logging, and
+    C-level writes.  Only fd-level redirection silences all of them.
+    """
+    old_out = os.dup(1)
+    old_err = os.dup(2)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull, 1)
+        os.dup2(devnull, 2)
+        yield
+    finally:
+        os.dup2(old_out, 1)
+        os.dup2(old_err, 2)
+        os.close(devnull)
+        os.close(old_out)
+        os.close(old_err)
+
+
 @lru_cache(maxsize=4)
 def get_encoder(model_name: str = DEFAULT_MODEL) -> SentenceTransformer:
     """Return a cached SentenceTransformer encoder.
 
     The first call for a given ``model_name`` loads the model from disk
     (or downloads it). Subsequent calls return the same object without
-    re-loading.
+    re-loading.  Noisy LOAD REPORT and HF_TOKEN warnings are suppressed.
 
     Args:
         model_name: HuggingFace model identifier or local path.
@@ -35,7 +61,14 @@ def get_encoder(model_name: str = DEFAULT_MODEL) -> SentenceTransformer:
         >>> enc is get_encoder()  # same instance
         True
     """
-    return SentenceTransformer(model_name)
+    os.environ.setdefault("HF_HUB_DISABLE_IMPLICIT_TOKEN", "1")
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    for name in ("sentence_transformers", "transformers", "huggingface_hub"):
+        logging.getLogger(name).setLevel(logging.ERROR)
+
+    with _suppress_noisy_output():
+        encoder = SentenceTransformer(model_name)
+    return encoder
 
 
 def encode_texts(
