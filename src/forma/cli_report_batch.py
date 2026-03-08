@@ -80,6 +80,10 @@ def create_parser() -> argparse.ArgumentParser:
         "--verbose", action="store_true", default=False,
         help="Verbose logging",
     )
+    parser.add_argument(
+        "--transcript-pattern", default=None, dest="transcript_pattern",
+        help="Transcript file pattern with {class} placeholder",
+    )
     return parser
 
 
@@ -158,6 +162,60 @@ def main(argv=None):
                 subject=subject,
                 exam_title=exam_title,
             )
+
+            # T044: per-class transcript processing (FR-019b, FR-020)
+            if args.transcript_pattern:
+                from forma.emphasis_map import compute_emphasis_map
+                from forma.lecture_gap_analysis import compute_lecture_gap
+
+                transcript_dir = args.transcript_pattern.replace("{class}", class_id)
+                if Path(transcript_dir).is_dir():
+                    transcript_lines: list[str] = []
+                    for fname in sorted(Path(transcript_dir).iterdir()):
+                        if fname.suffix == ".txt":
+                            try:
+                                transcript_lines.extend(fname.read_text(encoding="utf-8").splitlines())
+                            except OSError as exc:
+                                logger.warning("트랜스크립트 파일 읽기 실패: %s — %s", fname, exc)
+
+                    if transcript_lines:
+                        master_concepts: set[str] = set()
+                        for qstat in report_data.question_stats:
+                            master_concepts.update(qstat.concept_mastery_rates.keys())
+
+                        if master_concepts:
+                            concept_list = sorted(master_concepts)
+                            sentences = [ln for ln in transcript_lines if ln.strip()]
+                            try:
+                                emphasis_map = compute_emphasis_map(sentences, concept_list)
+                                report_data.emphasis_map = emphasis_map
+
+                                lecture_concepts: set[str] = {
+                                    c for c, score in emphasis_map.concept_scores.items()
+                                    if score > 0.0
+                                }
+                                student_missing_rates: dict[str, float] = {}
+                                for qstat in report_data.question_stats:
+                                    for concept, mastery_rate in qstat.concept_mastery_rates.items():
+                                        current = student_missing_rates.get(concept, 0.0)
+                                        student_missing_rates[concept] = max(current, 1.0 - mastery_rate)
+
+                                gap_report = compute_lecture_gap(
+                                    master_concepts,
+                                    lecture_concepts,
+                                    student_missing_rates=student_missing_rates,
+                                )
+                                report_data.lecture_gap_report = gap_report
+                                logger.info(
+                                    "분반 %s 강의 갭 분석: 커버리지 %.1f%%",
+                                    class_id, gap_report.coverage_ratio * 100,
+                                )
+                            except Exception as exc:
+                                logger.warning("분반 %s 강조도/갭 분석 실패: %s", class_id, exc)
+                else:
+                    logger.warning(
+                        "분반 %s 트랜스크립트 디렉토리 없음: %s", class_id, transcript_dir
+                    )
 
             # Generate professor PDF
             prof_gen = ProfessorPDFReportGenerator(

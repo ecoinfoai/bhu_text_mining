@@ -196,6 +196,8 @@ class ProfessorPDFReportGenerator:
         story.extend(self._build_at_risk_summary(report_data))
         for q in report_data.question_stats:
             story.extend(self._build_question_detail_page(q))
+        story.extend(self._build_lecture_gap_section(report_data))
+        story.extend(self._build_emphasis_comparison_section(report_data))
         story.extend(self._build_llm_analysis_page(report_data))
 
         doc = SimpleDocTemplate(
@@ -794,7 +796,7 @@ class ProfessorPDFReportGenerator:
             for i, row in enumerate(hub_data):
                 style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
                 para_hub_rows.append([
-                    Paragraph(str(cell), style) for cell in row
+                    Paragraph(_esc(str(cell)), style) for cell in row
                 ])
 
             hub_table = Table(para_hub_rows, colWidths=[200, 60, 70])
@@ -830,6 +832,207 @@ class ProfessorPDFReportGenerator:
                     text, freq = str(item), 0
                 entry = f"• {text} ({freq}명)"
                 story.append(Paragraph(_esc(entry), self._styles["ProfBody"]))
+
+        # ------------------------------------------------------------------
+        # Classified misconception table (from misconception_classifier)
+        # ------------------------------------------------------------------
+        classified = getattr(stats, "classified_misconceptions", [])
+        if classified:
+            story.append(Spacer(1, 8))
+            story.append(Paragraph(
+                _esc("오개념 패턴 분류"), self._styles["ProfSubsection"],
+            ))
+            cls_header = ["패턴", "설명", "신뢰도"]
+            cls_rows = [cls_header]
+            for cm in classified:
+                pattern_name = (
+                    cm.pattern.value if hasattr(cm.pattern, "value") else str(cm.pattern)
+                )
+                desc = getattr(cm, "description", "")
+                conf = getattr(cm, "confidence", 0.0)
+                cls_rows.append([pattern_name, desc, f"{conf:.0%}"])
+
+            para_cls_rows = []
+            for i, row in enumerate(cls_rows):
+                style = (
+                    self._styles["ProfTableHeader"] if i == 0
+                    else self._styles["ProfTableData"]
+                )
+                para_cls_rows.append([
+                    Paragraph(_esc(str(cell)), style) for cell in row
+                ])
+
+            cls_table = Table(para_cls_rows, colWidths=[80, 200, 50])
+            cls_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            story.append(cls_table)
+
+        return story
+
+    def _build_lecture_gap_section(self, report_data: ProfessorReportData) -> list:
+        """Build the lecture gap analysis section.
+
+        Renders coverage ratio, missed concepts, extra concepts, and
+        high_miss_overlap if a LectureGapReport is attached.
+
+        Args:
+            report_data: Complete professor report data.
+
+        Returns:
+            List of ReportLab flowables, empty if no gap report attached.
+        """
+        from reportlab.lib import colors as rl_colors
+        from reportlab.lib.colors import white
+
+        gap_report = getattr(report_data, "lecture_gap_report", None)
+        if gap_report is None:
+            return []
+
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("강의 갭 분석"), self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 4 * mm))
+
+        # Coverage summary
+        coverage_pct = gap_report.coverage_ratio * 100
+        summary = (
+            f"마스터 개념: {len(gap_report.master_concepts)}개 | "
+            f"강의 커버리지: {coverage_pct:.1f}% | "
+            f"누락 개념: {len(gap_report.missed_concepts)}개 | "
+            f"추가 개념: {len(gap_report.extra_concepts)}개"
+        )
+        story.append(Paragraph(_esc(summary), self._styles["ProfBody"]))
+        story.append(Spacer(1, 4 * mm))
+
+        # Missed concepts table
+        if gap_report.missed_concepts:
+            story.append(Paragraph(
+                _esc("누락된 마스터 개념"), self._styles["ProfSubsection"],
+            ))
+            missed_data = [["개념"]]
+            for concept in sorted(gap_report.missed_concepts):
+                missed_data.append([_esc(concept)])
+
+            para_missed = []
+            for i, row in enumerate(missed_data):
+                style = (
+                    self._styles["ProfTableHeader"] if i == 0
+                    else self._styles["ProfTableData"]
+                )
+                para_missed.append([Paragraph(_esc(str(cell)), style) for cell in row])
+
+            missed_table = Table(para_missed, colWidths=[200])
+            missed_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            story.append(missed_table)
+            story.append(Spacer(1, 4 * mm))
+
+        # High miss overlap
+        if gap_report.high_miss_overlap:
+            story.append(Paragraph(
+                _esc("학생 오답률 높은 누락 개념"), self._styles["ProfSubsection"],
+            ))
+            for concept in gap_report.high_miss_overlap:
+                story.append(Paragraph(
+                    _esc(f"• {concept}"), self._styles["ProfBody"],
+                ))
+            story.append(Spacer(1, 4 * mm))
+
+        return story
+
+    def _build_emphasis_comparison_section(self, report_data: ProfessorReportData) -> list:
+        """Build the cross-class emphasis comparison section (FR-021).
+
+        Renders a table of top-5 concepts with highest emphasis variance
+        across classes. Requires class_emphasis_maps with >= 2 classes.
+        Returns empty list when fewer than 2 classes are available.
+
+        Args:
+            report_data: Complete professor report data.
+
+        Returns:
+            List of ReportLab flowables, empty if section not applicable.
+        """
+        from forma.lecture_gap_analysis import compute_cross_class_emphasis_variance
+
+        class_maps = getattr(report_data, "class_emphasis_maps", None)
+        if not class_maps or len(class_maps) < 2:
+            return []
+
+        variance_map = compute_cross_class_emphasis_variance(class_maps, top_n=5)
+        if not variance_map:
+            return []
+
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("분반 간 강조도 비교"), self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 4 * mm))
+
+        summary_text = (
+            f"분반 수: {len(class_maps)}개 | "
+            f"편차 상위 개념: 최대 5개"
+        )
+        story.append(Paragraph(_esc(summary_text), self._styles["ProfBody"]))
+        story.append(Spacer(1, 4 * mm))
+
+        # Header: 개념 | 편차 | 분반별 점수...
+        class_names = sorted(class_maps.keys())
+        header = ["개념", "편차"] + class_names
+        table_data = [header]
+
+        for concept, stdev, per_class_scores in variance_map:
+            row: list[str] = [concept, f"{stdev:.3f}"]
+            for cls in class_names:
+                score = per_class_scores.get(cls, 0.0)
+                row.append(f"{score:.2f}")
+            table_data.append(row)
+
+        para_rows = []
+        for i, row in enumerate(table_data):
+            style = (
+                self._styles["ProfTableHeader"] if i == 0
+                else self._styles["ProfTableData"]
+            )
+            para_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
+
+        # Column widths: 개념(120) + 편차(50) + 분반별(50 each)
+        col_widths = [120, 50] + [50] * len(class_names)
+        comp_table = Table(para_rows, colWidths=col_widths)
+        table_style = [
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]
+        # Highlight rows with high stdev (top concepts get emphasis color)
+        for row_idx in range(1, len(table_data)):
+            table_style.append(
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), HexColor("#E3F2FD"))
+            )
+        comp_table.setStyle(TableStyle(table_style))
+        story.append(comp_table)
+        story.append(Spacer(1, 4 * mm))
 
         return story
 

@@ -240,6 +240,29 @@ class TestBuildParser:
         assert parser.description is not None
         assert len(parser.description.strip()) > 0
 
+    def test_build_parser_transcript_dir_optional(self):
+        """--transcript-dir is optional and defaults to None (FR-019a)."""
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--final", "final.yaml",
+            "--config", "config.yaml",
+            "--eval-dir", "eval/",
+            "--output-dir", "out/",
+        ])
+        assert args.transcript_dir is None
+
+    def test_build_parser_transcript_dir_accepts_string(self):
+        """--transcript-dir accepts a path string (FR-019a)."""
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--final", "final.yaml",
+            "--config", "config.yaml",
+            "--eval-dir", "eval/",
+            "--output-dir", "out/",
+            "--transcript-dir", "/some/transcript/dir",
+        ])
+        assert args.transcript_dir == "/some/transcript/dir"
+
 
 # ---------------------------------------------------------------------------
 # T045: main() tests
@@ -828,3 +851,198 @@ class TestMain:
             assert level_used != logging.DEBUG, (
                 f"Expected INFO (not DEBUG) level in logging.basicConfig: {calls}"
             )
+
+
+# ---------------------------------------------------------------------------
+# T045-transcript: --transcript-dir integration tests (FR-019a, SC-005)
+# ---------------------------------------------------------------------------
+
+
+class TestTranscriptDir:
+    """Tests for --transcript-dir argument integration (FR-019a)."""
+
+    def _run_main_with_mocks(self, monkeypatch, argv, mock_report_data=None):
+        """Helper: run main() with standard mocks, return report_data."""
+        if mock_report_data is None:
+            mock_report_data = _make_mock_professor_report_data()
+            mock_report_data.question_stats = []
+        monkeypatch.setattr("sys.argv", ["forma-report-professor", *argv])
+        mock_students = _make_mock_students(5)
+        mock_distributions = MagicMock()
+        mock_generator = MagicMock()
+        captured = {}
+
+        def capture_build(**kwargs):
+            return mock_report_data
+
+        with patch(
+            "forma.cli_report_professor.load_all_student_data",
+            return_value=(mock_students, mock_distributions),
+        ), patch(
+            "forma.cli_report_professor.build_professor_report_data",
+            side_effect=lambda *a, **kw: mock_report_data,
+        ), patch(
+            "forma.cli_report_professor.ProfessorPDFReportGenerator",
+            return_value=mock_generator,
+        ):
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        captured["report_data"] = mock_report_data
+        return captured
+
+    def test_no_transcript_dir_does_not_call_compute_emphasis_map(
+        self, tmp_path, monkeypatch
+    ):
+        """SC-005: Without --transcript-dir, compute_emphasis_map is not called (backward compat)."""
+        final_file = tmp_path / "final.yaml"
+        final_file.write_text("[]", encoding="utf-8")
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("questions: []", encoding="utf-8")
+        eval_dir = tmp_path / "eval"
+        eval_dir.mkdir()
+        out_dir = tmp_path / "out"
+        out_dir.mkdir()
+
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = []
+
+        argv = [
+            "--final", str(final_file),
+            "--config", str(config_file),
+            "--eval-dir", str(eval_dir),
+            "--output-dir", str(out_dir),
+            "--skip-llm",
+        ]
+
+        monkeypatch.setattr("sys.argv", ["forma-report-professor", *argv])
+        mock_students = _make_mock_students(5)
+
+        with patch(
+            "forma.cli_report_professor.load_all_student_data",
+            return_value=(mock_students, MagicMock()),
+        ), patch(
+            "forma.cli_report_professor.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_professor.ProfessorPDFReportGenerator",
+            return_value=MagicMock(),
+        ), patch(
+            "forma.emphasis_map.compute_emphasis_map",
+        ) as mock_cem:
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        # compute_emphasis_map must NOT be called without --transcript-dir
+        mock_cem.assert_not_called()
+
+    def test_transcript_dir_nonexistent_logs_warning(
+        self, tmp_path, monkeypatch, caplog
+    ):
+        """--transcript-dir pointing to non-existent dir logs a warning and continues."""
+        final_file = tmp_path / "final.yaml"
+        final_file.write_text("[]", encoding="utf-8")
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("questions: []", encoding="utf-8")
+        eval_dir = tmp_path / "eval"
+        eval_dir.mkdir()
+        out_dir = tmp_path / "out"
+        out_dir.mkdir()
+
+        nonexistent = str(tmp_path / "no_such_dir")
+        argv = [
+            "--final", str(final_file),
+            "--config", str(config_file),
+            "--eval-dir", str(eval_dir),
+            "--output-dir", str(out_dir),
+            "--skip-llm",
+            "--transcript-dir", nonexistent,
+        ]
+
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = []
+
+        with caplog.at_level(logging.WARNING, logger="forma.cli_report_professor"):
+            self._run_main_with_mocks(monkeypatch, argv, mock_report_data)
+
+        # Should have logged a warning about non-existent dir
+        assert any(
+            "트랜스크립트" in record.message and "존재하지" in record.message
+            for record in caplog.records
+        ), f"Expected transcript warning, got: {[r.message for r in caplog.records]}"
+
+    def test_transcript_dir_with_txt_files_calls_compute_emphasis_map(
+        self, tmp_path, monkeypatch
+    ):
+        """--transcript-dir with .txt files → compute_emphasis_map is called (FR-019a)."""
+        final_file = tmp_path / "final.yaml"
+        final_file.write_text("[]", encoding="utf-8")
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("questions: []", encoding="utf-8")
+        eval_dir = tmp_path / "eval"
+        eval_dir.mkdir()
+        out_dir = tmp_path / "out"
+        out_dir.mkdir()
+
+        transcript_dir = tmp_path / "transcripts"
+        transcript_dir.mkdir()
+        (transcript_dir / "lecture1.txt").write_text(
+            "심장은 혈액을 순환시키는 기관이다.\n펌프 기능이 핵심이다.",
+            encoding="utf-8",
+        )
+
+        # Set up question_stats with concept_mastery_rates
+        mock_qstat = MagicMock()
+        mock_qstat.concept_mastery_rates = {"심장": 0.8, "혈액순환": 0.6}
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = [mock_qstat]
+
+        argv = [
+            "--final", str(final_file),
+            "--config", str(config_file),
+            "--eval-dir", str(eval_dir),
+            "--output-dir", str(out_dir),
+            "--skip-llm",
+            "--transcript-dir", str(transcript_dir),
+        ]
+
+        mock_emphasis_map = MagicMock()
+        mock_emphasis_map.n_concepts = 2
+        mock_emphasis_map.n_sentences = 2
+        mock_emphasis_map.concept_scores = {"심장": 0.9, "혈액순환": 0.5}
+        mock_gap_report = MagicMock()
+
+        monkeypatch.setattr("sys.argv", ["forma-report-professor", *argv])
+        mock_students = _make_mock_students(5)
+        mock_distributions = MagicMock()
+        mock_generator = MagicMock()
+
+        with patch(
+            "forma.cli_report_professor.load_all_student_data",
+            return_value=(mock_students, mock_distributions),
+        ), patch(
+            "forma.cli_report_professor.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_professor.ProfessorPDFReportGenerator",
+            return_value=mock_generator,
+        ), patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis_map,
+        ) as mock_cem, patch(
+            "forma.lecture_gap_analysis.compute_lecture_gap",
+            return_value=mock_gap_report,
+        ) as mock_clg:
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        # compute_emphasis_map should have been called
+        mock_cem.assert_called_once()
+        # compute_lecture_gap should have been called
+        mock_clg.assert_called_once()

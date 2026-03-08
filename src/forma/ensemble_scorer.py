@@ -247,6 +247,7 @@ class EnsembleScorer:
         question_sn: int,
         graph_comparison: Optional[GraphComparisonResult] = None,
         rubric_tiers: Optional[list] = None,
+        emphasis_map: Optional["InstructionalEmphasisMap"] = None,
     ) -> EnsembleResult:
         """Compute the weighted ensemble score from all available layers.
 
@@ -264,6 +265,8 @@ class EnsembleScorer:
             question_sn: Question serial number for result stamping.
             graph_comparison: v2 directed triplet comparison (or None).
             rubric_tiers: Optional list of RubricTier for deterministic rubric.
+            emphasis_map: Optional InstructionalEmphasisMap for weighted
+                concept coverage. None preserves existing behavior.
 
         Returns:
             EnsembleResult with score, level, and component breakdown.
@@ -276,7 +279,15 @@ class EnsembleScorer:
         weights = self.weights
 
         # --- concept_coverage (always computed) ---
-        cc = self._concept_coverage_score(concept_results)
+        if emphasis_map is not None:
+            from forma.emphasis_map import compute_weighted_concept_coverage
+            mastery = {
+                r.concept: 1.0 if r.is_present else 0.0
+                for r in concept_results
+            }
+            cc = compute_weighted_concept_coverage(emphasis_map, mastery)
+        else:
+            cc = self._concept_coverage_score(concept_results)
         component_scores["concept_coverage"] = cc
         active_weights["concept_coverage"] = weights.get(
             "concept_coverage", 0.35 if not use_v2 else 0.25

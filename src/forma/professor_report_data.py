@@ -16,6 +16,8 @@ import numpy as np
 from reportlab.lib.colors import Color
 
 from forma.report_data_loader import ClassDistributions, StudentReportData
+from forma.emphasis_map import InstructionalEmphasisMap
+from forma.lecture_gap_analysis import LectureGapReport
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +72,7 @@ class QuestionClassStats:
     concept_mastery_rates: dict[str, float] = field(default_factory=dict)
     misconception_frequencies: list[tuple[str, int]] = field(default_factory=list)
     hub_gap_entries: list = field(default_factory=list)
+    classified_misconceptions: list = field(default_factory=list)
 
 
 @dataclass
@@ -158,6 +161,9 @@ class ProfessorReportData:
     llm_error_message: str = ""
     is_multi_class: bool = False
     section_names: list[str] = field(default_factory=list)
+    lecture_gap_report: LectureGapReport | None = None
+    emphasis_map: InstructionalEmphasisMap | None = None
+    class_emphasis_maps: dict[str, InstructionalEmphasisMap] | None = None
 
 
 # ---------------------------------------------------------------------------

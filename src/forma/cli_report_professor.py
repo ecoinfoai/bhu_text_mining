@@ -33,6 +33,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--font-path", default=None, dest="font_path", help="한글 폰트 파일 경로")
     parser.add_argument("--dpi", type=int, default=150, help="차트 DPI (기본값: 150)")
     parser.add_argument("--verbose", action="store_true", default=False, help="상세 로그 출력")
+    parser.add_argument("--transcript-dir", default=None, dest="transcript_dir",
+                        help="강의 녹취록 텍스트 파일 디렉토리 경로")
     return parser
 
 
@@ -77,6 +79,71 @@ def main() -> int | None:
         subject="과목",
         exam_title="형성평가",
     )
+
+    # T042: transcript loading + emphasis/gap computation (FR-019a)
+    if args.transcript_dir and os.path.isdir(args.transcript_dir):
+        from forma.emphasis_map import compute_emphasis_map
+        from forma.lecture_gap_analysis import compute_lecture_gap
+
+        # Load all .txt files from transcript_dir and concatenate
+        transcript_lines: list[str] = []
+        for fname in sorted(os.listdir(args.transcript_dir)):
+            if fname.endswith(".txt"):
+                fpath = os.path.join(args.transcript_dir, fname)
+                try:
+                    with open(fpath, encoding="utf-8") as fh:
+                        transcript_lines.extend(fh.read().splitlines())
+                except OSError as exc:
+                    _LOG.warning("트랜스크립트 파일 읽기 실패: %s — %s", fpath, exc)
+
+        if transcript_lines:
+            # Gather master concepts from all question concept mastery rates
+            master_concepts: set[str] = set()
+            for qstat in report_data.question_stats:
+                master_concepts.update(qstat.concept_mastery_rates.keys())
+
+            if master_concepts:
+                concept_list = sorted(master_concepts)
+                sentences = [ln for ln in transcript_lines if ln.strip()]
+                try:
+                    emphasis_map = compute_emphasis_map(sentences, concept_list)
+                    report_data.emphasis_map = emphasis_map
+                    _LOG.info(
+                        "강조도 맵 생성 완료: %d개 개념, %d개 문장",
+                        emphasis_map.n_concepts, emphasis_map.n_sentences,
+                    )
+
+                    # Lecture concepts = concepts with emphasis score > 0
+                    lecture_concepts: set[str] = {
+                        c for c, score in emphasis_map.concept_scores.items()
+                        if score > 0.0
+                    }
+
+                    # Student missing rates from concept_mastery_rates
+                    student_missing_rates: dict[str, float] = {}
+                    for qstat in report_data.question_stats:
+                        for concept, mastery_rate in qstat.concept_mastery_rates.items():
+                            # missing_rate = 1 - mastery_rate
+                            current = student_missing_rates.get(concept, 0.0)
+                            student_missing_rates[concept] = max(current, 1.0 - mastery_rate)
+
+                    gap_report = compute_lecture_gap(
+                        master_concepts,
+                        lecture_concepts,
+                        student_missing_rates=student_missing_rates,
+                    )
+                    report_data.lecture_gap_report = gap_report
+                    _LOG.info(
+                        "강의 갭 분석 완료: 커버리지 %.1f%%, 누락 %d개",
+                        gap_report.coverage_ratio * 100,
+                        len(gap_report.missed_concepts),
+                    )
+                except Exception as exc:
+                    _LOG.warning("강조도/갭 분석 실패 (계속 진행): %s", exc)
+        else:
+            _LOG.warning("트랜스크립트 디렉토리에 .txt 파일이 없습니다: %s", args.transcript_dir)
+    elif args.transcript_dir:
+        _LOG.warning("트랜스크립트 디렉토리가 존재하지 않습니다: %s", args.transcript_dir)
 
     # Conditional LLM analysis
     if not args.skip_llm:

@@ -374,6 +374,33 @@ class TestBatchCLIParser:
         parser = create_parser()
         assert isinstance(parser, argparse.ArgumentParser)
 
+    def test_parser_transcript_pattern_optional(self):
+        """--transcript-pattern is optional and defaults to None (FR-019b)."""
+        parser = create_parser()
+        args = parser.parse_args([
+            "--config", "config.yaml",
+            "--join-dir", "results/",
+            "--join-pattern", "anp_{class}_final.yaml",
+            "--eval-pattern", "eval_{class}",
+            "--output-dir", "out/",
+            "--classes", "A",
+        ])
+        assert args.transcript_pattern is None
+
+    def test_parser_transcript_pattern_accepts_string(self):
+        """--transcript-pattern accepts a path string with {class} placeholder (FR-019b)."""
+        parser = create_parser()
+        args = parser.parse_args([
+            "--config", "config.yaml",
+            "--join-dir", "results/",
+            "--join-pattern", "anp_{class}_final.yaml",
+            "--eval-pattern", "eval_{class}",
+            "--output-dir", "out/",
+            "--classes", "A",
+            "--transcript-pattern", "/transcripts/{class}",
+        ])
+        assert args.transcript_pattern == "/transcripts/{class}"
+
 
 # ---------------------------------------------------------------------------
 # TestBatchCLIRun: integration tests with mocking
@@ -662,3 +689,164 @@ class TestBatchCLIRun:
 
         # Called once per class (3 classes)
         assert mock_load.call_count == 3
+
+
+# ---------------------------------------------------------------------------
+# T046-transcript: --transcript-pattern integration tests (FR-019b, SC-005)
+# ---------------------------------------------------------------------------
+
+
+class TestTranscriptPattern:
+    """Tests for --transcript-pattern argument integration (FR-019b)."""
+
+    def _setup_single_class(self, tmp_path, class_id="A"):
+        """Create minimal filesystem for a single-class batch run."""
+        config = tmp_path / "exam.yaml"
+        config.write_text("questions: []", encoding="utf-8")
+        join_dir = tmp_path / "results"
+        join_dir.mkdir()
+        final_file = join_dir / f"anp_1{class_id}_final.yaml"
+        final_file.write_text("[]", encoding="utf-8")
+        eval_dir = join_dir / f"eval_1{class_id}"
+        eval_dir.mkdir()
+        output_dir = tmp_path / "out"
+        output_dir.mkdir()
+        return config, join_dir, output_dir
+
+    def test_no_transcript_pattern_no_emphasis_processing(
+        self, tmp_path, monkeypatch
+    ):
+        """SC-005: Without --transcript-pattern, no emphasis/gap processing occurs."""
+        config, join_dir, output_dir = self._setup_single_class(tmp_path)
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = []
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-batch",
+            "--config", str(config),
+            "--join-dir", str(join_dir),
+            "--join-pattern", "anp_1{class}_final.yaml",
+            "--eval-pattern", "eval_1{class}",
+            "--output-dir", str(output_dir),
+            "--classes", "A",
+            "--no-individual",
+        ])
+
+        with patch(
+            "forma.cli_report_batch.load_all_student_data",
+            return_value=(_make_mock_students(5), MagicMock()),
+        ), patch(
+            "forma.cli_report_batch.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_batch.ProfessorPDFReportGenerator",
+            return_value=MagicMock(),
+        ), patch(
+            "forma.emphasis_map.compute_emphasis_map",
+        ) as mock_cem:
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        # compute_emphasis_map must NOT be called without --transcript-pattern
+        mock_cem.assert_not_called()
+
+    def test_transcript_pattern_nonexistent_dir_logs_warning(
+        self, tmp_path, monkeypatch, caplog
+    ):
+        """--transcript-pattern resolving to non-existent dir logs warning and continues."""
+        config, join_dir, output_dir = self._setup_single_class(tmp_path)
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = []
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-batch",
+            "--config", str(config),
+            "--join-dir", str(join_dir),
+            "--join-pattern", "anp_1{class}_final.yaml",
+            "--eval-pattern", "eval_1{class}",
+            "--output-dir", str(output_dir),
+            "--classes", "A",
+            "--no-individual",
+            "--transcript-pattern", str(tmp_path / "no_such_{class}"),
+        ])
+
+        with caplog.at_level(logging.WARNING, logger="forma.cli_report_batch"), patch(
+            "forma.cli_report_batch.load_all_student_data",
+            return_value=(_make_mock_students(5), MagicMock()),
+        ), patch(
+            "forma.cli_report_batch.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_batch.ProfessorPDFReportGenerator",
+            return_value=MagicMock(),
+        ):
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        assert any(
+            "트랜스크립트" in record.message
+            for record in caplog.records
+        ), f"Expected transcript warning, got: {[r.message for r in caplog.records]}"
+
+    def test_transcript_pattern_class_substitution(
+        self, tmp_path, monkeypatch
+    ):
+        """--transcript-pattern with {class} → correct dir per class (FR-019b)."""
+        config, join_dir, output_dir = self._setup_single_class(tmp_path, "A")
+        # Create transcript directory for class A
+        transcript_dir_A = tmp_path / "transcripts_A"
+        transcript_dir_A.mkdir()
+        (transcript_dir_A / "lecture.txt").write_text(
+            "심장은 혈액을 순환시키는 기관이다.", encoding="utf-8"
+        )
+
+        mock_qstat = MagicMock()
+        mock_qstat.concept_mastery_rates = {"심장": 0.8}
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = [mock_qstat]
+
+        pattern = str(tmp_path / "transcripts_{class}")
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-batch",
+            "--config", str(config),
+            "--join-dir", str(join_dir),
+            "--join-pattern", "anp_1{class}_final.yaml",
+            "--eval-pattern", "eval_1{class}",
+            "--output-dir", str(output_dir),
+            "--classes", "A",
+            "--no-individual",
+            "--transcript-pattern", pattern,
+        ])
+
+        mock_emphasis = MagicMock()
+        mock_emphasis.concept_scores = {"심장": 0.9}
+        mock_gap = MagicMock()
+
+        with patch(
+            "forma.cli_report_batch.load_all_student_data",
+            return_value=(_make_mock_students(5), MagicMock()),
+        ), patch(
+            "forma.cli_report_batch.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_batch.ProfessorPDFReportGenerator",
+            return_value=MagicMock(),
+        ), patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis,
+        ) as mock_cem, patch(
+            "forma.lecture_gap_analysis.compute_lecture_gap",
+            return_value=mock_gap,
+        ) as mock_clg:
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        # compute_emphasis_map should have been called for class A
+        mock_cem.assert_called_once()
+        mock_clg.assert_called_once()

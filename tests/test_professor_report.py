@@ -2115,3 +2115,335 @@ class TestProfessorReportHubGapTable:
         assert "66.7%" in text_with or "33.3%" in text_with, (
             "Sanity check: non-empty hub_gap_entries should produce percentage text."
         )
+
+
+# ===========================================================================
+# TestClassifiedMisconceptionTable: classified misconception integration
+# ===========================================================================
+
+
+class TestClassifiedMisconceptionTable:
+    """Tests for classified misconception table in question detail page."""
+
+    @staticmethod
+    def _extract_all_text(story_elements):
+        """Extract all text from Paragraph and Table elements in the story."""
+        texts = []
+        for el in story_elements:
+            if hasattr(el, "text"):
+                texts.append(el.text)
+            # Also extract text from Table cells
+            if hasattr(el, "_cellvalues"):
+                for row in el._cellvalues:
+                    for cell in row:
+                        if hasattr(cell, "text"):
+                            texts.append(cell.text)
+        return " ".join(texts)
+
+    def test_classified_table_rendered_when_present(self, mock_font):
+        """Classified misconception table appears when classified_misconceptions is set."""
+        from forma.misconception_classifier import (
+            ClassifiedMisconception,
+            MisconceptionPattern,
+        )
+        from forma.evaluation_types import TripletEdge
+
+        gen = _make_generator_for_question_detail(mock_font)
+        stats = _make_question_class_stats()
+        stats.classified_misconceptions = [
+            ClassifiedMisconception(
+                pattern=MisconceptionPattern.CAUSAL_REVERSAL,
+                master_edge=TripletEdge("B", "causes", "A"),
+                student_edge=TripletEdge("A", "causes", "B"),
+                concept=None,
+                confidence=0.85,
+                description="인과 방향 역전: A→causes→B",
+            ),
+        ]
+        mock_chart_gen = _make_mock_chart_gen_for_detail()
+        result = gen._build_question_detail_page(stats, mock_chart_gen)
+        text = self._extract_all_text(result)
+        assert "오개념 패턴 분류" in text
+        assert "CAUSAL_REVERSAL" in text
+
+    def test_classified_table_absent_when_empty(self, mock_font):
+        """Classified misconception table is absent when classified_misconceptions is empty."""
+        gen = _make_generator_for_question_detail(mock_font)
+        stats = _make_question_class_stats()
+        stats.classified_misconceptions = []
+        mock_chart_gen = _make_mock_chart_gen_for_detail()
+        result = gen._build_question_detail_page(stats, mock_chart_gen)
+        text = self._extract_all_text(result)
+        assert "오개념 패턴 분류" not in text
+
+    def test_classified_table_shows_all_patterns(self, mock_font):
+        """Table shows multiple pattern types when present."""
+        from forma.misconception_classifier import (
+            ClassifiedMisconception,
+            MisconceptionPattern,
+        )
+
+        gen = _make_generator_for_question_detail(mock_font)
+        stats = _make_question_class_stats()
+        stats.classified_misconceptions = [
+            ClassifiedMisconception(
+                pattern=MisconceptionPattern.CAUSAL_REVERSAL,
+                master_edge=None, student_edge=None, concept=None,
+                confidence=0.85, description="Reversed",
+            ),
+            ClassifiedMisconception(
+                pattern=MisconceptionPattern.INCLUSION_ERROR,
+                master_edge=None, student_edge=None, concept=None,
+                confidence=0.9, description="Inclusion error",
+            ),
+            ClassifiedMisconception(
+                pattern=MisconceptionPattern.CONCEPT_ABSENCE,
+                master_edge=None, student_edge=None, concept="항상성",
+                confidence=0.75, description="Missing: 항상성",
+            ),
+        ]
+        mock_chart_gen = _make_mock_chart_gen_for_detail()
+        result = gen._build_question_detail_page(stats, mock_chart_gen)
+        text = self._extract_all_text(result)
+        assert "CAUSAL_REVERSAL" in text
+        assert "INCLUSION_ERROR" in text
+        assert "CONCEPT_ABSENCE" in text
+
+    def test_classified_confidence_displayed(self, mock_font):
+        """Confidence percentage is shown in the classified table."""
+        from forma.misconception_classifier import (
+            ClassifiedMisconception,
+            MisconceptionPattern,
+        )
+
+        gen = _make_generator_for_question_detail(mock_font)
+        stats = _make_question_class_stats()
+        stats.classified_misconceptions = [
+            ClassifiedMisconception(
+                pattern=MisconceptionPattern.CAUSAL_REVERSAL,
+                master_edge=None, student_edge=None, concept=None,
+                confidence=0.85, description="Test",
+            ),
+        ]
+        mock_chart_gen = _make_mock_chart_gen_for_detail()
+        result = gen._build_question_detail_page(stats, mock_chart_gen)
+        text = self._extract_all_text(result)
+        assert "85%" in text
+
+
+# ===========================================================================
+# TestLectureGapSection: lecture gap PDF section
+# ===========================================================================
+
+
+class TestLectureGapSection:
+    """Tests for lecture gap section in professor PDF report."""
+
+    @staticmethod
+    def _extract_all_text(story_elements):
+        """Extract all text from Paragraph and Table elements in the story."""
+        texts = []
+        for el in story_elements:
+            if hasattr(el, "text"):
+                texts.append(el.text)
+            if hasattr(el, "_cellvalues"):
+                for row in el._cellvalues:
+                    for cell in row:
+                        if hasattr(cell, "text"):
+                            texts.append(cell.text)
+        return " ".join(texts)
+
+    def test_gap_section_rendered_when_present(self, mock_font, report_data):
+        """Lecture gap section appears when lecture_gap_report is set."""
+        from forma.lecture_gap_analysis import LectureGapReport
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.lecture_gap_report = LectureGapReport(
+            master_concepts={"A", "B", "C"},
+            covered_concepts={"A"},
+            missed_concepts={"B", "C"},
+            extra_concepts={"D"},
+            coverage_ratio=1 / 3,
+            high_miss_overlap=["B"],
+        )
+        result = gen._build_lecture_gap_section(report_data)
+        text = self._extract_all_text(result)
+        assert "강의 갭 분석" in text
+        assert "33.3%" in text
+        assert "누락된 마스터 개념" in text
+
+    def test_gap_section_absent_when_none(self, mock_font, report_data):
+        """Lecture gap section is absent when lecture_gap_report is None."""
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.lecture_gap_report = None
+        result = gen._build_lecture_gap_section(report_data)
+        assert result == []
+
+    def test_high_miss_overlap_shown(self, mock_font, report_data):
+        """High miss overlap concepts are listed."""
+        from forma.lecture_gap_analysis import LectureGapReport
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.lecture_gap_report = LectureGapReport(
+            master_concepts={"A", "B", "C"},
+            covered_concepts={"A"},
+            missed_concepts={"B", "C"},
+            extra_concepts=set(),
+            coverage_ratio=1 / 3,
+            high_miss_overlap=["B", "C"],
+        )
+        result = gen._build_lecture_gap_section(report_data)
+        text = self._extract_all_text(result)
+        assert "학생 오답률 높은 누락 개념" in text
+        assert "B" in text
+        assert "C" in text
+
+    def test_gap_section_no_missed_concepts(self, mock_font, report_data):
+        """No missed concepts → no missed table."""
+        from forma.lecture_gap_analysis import LectureGapReport
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.lecture_gap_report = LectureGapReport(
+            master_concepts={"A", "B"},
+            covered_concepts={"A", "B"},
+            missed_concepts=set(),
+            extra_concepts=set(),
+            coverage_ratio=1.0,
+            high_miss_overlap=[],
+        )
+        result = gen._build_lecture_gap_section(report_data)
+        text = self._extract_all_text(result)
+        assert "100.0%" in text
+        assert "누락된 마스터 개념" not in text
+
+
+# ---------------------------------------------------------------------------
+# T038: _build_emphasis_comparison_section() — FR-021 PDF rendering
+# ---------------------------------------------------------------------------
+
+
+class TestEmphasisComparisonSection:
+    """Tests for cross-class emphasis comparison section in professor PDF report."""
+
+    @staticmethod
+    def _extract_all_text(story_elements):
+        """Extract all text from Paragraph and Table elements in the story."""
+        texts = []
+        for el in story_elements:
+            if hasattr(el, "text"):
+                texts.append(el.text)
+            if hasattr(el, "_cellvalues"):
+                for row in el._cellvalues:
+                    for cell in row:
+                        if hasattr(cell, "text"):
+                            texts.append(cell.text)
+        return " ".join(texts)
+
+    def test_section_rendered_with_two_classes(self, mock_font, report_data):
+        """Section renders when class_emphasis_maps has >= 2 classes."""
+        from forma.emphasis_map import InstructionalEmphasisMap
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.class_emphasis_maps = {
+            "1A": InstructionalEmphasisMap(
+                concept_scores={"A": 0.9, "B": 0.5},
+                threshold_used=0.65, n_sentences=10, n_concepts=2,
+            ),
+            "1B": InstructionalEmphasisMap(
+                concept_scores={"A": 0.7, "B": 0.8},
+                threshold_used=0.65, n_sentences=10, n_concepts=2,
+            ),
+        }
+        result = gen._build_emphasis_comparison_section(report_data)
+        assert len(result) > 0
+        text = self._extract_all_text(result)
+        assert "분반 간 강조도 비교" in text
+        assert "분반 수: 2개" in text
+
+    def test_section_empty_without_class_maps(self, mock_font, report_data):
+        """Section returns empty list when class_emphasis_maps is None."""
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.class_emphasis_maps = None
+        result = gen._build_emphasis_comparison_section(report_data)
+        assert result == []
+
+    def test_section_empty_with_single_class(self, mock_font, report_data):
+        """Section returns empty list when < 2 classes."""
+        from forma.emphasis_map import InstructionalEmphasisMap
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.class_emphasis_maps = {
+            "1A": InstructionalEmphasisMap(
+                concept_scores={"A": 0.9, "B": 0.5},
+                threshold_used=0.65, n_sentences=10, n_concepts=2,
+            ),
+        }
+        result = gen._build_emphasis_comparison_section(report_data)
+        assert result == []
+
+    def test_table_contains_concept_and_stdev(self, mock_font, report_data):
+        """Table includes concept names and stdev values."""
+        from forma.emphasis_map import InstructionalEmphasisMap
+        import numpy as np
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.class_emphasis_maps = {
+            "1A": InstructionalEmphasisMap(
+                concept_scores={"항상성": 0.9, "세포": 0.3},
+                threshold_used=0.65, n_sentences=10, n_concepts=2,
+            ),
+            "1B": InstructionalEmphasisMap(
+                concept_scores={"항상성": 0.5, "세포": 0.3},
+                threshold_used=0.65, n_sentences=10, n_concepts=2,
+            ),
+        }
+        result = gen._build_emphasis_comparison_section(report_data)
+        text = self._extract_all_text(result)
+        # Concept name appears
+        assert "항상성" in text
+        # Stdev of [0.9, 0.5] = 0.200
+        expected_stdev = f"{float(np.std([0.9, 0.5])):.3f}"
+        assert expected_stdev in text
+
+    def test_table_contains_per_class_scores(self, mock_font, report_data):
+        """Table includes per-class score columns."""
+        from forma.emphasis_map import InstructionalEmphasisMap
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.class_emphasis_maps = {
+            "1A": InstructionalEmphasisMap(
+                concept_scores={"A": 0.90},
+                threshold_used=0.65, n_sentences=10, n_concepts=1,
+            ),
+            "1B": InstructionalEmphasisMap(
+                concept_scores={"A": 0.70},
+                threshold_used=0.65, n_sentences=10, n_concepts=1,
+            ),
+        }
+        result = gen._build_emphasis_comparison_section(report_data)
+        text = self._extract_all_text(result)
+        # Per-class score columns: 1A and 1B headers
+        assert "1A" in text
+        assert "1B" in text
+        # Per-class scores formatted as f"{score:.2f}"
+        assert "0.90" in text
+        assert "0.70" in text
+
+    def test_section_escapes_special_characters(self, mock_font, report_data):
+        """Special characters in concept names are XML-escaped."""
+        from forma.emphasis_map import InstructionalEmphasisMap
+
+        gen = _make_generator_for_question_detail(mock_font)
+        report_data.class_emphasis_maps = {
+            "1A": InstructionalEmphasisMap(
+                concept_scores={"A<B>C&D": 0.9},
+                threshold_used=0.65, n_sentences=10, n_concepts=1,
+            ),
+            "1B": InstructionalEmphasisMap(
+                concept_scores={"A<B>C&D": 0.5},
+                threshold_used=0.65, n_sentences=10, n_concepts=1,
+            ),
+        }
+        # Should not raise XML parsing error
+        result = gen._build_emphasis_comparison_section(report_data)
+        assert len(result) > 0
