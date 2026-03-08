@@ -388,3 +388,117 @@ $lecture_text
 def render_lecture_triplet_prompt(lecture_text: str) -> str:
     """Render the lecture triplet extraction prompt."""
     return LECTURE_TRIPLET_EXTRACTION_TEMPLATE.substitute(lecture_text=lecture_text)
+
+
+# ---------------------------------------------------------------------------
+# Professor Report — LLM Analysis Templates
+# ---------------------------------------------------------------------------
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from forma.professor_report_data import ProfessorReportData
+
+PROFESSOR_ANALYSIS_SYSTEM_INSTRUCTION = """\
+당신은 대학 강의 분석 전문가입니다.
+교수자를 위한 수업 개선 분석 보고서를 작성합니다.
+학생 개인 정보(이름, 학번 등)는 절대 포함하지 마세요.
+마크다운 헤더(#, ##, ###)를 사용하지 마세요.
+분석은 한국어로 작성하세요.
+"""
+
+PROFESSOR_OVERALL_ASSESSMENT_TEMPLATE = Template("""\
+다음 분반 수업 데이터를 분석하여 전반적인 수업 평가를 작성하세요.
+
+<class_data>
+$class_stats_xml
+</class_data>
+
+위 데이터를 바탕으로:
+1. 학생들의 전반적인 학업 성취 수준을 평가하세요
+2. 두드러진 강점과 개선이 필요한 영역을 파악하세요
+3. 수업 전반에 대한 종합 의견을 제시하세요
+
+분석 결과를 명확하고 실용적인 한국어로 작성하세요.
+""")
+
+PROFESSOR_TEACHING_SUGGESTIONS_TEMPLATE = Template("""\
+다음 분반 수업 데이터를 분석하여 교수법 개선 제안을 작성하세요.
+
+<class_data>
+$class_stats_xml
+</class_data>
+
+위 데이터를 바탕으로:
+1. 학습 효과를 높이기 위한 구체적인 교수법을 제안하세요
+2. 위험 학생 지원 방안을 제시하세요
+3. 다음 수업을 위한 실질적인 개선 방향을 제안하세요
+
+제안은 구체적이고 실행 가능한 한국어로 작성하세요.
+""")
+
+
+def _build_class_stats_xml(report_data: "ProfessorReportData") -> str:
+    """Build XML summary of class statistics for LLM prompt.
+
+    Includes only aggregate statistics — no individual student PII.
+    """
+    lines = [
+        f"<class_name>{report_data.class_name}</class_name>",
+        f"<subject>{report_data.subject}</subject>",
+        f"<n_students>{report_data.n_students}</n_students>",
+        f"<n_at_risk>{report_data.n_at_risk}</n_at_risk>",
+        f"<class_ensemble_mean>{report_data.class_ensemble_mean:.3f}</class_ensemble_mean>",
+        f"<class_ensemble_std>{report_data.class_ensemble_std:.3f}</class_ensemble_std>",
+    ]
+
+    # Level distribution
+    if report_data.overall_level_distribution:
+        lines.append("<level_distribution>")
+        for level, count in report_data.overall_level_distribution.items():
+            lines.append(f"  <level name='{level}'>{count}</level>")
+        lines.append("</level_distribution>")
+
+    # Per-question stats
+    if report_data.question_stats:
+        lines.append("<questions>")
+        for qs in report_data.question_stats:
+            lines.append(f"  <question sn='{qs.question_sn}'>")
+            lines.append(f"    <ensemble_mean>{qs.ensemble_mean:.3f}</ensemble_mean>")
+            lines.append(f"    <ensemble_std>{qs.ensemble_std:.3f}</ensemble_std>")
+            if qs.misconception_frequencies:
+                lines.append("    <top_misconceptions>")
+                for text, freq in sorted(qs.misconception_frequencies, key=lambda x: x[1], reverse=True)[:3]:
+                    lines.append(f"      <misconception freq='{freq}'>{text}</misconception>")
+                lines.append("    </top_misconceptions>")
+            lines.append("  </question>")
+        lines.append("</questions>")
+
+    return "\n".join(lines)
+
+
+def render_professor_overall_assessment_prompt(report_data: "ProfessorReportData") -> str:
+    """Render the overall assessment prompt for professor report LLM analysis.
+
+    Uses class-level aggregate statistics only. No student PII.
+
+    Returns:
+        Formatted prompt string for LLM overall assessment.
+    """
+    class_stats_xml = _build_class_stats_xml(report_data)
+    return PROFESSOR_OVERALL_ASSESSMENT_TEMPLATE.substitute(
+        class_stats_xml=class_stats_xml,
+    )
+
+
+def render_professor_teaching_suggestions_prompt(report_data: "ProfessorReportData") -> str:
+    """Render the teaching suggestions prompt for professor report LLM analysis.
+
+    Uses class-level aggregate statistics only. No student PII.
+
+    Returns:
+        Formatted prompt string for LLM teaching suggestions.
+    """
+    class_stats_xml = _build_class_stats_xml(report_data)
+    return PROFESSOR_TEACHING_SUGGESTIONS_TEMPLATE.substitute(
+        class_stats_xml=class_stats_xml,
+    )

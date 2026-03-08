@@ -1,0 +1,10 @@
+task_id: T001
+status: completed
+files_modified: [pyproject.toml]
+files_created: []
+test_result:
+  command: "N/A - configuration change only"
+  passed: 0
+  failed: 0
+notes: "Added forma-report-professor = \"forma.cli_report_professor:main\" entry to [project.scripts] in pyproject.toml"
+completed_at: "2026-03-08T00:00:00Z"

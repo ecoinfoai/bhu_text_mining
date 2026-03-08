@@ -1,0 +1,19 @@
+task_id: T003
+status: completed
+files_modified: [tests/test_professor_report_data.py]
+files_created: []
+test_result:
+  command: "N/A - tests written in RED phase (will fail until implementation)"
+  passed: 0
+  failed: 0
+notes: >
+  Written tests for build_professor_report_data() covering: class statistics computation
+  (mean, std, median, q1, q3), overall level distribution (4-key dict, sum=n_students,
+  correct counts), student row construction (all students present, sorted descending,
+  per_question_scores/levels/coverages populated), overall_level mode with tie-break-to-lower
+  logic, z-score computation (correct formula and zero-variance=0.0 edge case), and all 6
+  at-risk criteria (low score, all Beginning, zero coverage, misconceptions threshold,
+  low average coverage). 27 test functions across 5 test classes. All tests fail with
+  ModuleNotFoundError: No module named 'forma.professor_report_data' confirming RED phase.
+  Total tests in file: 42 (T002: 15, T003: 27).
+completed_at: "2026-03-08T00:00:00Z"

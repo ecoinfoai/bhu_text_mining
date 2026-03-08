@@ -1,0 +1,61 @@
+directive:
+  metadata:
+    id: "DIR-20260308-T001"
+    from: "orchestrator"
+    to: "tester"
+    created: "2026-03-08"
+    priority: "HIGH"
+    phase: "Phase 4 — US2 Gate 1"
+
+  task:
+    id: "GATE1-US2"
+    type: "validate"
+    title: "Gate 1: Validate US2 — Student Comparison Table"
+    gate_question: "Does it work?"
+
+    preparation_now: |
+      Prepare test scenarios and evaluation criteria for US2 before Developer submits.
+      Read:
+        - specs/001-professor-report/spec.md (FR-004, FR-005)
+        - specs/001-professor-report/data-model.md (StudentSummaryRow)
+        - src/forma/professor_report_data.py (existing code)
+        - src/forma/professor_report.py (existing code, _build_comparison_table stub)
+
+    scenarios_to_prepare:
+      conditional_formatting:
+        - "score = mean + 0.6*std → '+' and green"
+        - "score = mean - 0.6*std → '-' and red"
+        - "score = mean (std > 0) → '' and white"
+        - "std = 0 → always '' regardless of score (zero-variance guard)"
+        - "score exactly at mean + 0.5*std → '+' (boundary: threshold is >=)"
+        - "score exactly at mean - 0.5*std → '-' (boundary: threshold is <=)"
+
+      comparison_table:
+        - "Table has n_students data rows"
+        - "Rows sorted by overall_ensemble_mean descending"
+        - "Level labels are Korean: 상/중상/중하/하"
+        - "Image flowable present after table (lollipop chart)"
+        - "2-col layout for 4+ questions (not 3-col)"
+        - "3-col layout for ≤3 questions"
+
+      augmentation_to_add_if_missing:
+        - "Boundary condition: score exactly at ±0.5 SD"
+        - "Empty student_rows: _build_comparison_table must not crash"
+        - "Single student: comparison table works"
+        - "NaN in scores: compute_conditional_indicator must not crash"
+
+    evaluation_steps:
+      1: "After Developer writes submission.yaml: run pytest tests/test_professor_report_data.py tests/test_professor_report.py -v"
+      2: "Check coverage for new functions"
+      3: "Verify all scenario cases above are covered"
+      4: "Add augmented tests if gaps found"
+      5: "Write gate1-verdict.yaml"
+
+  expected_output:
+    verdict_file: ".agent-comm/tester/gate1-verdict.yaml"
+    pass_criteria:
+      - "All tests pass (0 failures)"
+      - "Boundary conditions tested (±0.5 SD)"
+      - "Zero-variance guard tested"
+      - "Korean labels verified"
+      - "Student sort order verified"

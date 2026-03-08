@@ -1,0 +1,21 @@
+task_id: T033
+status: completed
+notes: "Fallback functions with f-strings, no string.Template"
+implementation:
+  file: src/forma/professor_report_llm.py
+  functions:
+    - _build_fallback_overall
+    - _build_fallback_suggestions
+  description: >
+    Both fallback functions use pure f-strings (no string.Template).
+    _build_fallback_overall uses class_ensemble_mean (:.2f), n_students, and
+    n_at_risk fields from ProfessorReportData.
+    _build_fallback_suggestions uses n_at_risk, n_students, and computes
+    percentage as pct = (n_at_risk / n * 100) if n > 0 else 0.0, formatted
+    with :.1f. Compliant with Constitution prohibition on string.Template for
+    fallback text.
+test_result:
+  suite: tests/test_professor_report_llm.py::TestFallbackFunctions
+  passed: 5
+  failed: 0
+completed_at: "2026-03-08T00:00:00"

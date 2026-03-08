@@ -1,0 +1,10 @@
+task_id: T013
+status: completed
+files_modified: []
+files_created: [src/forma/professor_report_charts.py]
+test_result:
+  command: "pytest tests/test_professor_report_charts.py -v"
+  passed: 32
+  failed: 0
+notes: "Implemented ProfessorReportChartGenerator.__init__(font_path, dpi) and _save_fig(fig). matplotlib.use('Agg') at module top, FontProperties for Korean, BytesIO pattern with plt.close(fig) in finally block."
+completed_at: "2026-03-08T00:00:00Z"

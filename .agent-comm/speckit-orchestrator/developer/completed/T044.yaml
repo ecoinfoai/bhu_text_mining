@@ -1,0 +1,10 @@
+task_id: T044
+status: completed
+files_modified: []
+files_created: [tests/test_cli_report_professor.py]
+test_result:
+  command: "pytest tests/test_cli_report_professor.py -v"
+  passed: 0
+  failed: 1  # ImportError collection failure — expected RED phase (cli_report_professor.py not yet created)
+notes: "RED: wrote 15 tests for _build_parser() in TestBuildParser — tests required args (--final, --config, --eval-dir, --output-dir), optional args with defaults (--dpi=150, --verbose=False, --skip-llm=False, --forma-config=None, --class-name=None, --font-path=None), help text non-empty, --dpi accepts int, --verbose/--skip-llm store_true behavior. All fail with ModuleNotFoundError since cli_report_professor.py does not exist."
+completed_at: "2026-03-08T00:00:00Z"

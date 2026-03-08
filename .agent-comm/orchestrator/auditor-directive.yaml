@@ -1,0 +1,51 @@
+directive:
+  metadata:
+    id: "DIR-20260308-A001"
+    from: "orchestrator"
+    to: "auditor"
+    created: "2026-03-08"
+    priority: "HIGH"
+    phase: "Phase 4 — US2 Gate 2"
+
+  task:
+    id: "GATE2-US2"
+    type: "audit"
+    title: "Gate 2: Audit US2 — Student Comparison Table"
+    gate_question: "Is it proper?"
+
+    preparation_now: |
+      Prepare spec traceability matrix and standards checklist for US2.
+      Read:
+        - specs/001-professor-report/spec.md (FR-004, FR-005)
+        - specs/001-professor-report/plan.md (Constitution Check, Module 4)
+
+    traceability_matrix_to_prepare:
+      FR-004:
+        requirement: "Comparison table with all students, sorted by score desc"
+        expected_code: "_build_comparison_table in professor_report.py"
+        expected_test: "test_professor_report.py::TestBuildComparisonTable"
+      FR-005:
+        requirement: "Conditional formatting ±0.5 SD"
+        expected_code: "compute_conditional_indicator + get_conditional_bg_color"
+        expected_test: "test_professor_report_data.py (conditional formatting tests)"
+
+    standards_checklist:
+      constitution_V: "_esc() used for all Paragraph text in _build_comparison_table"
+      constitution_VI: "No LLM imports in professor_report_data.py or professor_report.py"
+      type_annotations: "compute_conditional_indicator and get_conditional_bg_color have type hints"
+      korean_labels: "_KOREAN_LEVELS dict maps English → 상/중상/중하/하"
+      zero_variance_guard: "std==0 case returns neutral (no conditional formatting)"
+      table_style: "LINEBEFORE used for column group separators, SPAN for header merges"
+
+    security_checks:
+      - "No hardcoded API keys or credentials"
+      - "Student names XML-escaped in table cells"
+      - "No eval/exec in table generation code"
+
+  expected_output:
+    verdict_file: ".agent-comm/auditor/gate2-verdict.yaml"
+    pass_criteria:
+      - "All requirements (FR-004, FR-005) mapped to implementation"
+      - "Zero P0 violations (TDD, Constitution, Security)"
+      - "_esc() verified for Paragraph text"
+      - "No LLM imports in forbidden modules"

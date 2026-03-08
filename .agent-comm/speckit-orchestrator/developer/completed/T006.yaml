@@ -1,0 +1,10 @@
+task_id: T006
+status: completed
+files_modified: [src/forma/professor_report_data.py]
+files_created: []
+test_result:
+  command: "pytest tests/test_professor_report_data.py -v"
+  passed: 42
+  failed: 0
+notes: "Implemented build_professor_report_data() with class stats (np.nanmean/std ddof=0/median/percentile), per-question QuestionClassStats, StudentSummaryRows sorted desc, z-scores, overall_level mode with conservative tie-break, and identify_at_risk() helper with 6 OR-logic criteria. Also added compute_conditional_indicator() and get_conditional_bg_color() helpers."
+completed_at: "2026-03-08T00:00:00Z"

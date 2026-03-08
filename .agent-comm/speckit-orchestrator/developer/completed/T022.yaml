@@ -1,0 +1,10 @@
+task_id: T022
+status: completed
+files_modified: [src/forma/professor_report.py]
+files_created: []
+test_result:
+  command: "pytest tests/test_professor_report.py tests/test_professor_report_data.py -v"
+  passed: 82
+  failed: 0
+notes: "Implemented _build_comparison_table with 2-level header (row0: 순위/학번/이름/종합/Q{n} spans, row1: sub-column labels), Korean labels via _KOREAN_LEVELS dict, conditional bg via get_conditional_bg_color per score cell, adaptive cols (3 sub-cols for <=3 questions, 2 sub-cols for >=4), LINEBEFORE separators at each question group start, SPAN for question group headers in row0, dark header (#37474F) with white text, all Paragraph text uses _esc(), student_rank_lollipop chart wrapped in try/except (AttributeError, NotImplementedError)."
+completed_at: "2026-03-08T00:00:00"
