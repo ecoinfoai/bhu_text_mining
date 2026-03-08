@@ -591,3 +591,297 @@ class TestXmlEscapeEdgeCases:
         text = "답안 \ufffd 텍스트 \u0000"
         result = _esc(text)
         assert isinstance(result, str)
+
+
+# ===========================================================================
+# T017: Graph diagram in _build_question_section()
+# ===========================================================================
+
+
+class TestStudentReportGraphDiagram:
+    """T017: Graph diagram added to question section when graph data exists."""
+
+    # Minimal valid 1x1 RGB PNG accepted by ReportLab's ImageReader
+    _FAKE_PNG = (
+        b"\x89PNG\r\n\x1a\n"
+        b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02"
+        b"\x00\x00\x00\x90wS\xde"
+        b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe"
+        b"\r\xefF\xb8"
+        b"\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+
+    def _make_question_with_graph(self) -> "QuestionReportData":
+        """Build a QuestionReportData that has non-empty graph_matched_edges."""
+        from types import SimpleNamespace
+
+        fake_edge = SimpleNamespace(subject="A", relation="r", object="B")
+        return _make_question(
+            question_sn=1,
+            # Pass graph edges via a compatible object; the dataclass field
+            # is typed as list so any list of edge-like objects works.
+        )
+
+    def test_graph_diagram_present_when_graph_data_exists(self, generator):
+        """Image flowable is added when graph_matched_edges is non-empty."""
+        import io
+        from types import SimpleNamespace
+        from unittest.mock import patch, MagicMock
+        from reportlab.platypus import Image
+
+        fake_edge = SimpleNamespace(subject="A", relation="r", object="B")
+        question = _make_question(question_sn=1)
+        question.graph_matched_edges = [fake_edge]
+        question.graph_missing_edges = []
+
+        distributions = _make_distributions()
+
+        mock_chart = MagicMock()
+        dummy_png = io.BytesIO(b"\x89PNG\x00" * 10)
+        mock_chart.score_boxplot.return_value = dummy_png
+        mock_chart.component_comparison.return_value = dummy_png
+        mock_chart.concept_coverage_bar.return_value = dummy_png
+        mock_chart.understanding_badge.return_value = dummy_png
+        generator._chart_gen = mock_chart
+
+        fake_bytesio = io.BytesIO(self._FAKE_PNG)
+
+        with patch(
+            "forma.student_report.GraphVisualizer",
+        ) as mock_gv_cls:
+            mock_gv_instance = MagicMock()
+            mock_gv_cls.return_value = mock_gv_instance
+            # visualize_comparison_to_bytesio returns (BytesIO, omitted_count)
+            mock_gv_instance.visualize_comparison_to_bytesio.return_value = (
+                fake_bytesio,
+                0,
+            )
+
+            story = generator._build_question_section(question, distributions)
+
+        # At least one flowable must be an Image
+        image_flowables = [f for f in story if isinstance(f, Image)]
+        assert len(image_flowables) >= 1, (
+            "Expected at least one Image flowable in the story when "
+            "graph_matched_edges is non-empty, but none was found."
+        )
+
+    def test_graph_diagram_absent_when_no_graph_data(self, generator):
+        """No Image flowable from graph when graph_matched_edges and
+        graph_missing_edges are both empty."""
+        import io
+        from unittest.mock import patch, MagicMock
+        from reportlab.platypus import Image
+
+        question = _make_question(question_sn=1)
+        question.graph_matched_edges = []
+        question.graph_missing_edges = []
+
+        distributions = _make_distributions()
+
+        mock_chart = MagicMock()
+        dummy_png = io.BytesIO(b"\x89PNG\x00" * 10)
+        mock_chart.score_boxplot.return_value = dummy_png
+        mock_chart.component_comparison.return_value = dummy_png
+        mock_chart.concept_coverage_bar.return_value = dummy_png
+        mock_chart.understanding_badge.return_value = dummy_png
+        generator._chart_gen = mock_chart
+
+        # Count Image flowables before patching GraphVisualizer.
+        # Even if GraphVisualizer is never called, we capture what the story
+        # produces through the real Image constructor.
+        with patch("forma.student_report.GraphVisualizer") as mock_gv_cls:
+            story = generator._build_question_section(question, distributions)
+
+        # GraphVisualizer must not be instantiated at all
+        mock_gv_cls.assert_not_called()
+
+    def test_omission_text_shown_when_edges_capped(self, generator):
+        """A Paragraph with '5' and '생략' is added when 5 edges are omitted."""
+        import io
+        from types import SimpleNamespace
+        from unittest.mock import patch, MagicMock
+        from reportlab.platypus import Paragraph as RLParagraph
+
+        fake_edge = SimpleNamespace(subject="A", relation="r", object="B")
+        question = _make_question(question_sn=1)
+        question.graph_matched_edges = [fake_edge]
+        question.graph_missing_edges = []
+
+        distributions = _make_distributions()
+
+        mock_chart = MagicMock()
+        dummy_png = io.BytesIO(b"\x89PNG\x00" * 10)
+        mock_chart.score_boxplot.return_value = dummy_png
+        mock_chart.component_comparison.return_value = dummy_png
+        mock_chart.concept_coverage_bar.return_value = dummy_png
+        mock_chart.understanding_badge.return_value = dummy_png
+        generator._chart_gen = mock_chart
+
+        fake_bytesio = io.BytesIO(self._FAKE_PNG)
+
+        with patch(
+            "forma.student_report.GraphVisualizer",
+        ) as mock_gv_cls:
+            mock_gv_instance = MagicMock()
+            mock_gv_cls.return_value = mock_gv_instance
+            # 5 edges were omitted from the visualisation
+            mock_gv_instance.visualize_comparison_to_bytesio.return_value = (
+                fake_bytesio,
+                5,
+            )
+
+            story = generator._build_question_section(question, distributions)
+
+        # Find Paragraph flowables whose text contains both '5' and '생략'
+        omission_paras = []
+        for flowable in story:
+            if isinstance(flowable, RLParagraph):
+                # Access the raw text stored in the Paragraph
+                para_text = flowable.text if hasattr(flowable, "text") else ""
+                if "5" in para_text and "생략" in para_text:
+                    omission_paras.append(flowable)
+
+        assert len(omission_paras) >= 1, (
+            "Expected a Paragraph containing '5' and '생략' when "
+            "visualize_comparison_to_bytesio returns omitted_count=5, "
+            "but no such paragraph was found in the story."
+        )
+
+
+# ===========================================================================
+# T023: Hub gap table in _build_question_section()
+# ===========================================================================
+
+
+class TestStudentReportHubGapTable:
+    """T023: Hub gap table rendered in question section when hub_gap_entries is non-empty.
+
+    RED phase: _build_question_section() does not yet render a hub gap table,
+    so both tests must FAIL until the feature is implemented.
+
+    The expected table has 3 columns:
+      개념 | 중심성 | 포함
+    where 포함 shows O (green) or X (red) based on student_present.
+    """
+
+    def _make_question_with_hub_gap(self) -> "QuestionReportData":
+        """Return a QuestionReportData with two hub gap entries."""
+        from forma.evaluation_types import HubGapEntry
+
+        q = _make_question(question_sn=1)
+        q.hub_gap_entries = [
+            HubGapEntry("폐", 0.8, True, 0.0),
+            HubGapEntry("심장", 0.5, False, 0.0),
+        ]
+        return q
+
+    def _make_question_without_hub_gap(self) -> "QuestionReportData":
+        """Return a QuestionReportData with an empty hub_gap_entries list."""
+        q = _make_question(question_sn=1)
+        q.hub_gap_entries = []
+        return q
+
+    def _build_story(self, generator, question) -> list:
+        """Call _build_question_section and return the story flowables."""
+        import io
+        from unittest.mock import patch, MagicMock
+
+        mock_chart = MagicMock()
+        dummy = io.BytesIO(b"\x89PNG\x00" * 10)
+        mock_chart.score_boxplot.return_value = dummy
+        mock_chart.component_comparison.return_value = dummy
+        mock_chart.concept_coverage_bar.return_value = dummy
+        mock_chart.understanding_badge.return_value = dummy
+        generator._chart_gen = mock_chart
+
+        distributions = _make_distributions()
+
+        with patch("forma.student_report.GraphVisualizer"):
+            story = generator._build_question_section(question, distributions)
+
+        return story
+
+    def test_hub_gap_table_present_when_entries_exist(self, generator):
+        """A Table flowable with hub gap data is added when hub_gap_entries is non-empty.
+
+        RED: _build_question_section() does not yet render a hub gap table
+        -> this test FAILS until T023 is implemented.
+        """
+        from reportlab.platypus import Table
+
+        question = self._make_question_with_hub_gap()
+        story = self._build_story(generator, question)
+
+        tables = [f for f in story if isinstance(f, Table)]
+        assert len(tables) > 0, (
+            "Expected at least one Table flowable in the story when "
+            "hub_gap_entries is non-empty, but none was found."
+        )
+
+        # Collect all text from table cells and check for hub gap header or concept names
+        from reportlab.platypus import Paragraph as _Paragraph
+
+        all_table_text = ""
+        for t in tables:
+            if hasattr(t, "_cellvalues"):
+                for row in t._cellvalues:
+                    for cell in row:
+                        if isinstance(cell, str):
+                            all_table_text += cell + " "
+                        elif isinstance(cell, _Paragraph) and hasattr(cell, "text"):
+                            all_table_text += str(cell.text) + " "
+
+        # The hub gap table must contain the header "개념" or the concept names "폐" / "심장"
+        has_header = "개념" in all_table_text
+        has_concepts = "폐" in all_table_text or "심장" in all_table_text
+        assert has_header or has_concepts, (
+            "Hub gap table must contain '개념' header or concept names ('폐', '심장'). "
+            f"All table text found: {all_table_text[:400]!r}"
+        )
+
+    def test_hub_gap_table_absent_when_entries_empty(self, generator):
+        """No hub gap Table is added when hub_gap_entries is empty.
+
+        RED: _build_question_section() does not yet check hub_gap_entries
+        for table rendering. Once T023 adds the feature, the 'present' test
+        will drive an implementation that only adds the table when entries
+        are non-empty — this 'absent' test verifies the guard condition.
+
+        Strategy: build a story with empty hub_gap_entries, then build one
+        with non-empty entries, and assert that the empty case does NOT
+        produce an additional hub gap table containing "개념" or concept names.
+        """
+        from reportlab.platypus import Table, Paragraph as _Paragraph
+
+        question_empty = self._make_question_without_hub_gap()
+        story_empty = self._build_story(generator, question_empty)
+
+        question_with = self._make_question_with_hub_gap()
+        story_with = self._build_story(generator, question_with)
+
+        def _table_text(story):
+            text = ""
+            for f in story:
+                if isinstance(f, Table) and hasattr(f, "_cellvalues"):
+                    for row in f._cellvalues:
+                        for cell in row:
+                            if isinstance(cell, str):
+                                text += cell + " "
+                            elif isinstance(cell, _Paragraph) and hasattr(cell, "text"):
+                                text += str(cell.text) + " "
+            return text
+
+        text_empty = _table_text(story_empty)
+        text_with = _table_text(story_with)
+
+        # The empty case must NOT contain hub gap concept names
+        assert "폐" not in text_empty and "심장" not in text_empty, (
+            "When hub_gap_entries is empty, concept names ('폐', '심장') must NOT "
+            f"appear in any Table. Found: {text_empty[:400]!r}"
+        )
+
+        # Sanity: the non-empty case must have the concepts (guarded by the other test)
+        assert "폐" in text_with or "심장" in text_with or "개념" in text_with, (
+            "Sanity check: non-empty hub_gap_entries should produce hub gap table content."
+        )

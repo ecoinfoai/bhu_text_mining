@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 
 import yaml
 
+from forma.evaluation_types import TripletEdge
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -75,6 +77,14 @@ class QuestionReportData:
     feedback_text: str = ""
     tier_level: int = 0
     tier_label: str = ""
+    graph_comparison_f1: float = 0.0
+    graph_matched_edges: list = field(default_factory=list)
+    graph_missing_edges: list = field(default_factory=list)
+    graph_extra_edges: list = field(default_factory=list)
+    graph_wrong_direction_edges: list = field(default_factory=list)
+    graph_master_edges: list = field(default_factory=list)
+    graph_student_edges: list = field(default_factory=list)
+    hub_gap_entries: list = field(default_factory=list)
 
 
 @dataclass
@@ -351,6 +361,67 @@ def load_all_student_data(
                 tier_label=fb_q.get("tier_label", ""),
             )
             student.questions.append(question)
+
+        # Load graph comparison results (optional — graceful skip if missing)
+        graph_path = os.path.join(
+            eval_dir, sid, "res_lvl1", "graph_comparison_results.yaml",
+        )
+        if os.path.exists(graph_path):
+            try:
+                with open(graph_path, encoding="utf-8") as gf:
+                    graph_data = yaml.safe_load(gf)
+
+                if isinstance(graph_data, dict) and sid in graph_data:
+                    student_graph = graph_data[sid]
+                    # Build a lookup from question_sn to question object
+                    q_by_sn = {q.question_sn: q for q in student.questions}
+                    for q_key, q_graph in student_graph.items():
+                        # Map "question_1" → 1, "question_3" → 3, etc.
+                        try:
+                            q_sn = int(q_key.split("_")[-1])
+                        except (ValueError, AttributeError):
+                            continue
+                        q_data = q_by_sn.get(q_sn)
+                        if q_data is None:
+                            continue
+
+                        def _to_triplets(edges_list: list) -> list[TripletEdge]:
+                            result = []
+                            for e in edges_list:
+                                if isinstance(e, dict):
+                                    result.append(
+                                        TripletEdge(
+                                            subject=e.get("subject", ""),
+                                            relation=e.get("relation", ""),
+                                            object=e.get("object", ""),
+                                        )
+                                    )
+                            return result
+
+                        matched = _to_triplets(q_graph.get("matched_edges", []))
+                        missing = _to_triplets(q_graph.get("missing_edges", []))
+                        extra = _to_triplets(q_graph.get("extra_edges", []))
+                        wrong_dir = _to_triplets(
+                            q_graph.get("wrong_direction_edges", []),
+                        )
+
+                        q_data.graph_comparison_f1 = float(
+                            q_graph.get("f1", 0.0),
+                        )
+                        q_data.graph_matched_edges = matched
+                        q_data.graph_missing_edges = missing
+                        q_data.graph_extra_edges = extra
+                        q_data.graph_wrong_direction_edges = wrong_dir
+
+                        # Reconstruct display edge lists
+                        # master = matched + missing + wrong_direction
+                        q_data.graph_master_edges = matched + missing + wrong_dir
+                        # student = matched + extra + wrong_direction
+                        q_data.graph_student_edges = matched + extra + wrong_dir
+            except Exception:
+                logger.warning(
+                    "Failed to load graph comparison data for student %s", sid,
+                )
 
         students.append(student)
 

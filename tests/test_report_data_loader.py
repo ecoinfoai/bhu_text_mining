@@ -369,6 +369,29 @@ class TestQuestionReportData:
         assert q.concepts[0].concept == "항상성"
         assert q.ensemble_score == pytest.approx(0.26)
 
+    def test_graph_comparison_fields_defaults(self):
+        """T004: QuestionReportData has graph comparison fields with correct defaults."""
+        from forma.report_data_loader import QuestionReportData
+
+        q = QuestionReportData(question_sn=1)
+        assert q.graph_comparison_f1 == pytest.approx(0.0)
+        assert q.graph_matched_edges == []
+        assert q.graph_missing_edges == []
+        assert q.graph_extra_edges == []
+        assert q.graph_wrong_direction_edges == []
+        assert q.hub_gap_entries == []
+
+    def test_graph_comparison_fields_independent(self):
+        """T004: Graph edge list defaults are independent across instances."""
+        from forma.report_data_loader import QuestionReportData
+
+        q1 = QuestionReportData(question_sn=1)
+        q2 = QuestionReportData(question_sn=2)
+        q1.graph_matched_edges.append({"subject": "A", "relation": "B", "object": "C"})
+        q1.hub_gap_entries.append("entry")
+        assert q2.graph_matched_edges == []
+        assert q2.hub_gap_entries == []
+
 
 class TestStudentReportData:
     """T002: Tests for StudentReportData dataclass."""
@@ -1095,6 +1118,293 @@ class TestMissingResultFiles:
         assert q1.ensemble_score == pytest.approx(0.33)
         assert q1.student_answer == "답안 없음"
         assert q1.feedback_text == "(피드백 데이터 없음)"
+
+
+# ===========================================================================
+# T015: Graph comparison YAML loading tests
+# ===========================================================================
+
+
+SAMPLE_GRAPH_COMPARISON = {
+    "S015": {
+        "question_1": {
+            "f1": 0.75,
+            "matched_edges": [
+                {"subject": "폐", "relation": "구성", "object": "폐포"},
+                {"subject": "폐포", "relation": "교환", "object": "가스"},
+            ],
+            "missing_edges": [
+                {"subject": "심장", "relation": "연결", "object": "폐"},
+            ],
+            "extra_edges": [],
+            "wrong_direction_edges": [],
+        },
+        "question_3": {
+            "f1": 0.5,
+            "matched_edges": [],
+            "missing_edges": [],
+            "extra_edges": [],
+            "wrong_direction_edges": [],
+        },
+    },
+}
+
+
+class TestLoadGraphComparisonData:
+    """T015: Tests for graph_comparison_results.yaml loading in load_all_student_data()."""
+
+    def test_graph_yaml_loaded_when_present(self, tmp_path):
+        """graph_comparison_results.yaml is loaded and populates graph_matched_edges."""
+        from forma.report_data_loader import load_all_student_data
+
+        # Build minimal directory structure with all required YAML files
+        anp = [
+            {
+                "student_id": "S015",
+                "q_num": 1,
+                "text": "생체항상성은 체내 환경을 일정하게 유지하는 것이다.",
+                "forms_data": {
+                    "이름을 입력하세요.": "이유정",
+                    "학번을 입력하세요.": "2026194126",
+                    "분반을 선택하세요.": "A반",
+                },
+            },
+        ]
+        final_path = tmp_path / "anp_final.yaml"
+        _write_yaml(final_path, anp)
+
+        config = {
+            "metadata": {
+                "chapter_name": "서론",
+                "course_name": "인체구조와기능",
+                "week_num": 1,
+            },
+            "questions": [
+                {"sn": 1, "question": "Q1?", "model_answer": "A1"},
+            ],
+        }
+        config_path = tmp_path / "config.yaml"
+        _write_yaml(config_path, config)
+
+        edir = tmp_path / "eval"
+        ensemble = {
+            "students": [
+                {
+                    "student_id": "S015",
+                    "questions": [
+                        {
+                            "question_sn": 1,
+                            "ensemble_score": 0.26,
+                            "understanding_level": "Beginning",
+                            "component_scores": {"concept_coverage": 0.17},
+                        },
+                    ],
+                },
+            ],
+        }
+        _write_yaml(edir / "res_lvl4" / "ensemble_results.yaml", ensemble)
+        _write_yaml(edir / "res_lvl1" / "concept_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl2" / "llm_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl2" / "feedback_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
+
+        # Write graph_comparison_results.yaml in the per-student eval subdir
+        graph_data = {
+            "S015": {
+                "question_1": {
+                    "f1": 0.75,
+                    "matched_edges": [
+                        {"subject": "폐", "relation": "구성", "object": "폐포"},
+                        {"subject": "폐포", "relation": "교환", "object": "가스"},
+                    ],
+                    "missing_edges": [
+                        {"subject": "심장", "relation": "연결", "object": "폐"},
+                    ],
+                    "extra_edges": [],
+                    "wrong_direction_edges": [],
+                },
+            },
+        }
+        graph_path = edir / "S015" / "res_lvl1" / "graph_comparison_results.yaml"
+        _write_yaml(graph_path, graph_data)
+
+        students, _ = load_all_student_data(
+            str(final_path), str(config_path), str(edir),
+        )
+        s015 = next(s for s in students if s.student_id == "S015")
+        q1 = next(q for q in s015.questions if q.question_sn == 1)
+
+        # graph_matched_edges must be non-empty (2 edges in the YAML)
+        assert len(q1.graph_matched_edges) == 2
+
+    def test_graph_yaml_missing_graceful_skip(self, tmp_path):
+        """When graph_comparison_results.yaml is absent, no exception and edges stay []."""
+        from forma.report_data_loader import load_all_student_data
+
+        anp = [
+            {
+                "student_id": "S015",
+                "q_num": 1,
+                "text": "답변",
+                "forms_data": {
+                    "이름을 입력하세요.": "이유정",
+                    "학번을 입력하세요.": "2026194126",
+                    "분반을 선택하세요.": "A반",
+                },
+            },
+        ]
+        final_path = tmp_path / "anp_final.yaml"
+        _write_yaml(final_path, anp)
+
+        config = {
+            "metadata": {
+                "chapter_name": "서론",
+                "course_name": "인체구조와기능",
+                "week_num": 1,
+            },
+            "questions": [
+                {"sn": 1, "question": "Q1?", "model_answer": "A1"},
+            ],
+        }
+        config_path = tmp_path / "config.yaml"
+        _write_yaml(config_path, config)
+
+        edir = tmp_path / "eval"
+        ensemble = {
+            "students": [
+                {
+                    "student_id": "S015",
+                    "questions": [
+                        {
+                            "question_sn": 1,
+                            "ensemble_score": 0.5,
+                            "understanding_level": "Developing",
+                            "component_scores": {},
+                        },
+                    ],
+                },
+            ],
+        }
+        _write_yaml(edir / "res_lvl4" / "ensemble_results.yaml", ensemble)
+        _write_yaml(edir / "res_lvl1" / "concept_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl2" / "llm_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl2" / "feedback_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
+        # Intentionally do NOT create S015/res_lvl1/graph_comparison_results.yaml
+
+        # Must not raise; edges must be empty
+        students, _ = load_all_student_data(
+            str(final_path), str(config_path), str(edir),
+        )
+        s015 = next(s for s in students if s.student_id == "S015")
+        q1 = next(q for q in s015.questions if q.question_sn == 1)
+
+        assert q1.graph_matched_edges == []
+        assert q1.graph_missing_edges == []
+        assert q1.graph_extra_edges == []
+        assert q1.graph_wrong_direction_edges == []
+
+    def test_graph_yaml_edge_dict_to_triplet_conversion(self, tmp_path):
+        """Edges loaded from graph YAML are converted to objects with .subject/.relation/.object."""
+        from forma.report_data_loader import load_all_student_data
+
+        anp = [
+            {
+                "student_id": "S015",
+                "q_num": 1,
+                "text": "답변",
+                "forms_data": {
+                    "이름을 입력하세요.": "이유정",
+                    "학번을 입력하세요.": "2026194126",
+                    "분반을 선택하세요.": "A반",
+                },
+            },
+        ]
+        final_path = tmp_path / "anp_final.yaml"
+        _write_yaml(final_path, anp)
+
+        config = {
+            "metadata": {
+                "chapter_name": "서론",
+                "course_name": "인체구조와기능",
+                "week_num": 1,
+            },
+            "questions": [
+                {"sn": 1, "question": "Q1?", "model_answer": "A1"},
+            ],
+        }
+        config_path = tmp_path / "config.yaml"
+        _write_yaml(config_path, config)
+
+        edir = tmp_path / "eval"
+        ensemble = {
+            "students": [
+                {
+                    "student_id": "S015",
+                    "questions": [
+                        {
+                            "question_sn": 1,
+                            "ensemble_score": 0.26,
+                            "understanding_level": "Beginning",
+                            "component_scores": {"concept_coverage": 0.17},
+                        },
+                    ],
+                },
+            ],
+        }
+        _write_yaml(edir / "res_lvl4" / "ensemble_results.yaml", ensemble)
+        _write_yaml(edir / "res_lvl1" / "concept_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl2" / "llm_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl2" / "feedback_results.yaml", {"students": []})
+        _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
+
+        graph_data = {
+            "S015": {
+                "question_1": {
+                    "f1": 0.75,
+                    "matched_edges": [
+                        {"subject": "폐", "relation": "구성", "object": "폐포"},
+                    ],
+                    "missing_edges": [
+                        {"subject": "심장", "relation": "연결", "object": "폐"},
+                    ],
+                    "extra_edges": [
+                        {"subject": "뇌", "relation": "조절", "object": "심장"},
+                    ],
+                    "wrong_direction_edges": [],
+                },
+            },
+        }
+        graph_path = edir / "S015" / "res_lvl1" / "graph_comparison_results.yaml"
+        _write_yaml(graph_path, graph_data)
+
+        students, _ = load_all_student_data(
+            str(final_path), str(config_path), str(edir),
+        )
+        s015 = next(s for s in students if s.student_id == "S015")
+        q1 = next(q for q in s015.questions if q.question_sn == 1)
+
+        # Each loaded edge must expose .subject, .relation, .object attributes
+        assert len(q1.graph_matched_edges) == 1
+        matched_edge = q1.graph_matched_edges[0]
+        assert hasattr(matched_edge, "subject"), "edge must have .subject attribute"
+        assert hasattr(matched_edge, "relation"), "edge must have .relation attribute"
+        assert hasattr(matched_edge, "object"), "edge must have .object attribute"
+        assert matched_edge.subject == "폐"
+        assert matched_edge.relation == "구성"
+        assert matched_edge.object == "폐포"
+
+        assert len(q1.graph_missing_edges) == 1
+        missing_edge = q1.graph_missing_edges[0]
+        assert hasattr(missing_edge, "subject")
+        assert missing_edge.subject == "심장"
+
+        assert len(q1.graph_extra_edges) == 1
+        extra_edge = q1.graph_extra_edges[0]
+        assert hasattr(extra_edge, "subject")
+        assert extra_edge.subject == "뇌"
+
+        assert q1.graph_wrong_direction_edges == []
 
 
 class TestConceptCoverageFromConceptResults:

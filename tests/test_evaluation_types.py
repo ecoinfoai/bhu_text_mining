@@ -3,6 +3,8 @@
 RED phase: ensures dataclasses exist with correct fields and types.
 """
 
+import dataclasses
+
 import pytest
 from forma.evaluation_types import (
     ConceptMatchResult,
@@ -11,6 +13,7 @@ from forma.evaluation_types import (
     StatisticalResult,
     GraphMetricResult,
     EnsembleResult,
+    HubGapEntry,
 )
 
 
@@ -243,3 +246,43 @@ class TestEnsembleResult:
         assert result.understanding_level == "Proficient"
         assert "concept_coverage" in result.component_scores
         assert "concept_coverage" in result.weights_used
+
+
+class TestHubGapEntry:
+    """T002: Tests for HubGapEntry dataclass."""
+
+    def test_hub_gap_entry_is_dataclass(self):
+        """HubGapEntry must be a dataclass."""
+        assert dataclasses.is_dataclass(HubGapEntry)
+
+    def test_hub_gap_entry_defaults(self):
+        """HubGapEntry default values: student_present=False, class_inclusion_rate=0.0."""
+        entry = HubGapEntry(concept="항상성", degree_centrality=0.75)
+        assert entry.concept == "항상성"
+        assert entry.degree_centrality == pytest.approx(0.75)
+        assert entry.student_present is False
+        assert entry.class_inclusion_rate == pytest.approx(0.0)
+
+    def test_hub_gap_entry_field_access(self):
+        """HubGapEntry fields can be set and retrieved."""
+        entry = HubGapEntry(
+            concept="음성되먹임",
+            degree_centrality=0.60,
+            student_present=True,
+            class_inclusion_rate=0.85,
+        )
+        assert entry.concept == "음성되먹임"
+        assert entry.degree_centrality == pytest.approx(0.60)
+        assert entry.student_present is True
+        assert entry.class_inclusion_rate == pytest.approx(0.85)
+
+    def test_hub_gap_entry_student_present_false_explicit(self):
+        """HubGapEntry student_present=False can be explicitly set."""
+        entry = HubGapEntry(
+            concept="삼투",
+            degree_centrality=0.50,
+            student_present=False,
+            class_inclusion_rate=0.30,
+        )
+        assert entry.student_present is False
+        assert entry.class_inclusion_rate == pytest.approx(0.30)

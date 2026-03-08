@@ -7,7 +7,6 @@ with answer comparison, charts, and feedback.  No LLM API calls.
 
 from __future__ import annotations
 
-import io
 import logging
 import os
 import re
@@ -19,6 +18,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 from reportlab.platypus import (
     Image,
     PageBreak,
@@ -31,9 +31,11 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from forma.font_utils import find_korean_font
+from forma.graph_visualizer import GraphVisualizer
 from forma.report_charts import ReportChartGenerator
 from forma.report_data_loader import (
     ClassDistributions,
+    QuestionReportData,
     StudentReportData,
 )
 
@@ -80,6 +82,8 @@ class StudentPDFReportGenerator:
             pdfmetrics.registerFont(TTFont("NanumGothicBold", bold_path))
         else:
             pdfmetrics.registerFont(TTFont("NanumGothicBold", font_path))
+        addMapping("NanumGothic", 0, 0, "NanumGothic")
+        addMapping("NanumGothic", 1, 0, "NanumGothicBold")
 
         self._styles = getSampleStyleSheet()
         self._styles.add(ParagraphStyle(
@@ -127,6 +131,7 @@ class StudentPDFReportGenerator:
             font_path=font_path,
             dpi=dpi,
         )
+        self._graph_visualizer = None  # lazy init
 
     def generate_pdf(
         self,
@@ -265,8 +270,12 @@ class StudentPDFReportGenerator:
                 avg_score,
                 title="종합 점수 분포",
             )
-            story.append(Image(buf, width=160 * mm, height=50 * mm))
-            story.append(Spacer(1, 5 * mm))
+            try:
+                story.append(Image(buf, width=160 * mm, height=50 * mm))
+                story.append(Spacer(1, 5 * mm))
+            except Exception as exc:
+                logger.warning("Summary boxplot image rendering failed: %s", exc)
+                story.append(Spacer(1, 5 * mm))
 
         # Radar chart — student vs class average multi-dimensional profile
         if student_data.questions:
@@ -296,8 +305,12 @@ class StudentPDFReportGenerator:
             radar_buf = self._chart_gen.radar_chart(
                 student_axes, class_avg_axes, labels,
             )
-            story.append(Image(radar_buf, width=90 * mm, height=90 * mm))
-            story.append(Spacer(1, 5 * mm))
+            try:
+                story.append(Image(radar_buf, width=90 * mm, height=90 * mm))
+                story.append(Spacer(1, 5 * mm))
+            except Exception as exc:
+                logger.warning("Summary radar chart rendering failed: %s", exc)
+                story.append(Spacer(1, 5 * mm))
 
         # Summary table
         if student_data.questions:
@@ -350,7 +363,7 @@ class StudentPDFReportGenerator:
 
     def _build_question_section(
         self,
-        question_data,
+        question_data: QuestionReportData,
         distributions: ClassDistributions,
     ) -> list:
         """Build a per-question section with charts and feedback."""
@@ -371,8 +384,12 @@ class StudentPDFReportGenerator:
             question_data.understanding_level,
             question_data.ensemble_score,
         )
-        story.append(Image(badge_buf, width=60 * mm, height=15 * mm))
-        story.append(Spacer(1, 5 * mm))
+        try:
+            story.append(Image(badge_buf, width=60 * mm, height=15 * mm))
+            story.append(Spacer(1, 5 * mm))
+        except Exception:
+            logger.debug("Skipping understanding badge image (could not load)")
+            story.append(Spacer(1, 5 * mm))
 
         # Side-by-side answer comparison table
         story.append(Paragraph(
@@ -414,12 +431,16 @@ class StudentPDFReportGenerator:
                 question_data.concepts,
             )
             concept_height = max(30, len(question_data.concepts) * 20)
-            story.append(Image(
-                concept_buf,
-                width=160 * mm,
-                height=concept_height * mm / 25.4 * 25.4,
-            ))
-            story.append(Spacer(1, 5 * mm))
+            try:
+                story.append(Image(
+                    concept_buf,
+                    width=160 * mm,
+                    height=concept_height * mm / 25.4 * 25.4,
+                ))
+                story.append(Spacer(1, 5 * mm))
+            except Exception:
+                logger.debug("Skipping concept coverage image (could not load)")
+                story.append(Spacer(1, 5 * mm))
 
         # Component comparison box-whisker
         comp_dists = distributions.component_scores.get(qsn, {})
@@ -430,7 +451,62 @@ class StudentPDFReportGenerator:
                 comp_student,
                 qsn,
             )
-            story.append(Image(comp_buf, width=160 * mm, height=80 * mm))
+            try:
+                story.append(Image(comp_buf, width=160 * mm, height=80 * mm))
+                story.append(Spacer(1, 5 * mm))
+            except Exception:
+                logger.debug("Skipping component comparison image (could not load)")
+                story.append(Spacer(1, 5 * mm))
+
+        # Graph diagram (if graph comparison data available)
+        if question_data.graph_matched_edges or question_data.graph_missing_edges:
+            if self._graph_visualizer is None:
+                self._graph_visualizer = GraphVisualizer(
+                    font_path=self._font_path,
+                )
+            buf, omitted = self._graph_visualizer.visualize_comparison_to_bytesio(
+                matched=question_data.graph_matched_edges,
+                missing=question_data.graph_missing_edges,
+                extra=question_data.graph_extra_edges,
+                wrong_direction=question_data.graph_wrong_direction_edges,
+                title=f"Q{question_data.question_sn} 개념 네트워크 비교",
+                max_edges=30,
+            )
+            try:
+                buf.seek(0)
+                story.append(Image(buf, width=160 * mm, height=100 * mm))
+                if omitted > 0:
+                    story.append(Paragraph(
+                        f"추가 {omitted}개 엣지 생략",
+                        self._styles["KoreanSmall"],
+                    ))
+            except Exception as exc:
+                logger.warning("Graph diagram rendering failed: %s", exc)
+
+        # Hub gap table (if hub_gap_entries available)
+        hub_gap_entries = getattr(question_data, "hub_gap_entries", None)
+        if hub_gap_entries:
+            hub_data = [["개념", "중심성", "포함"]]  # header row
+            for entry in hub_gap_entries:
+                presence = "O" if entry.student_present else "X"
+                hub_data.append([
+                    entry.concept,
+                    f"{entry.degree_centrality:.3f}",
+                    presence,
+                ])
+
+            hub_table = Table(hub_data, colWidths=[80 * mm, 40 * mm, 30 * mm])
+            hub_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#404040")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            story.append(hub_table)
             story.append(Spacer(1, 5 * mm))
 
         # Feedback text

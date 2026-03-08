@@ -6,6 +6,7 @@ class summary PDF report from student evaluation results.
 
 from __future__ import annotations
 
+import copy
 import datetime
 import logging
 from collections import Counter
@@ -68,6 +69,7 @@ class QuestionClassStats:
     level_distribution: dict[str, int] = field(default_factory=dict)
     concept_mastery_rates: dict[str, float] = field(default_factory=dict)
     misconception_frequencies: list[tuple[str, int]] = field(default_factory=list)
+    hub_gap_entries: list = field(default_factory=list)
 
 
 @dataclass
@@ -99,6 +101,8 @@ class StudentSummaryRow:
     is_at_risk: bool = False
     at_risk_reasons: list[str] = field(default_factory=list)
     z_score: float = 0.0
+    section: str = ""
+    misconception_counts: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -152,6 +156,8 @@ class ProfessorReportData:
     llm_model_used: str = ""
     llm_generation_failed: bool = False
     llm_error_message: str = ""
+    is_multi_class: bool = False
+    section_names: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -290,6 +296,264 @@ def get_conditional_bg_color(score: float, mean: float, std: float) -> "Color":
     if indicator == "-":
         return HexColor("#FFEBEE")
     return white
+
+
+def merge_professor_report_data(
+    reports: list["ProfessorReportData"],
+) -> "ProfessorReportData":
+    """Merge multiple per-class ProfessorReportData into one combined report.
+
+    Args:
+        reports: List of per-class ProfessorReportData instances to merge.
+
+    Returns:
+        A single ProfessorReportData with all students combined, statistics
+        recalculated, and is_multi_class=True.
+    """
+    if not reports:
+        raise ValueError("reports must be non-empty")
+
+    # ------------------------------------------------------------------
+    # Step 1: Deep-copy each student row, tag with source class_name (section),
+    #         and collect all student rows (ADV-001: avoid mutating originals)
+    # ------------------------------------------------------------------
+    all_student_rows: list[StudentSummaryRow] = []
+    for report in reports:
+        for row in report.student_rows:
+            new_row = copy.deepcopy(row)
+            new_row.section = report.class_name
+            all_student_rows.append(new_row)
+
+    # ------------------------------------------------------------------
+    # Step 2: Compute combined class statistics
+    # ------------------------------------------------------------------
+    student_overall_means = [row.overall_ensemble_mean for row in all_student_rows]
+    arr = np.array(student_overall_means, dtype=float)
+
+    if len(arr) == 0:
+        class_mean = 0.0
+        class_std = 0.0
+        class_median = 0.0
+        class_q1 = 0.0
+        class_q3 = 0.0
+    else:
+        class_mean = float(np.nanmean(arr))
+        class_std = float(np.nanstd(arr))
+        class_median = float(np.nanmedian(arr))
+        class_q1 = float(np.nanpercentile(arr, 25))
+        class_q3 = float(np.nanpercentile(arr, 75))
+
+    # ------------------------------------------------------------------
+    # Step 3: Recompute z-scores for all students from combined distribution
+    # ------------------------------------------------------------------
+    if class_std == 0.0:
+        for row in all_student_rows:
+            row.z_score = 0.0
+    else:
+        for row in all_student_rows:
+            row.z_score = (row.overall_ensemble_mean - class_mean) / class_std
+
+    # ------------------------------------------------------------------
+    # Step 4: Re-identify at-risk using combined class stats
+    #         Use stored misconception_counts from per-class build (ADV-002)
+    # ------------------------------------------------------------------
+    for row in all_student_rows:
+        is_at_risk, at_risk_reasons = identify_at_risk(
+            row,
+            class_mean=class_mean,
+            class_std=class_std,
+            misconception_counts=row.misconception_counts,
+        )
+        row.is_at_risk = is_at_risk
+        row.at_risk_reasons = at_risk_reasons
+
+    # ------------------------------------------------------------------
+    # Step 5: Sort merged student rows by overall_ensemble_mean desc
+    # ------------------------------------------------------------------
+    all_student_rows.sort(key=lambda r: r.overall_ensemble_mean, reverse=True)
+
+    # ------------------------------------------------------------------
+    # Step 6: Collect all unique question_sn values across all reports
+    # ------------------------------------------------------------------
+    all_question_sns: set[int] = set()
+    for row in all_student_rows:
+        all_question_sns.update(row.per_question_scores.keys())
+    sorted_question_sns = sorted(all_question_sns)
+
+    # ------------------------------------------------------------------
+    # Step 7: Build merged QuestionClassStats for each question_sn
+    # ------------------------------------------------------------------
+    # Gather existing QuestionClassStats from all reports by question_sn
+    question_stats_by_sn: dict[int, list] = {}
+    for report in reports:
+        for qstat in report.question_stats:
+            question_stats_by_sn.setdefault(qstat.question_sn, []).append(qstat)
+
+    merged_question_stats: list[QuestionClassStats] = []
+
+    for qsn in sorted_question_sns:
+        # Gather per-student data for this question
+        ens_scores: list[float] = []
+        cov_scores: list[float] = []
+        level_dist: dict[str, int] = {lvl: 0 for lvl in _CANONICAL_LEVELS}
+
+        for row in all_student_rows:
+            if qsn in row.per_question_scores:
+                ens_scores.append(row.per_question_scores[qsn])
+            if qsn in row.per_question_coverages:
+                cov_scores.append(row.per_question_coverages[qsn])
+            if qsn in row.per_question_levels:
+                lvl = row.per_question_levels[qsn]
+                if lvl in level_dist:
+                    level_dist[lvl] += 1
+
+        # Compute score stats
+        if ens_scores:
+            ens_arr = np.array(ens_scores, dtype=float)
+            q_ensemble_mean = float(np.nanmean(ens_arr))
+            q_ensemble_std = float(np.nanstd(ens_arr))
+            q_ensemble_median = float(np.nanmedian(ens_arr))
+        else:
+            q_ensemble_mean = 0.0
+            q_ensemble_std = 0.0
+            q_ensemble_median = 0.0
+
+        q_concept_coverage_mean = (
+            float(np.nanmean(np.array(cov_scores, dtype=float))) if cov_scores else 0.0
+        )
+
+        # Take question metadata, concept mastery rates, hub_gap_entries,
+        # llm_score_mean, rasch_theta_mean from per-report question stats
+        q_text = ""
+        q_topic = ""
+        q_llm_score_mean = 0.0
+        q_rasch_theta_mean = 0.0
+        concept_mastery_map: dict[str, list[float]] = {}
+        misconception_counter: Counter[str] = Counter()
+        hub_gap_by_concept: dict[str, list[float]] = {}
+
+        existing_qstats = question_stats_by_sn.get(qsn, [])
+        for qstat in existing_qstats:
+            if not q_text and qstat.question_text:
+                q_text = qstat.question_text
+            if not q_topic and qstat.topic:
+                q_topic = qstat.topic
+            # Weighted average llm/rasch by student count in that section
+            q_llm_score_mean += qstat.llm_score_mean
+            q_rasch_theta_mean += qstat.rasch_theta_mean
+            # Merge concept mastery rates
+            for concept, rate in qstat.concept_mastery_rates.items():
+                concept_mastery_map.setdefault(concept, []).append(rate)
+            # Merge misconception frequencies
+            for text, count in qstat.misconception_frequencies:
+                misconception_counter[text] += count
+            # Merge hub_gap_entries by concept
+            for entry in qstat.hub_gap_entries:
+                concept_key = getattr(entry, "concept", str(entry))
+                rate = getattr(entry, "class_inclusion_rate", 0.0)
+                hub_gap_by_concept.setdefault(concept_key, []).append(rate)
+
+        n_qstats = len(existing_qstats) if existing_qstats else 1
+        q_llm_score_mean /= n_qstats
+        q_rasch_theta_mean /= n_qstats
+
+        # Average concept mastery rates across sections
+        concept_mastery_rates: dict[str, float] = {
+            concept: sum(rates) / len(rates)
+            for concept, rates in concept_mastery_map.items()
+            if rates
+        }
+
+        # Sort misconception frequencies desc
+        misconception_frequencies: list[tuple[str, int]] = sorted(
+            misconception_counter.items(), key=lambda x: x[1], reverse=True
+        )
+
+        # Merge hub_gap_entries: deduplicate by concept, average inclusion rate
+        merged_hub_gap: list = []
+        for entry_concept, rates in hub_gap_by_concept.items():
+            # Reconstruct a simple entry from the first qstat that has this concept
+            for qstat in existing_qstats:
+                for entry in qstat.hub_gap_entries:
+                    if getattr(entry, "concept", str(entry)) == entry_concept:
+                        # Clone entry and set averaged rate if possible
+                        try:
+                            new_entry = copy.copy(entry)
+                            new_entry.class_inclusion_rate = sum(rates) / len(rates)
+                            merged_hub_gap.append(new_entry)
+                        except Exception as exc:
+                            logger.warning("hub_gap merge error: %s", exc)
+                            merged_hub_gap.append(entry)
+                        break
+                else:
+                    continue
+                break
+
+        merged_question_stats.append(
+            QuestionClassStats(
+                question_sn=qsn,
+                question_text=q_text,
+                topic=q_topic,
+                ensemble_mean=q_ensemble_mean,
+                ensemble_std=q_ensemble_std,
+                ensemble_median=q_ensemble_median,
+                concept_coverage_mean=q_concept_coverage_mean,
+                llm_score_mean=q_llm_score_mean,
+                rasch_theta_mean=q_rasch_theta_mean,
+                level_distribution=level_dist,
+                concept_mastery_rates=concept_mastery_rates,
+                misconception_frequencies=misconception_frequencies,
+                hub_gap_entries=merged_hub_gap,
+            )
+        )
+
+    # ------------------------------------------------------------------
+    # Step 8: Compute overall_level_distribution
+    # ------------------------------------------------------------------
+    overall_level_distribution: dict[str, int] = {lvl: 0 for lvl in _CANONICAL_LEVELS}
+    for row in all_student_rows:
+        if row.overall_level in overall_level_distribution:
+            overall_level_distribution[row.overall_level] += 1
+
+    # ------------------------------------------------------------------
+    # Step 9: Compute n_at_risk and pct_at_risk
+    # ------------------------------------------------------------------
+    n_at_risk = sum(1 for r in all_student_rows if r.is_at_risk)
+    n_students = len(all_student_rows)
+    pct_at_risk = (n_at_risk / n_students * 100.0) if n_students > 0 else 0.0
+
+    # ------------------------------------------------------------------
+    # Step 10: Build section_names and combined class_name
+    # ------------------------------------------------------------------
+    section_names = [r.class_name for r in reports]
+    combined_class_name = "+".join(section_names)
+
+    # ------------------------------------------------------------------
+    # Step 11: Take metadata from first report
+    # ------------------------------------------------------------------
+    first = reports[0]
+
+    return ProfessorReportData(
+        class_name=combined_class_name,
+        week_num=first.week_num,
+        subject=first.subject,
+        exam_title=first.exam_title,
+        generation_date=datetime.date.today().isoformat(),
+        n_students=n_students,
+        n_questions=len(sorted_question_sns),
+        class_ensemble_mean=class_mean,
+        class_ensemble_std=class_std,
+        class_ensemble_median=class_median,
+        class_ensemble_q1=class_q1,
+        class_ensemble_q3=class_q3,
+        overall_level_distribution=overall_level_distribution,
+        question_stats=merged_question_stats,
+        student_rows=all_student_rows,
+        n_at_risk=n_at_risk,
+        pct_at_risk=pct_at_risk,
+        is_multi_class=len(reports) > 1,
+        section_names=section_names,
+    )
 
 
 def build_professor_report_data(
@@ -502,6 +766,7 @@ def build_professor_report_data(
             is_at_risk=False,
             at_risk_reasons=[],
             z_score=z_score,
+            misconception_counts=misconception_counts,
         )
 
         is_at_risk, at_risk_reasons = identify_at_risk(

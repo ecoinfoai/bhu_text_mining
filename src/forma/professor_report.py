@@ -777,6 +777,40 @@ class ProfessorPDFReportGenerator:
         story.append(Spacer(1, 8))
 
         # ------------------------------------------------------------------
+        # Hub gap table (if hub_gap_entries available)
+        # ------------------------------------------------------------------
+        hub_gap_entries = getattr(stats, "hub_gap_entries", None)
+        if hub_gap_entries:
+            story.append(Paragraph(_esc("허브 개념 갭 분석"), self._styles["ProfSubsection"]))
+            hub_data = [["개념", "중심성", "학생 포함률"]]  # header row
+            for entry in hub_gap_entries:
+                hub_data.append([
+                    _esc(entry.concept),
+                    f"{entry.degree_centrality:.3f}",
+                    f"{entry.class_inclusion_rate * 100:.1f}%",
+                ])
+
+            para_hub_rows = []
+            for i, row in enumerate(hub_data):
+                style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
+                para_hub_rows.append([
+                    Paragraph(str(cell), style) for cell in row
+                ])
+
+            hub_table = Table(para_hub_rows, colWidths=[200, 60, 70])
+            hub_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            story.append(hub_table)
+            story.append(Spacer(1, 8))
+
+        # ------------------------------------------------------------------
         # Misconception list
         # ------------------------------------------------------------------
         misconceptions = getattr(stats, "misconception_frequencies", [])

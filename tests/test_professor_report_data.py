@@ -452,6 +452,105 @@ class TestProfessorReportDataInstantiation:
 
 
 # ===========================================================================
+# T006: New fields — hub_gap_entries, section, is_multi_class, section_names
+# ===========================================================================
+
+
+class TestQuestionClassStatsHubGapEntries:
+    """T006: QuestionClassStats.hub_gap_entries default field."""
+
+    def test_hub_gap_entries_default_empty_list(self):
+        """QuestionClassStats.hub_gap_entries defaults to empty list."""
+        from forma.professor_report_data import QuestionClassStats
+
+        qcs = QuestionClassStats(question_sn=1)
+        assert qcs.hub_gap_entries == []
+
+    def test_hub_gap_entries_independent_across_instances(self):
+        """QuestionClassStats.hub_gap_entries list is independent per instance."""
+        from forma.professor_report_data import QuestionClassStats
+
+        qcs1 = QuestionClassStats(question_sn=1)
+        qcs2 = QuestionClassStats(question_sn=2)
+        qcs1.hub_gap_entries.append("entry")
+        assert qcs2.hub_gap_entries == []
+
+
+class TestStudentSummaryRowSection:
+    """T006: StudentSummaryRow.section default field."""
+
+    def test_section_default_empty_string(self):
+        """StudentSummaryRow.section defaults to empty string."""
+        from forma.professor_report_data import StudentSummaryRow
+
+        row = StudentSummaryRow(student_id="SA")
+        assert row.section == ""
+
+    def test_section_can_be_set(self):
+        """StudentSummaryRow.section can be set to a section name."""
+        from forma.professor_report_data import StudentSummaryRow
+
+        row = StudentSummaryRow(student_id="SA", section="1A")
+        assert row.section == "1A"
+
+
+class TestProfessorReportDataMultiClassFields:
+    """T006: ProfessorReportData.is_multi_class and section_names defaults."""
+
+    def _make_minimal_report(self, **overrides):
+        from forma.professor_report_data import ProfessorReportData
+
+        defaults = dict(
+            class_name="1A",
+            week_num=1,
+            subject="Biology",
+            exam_title="Week 1 Formative Test",
+            generation_date="2026-03-08",
+            n_students=3,
+            n_questions=2,
+            class_ensemble_mean=0.53,
+            class_ensemble_std=0.23,
+            class_ensemble_median=0.55,
+            class_ensemble_q1=0.25,
+            class_ensemble_q3=0.80,
+            overall_level_distribution={k: 0 for k in CANONICAL_LEVELS},
+            question_stats=[],
+            student_rows=[],
+            n_at_risk=0,
+            pct_at_risk=0.0,
+        )
+        defaults.update(overrides)
+        return ProfessorReportData(**defaults)
+
+    def test_is_multi_class_default_false(self):
+        """ProfessorReportData.is_multi_class defaults to False."""
+        report = self._make_minimal_report()
+        assert report.is_multi_class is False
+
+    def test_section_names_default_empty_list(self):
+        """ProfessorReportData.section_names defaults to empty list."""
+        report = self._make_minimal_report()
+        assert report.section_names == []
+
+    def test_is_multi_class_can_be_set(self):
+        """ProfessorReportData.is_multi_class can be set to True."""
+        report = self._make_minimal_report(is_multi_class=True)
+        assert report.is_multi_class is True
+
+    def test_section_names_can_be_set(self):
+        """ProfessorReportData.section_names can hold section name strings."""
+        report = self._make_minimal_report(section_names=["1A", "1B", "1C"])
+        assert report.section_names == ["1A", "1B", "1C"]
+
+    def test_section_names_independent_across_instances(self):
+        """ProfessorReportData.section_names list is independent per instance."""
+        report1 = self._make_minimal_report()
+        report2 = self._make_minimal_report()
+        report1.section_names.append("1A")
+        assert report2.section_names == []
+
+
+# ===========================================================================
 # T003: build_professor_report_data() tests
 # ===========================================================================
 
@@ -1808,3 +1907,253 @@ class TestBuildProfessorReportDataEdgeCases:
         assert report.n_students == 2
         # Q2 only exists in SA's data, Q1 in both
         assert report.n_questions >= 1
+
+
+# ===========================================================================
+# T010: merge_professor_report_data() — multi-class merge tests
+# ===========================================================================
+
+
+def _make_report_for_section(
+    class_name: str,
+    student_specs: list[tuple[str, str, str]],
+) -> object:
+    """Build a ProfessorReportData for a given section with the given students.
+
+    Args:
+        class_name: Section identifier, e.g. "A" or "B".
+        student_specs: List of (student_id, real_name, student_number).
+
+    Returns:
+        A ProfessorReportData instance for this section.
+    """
+    from forma.professor_report_data import build_professor_report_data
+    from forma.report_data_loader import compute_class_distributions
+
+    students = []
+    for sid, name, num in student_specs:
+        students.append(
+            _make_student(
+                sid, name, num,
+                0.70, "Proficient", 0.60, "Proficient",
+            )
+        )
+    dists = compute_class_distributions(students)
+    return build_professor_report_data(
+        students=students,
+        distributions=dists,
+        class_name=class_name,
+        week_num=1,
+        subject="Biology",
+        exam_title="Test",
+    )
+
+
+class TestMergeProfessorReportData:
+    """T010: merge_professor_report_data() multi-class merge tests.
+
+    All tests in this class SHOULD FAIL (RED phase) because
+    merge_professor_report_data does not yet exist in professor_report_data.py.
+    """
+
+    def test_merge_two_sections_student_count(self):
+        """Merge 2 reports with 2+3 students → 5 total student_rows."""
+        from forma.professor_report_data import merge_professor_report_data
+
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+            ("A2", "Aaron", "002"),
+        ])
+        report_b = _make_report_for_section("B", [
+            ("B1", "Bob", "003"),
+            ("B2", "Barbara", "004"),
+            ("B3", "Brian", "005"),
+        ])
+
+        merged = merge_professor_report_data([report_a, report_b])
+
+        assert len(merged.student_rows) == 5
+
+    def test_merge_two_sections_class_name(self):
+        """Merged class_name == 'A+B' and section_names == ['A', 'B']."""
+        from forma.professor_report_data import merge_professor_report_data
+
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+        ])
+        report_b = _make_report_for_section("B", [
+            ("B1", "Bob", "002"),
+        ])
+
+        merged = merge_professor_report_data([report_a, report_b])
+
+        assert merged.class_name == "A+B"
+        assert merged.section_names == ["A", "B"]
+
+    def test_merge_student_section_tagging(self):
+        """Each student_row.section is set to the source class_name."""
+        from forma.professor_report_data import merge_professor_report_data
+
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+            ("A2", "Aaron", "002"),
+        ])
+        report_b = _make_report_for_section("B", [
+            ("B1", "Bob", "003"),
+        ])
+
+        merged = merge_professor_report_data([report_a, report_b])
+
+        rows_by_id = {r.student_id: r for r in merged.student_rows}
+        assert rows_by_id["A1"].section == "A"
+        assert rows_by_id["A2"].section == "A"
+        assert rows_by_id["B1"].section == "B"
+
+    def test_merge_is_multi_class(self):
+        """Merged report has is_multi_class=True."""
+        from forma.professor_report_data import merge_professor_report_data
+
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+        ])
+        report_b = _make_report_for_section("B", [
+            ("B1", "Bob", "002"),
+        ])
+
+        merged = merge_professor_report_data([report_a, report_b])
+
+        assert merged.is_multi_class is True
+
+    def test_merge_question_stats_recalculated(self):
+        """Merged QuestionClassStats has n_students reflecting total combined count.
+
+        Specifically, for each question_sn, the sum of level_distribution values
+        equals the total number of student_rows in the merged report.
+        """
+        from forma.professor_report_data import merge_professor_report_data
+
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+            ("A2", "Aaron", "002"),
+        ])
+        report_b = _make_report_for_section("B", [
+            ("B1", "Bob", "003"),
+            ("B2", "Barbara", "004"),
+            ("B3", "Brian", "005"),
+        ])
+
+        merged = merge_professor_report_data([report_a, report_b])
+
+        # Each question's level_distribution should sum to the total student count
+        total_students = len(merged.student_rows)
+        assert total_students == 5
+
+        for qstat in merged.question_stats:
+            level_sum = sum(qstat.level_distribution.values())
+            assert level_sum == total_students, (
+                f"Question {qstat.question_sn} level_distribution sums to "
+                f"{level_sum}, expected {total_students}"
+            )
+
+    def test_merge_at_risk_re_identified(self):
+        """at_risk_students list is present (re-computed) after merge.
+
+        Specifically, n_at_risk and pct_at_risk are set on the merged report
+        and are consistent with the merged student_rows.
+        """
+        from forma.professor_report_data import merge_professor_report_data
+
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+            ("A2", "Aaron", "002"),
+        ])
+        report_b = _make_report_for_section("B", [
+            ("B1", "Bob", "003"),
+        ])
+
+        merged = merge_professor_report_data([report_a, report_b])
+
+        # n_at_risk and pct_at_risk must be present and consistent
+        flagged = sum(1 for r in merged.student_rows if r.is_at_risk)
+        assert merged.n_at_risk == flagged
+        expected_pct = (flagged / len(merged.student_rows)) * 100.0
+        assert merged.pct_at_risk == pytest.approx(expected_pct, abs=1e-6)
+
+    def test_merge_mismatched_question_sets(self):
+        """ADV-006: section A has Q1+Q2, section B has only Q1.
+
+        Merged question_stats should have Q1 with n_students from both,
+        Q2 with n_students from A only (no crash, correct counts).
+        """
+        from forma.professor_report_data import build_professor_report_data, merge_professor_report_data
+        from forma.report_data_loader import StudentReportData, QuestionReportData, compute_class_distributions
+
+        # Section A: students with Q1 + Q2
+        student_a1 = _make_student("A1", "Alice", "001", 0.70, "Proficient", 0.60, "Proficient")
+        students_a = [student_a1]
+        dists_a = compute_class_distributions(students_a)
+        report_a = build_professor_report_data(
+            students=students_a, distributions=dists_a,
+            class_name="A", week_num=1, subject="Bio", exam_title="Test",
+        )
+
+        # Section B: student with only Q1
+        student_b1 = StudentReportData(
+            student_id="B1", real_name="Bob", student_number="003",
+            class_name="B", course_name="Bio", chapter_name="Ch1", week_num=1,
+            questions=[
+                QuestionReportData(
+                    question_sn=1, question_text="Q1", ensemble_score=0.5,
+                    understanding_level="Developing", concept_coverage=0.4,
+                    llm_median_score=2.0, rasch_theta=0.0, misconceptions=[],
+                ),
+            ],
+        )
+        students_b = [student_b1]
+        dists_b = compute_class_distributions(students_b)
+        report_b = build_professor_report_data(
+            students=students_b, distributions=dists_b,
+            class_name="B", week_num=1, subject="Bio", exam_title="Test",
+        )
+
+        # Must not crash
+        merged = merge_professor_report_data([report_a, report_b])
+
+        # Q1 should have level_distribution summing to 2 (both students)
+        q1_stats = next((qs for qs in merged.question_stats if qs.question_sn == 1), None)
+        assert q1_stats is not None
+        assert sum(q1_stats.level_distribution.values()) == 2
+
+        # Q2 should have level_distribution summing to 1 (only student A1)
+        q2_stats = next((qs for qs in merged.question_stats if qs.question_sn == 2), None)
+        assert q2_stats is not None
+        assert sum(q2_stats.level_distribution.values()) == 1
+
+    def test_merge_with_empty_section(self):
+        """ADV-007: merge([report_with_students, report_with_no_students]).
+
+        Should not crash; merged.n_students == len(report_with_students.student_rows).
+        """
+        from forma.professor_report_data import build_professor_report_data, merge_professor_report_data
+        from forma.report_data_loader import compute_class_distributions
+
+        # Section A with students
+        report_a = _make_report_for_section("A", [
+            ("A1", "Alice", "001"),
+            ("A2", "Aaron", "002"),
+        ])
+
+        # Section B with no students — build an empty report manually
+        students_b = []
+        dists_b = compute_class_distributions(students_b)
+        report_b = build_professor_report_data(
+            students=students_b, distributions=dists_b,
+            class_name="B", week_num=1, subject="Bio", exam_title="Test",
+        )
+
+        # Must not crash
+        merged = merge_professor_report_data([report_a, report_b])
+
+        # All students come from section A
+        assert merged.n_students == len(report_a.student_rows)
+        assert len(merged.student_rows) == len(report_a.student_rows)

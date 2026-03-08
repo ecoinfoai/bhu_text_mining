@@ -1998,3 +1998,120 @@ class TestPerformanceBenchmark:
         import os
         assert os.path.exists(pdf_path)
         assert os.path.getsize(pdf_path) > 0
+
+
+# ===========================================================================
+# T024: Hub gap table in _build_question_detail_page()
+# ===========================================================================
+
+
+class TestProfessorReportHubGapTable:
+    """T024: Hub gap table rendered in question detail page when hub_gap_entries is non-empty.
+
+    RED phase: _build_question_detail_page() does not yet render a hub gap table,
+    so both tests must FAIL until the feature is implemented.
+
+    The expected table has 3 columns:
+      개념 | 중심성 | 학생 포함률
+    where 학생 포함률 is formatted as a percentage (e.g., "66.7%").
+    """
+
+    def _make_stats_with_hub_gap(self) -> "QuestionClassStats":
+        """Return a QuestionClassStats with two hub gap entries."""
+        from forma.evaluation_types import HubGapEntry
+
+        stats = _make_question_stats(question_sn=1)
+        stats.hub_gap_entries = [
+            HubGapEntry("폐", 0.8, False, 0.667),
+            HubGapEntry("심장", 0.5, False, 0.333),
+        ]
+        return stats
+
+    def _make_stats_without_hub_gap(self) -> "QuestionClassStats":
+        """Return a QuestionClassStats with an empty hub_gap_entries list."""
+        stats = _make_question_stats(question_sn=1)
+        stats.hub_gap_entries = []
+        return stats
+
+    def _extract_all_text(self, flowables: list) -> str:
+        """Extract all text from Paragraph and Table flowables."""
+        from reportlab.platypus import Table, Paragraph
+
+        texts = []
+        for f in flowables:
+            if isinstance(f, Paragraph) and hasattr(f, "text"):
+                texts.append(str(f.text))
+            elif isinstance(f, Table) and hasattr(f, "_cellvalues"):
+                for row in f._cellvalues:
+                    for cell in row:
+                        if isinstance(cell, str):
+                            texts.append(cell)
+                        elif isinstance(cell, Paragraph) and hasattr(cell, "text"):
+                            texts.append(str(cell.text))
+        return " ".join(texts)
+
+    def test_hub_gap_table_present_when_entries_exist(self, mock_font):
+        """A Table flowable with hub gap data is added when hub_gap_entries is non-empty.
+
+        Expects:
+        - At least one Table flowable in the result
+        - The table contains "66.7%" or "33.3%" (class_inclusion_rate as percentage)
+
+        RED: _build_question_detail_page() does not yet render a hub gap table
+        -> this test FAILS until T024 is implemented.
+        """
+        from reportlab.platypus import Table
+
+        gen = _make_generator_for_question_detail(mock_font)
+        stats = self._make_stats_with_hub_gap()
+        mock_chart_gen = _make_mock_chart_gen_for_detail()
+
+        result = gen._build_question_detail_page(stats, mock_chart_gen)
+
+        tables = [f for f in result if isinstance(f, Table)]
+        assert len(tables) > 0, (
+            "Expected at least one Table flowable in _build_question_detail_page result "
+            "when hub_gap_entries is non-empty, but none was found."
+        )
+
+        all_text = self._extract_all_text(result)
+
+        # class_inclusion_rate=0.667 → "66.7%",  0.333 → "33.3%"
+        has_percentage = "66.7%" in all_text or "33.3%" in all_text
+        assert has_percentage, (
+            "Hub gap table must contain class_inclusion_rate formatted as percentage "
+            "('66.7%' or '33.3%'). "
+            f"All flowable text found: {all_text[:500]!r}"
+        )
+
+    def test_hub_gap_table_absent_when_entries_empty(self, mock_font):
+        """No hub gap Table is added when hub_gap_entries is empty.
+
+        Strategy: build results for both empty and non-empty hub_gap_entries,
+        then confirm the empty case does NOT produce hub gap percentage text.
+
+        RED: Once T024 adds the feature, the 'present' test drives an
+        implementation that only adds the table when entries are non-empty
+        — this 'absent' test verifies the guard condition.
+        """
+        gen = _make_generator_for_question_detail(mock_font)
+        stats_empty = self._make_stats_without_hub_gap()
+        stats_with = self._make_stats_with_hub_gap()
+        mock_chart_gen = _make_mock_chart_gen_for_detail()
+
+        result_empty = gen._build_question_detail_page(stats_empty, mock_chart_gen)
+        result_with = gen._build_question_detail_page(stats_with, mock_chart_gen)
+
+        text_empty = self._extract_all_text(result_empty)
+        text_with = self._extract_all_text(result_with)
+
+        # The empty case must NOT contain percentage strings from hub gap entries
+        assert "66.7%" not in text_empty and "33.3%" not in text_empty, (
+            "When hub_gap_entries is empty, hub gap percentage values must NOT "
+            f"appear in any flowable. Found: {text_empty[:400]!r}"
+        )
+
+        # Sanity: the non-empty case must have the percentages (guarded by other test)
+        assert "66.7%" in text_with or "33.3%" in text_with, (
+            "Sanity check: non-empty hub_gap_entries should produce percentage text."
+        )

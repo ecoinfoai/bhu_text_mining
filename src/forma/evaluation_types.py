@@ -300,6 +300,31 @@ class GraphComparisonResult:
 
 
 @dataclass
+class HubGapEntry:
+    """A hub concept gap entry for a single student-question pair.
+
+    Identifies high-centrality concepts in the master knowledge graph
+    that a student may have missed, along with class-level inclusion rates.
+
+    Args:
+        concept: Concept term from the master knowledge graph.
+        degree_centrality: Degree centrality of this concept in the master graph.
+        student_present: Whether the student mentioned this concept.
+        class_inclusion_rate: Fraction of the class that included this concept.
+
+    Examples:
+        >>> e = HubGapEntry("항상성", 0.75)
+        >>> e.student_present
+        False
+    """
+
+    concept: str
+    degree_centrality: float
+    student_present: bool = False
+    class_inclusion_rate: float = 0.0
+
+
+@dataclass
 class FeedbackResult:
     """LLM-generated coaching feedback based on quantitative data.
 

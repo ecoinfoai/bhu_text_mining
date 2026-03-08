@@ -564,6 +564,22 @@ def _serialize_graph_comparison(
                 "extra_count": len(gcr.extra_edges),
                 "wrong_direction_count": len(gcr.wrong_direction_edges),
                 "fuzzy_matched": gcr.fuzzy_matched,
+                "matched_edges": [
+                    {"subject": e.subject, "relation": e.relation, "object": e.object}
+                    for e in gcr.matched_edges
+                ],
+                "missing_edges": [
+                    {"subject": e.subject, "relation": e.relation, "object": e.object}
+                    for e in gcr.missing_edges
+                ],
+                "extra_edges": [
+                    {"subject": e.subject, "relation": e.relation, "object": e.object}
+                    for e in gcr.extra_edges
+                ],
+                "wrong_direction_edges": [
+                    {"subject": e.subject, "relation": e.relation, "object": e.object}
+                    for e in gcr.wrong_direction_edges
+                ],
             })
         out["students"].append(entry)
     return out
