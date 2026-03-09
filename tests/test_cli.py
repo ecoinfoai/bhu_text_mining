@@ -22,12 +22,12 @@ class TestParseArgs:
         assert args.questions == "q.yaml"
         assert args.num_papers == 10
         assert args.output == "exam.pdf"
-        # 기본값 확인
-        assert args.year == 2025
-        assert args.grade == 1
-        assert args.semester == 2
-        assert args.course == "감염미생물학"
-        assert args.week == 3
+        # 기본값 확인 — 모두 None (YAML 설정이 argparse 기본값을 덮어쓰지 않도록)
+        assert args.year is None
+        assert args.grade is None
+        assert args.semester is None
+        assert args.course is None
+        assert args.week is None
         assert args.form_url is None
         assert args.student_ids is None
         assert args.font_path is None

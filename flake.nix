@@ -16,6 +16,7 @@
           uv
           bun
           mecab
+          jdk  # KoNLPy (network_analysis.py) 의존성 — JPype가 JVM을 필요로 함
         ];
         # python312 removed from local shell — CI matrix covers 3.12 testing.
 
@@ -31,6 +32,9 @@
             export MECABRC=$(mktemp)
             echo "dicdir = $DICDIR" > "$MECABRC"
           fi
+
+          # KoNLPy / JPype: JAVA_HOME 명시 설정
+          export JAVA_HOME="${pkgs.jdk}"
         '';
 
         # Provide libstdc++ and Qt5/zlib for PyQt5 via pip

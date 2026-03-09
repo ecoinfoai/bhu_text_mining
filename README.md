@@ -13,10 +13,23 @@
   - Layer 4: 앙상블 점수 + PDF 리포트
 - **일괄 평가** (`forma-eval-batch`) — 다반 동시 평가
 
+## 요구사항
+
+- **Java (JDK)** — 한국어 형태소 분석 (`network_analysis.py`)에 사용하는 KoNLPy가 JPype를 통해 JVM을 필요로 합니다.
+
+  | 환경 | 설치 방법 |
+  |------|-----------|
+  | NixOS (flake) | `flake.nix`에 `jdk` 포함됨 — `nix develop`으로 자동 설치 |
+  | Ubuntu/Debian | `sudo apt install default-jdk` |
+  | macOS | `brew install openjdk` |
+
+  JVM 없이 실행하면 `JVMNotFoundException` 오류가 발생합니다.
+
 ## 설치
 
 ```bash
-# 개발 환경
+# 개발 환경 (NixOS: 먼저 nix develop으로 JDK 포함 셸 진입)
+nix develop
 uv sync --extra dev
 
 # 전역 CLI 설치
