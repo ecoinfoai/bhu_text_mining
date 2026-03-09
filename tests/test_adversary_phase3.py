@@ -143,27 +143,71 @@ class TestEdgeCaseHunter:
         assert agg.edges == []
         assert agg.total_students == 5
 
-    def test_student_has_edge_in_both_matched_and_wrong(self):
-        """Edge case: student has same edge in BOTH matched AND wrong_direction.
+    def test_student_has_edge_in_both_matched_and_wrong_properly_reversed(self):
+        """ATTACK: student has master edge in matched AND reversed edge in wrong_direction.
 
-        Spec says matched takes priority (correct). This tests the continue
-        in the implementation.
+        This is the true double-count scenario. The `continue` at line 106
+        must prevent the wrong_direction check from also counting this student.
+
+        Master: A->R->B
+        Student matched: A->R->B (correct match)
+        Student wrong_direction: B->R->A (reversed — would match wrong check)
+
+        Without the `continue`, this student would be counted as BOTH correct
+        AND error for the same edge, violating the invariant.
         """
         master = [TripletEdge("A", "R", "B")]
-        # Student has the edge in both matched and wrong_direction
+        # Student has BOTH the correct edge AND the reversed edge
         results = [
             _make_comparison_result(
                 "S001", 1,
                 matched=[TripletEdge("A", "R", "B")],
-                wrong_direction=[TripletEdge("A", "R", "B")],
+                wrong_direction=[TripletEdge("B", "R", "A")],
             ),
         ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         edge = agg.edges[0]
-        # Should count as correct due to matched check first
+        # Must count as correct only (continue skips wrong_direction check)
         assert edge.correct_count == 1
         assert edge.error_count == 0
         assert edge.missing_count == 0
+        # Invariant must hold
+        assert edge.correct_count + edge.error_count + edge.missing_count == edge.total_students
+
+    def test_multiple_students_mixed_matched_and_wrong(self):
+        """ATTACK: Multiple students with various combinations of matched/wrong.
+
+        Ensures the continue-based logic correctly handles each student
+        independently and doesn't carry state between students.
+        """
+        master = [TripletEdge("A", "R", "B")]
+        results = [
+            # S001: correct (matched)
+            _make_comparison_result(
+                "S001", 1,
+                matched=[TripletEdge("A", "R", "B")],
+            ),
+            # S002: error (wrong direction only)
+            _make_comparison_result(
+                "S002", 1,
+                wrong_direction=[TripletEdge("B", "R", "A")],
+            ),
+            # S003: correct + wrong (both present — matched takes priority)
+            _make_comparison_result(
+                "S003", 1,
+                matched=[TripletEdge("A", "R", "B")],
+                wrong_direction=[TripletEdge("B", "R", "A")],
+            ),
+            # S004: missing (neither matched nor wrong)
+            _make_comparison_result("S004", 1),
+        ]
+        agg = build_class_knowledge_aggregate(master, results, question_sn=1)
+        edge = agg.edges[0]
+        assert edge.correct_count == 2   # S001 + S003
+        assert edge.error_count == 1     # S002
+        assert edge.missing_count == 1   # S004
+        assert edge.total_students == 4
+        assert edge.correct_ratio == pytest.approx(0.5)
 
     def test_many_master_edges_few_students(self):
         """100 master edges, 1 student -> 100 AggregateEdges, each count 0 or 1."""
@@ -256,6 +300,41 @@ class TestTypeSystemAntagonist:
         ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         assert isinstance(agg.edges[0].correct_ratio, float)
+
+    def test_total_students_1_all_error_ratio_zero(self):
+        """ATTACK (team-lead vector): total_students=1, single student all error.
+
+        correct_ratio must be exactly 0.0 (not NaN, not negative).
+        """
+        master = [TripletEdge("A", "R", "B")]
+        results = [
+            _make_comparison_result(
+                "S001", 1,
+                wrong_direction=[TripletEdge("B", "R", "A")],
+            ),
+        ]
+        agg = build_class_knowledge_aggregate(master, results, question_sn=1)
+        edge = agg.edges[0]
+        assert edge.total_students == 1
+        assert edge.correct_count == 0
+        assert edge.error_count == 1
+        assert edge.missing_count == 0
+        assert edge.correct_ratio == pytest.approx(0.0)
+        assert isinstance(edge.correct_ratio, float)
+        assert not math.isnan(edge.correct_ratio)
+        assert not math.isinf(edge.correct_ratio)
+
+    def test_total_students_1_all_missing_ratio_zero(self):
+        """total_students=1, single student missing everything -> ratio 0.0."""
+        master = [TripletEdge("A", "R", "B")]
+        results = [_make_comparison_result("S001", 1)]
+        agg = build_class_knowledge_aggregate(master, results, question_sn=1)
+        edge = agg.edges[0]
+        assert edge.total_students == 1
+        assert edge.correct_count == 0
+        assert edge.error_count == 0
+        assert edge.missing_count == 1
+        assert edge.correct_ratio == pytest.approx(0.0)
 
     def test_correct_ratio_never_nan(self):
         """correct_ratio must never be NaN."""
