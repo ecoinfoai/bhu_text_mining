@@ -172,6 +172,42 @@ class ProfessorReportData:
     emphasis_map: InstructionalEmphasisMap | None = None
     class_emphasis_maps: dict[str, InstructionalEmphasisMap] | None = None
     class_knowledge_aggregates: list[ClassKnowledgeAggregate] = field(default_factory=list)
+    risk_movement: "RiskMovement | None" = None
+
+
+@dataclass
+class RiskMovement:
+    """Risk group movement between weeks.
+
+    Args:
+        newly_at_risk: Students newly at risk this week (sorted).
+        exited_risk: Students who exited risk this week (sorted).
+        persistent_risk: Students at risk in both weeks (sorted).
+    """
+
+    newly_at_risk: list[str] = field(default_factory=list)
+    exited_risk: list[str] = field(default_factory=list)
+    persistent_risk: list[str] = field(default_factory=list)
+
+
+def compute_risk_movement(
+    current_risk: set[str],
+    previous_risk: set[str],
+) -> RiskMovement:
+    """Compute risk movement between current and previous week.
+
+    Args:
+        current_risk: Set of student IDs currently at risk.
+        previous_risk: Set of student IDs at risk in the previous week.
+
+    Returns:
+        RiskMovement with sorted lists.
+    """
+    return RiskMovement(
+        newly_at_risk=sorted(current_risk - previous_risk),
+        exited_risk=sorted(previous_risk - current_risk),
+        persistent_risk=sorted(current_risk & previous_risk),
+    )
 
 
 # ---------------------------------------------------------------------------

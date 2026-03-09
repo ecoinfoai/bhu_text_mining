@@ -1456,3 +1456,137 @@ class TestFilenameEdgeCases:
 
         result = _sanitize_filename("홍길동")
         assert result == "홍길동"
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: US2 — T016: WeeklyDelta + compute_weekly_delta tests
+# ---------------------------------------------------------------------------
+
+
+class TestWeeklyDelta:
+    """T016: WeeklyDelta dataclass and compute_weekly_delta() logic."""
+
+    def test_delta_up_symbol(self, tmp_path):
+        """delta > 0.02 should produce '↑' symbol."""
+        from forma.report_data_loader import WeeklyDelta, compute_weekly_delta
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.50}, tier_level=1, tier_label="D",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=2, question_sn=1,
+            scores={"ensemble_score": 0.70}, tier_level=2, tier_label="P",
+        ))
+
+        delta = compute_weekly_delta("s001", 2, 0.70, store, "ensemble_score")
+        assert isinstance(delta, WeeklyDelta)
+        assert delta.current_score == 0.70
+        assert delta.previous_score == 0.50
+        assert abs(delta.delta - 0.20) < 1e-9
+        assert delta.delta_symbol == "↑"
+
+    def test_delta_down_symbol(self, tmp_path):
+        """delta < -0.02 should produce '↓' symbol."""
+        from forma.report_data_loader import compute_weekly_delta
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.80}, tier_level=3, tier_label="A",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=2, question_sn=1,
+            scores={"ensemble_score": 0.60}, tier_level=2, tier_label="P",
+        ))
+
+        delta = compute_weekly_delta("s001", 2, 0.60, store, "ensemble_score")
+        assert delta.delta_symbol == "↓"
+        assert delta.delta < 0
+
+    def test_delta_same_symbol(self, tmp_path):
+        """abs(delta) <= 0.02 should produce '─' symbol."""
+        from forma.report_data_loader import compute_weekly_delta
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.70}, tier_level=2, tier_label="P",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=2, question_sn=1,
+            scores={"ensemble_score": 0.71}, tier_level=2, tier_label="P",
+        ))
+
+        delta = compute_weekly_delta("s001", 2, 0.71, store, "ensemble_score")
+        assert delta.delta_symbol == "─"
+
+    def test_delta_new_symbol(self, tmp_path):
+        """First week (no previous data) should produce 'NEW' symbol."""
+        from forma.report_data_loader import compute_weekly_delta
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.60}, tier_level=2, tier_label="P",
+        ))
+
+        delta = compute_weekly_delta("s001", 1, 0.60, store, "ensemble_score")
+        assert delta.delta_symbol == "NEW"
+        assert delta.previous_score is None
+        assert delta.delta is None
+
+    def test_non_contiguous_weeks(self, tmp_path):
+        """Non-contiguous weeks: compare with closest previous that has data."""
+        from forma.report_data_loader import compute_weekly_delta
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"score": 0.40}, tier_level=1, tier_label="B",
+        ))
+        # Week 2 skipped
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=5, question_sn=1,
+            scores={"score": 0.80}, tier_level=3, tier_label="A",
+        ))
+
+        delta = compute_weekly_delta("s001", 5, 0.80, store, "score")
+        assert delta.previous_score == 0.40
+        assert delta.delta_symbol == "↑"
+
+    def test_threshold_boundary_exact(self, tmp_path):
+        """delta == 0.02 exactly should produce '─'."""
+        from forma.report_data_loader import compute_weekly_delta
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"score": 0.50}, tier_level=1, tier_label="D",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=2, question_sn=1,
+            scores={"score": 0.52}, tier_level=1, tier_label="D",
+        ))
+
+        delta = compute_weekly_delta("s001", 2, 0.52, store, "score")
+        assert delta.delta_symbol == "─"

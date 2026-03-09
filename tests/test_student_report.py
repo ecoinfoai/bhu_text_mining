@@ -885,3 +885,229 @@ class TestStudentReportHubGapTable:
         assert "폐" in text_with or "심장" in text_with or "개념" in text_with, (
             "Sanity check: non-empty hub_gap_entries should produce hub gap table content."
         )
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: US2 — T018/T019: Student report delta display + backward compat
+# ---------------------------------------------------------------------------
+
+
+class TestStudentReportDeltaDisplay:
+    """T018: Student report shows delta symbols for scores."""
+
+    def test_generate_pdf_accepts_weekly_deltas(self, tmp_path):
+        """StudentPDFReportGenerator.generate_pdf should accept weekly_deltas kwarg."""
+        from forma.student_report import StudentPDFReportGenerator
+        from forma.report_data_loader import WeeklyDelta
+
+        student_data = _make_student()
+        dists = ClassDistributions(
+            ensemble_scores={1: [0.3, 0.5, 0.7]},
+            concept_coverages={1: [0.4, 0.6, 0.8]},
+            llm_scores={1: [1.0, 2.0, 3.0]},
+        )
+        deltas = {
+            "overall": WeeklyDelta(
+                current_score=0.65, previous_score=0.50,
+                delta=0.15, delta_symbol="↑",
+            ),
+            1: WeeklyDelta(
+                current_score=0.26, previous_score=0.20,
+                delta=0.06, delta_symbol="↑",
+            ),
+        }
+
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            student_data, dists, str(tmp_path),
+            weekly_deltas=deltas,
+        )
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_generate_pdf_accepts_trajectory_chart(self, tmp_path):
+        """StudentPDFReportGenerator.generate_pdf should accept trajectory_chart kwarg."""
+        import io
+        from forma.student_report import StudentPDFReportGenerator
+
+        student_data = _make_student()
+        dists = ClassDistributions(
+            ensemble_scores={1: [0.3, 0.5, 0.7]},
+            concept_coverages={1: [0.4, 0.6, 0.8]},
+            llm_scores={1: [1.0, 2.0, 3.0]},
+        )
+
+        # Create a minimal PNG for trajectory chart
+        import struct, zlib
+        def _make_tiny_png():
+            width, height = 1, 1
+            raw_data = b'\x00\xff\x00\x00'
+            compressed = zlib.compress(raw_data)
+            ihdr = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
+            chunks = b''
+            for chunk_type, data in [(b'IHDR', ihdr), (b'IDAT', compressed), (b'IEND', b'')]:
+                crc = zlib.crc32(chunk_type + data) & 0xffffffff
+                chunks += struct.pack('>I', len(data)) + chunk_type + data + struct.pack('>I', crc)
+            return b'\x89PNG\r\n\x1a\n' + chunks
+
+        chart_buf = io.BytesIO(_make_tiny_png())
+
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            student_data, dists, str(tmp_path),
+            trajectory_chart=chart_buf,
+        )
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+
+class TestStudentReportBackwardCompat:
+    """T019: No longitudinal store → report identical to v0.7.x."""
+
+    def test_no_deltas_no_chart_still_works(self, tmp_path):
+        """Without weekly_deltas or trajectory_chart, generate_pdf works as before."""
+        from forma.student_report import StudentPDFReportGenerator
+
+        student_data = _make_student()
+        dists = ClassDistributions(
+            ensemble_scores={1: [0.3, 0.5, 0.7]},
+            concept_coverages={1: [0.4, 0.6, 0.8]},
+            llm_scores={1: [1.0, 2.0, 3.0]},
+        )
+
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(student_data, dists, str(tmp_path))
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_signature_unchanged(self):
+        """generate_pdf signature should still accept old positional args."""
+        import inspect
+        from forma.student_report import StudentPDFReportGenerator
+
+        sig = inspect.signature(StudentPDFReportGenerator.generate_pdf)
+        params = list(sig.parameters.keys())
+        # Must have: self, student_data, distributions, output_dir
+        assert "student_data" in params
+        assert "output_dir" in params
+        assert "distributions" in params
+
+
+# ===========================================================================
+# T026-T028: Backward compatibility for feedback section parsing
+# ===========================================================================
+
+
+class TestParseFeedbackSectionsBackwardCompat:
+    """T026-T028: Backward compatibility for feedback section parsing."""
+
+    def test_parse_new_section_names(self):
+        """T026: Correctly parse new section names."""
+        from forma.student_report import parse_feedback_sections
+
+        text = (
+            "[현재 상태] 핵심 개념에 대한 이해가 잘 드러납니다. "
+            "[원인] 개념 간 관계를 정확하게 파악하고 있습니다. "
+            "[학생에게 권하는 사항] 심화 학습을 권합니다."
+        )
+        result = parse_feedback_sections(text)
+        assert "현재 상태" in result
+        assert "원인" in result
+        assert "학생에게 권하는 사항" in result
+
+    def test_parse_old_section_names(self):
+        """T027: Still correctly parse old section names (backward compat)."""
+        from forma.student_report import parse_feedback_sections
+
+        text = (
+            "[평가 요약] 기존 형식의 피드백입니다. "
+            "[분석 결과] 분석 내용입니다. "
+            "[학습 제안] 학습 제안 내용입니다."
+        )
+        result = parse_feedback_sections(text)
+        assert "평가 요약" in result
+        assert "분석 결과" in result
+        assert "학습 제안" in result
+
+    def test_parse_mixed_section_names(self):
+        """T028: Handle mixed old+new section names in single text."""
+        from forma.student_report import parse_feedback_sections
+
+        text = (
+            "[현재 상태] 새 형식 첫 섹션. "
+            "[분석 결과] 구 형식 두번째 섹션. "
+            "[학생에게 권하는 사항] 새 형식 세번째 섹션."
+        )
+        result = parse_feedback_sections(text)
+        assert "현재 상태" in result
+        assert "분석 결과" in result
+        assert "학생에게 권하는 사항" in result
+
+
+# ===========================================================================
+# T032: Backward compatibility integration test (feedback → parse → render)
+# ===========================================================================
+
+
+class TestFeedbackParseIntegration:
+    """T032: End-to-end backward compat — new-format feedback parses correctly."""
+
+    def test_new_format_feedback_parses_all_sections(self):
+        """Feedback in new [현재 상태]/[원인]/[학생에게 권하는 사항] format
+        parses into exactly those three section keys."""
+        from forma.student_report import parse_feedback_sections
+
+        # Simulates LLM output in the new format
+        feedback = (
+            "[현재 상태] 항상성 개념의 기본적인 이해를 보여주고 있습니다. "
+            "체온 조절 메커니즘에 대한 서술이 정확합니다.\n"
+            "[원인] 음성되먹임 과정의 세부 단계에 대한 추가 학습이 필요합니다. "
+            "수용기와 효과기의 역할을 구분하는 연습이 도움이 될 것입니다.\n"
+            "[학생에게 권하는 사항] 교재 3장의 그림 3-5를 다시 살펴보며 "
+            "되먹임 경로를 정리해 보세요. 각 구성요소의 역할을 자신의 말로 설명하는 연습을 권합니다."
+        )
+        result = parse_feedback_sections(feedback)
+        assert len(result) == 3
+        assert "현재 상태" in result
+        assert "원인" in result
+        assert "학생에게 권하는 사항" in result
+        # Verify content is non-empty
+        for section_name, content in result.items():
+            assert len(content.strip()) > 0, f"Section '{section_name}' is empty"
+
+    def test_old_format_feedback_still_parses(self):
+        """Feedback in old [평가 요약]/[분석 결과]/[학습 제안] format
+        still parses correctly (no regression)."""
+        from forma.student_report import parse_feedback_sections
+
+        feedback = (
+            "[평가 요약] 항상성 개념 부분 이해.\n"
+            "[분석 결과] 세부 기전 설명 부족.\n"
+            "[학습 제안] 교과서 3장 복습 권장."
+        )
+        result = parse_feedback_sections(feedback)
+        assert "평가 요약" in result
+        assert "분석 결과" in result
+        assert "학습 제안" in result
+
+    def test_new_format_feedback_renders_in_pdf(self, tmp_path):
+        """New-format feedback renders in PDF without error."""
+        from forma.student_report import StudentPDFReportGenerator
+
+        new_feedback = (
+            "[현재 상태] 핵심 개념에 대한 이해가 잘 드러납니다. "
+            "기본적인 개념 구조를 파악하고 있습니다.\n"
+            "[원인] 개념 간 관계를 정확하게 파악하고 있습니다. "
+            "일부 세부 메커니즘에 대한 보완이 필요합니다.\n"
+            "[학생에게 권하는 사항] 심화 학습을 권합니다. "
+            "관련 사례를 탐색해 보세요."
+        )
+        student = _make_student()
+        # Override question feedback to use new format
+        student.questions[0] = _make_question(feedback_text=new_feedback)
+
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(student, dists, str(tmp_path))
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0

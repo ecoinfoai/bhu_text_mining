@@ -1,0 +1,394 @@
+"""Longitudinal summary PDF report generator using ReportLab Platypus.
+
+Builds A4 PDF reports from pre-computed LongitudinalSummaryData.
+Each PDF contains a cover page, class trend section, trajectory section,
+heatmap section, risk analysis section, and concept mastery section.
+No LLM API calls are made during PDF generation.
+"""
+
+from __future__ import annotations
+
+import io
+import logging
+import os
+import struct
+import xml.sax.saxutils
+import zlib
+from typing import Optional
+
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib.colors import HexColor
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import (
+    Image, PageBreak, Paragraph, SimpleDocTemplate,
+    Spacer, Table, TableStyle,
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.fonts import addMapping
+
+from forma.font_utils import find_korean_font
+from forma.longitudinal_report_data import LongitudinalSummaryData
+
+logger = logging.getLogger(__name__)
+
+
+def _esc(text: str) -> str:
+    """Escape text for safe use in ReportLab Paragraph XML."""
+    return xml.sax.saxutils.escape(str(text))
+
+
+def _minimal_png_bytes() -> bytes:
+    """Return a 1x1 RGB PNG as bytes — safe fallback for Image()."""
+    def _chunk(type_: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + type_
+            + data
+            + struct.pack(">I", zlib.crc32(type_ + data) & 0xFFFFFFFF)
+        )
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    idat = zlib.compress(b"\x00\xff\x00\x00")
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _chunk(b"IHDR", ihdr)
+        + _chunk(b"IDAT", idat)
+        + _chunk(b"IEND", b"")
+    )
+
+
+_FALLBACK_PNG: bytes = _minimal_png_bytes()
+
+
+class LongitudinalPDFReportGenerator:
+    """Generate longitudinal summary PDF reports using ReportLab Platypus.
+
+    Args:
+        font_path: Path to Korean .ttf font. Auto-detected if None.
+        dpi: Resolution for chart images (default 150).
+    """
+
+    def __init__(self, font_path: Optional[str] = None, dpi: int = 150) -> None:
+        if font_path is None:
+            font_path = find_korean_font()
+        if not os.path.exists(font_path):
+            raise FileNotFoundError(f"Korean font not found: {font_path}")
+
+        self._font_path = font_path
+        self._dpi = dpi
+
+        # Register fonts
+        pdfmetrics.registerFont(TTFont("NanumGothic", font_path))
+        bold_path = font_path.replace(".ttf", "Bold.ttf")
+        if os.path.exists(bold_path):
+            pdfmetrics.registerFont(TTFont("NanumGothicBold", bold_path))
+        else:
+            pdfmetrics.registerFont(TTFont("NanumGothicBold", font_path))
+
+        addMapping("NanumGothic", 0, 0, "NanumGothic")
+        addMapping("NanumGothic", 1, 0, "NanumGothicBold")
+        addMapping("NanumGothic", 0, 1, "NanumGothic")
+        addMapping("NanumGothic", 1, 1, "NanumGothicBold")
+
+        # Define paragraph styles
+        self._styles = getSampleStyleSheet()
+        self._styles.add(ParagraphStyle(
+            "LongTitle",
+            parent=self._styles["Title"],
+            fontName="NanumGothicBold",
+            fontSize=18,
+            spaceAfter=12,
+        ))
+        self._styles.add(ParagraphStyle(
+            "LongSection",
+            parent=self._styles["Heading2"],
+            fontName="NanumGothicBold",
+            fontSize=14,
+            spaceBefore=12,
+            spaceAfter=6,
+        ))
+        self._styles.add(ParagraphStyle(
+            "LongBody",
+            parent=self._styles["Normal"],
+            fontName="NanumGothic",
+            fontSize=10,
+            leading=14,
+            spaceAfter=4,
+        ))
+        self._styles.add(ParagraphStyle(
+            "LongTableHeader",
+            parent=self._styles["Normal"],
+            fontName="NanumGothicBold",
+            fontSize=8,
+            textColor=HexColor("#FFFFFF"),
+            alignment=1,
+        ))
+        self._styles.add(ParagraphStyle(
+            "LongTableData",
+            parent=self._styles["Normal"],
+            fontName="NanumGothic",
+            fontSize=8,
+            alignment=1,
+        ))
+
+    def generate(self, summary_data: LongitudinalSummaryData, output_path: str) -> str:
+        """Generate the longitudinal summary report PDF.
+
+        Args:
+            summary_data: Complete summary data.
+            output_path: Output path for the PDF file.
+
+        Returns:
+            Absolute path to generated PDF file.
+        """
+        story: list = []
+        story.extend(self._build_cover_page(summary_data))
+        story.extend(self._build_class_trend_section(summary_data))
+        story.extend(self._build_trajectory_section(summary_data))
+        story.extend(self._build_heatmap_section(summary_data))
+        story.extend(self._build_risk_analysis_section(summary_data))
+        story.extend(self._build_concept_mastery_section(summary_data))
+
+        doc = SimpleDocTemplate(
+            output_path,
+            pagesize=A4,
+            leftMargin=15 * mm,
+            rightMargin=15 * mm,
+            topMargin=20 * mm,
+            bottomMargin=20 * mm,
+        )
+        doc.build(story)
+        return os.path.abspath(output_path)
+
+    def _build_cover_page(self, data: LongitudinalSummaryData) -> list:
+        """Build cover page with report title and summary info."""
+        story = []
+        story.append(Spacer(1, 60 * mm))
+        story.append(Paragraph(
+            _esc(f"종단 분석 요약 보고서"),
+            self._styles["LongTitle"],
+        ))
+        story.append(Spacer(1, 10 * mm))
+
+        weeks_str = ", ".join(str(w) for w in data.period_weeks)
+        info_lines = [
+            f"학급: {_esc(data.class_name)}",
+            f"분석 기간: {_esc(weeks_str)} 주차",
+            f"전체 학생 수: {data.total_students}명",
+            f"지속 위험군: {len(data.persistent_risk_students)}명",
+        ]
+        for line in info_lines:
+            story.append(Paragraph(line, self._styles["LongBody"]))
+            story.append(Spacer(1, 2 * mm))
+
+        story.append(PageBreak())
+        return story
+
+    def _build_class_trend_section(self, data: LongitudinalSummaryData) -> list:
+        """Build class achievement trend section with weekly averages table."""
+        story = []
+        story.append(Paragraph("1. 학급 성취도 추이", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        if not data.class_weekly_averages:
+            story.append(Paragraph("데이터가 없습니다.", self._styles["LongBody"]))
+            return story
+
+        # Weekly averages table
+        header = [Paragraph("주차", self._styles["LongTableHeader"]),
+                  Paragraph("학급 평균", self._styles["LongTableHeader"])]
+        rows = [header]
+        for week in data.period_weeks:
+            avg = data.class_weekly_averages.get(week)
+            avg_str = f"{avg:.3f}" if avg is not None else "—"
+            rows.append([
+                Paragraph(f"W{week}", self._styles["LongTableData"]),
+                Paragraph(avg_str, self._styles["LongTableData"]),
+            ])
+
+        table = Table(rows, colWidths=[40 * mm, 60 * mm])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_trajectory_section(self, data: LongitudinalSummaryData) -> list:
+        """Build student trajectory line chart section."""
+        story = []
+        story.append(Paragraph("2. 학생별 점수 궤적", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        from forma.longitudinal_report_charts import build_trajectory_line_chart
+        try:
+            chart_buf = build_trajectory_line_chart(
+                data, font_path=self._font_path, dpi=self._dpi,
+            )
+            story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
+        except Exception as exc:
+            logger.warning("궤적 차트 생성 실패: %s", exc)
+            story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
+
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            "빨강 = 지속 위험군, 회색 = 일반 학생, 파랑 = 학급 평균",
+            self._styles["LongBody"],
+        ))
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_heatmap_section(self, data: LongitudinalSummaryData) -> list:
+        """Build student x week heatmap section."""
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph("3. 학생×주차 히트맵", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        from forma.longitudinal_report_charts import build_class_week_heatmap
+        try:
+            chart_buf = build_class_week_heatmap(
+                data, font_path=self._font_path, dpi=self._dpi,
+            )
+            story.append(Image(chart_buf, width=160 * mm, height=120 * mm))
+        except Exception as exc:
+            logger.warning("히트맵 생성 실패: %s", exc)
+            story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
+
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            "최종 주차 점수 기준 정렬. 빨강(낮음) → 초록(높음). 회색 = 결측.",
+            self._styles["LongBody"],
+        ))
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_risk_analysis_section(self, data: LongitudinalSummaryData) -> list:
+        """Build persistent risk student analysis section."""
+        story = []
+        story.append(Paragraph("4. 지속 위험군 분석", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        n_persistent = len(data.persistent_risk_students)
+        story.append(Paragraph(
+            f"전 기간 지속 위험군: <b>{n_persistent}명</b>",
+            self._styles["LongBody"],
+        ))
+        story.append(Spacer(1, 2 * mm))
+
+        if data.persistent_risk_students:
+            # Risk student table
+            header = [
+                Paragraph("학생", self._styles["LongTableHeader"]),
+                Paragraph("최종 주차 점수", self._styles["LongTableHeader"]),
+                Paragraph("추세(기울기)", self._styles["LongTableHeader"]),
+            ]
+            rows = [header]
+
+            for sid in data.persistent_risk_students:
+                traj = next(
+                    (t for t in data.student_trajectories if t.student_id == sid),
+                    None,
+                )
+                if traj is None:
+                    continue
+
+                # Get final week score
+                final_score = "—"
+                if data.period_weeks and traj.weekly_scores:
+                    for w in reversed(data.period_weeks):
+                        if w in traj.weekly_scores:
+                            final_score = f"{traj.weekly_scores[w]:.3f}"
+                            break
+
+                trend_str = f"{traj.overall_trend:+.4f}"
+
+                rows.append([
+                    Paragraph(_esc(sid), self._styles["LongTableData"]),
+                    Paragraph(final_score, self._styles["LongTableData"]),
+                    Paragraph(trend_str, self._styles["LongTableData"]),
+                ])
+
+            table = Table(rows, colWidths=[50 * mm, 50 * mm, 50 * mm])
+            table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#C62828")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]))
+            story.append(table)
+        else:
+            story.append(Paragraph(
+                "지속 위험군 학생이 없습니다.",
+                self._styles["LongBody"],
+            ))
+
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_concept_mastery_section(self, data: LongitudinalSummaryData) -> list:
+        """Build concept mastery change section with chart and table."""
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph("5. 개념별 마스터리 변화", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        if not data.concept_mastery_changes:
+            story.append(Paragraph(
+                "개념 마스터리 데이터가 없습니다.",
+                self._styles["LongBody"],
+            ))
+            return story
+
+        # Bar chart
+        from forma.longitudinal_report_charts import build_concept_mastery_bar_chart
+        try:
+            chart_buf = build_concept_mastery_bar_chart(
+                data, font_path=self._font_path, dpi=self._dpi,
+            )
+            n = len(data.concept_mastery_changes)
+            chart_height = max(60, n * 15)
+            story.append(Image(chart_buf, width=160 * mm,
+                               height=min(chart_height, 200) * mm))
+        except Exception as exc:
+            logger.warning("개념 마스터리 차트 생성 실패: %s", exc)
+            story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
+
+        story.append(Spacer(1, 5 * mm))
+
+        # Detail table
+        header = [
+            Paragraph("개념", self._styles["LongTableHeader"]),
+            Paragraph("첫 주차", self._styles["LongTableHeader"]),
+            Paragraph("마지막 주차", self._styles["LongTableHeader"]),
+            Paragraph("변화(Δ)", self._styles["LongTableHeader"]),
+        ]
+        rows = [header]
+        for c in data.concept_mastery_changes:
+            delta_str = f"{c.delta:+.3f}"
+            rows.append([
+                Paragraph(_esc(c.concept), self._styles["LongTableData"]),
+                Paragraph(f"{c.week_start_ratio:.3f}", self._styles["LongTableData"]),
+                Paragraph(f"{c.week_end_ratio:.3f}", self._styles["LongTableData"]),
+                Paragraph(delta_str, self._styles["LongTableData"]),
+            ])
+
+        table = Table(rows, colWidths=[50 * mm, 35 * mm, 35 * mm, 35 * mm])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 5 * mm))
+        return story

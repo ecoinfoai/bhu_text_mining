@@ -10,10 +10,14 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
+from typing import Optional, TYPE_CHECKING
 
 import yaml
 
 from forma.evaluation_types import TripletEdge
+
+if TYPE_CHECKING:
+    from forma.longitudinal_store import LongitudinalStore
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +124,68 @@ class ClassDistributions:
         default_factory=dict,
     )
     overall_ensemble: list[float] = field(default_factory=list)
+
+
+@dataclass
+class WeeklyDelta:
+    """Change information compared to the previous week.
+
+    Args:
+        current_score: Current week's score.
+        previous_score: Previous week's score (None if first week).
+        delta: Score difference (None if first week).
+        delta_symbol: Direction symbol: "↑", "↓", "─", or "NEW".
+    """
+
+    current_score: float
+    previous_score: Optional[float]
+    delta: Optional[float]
+    delta_symbol: str
+
+
+def compute_weekly_delta(
+    student_id: str,
+    current_week: int,
+    current_score: float,
+    store: LongitudinalStore,
+    metric: str,
+) -> WeeklyDelta:
+    """Compute the delta between current week and the previous available week.
+
+    The "previous week" is the most recent week with data before current_week.
+    Threshold: |delta| <= 0.02 → "─", otherwise "↑" or "↓".
+    First week (no previous) → "NEW".
+    """
+    trajectory = store.get_student_trajectory(student_id, metric)
+    # Find the most recent week strictly before current_week
+    previous_score = None
+    for wk, val in reversed(trajectory):
+        if wk < current_week:
+            previous_score = val
+            break
+
+    if previous_score is None:
+        return WeeklyDelta(
+            current_score=current_score,
+            previous_score=None,
+            delta=None,
+            delta_symbol="NEW",
+        )
+
+    delta = current_score - previous_score
+    if abs(delta) <= 0.02 + 1e-9:
+        symbol = "─"
+    elif delta > 0:
+        symbol = "↑"
+    else:
+        symbol = "↓"
+
+    return WeeklyDelta(
+        current_score=current_score,
+        previous_score=previous_score,
+        delta=delta,
+        delta_symbol=symbol,
+    )
 
 
 # ---------------------------------------------------------------------------

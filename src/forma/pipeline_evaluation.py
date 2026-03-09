@@ -1061,7 +1061,8 @@ def run_evaluation_pipeline(
     # Longitudinal data
     if longitudinal_store:
         _save_longitudinal(
-            longitudinal_store, ensemble_results, graph_results, config_data
+            longitudinal_store, ensemble_results, graph_results, config_data,
+            layer1_results,
         )
 
     # PDF reports
@@ -1114,29 +1115,34 @@ def _save_longitudinal(
     ensemble_results: dict,
     graph_results: Optional[dict],
     config_data: dict,
+    layer1_results: dict | None = None,
 ) -> None:
-    """Save results to longitudinal store."""
+    """Save results to longitudinal store with v2 fields."""
     try:
-        from forma.evaluation_types import LongitudinalRecord
-        from forma.longitudinal_store import LongitudinalStore
+        from forma.longitudinal_store import LongitudinalStore, snapshot_from_evaluation
 
         store = LongitudinalStore(store_path)
         store.load()
 
         week = config_data.get("longitudinal", {}).get("week", 1)
+        exam_file = config_data.get("config_path", "")
 
-        for student_id, q_results in ensemble_results.items():
-            for qsn, er in q_results.items():
-                scores = dict(er.component_scores)
-                record = LongitudinalRecord(
-                    student_id=student_id,
-                    week=week,
-                    question_sn=qsn,
-                    scores=scores,
-                    tier_level=0,
-                    tier_label=er.understanding_level,
-                )
-                store.add_record(record)
+        # Flatten nested dict {student_id: {qsn: [ConceptMatchResult]}} to flat list
+        flat_layer1: list = []
+        if layer1_results:
+            for sid_map in layer1_results.values():
+                for q_list in sid_map.values():
+                    flat_layer1.extend(q_list)
+
+        snapshot_from_evaluation(
+            store=store,
+            ensemble_results=ensemble_results,
+            graph_metric_results={},
+            graph_comparison_results=graph_results or {},
+            layer1_results=flat_layer1,
+            week=week,
+            exam_file=exam_file,
+        )
 
         store.save()
         print(f"[pipeline] Longitudinal data saved to {store_path}")

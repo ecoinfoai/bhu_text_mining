@@ -353,6 +353,49 @@ class ReportChartGenerator:
         fig.tight_layout()
         return self._save_fig(fig)
 
+    def build_trajectory_bar_chart(
+        self,
+        weekly_scores: dict[int, float],
+        current_week: int,
+    ) -> io.BytesIO:
+        """Create a bar chart showing weekly score trajectory.
+
+        Args:
+            weekly_scores: {week_number: score} mapping.
+            current_week: The current week (highlighted in distinct color).
+
+        Returns:
+            PNG image as BytesIO.
+        """
+        if not weekly_scores:
+            fig, ax = plt.subplots(figsize=(120 / 25.4, 60 / 25.4))
+            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
+                    fontproperties=self._font_prop)
+            ax.set_axis_off()
+            return self._save_fig(fig)
+
+        weeks = sorted(weekly_scores.keys())
+        scores = [weekly_scores[w] for w in weeks]
+        colors = [
+            "#1565C0" if w == current_week else "#90CAF9"
+            for w in weeks
+        ]
+
+        fig, ax = plt.subplots(figsize=(120 / 25.4, 60 / 25.4))
+        x_pos = range(len(weeks))
+        ax.bar(x_pos, scores, color=colors, edgecolor="none", width=0.6)
+        ax.set_xticks(list(x_pos))
+        ax.set_xticklabels(
+            [f"{w}주" for w in weeks],
+            fontproperties=self._font_prop,
+            fontsize=8,
+        )
+        ax.set_ylim(0, 1.0)
+        ax.set_ylabel("점수", fontproperties=self._font_prop, fontsize=8)
+        ax.tick_params(axis="y", labelsize=7)
+        fig.tight_layout()
+        return self._save_fig(fig)
+
 
 def _translate_component(name: str) -> str:
     """Translate component key names to Korean labels."""

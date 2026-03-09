@@ -2775,3 +2775,133 @@ class TestBackwardCompatV073:
         assert pdf_path.endswith(".pdf")
         assert os.path.exists(pdf_path)
         assert os.path.getsize(pdf_path) > 0
+
+
+# ===========================================================================
+# Phase 4: US2 — T021: Professor report risk movement section
+# ===========================================================================
+
+
+class TestRiskMovementSection:
+    """T021: Professor report includes risk movement section when data provided."""
+
+    def test_generate_pdf_accepts_risk_movement(self, tmp_path):
+        """generate_pdf should accept risk_movement kwarg and produce valid PDF."""
+        import os
+        from forma.professor_report import ProfessorPDFReportGenerator
+        from forma.professor_report_data import (
+            RiskMovement,
+            build_professor_report_data,
+        )
+        from forma.report_data_loader import (
+            StudentReportData,
+            QuestionReportData,
+            compute_class_distributions,
+        )
+
+        students = []
+        for i in range(5):
+            score = round(0.4 + i * 0.1, 2)
+            level = (
+                "Advanced" if score >= 0.85
+                else "Proficient" if score >= 0.65
+                else "Developing" if score >= 0.45
+                else "Beginning"
+            )
+            students.append(StudentReportData(
+                student_id=f"S{i:03d}",
+                real_name=f"학생{i:03d}",
+                student_number=f"2026{i:04d}",
+                class_name="1A",
+                course_name="생리학",
+                chapter_name="Chapter 1",
+                week_num=2,
+                questions=[
+                    QuestionReportData(
+                        question_sn=1,
+                        question_text="항상성의 정의를 서술하시오.",
+                        ensemble_score=score,
+                        understanding_level=level,
+                        concept_coverage=0.5,
+                        llm_median_score=2.0,
+                        rasch_theta=0.0,
+                        misconceptions=[],
+                    ),
+                ],
+            ))
+
+        dists = compute_class_distributions(students)
+        report_data = build_professor_report_data(
+            students=students,
+            distributions=dists,
+            class_name="1A",
+            week_num=2,
+            subject="생리학",
+            exam_title="Ch01 형성평가",
+        )
+
+        risk_movement = RiskMovement(
+            newly_at_risk=["S000"],
+            exited_risk=["S099"],
+            persistent_risk=["S001"],
+        )
+
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            report_data, str(tmp_path),
+            risk_movement=risk_movement,
+        )
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_generate_pdf_no_risk_movement_backward_compat(self, tmp_path):
+        """Without risk_movement kwarg, generate_pdf works as before."""
+        import os
+        from forma.professor_report import ProfessorPDFReportGenerator
+        from forma.professor_report_data import build_professor_report_data
+        from forma.report_data_loader import (
+            StudentReportData,
+            QuestionReportData,
+            compute_class_distributions,
+        )
+
+        students = []
+        for i in range(3):
+            students.append(StudentReportData(
+                student_id=f"S{i:03d}",
+                real_name=f"학생{i:03d}",
+                student_number=f"2026{i:04d}",
+                class_name="1A",
+                course_name="생리학",
+                chapter_name="Chapter 1",
+                week_num=1,
+                questions=[
+                    QuestionReportData(
+                        question_sn=1,
+                        question_text="항상성의 정의를 서술하시오.",
+                        ensemble_score=0.60,
+                        understanding_level="Developing",
+                        concept_coverage=0.5,
+                        llm_median_score=2.0,
+                        rasch_theta=0.0,
+                        misconceptions=[],
+                    ),
+                ],
+            ))
+
+        dists = compute_class_distributions(students)
+        report_data = build_professor_report_data(
+            students=students,
+            distributions=dists,
+            class_name="1A",
+            week_num=1,
+            subject="생리학",
+            exam_title="Ch01 형성평가",
+        )
+
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(report_data, str(tmp_path))
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0

@@ -7,6 +7,7 @@ with answer comparison, charts, and feedback.  No LLM API calls.
 
 from __future__ import annotations
 
+import io
 import logging
 import os
 import re
@@ -138,6 +139,8 @@ class StudentPDFReportGenerator:
         student_data: StudentReportData,
         distributions: ClassDistributions,
         output_dir: str,
+        weekly_deltas: Optional[dict] = None,
+        trajectory_chart: Optional["io.BytesIO"] = None,
     ) -> str:
         """Generate a single student's PDF report.
 
@@ -145,6 +148,8 @@ class StudentPDFReportGenerator:
             student_data: StudentReportData for this student.
             distributions: Class-level distributions for comparison.
             output_dir: Directory for output PDF files.
+            weekly_deltas: Optional dict of delta info {qsn_or_"overall": WeeklyDelta}.
+            trajectory_chart: Optional PNG BytesIO of weekly trajectory bar chart.
 
         Returns:
             Absolute path to the generated PDF.
@@ -166,10 +171,18 @@ class StudentPDFReportGenerator:
         # Header
         story.extend(self._build_header_section(student_data))
 
-        # Summary
+        # Summary (with optional delta display)
         story.extend(
             self._build_summary_section(student_data, distributions),
         )
+
+        # Delta info section (if available)
+        if weekly_deltas:
+            story.extend(self._build_delta_section(weekly_deltas))
+
+        # Trajectory chart (if available)
+        if trajectory_chart is not None:
+            story.extend(self._build_trajectory_section(trajectory_chart))
 
         # Per-question sections
         for q in student_data.questions:
@@ -179,6 +192,57 @@ class StudentPDFReportGenerator:
 
         doc.build(story)
         return os.path.abspath(output_path)
+
+    def _build_delta_section(self, weekly_deltas: dict) -> list:
+        """Build section showing score changes from previous week."""
+        story = []
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            _esc("전주 대비 변화"),
+            self._styles["KoreanHeading"],
+        ))
+
+        rows = [["항목", "현재 점수", "이전 점수", "변화"]]
+        overall = weekly_deltas.get("overall")
+        if overall:
+            prev = f"{overall.previous_score:.2f}" if overall.previous_score is not None else "-"
+            delta_str = f"{overall.delta:+.2f}" if overall.delta is not None else "-"
+            rows.append(["종합", f"{overall.current_score:.2f}", prev,
+                         f"{overall.delta_symbol} {delta_str}"])
+
+        for key, wd in weekly_deltas.items():
+            if key == "overall":
+                continue
+            prev = f"{wd.previous_score:.2f}" if wd.previous_score is not None else "-"
+            delta_str = f"{wd.delta:+.2f}" if wd.delta is not None else "-"
+            rows.append([f"문제 {key}", f"{wd.current_score:.2f}", prev,
+                         f"{wd.delta_symbol} {delta_str}"])
+
+        if len(rows) > 1:
+            tbl = Table(rows, colWidths=[40 * mm, 30 * mm, 30 * mm, 40 * mm])
+            tbl.setStyle(TableStyle([
+                ("FONT", (0, 0), (-1, -1), "NanumGothic", 8),
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ]))
+            story.append(tbl)
+
+        return story
+
+    def _build_trajectory_section(self, trajectory_chart: "io.BytesIO") -> list:
+        """Build section showing weekly score trajectory chart."""
+        import io as _io
+        story = []
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            _esc("주차별 점수 추이"),
+            self._styles["KoreanHeading"],
+        ))
+        trajectory_chart.seek(0)
+        img = Image(trajectory_chart, width=120 * mm, height=60 * mm)
+        story.append(img)
+        return story
 
     def _build_header_section(
         self,
@@ -585,7 +649,11 @@ def _sanitize_filename(name: str) -> str:
 
 
 def parse_feedback_sections(text: str) -> dict[str, str]:
-    """Parse feedback text into [평가 요약], [분석 결과], [학습 제안] sections.
+    """Parse feedback text into named sections.
+
+    Supports both old format ([평가 요약], [분석 결과], [학습 제안]) and
+    new format ([현재 상태], [원인], [학생에게 권하는 사항]) section names
+    for backward compatibility.
 
     Args:
         text: Raw feedback text possibly containing section markers.
@@ -597,7 +665,7 @@ def parse_feedback_sections(text: str) -> dict[str, str]:
     if not text or text == "(피드백 데이터 없음)":
         return {"전체 피드백": text or ""}
 
-    section_names = ["평가 요약", "분석 결과", "학습 제안"]
+    section_names = ["평가 요약", "분석 결과", "학습 제안", "현재 상태", "원인", "학생에게 권하는 사항"]
     pattern = r"\[(" + "|".join(re.escape(s) for s in section_names) + r")\]"
     parts = re.split(pattern, text)
 

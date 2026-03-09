@@ -246,3 +246,50 @@ class TestReportChartGenerator:
         )
         # Should still return BytesIO (with fallback message)
         assert isinstance(result, io.BytesIO)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: US2 — T017: Trajectory bar chart tests
+# ---------------------------------------------------------------------------
+
+
+class TestTrajectoryBarChart:
+    """T017: build_trajectory_bar_chart — PNG output, current week highlighted."""
+
+    def test_returns_png_bytesio(self, chart_gen):
+        """Should return a BytesIO with valid PNG data."""
+        result = chart_gen.build_trajectory_bar_chart(
+            weekly_scores={1: 0.50, 2: 0.65, 3: 0.80},
+            current_week=3,
+        )
+        assert isinstance(result, io.BytesIO)
+        result.seek(0)
+        assert result.read(4) == PNG_HEADER
+
+    def test_single_week(self, chart_gen):
+        """Single-week data should produce a valid chart with one bar."""
+        result = chart_gen.build_trajectory_bar_chart(
+            weekly_scores={1: 0.60},
+            current_week=1,
+        )
+        assert isinstance(result, io.BytesIO)
+        result.seek(0)
+        assert result.read(4) == PNG_HEADER
+
+    def test_non_contiguous_weeks(self, chart_gen):
+        """Non-contiguous weeks (1, 3, 5) should render correctly."""
+        result = chart_gen.build_trajectory_bar_chart(
+            weekly_scores={1: 0.40, 3: 0.60, 5: 0.80},
+            current_week=5,
+        )
+        assert isinstance(result, io.BytesIO)
+        result.seek(0)
+        assert result.read(4) == PNG_HEADER
+
+    def test_current_week_not_in_data(self, chart_gen):
+        """If current_week is not in the data, should still render without error."""
+        result = chart_gen.build_trajectory_bar_chart(
+            weekly_scores={1: 0.50, 2: 0.65},
+            current_week=3,
+        )
+        assert isinstance(result, io.BytesIO)

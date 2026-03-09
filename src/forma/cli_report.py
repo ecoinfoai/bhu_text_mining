@@ -72,6 +72,18 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="상세 로그 출력",
     )
+    parser.add_argument(
+        "--longitudinal-store",
+        default=None,
+        dest="longitudinal_store",
+        help="종단 저장소 YAML 경로 (변화 표시 활성화)",
+    )
+    parser.add_argument(
+        "--week",
+        type=int,
+        default=None,
+        help="현재 주차 번호 (변화 비교 기준)",
+    )
     return parser
 
 
@@ -121,6 +133,21 @@ def main() -> None:
         )
         sys.exit(1)
 
+    # Validate longitudinal args
+    if args.longitudinal_store and not os.path.exists(args.longitudinal_store):
+        print(
+            f"Error: Longitudinal store not found: {args.longitudinal_store}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if args.week is not None and args.longitudinal_store is None:
+        print(
+            "Error: --week requires --longitudinal-store",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Load data
     print(f"Loading evaluation data from {args.eval_dir} ...")
     try:
@@ -147,6 +174,15 @@ def main() -> None:
             )
             sys.exit(2)
         students = filtered
+
+    # Load longitudinal store if provided
+    long_store = None
+    if args.longitudinal_store:
+        from forma.longitudinal_store import LongitudinalStore
+
+        long_store = LongitudinalStore(args.longitudinal_store)
+        long_store.load()
+        logger.info("Loaded longitudinal store: %s", args.longitudinal_store)
 
     # Create report generator
     try:
@@ -176,7 +212,53 @@ def main() -> None:
             end="",
         )
         try:
-            generator.generate_pdf(student, distributions, args.output_dir)
+            # Compute longitudinal data if store is available
+            weekly_deltas = None
+            trajectory_chart = None
+            if long_store is not None and args.week is not None:
+                from forma.report_data_loader import compute_weekly_delta
+
+                weekly_deltas = {}
+                # Overall ensemble score delta
+                overall_scores = [
+                    q.ensemble_score for q in student.questions
+                ]
+                if overall_scores:
+                    overall_mean = sum(overall_scores) / len(overall_scores)
+                    weekly_deltas["overall"] = compute_weekly_delta(
+                        student.student_id,
+                        args.week,
+                        overall_mean,
+                        long_store,
+                        "ensemble_score",
+                    )
+                # Per-question deltas
+                for q in student.questions:
+                    weekly_deltas[q.question_sn] = compute_weekly_delta(
+                        student.student_id,
+                        args.week,
+                        q.ensemble_score,
+                        long_store,
+                        "ensemble_score",
+                    )
+                # Trajectory chart
+                trajectory = long_store.get_student_trajectory(
+                    student.student_id, "ensemble_score",
+                )
+                if trajectory:
+                    weekly_scores = dict(trajectory)
+                    # Add current week if not already present
+                    if args.week not in weekly_scores and overall_scores:
+                        weekly_scores[args.week] = overall_mean
+                    trajectory_chart = generator.chart_builder.build_trajectory_bar_chart(
+                        weekly_scores, args.week,
+                    )
+
+            generator.generate_pdf(
+                student, distributions, args.output_dir,
+                weekly_deltas=weekly_deltas,
+                trajectory_chart=trajectory_chart,
+            )
             print(" done")
         except Exception as exc:
             print(f" ERROR: {exc}")

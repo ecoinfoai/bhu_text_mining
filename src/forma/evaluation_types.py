@@ -358,6 +358,12 @@ class LongitudinalRecord:
         scores: Dict of metric name → score value.
         tier_level: Rubric tier level (0-3).
         tier_label: Rubric tier label.
+        node_recall: Graph node recall (0.0-1.0). v2 field.
+        edge_f1: Graph edge F1 score. v2 field.
+        misconception_count: Number of wrong-direction edges. v2 field.
+        concept_scores: Per-concept correctness ratio. v2 field.
+        exam_file: Exam file basename used for this evaluation. v2 field.
+        recorded_at: ISO 8601 timestamp of snapshot creation. v2 field.
     """
 
     student_id: str
@@ -366,6 +372,12 @@ class LongitudinalRecord:
     scores: dict[str, float]
     tier_level: int
     tier_label: str
+    node_recall: Optional[float] = None
+    edge_f1: Optional[float] = None
+    misconception_count: Optional[int] = None
+    concept_scores: Optional[dict[str, float]] = None
+    exam_file: Optional[str] = None
+    recorded_at: Optional[str] = None
 
 
 @dataclass

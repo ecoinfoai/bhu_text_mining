@@ -2259,3 +2259,86 @@ class TestProfessorReportDataNewFieldsV073:
         assert report.n_students == 3
         # New fields have safe defaults
         assert report.class_knowledge_aggregates == []
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: US2 — T020: RiskMovement tests
+# ---------------------------------------------------------------------------
+
+
+class TestRiskMovement:
+    """T020: RiskMovement dataclass and compute_risk_movement()."""
+
+    def test_basic_risk_movement(self):
+        """compute_risk_movement identifies newly at risk, exited, and persistent."""
+        from forma.professor_report_data import RiskMovement, compute_risk_movement
+
+        current_risk = {"s001", "s002", "s003"}
+        previous_risk = {"s002", "s004"}
+
+        movement = compute_risk_movement(current_risk, previous_risk)
+        assert isinstance(movement, RiskMovement)
+        assert sorted(movement.newly_at_risk) == ["s001", "s003"]
+        assert movement.exited_risk == ["s004"]
+        assert movement.persistent_risk == ["s002"]
+
+    def test_no_previous_week(self):
+        """When previous_risk is empty, all current are newly at risk."""
+        from forma.professor_report_data import compute_risk_movement
+
+        movement = compute_risk_movement({"s001", "s002"}, set())
+        assert sorted(movement.newly_at_risk) == ["s001", "s002"]
+        assert movement.exited_risk == []
+        assert movement.persistent_risk == []
+
+    def test_no_current_risk(self):
+        """When no students are currently at risk, all previous have exited."""
+        from forma.professor_report_data import compute_risk_movement
+
+        movement = compute_risk_movement(set(), {"s001", "s002"})
+        assert movement.newly_at_risk == []
+        assert sorted(movement.exited_risk) == ["s001", "s002"]
+        assert movement.persistent_risk == []
+
+    def test_both_empty(self):
+        """When both sets are empty, all lists should be empty."""
+        from forma.professor_report_data import compute_risk_movement
+
+        movement = compute_risk_movement(set(), set())
+        assert movement.newly_at_risk == []
+        assert movement.exited_risk == []
+        assert movement.persistent_risk == []
+
+    def test_identical_sets(self):
+        """When current == previous, all are persistent, none new or exited."""
+        from forma.professor_report_data import compute_risk_movement
+
+        risk_set = {"s001", "s002"}
+        movement = compute_risk_movement(risk_set, risk_set)
+        assert movement.newly_at_risk == []
+        assert movement.exited_risk == []
+        assert sorted(movement.persistent_risk) == ["s001", "s002"]
+
+    def test_risk_movement_sorted(self):
+        """All lists in RiskMovement should be sorted by student_id."""
+        from forma.professor_report_data import compute_risk_movement
+
+        movement = compute_risk_movement(
+            {"s003", "s001", "s005"}, {"s005", "s002", "s004"}
+        )
+        assert movement.newly_at_risk == sorted(movement.newly_at_risk)
+        assert movement.exited_risk == sorted(movement.exited_risk)
+        assert movement.persistent_risk == sorted(movement.persistent_risk)
+
+    def test_risk_movement_dataclass_fields(self):
+        """RiskMovement should have the expected fields."""
+        from forma.professor_report_data import RiskMovement
+
+        rm = RiskMovement(
+            newly_at_risk=["s001"],
+            exited_risk=["s002"],
+            persistent_risk=["s003"],
+        )
+        assert rm.newly_at_risk == ["s001"]
+        assert rm.exited_risk == ["s002"]
+        assert rm.persistent_risk == ["s003"]

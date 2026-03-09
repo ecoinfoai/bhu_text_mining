@@ -35,6 +35,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", action="store_true", default=False, help="상세 로그 출력")
     parser.add_argument("--transcript-dir", default=None, dest="transcript_dir",
                         help="강의 녹취록 텍스트 파일 디렉토리 경로")
+    parser.add_argument("--longitudinal-store", default=None, dest="longitudinal_store",
+                        help="종단 저장소 YAML 경로 (위험군 변동 표시)")
+    parser.add_argument("--week", type=int, default=None,
+                        help="현재 주차 번호")
     return parser
 
 
@@ -57,6 +61,14 @@ def main() -> int | None:
         sys.exit(1)
     if not os.path.isdir(args.eval_dir):
         _LOG.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
+        sys.exit(1)
+
+    # Validate longitudinal args
+    if args.longitudinal_store and not os.path.isfile(args.longitudinal_store):
+        _LOG.error("종단 저장소 파일이 존재하지 않습니다: %s", args.longitudinal_store)
+        sys.exit(1)
+    if args.week is not None and args.longitudinal_store is None:
+        _LOG.error("--week 옵션은 --longitudinal-store와 함께 사용해야 합니다.")
         sys.exit(1)
 
     # Create output directory if it doesn't exist
@@ -234,6 +246,46 @@ def main() -> int | None:
             except Exception as exc:
                 _LOG.warning("오개념 클러스터 교정 포인트 생성 실패 (계속 진행): %s", exc)
 
+    # Compute risk movement from longitudinal store
+    risk_movement = None
+    if args.longitudinal_store and args.week is not None:
+        try:
+            from forma.longitudinal_store import LongitudinalStore
+            from forma.professor_report_data import compute_risk_movement
+
+            long_store = LongitudinalStore(args.longitudinal_store)
+            long_store.load()
+
+            # Current at-risk students from report_data
+            current_risk = {
+                r.student_id for r in report_data.student_rows if r.is_at_risk
+            }
+
+            # Previous week at-risk: find the most recent week before args.week
+            previous_risk: set[str] = set()
+            all_weeks = sorted({
+                d["week"] for d in long_store._records.values()
+            })
+            prev_weeks = [w for w in all_weeks if w < args.week]
+            if prev_weeks:
+                prev_week = prev_weeks[-1]
+                prev_snapshot = long_store.get_class_snapshot(prev_week)
+                # Rebuild at-risk logic for previous week: tier_level 0 = at-risk
+                for rec in prev_snapshot:
+                    if rec.tier_label in ("Beginning", "Developing"):
+                        previous_risk.add(rec.student_id)
+
+            risk_movement = compute_risk_movement(current_risk, previous_risk)
+            report_data.risk_movement = risk_movement
+            _LOG.info(
+                "위험군 변동: 신규 %d, 탈출 %d, 지속 %d",
+                len(risk_movement.newly_at_risk),
+                len(risk_movement.exited_risk),
+                len(risk_movement.persistent_risk),
+            )
+        except Exception as exc:
+            _LOG.warning("위험군 변동 계산 실패 (계속 진행): %s", exc)
+
     # Validate font path if provided
     if args.font_path is not None and not os.path.isfile(args.font_path):
         _LOG.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
@@ -242,7 +294,7 @@ def main() -> int | None:
     # Generate PDF report
     try:
         ProfessorPDFReportGenerator(font_path=args.font_path, dpi=args.dpi).generate_pdf(
-            report_data, args.output_dir
+            report_data, args.output_dir, risk_movement=risk_movement,
         )
     except FileNotFoundError as exc:
         _LOG.error("PDF 생성 중 파일을 찾을 수 없습니다: %s", exc)

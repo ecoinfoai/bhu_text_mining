@@ -174,12 +174,18 @@ class ProfessorPDFReportGenerator:
             alignment=1,  # CENTER
         ))
 
-    def generate_pdf(self, report_data: ProfessorReportData, output_dir: str) -> str:
+    def generate_pdf(
+        self,
+        report_data: ProfessorReportData,
+        output_dir: str,
+        risk_movement=None,
+    ) -> str:
         """Generate the professor report PDF.
 
         Args:
             report_data: Complete professor report data.
             output_dir: Output directory for the PDF file.
+            risk_movement: Optional RiskMovement data for week-over-week comparison.
 
         Returns:
             Absolute path to generated PDF file.
@@ -194,6 +200,10 @@ class ProfessorPDFReportGenerator:
         story.extend(self._build_summary_section(report_data))
         story.extend(self._build_comparison_table(report_data))
         story.extend(self._build_at_risk_summary(report_data))
+
+        # Risk movement section (v0.8.0 US2)
+        if risk_movement is not None:
+            story.extend(self._build_risk_movement_section(risk_movement))
         for q in report_data.question_stats:
             story.extend(self._build_question_detail_page(q))
         # Class knowledge graph sections (v0.7.3 US2)
@@ -1201,6 +1211,56 @@ class ProfessorPDFReportGenerator:
         ]))
         story.append(tbl)
         story.append(Spacer(1, 8))
+
+    def _build_risk_movement_section(self, risk_movement) -> list:
+        """Build section showing risk group movement between weeks."""
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("위험군 변동 현황"),
+            self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 4))
+
+        rows = [
+            [
+                Paragraph("구분", self._styles["ProfTableHeader"]),
+                Paragraph("인원", self._styles["ProfTableHeader"]),
+                Paragraph("학생 목록", self._styles["ProfTableHeader"]),
+            ],
+            [
+                Paragraph("신규 진입", self._styles["ProfTableData"]),
+                Paragraph(str(len(risk_movement.newly_at_risk)), self._styles["ProfTableData"]),
+                Paragraph(
+                    _esc(", ".join(risk_movement.newly_at_risk) if risk_movement.newly_at_risk else "-"),
+                    self._styles["ProfTableData"],
+                ),
+            ],
+            [
+                Paragraph("위험군 탈출", self._styles["ProfTableData"]),
+                Paragraph(str(len(risk_movement.exited_risk)), self._styles["ProfTableData"]),
+                Paragraph(
+                    _esc(", ".join(risk_movement.exited_risk) if risk_movement.exited_risk else "-"),
+                    self._styles["ProfTableData"],
+                ),
+            ],
+            [
+                Paragraph("지속 위험군", self._styles["ProfTableData"]),
+                Paragraph(str(len(risk_movement.persistent_risk)), self._styles["ProfTableData"]),
+                Paragraph(
+                    _esc(", ".join(risk_movement.persistent_risk) if risk_movement.persistent_risk else "-"),
+                    self._styles["ProfTableData"],
+                ),
+            ],
+        ]
+        tbl = Table(rows, colWidths=[30 * mm, 20 * mm, 90 * mm])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(tbl)
+        return story
 
     def _build_llm_analysis_page(self, report_data: ProfessorReportData) -> list:
         """Build LLM analysis page with overall assessment only."""
