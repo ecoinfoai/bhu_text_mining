@@ -659,3 +659,113 @@ class TestConceptMasteryHeatmapLongText:
         data = result.getvalue()
         assert len(data) > 0
         assert data[:4] == PNG_HEADER
+
+
+# ===========================================================================
+# T009 (v0.7.3): build_class_knowledge_graph_chart
+# ===========================================================================
+
+
+def _make_aggregate(
+    edges: list[tuple[str, str, str, float, int, int]] | None = None,
+    question_sn: int = 1,
+    total_students: int = 30,
+):
+    """Build a synthetic ClassKnowledgeAggregate for testing.
+
+    Each edge tuple: (subject, relation, obj, correct_ratio, error_count, missing_count).
+    correct_count is derived as total_students - error_count - missing_count.
+    """
+    from forma.class_knowledge_aggregate import AggregateEdge, ClassKnowledgeAggregate
+
+    if edges is None:
+        edges = [
+            ("심근경색", "원인", "허혈", 0.8, 5, 1),
+            ("허혈", "유발", "조직손상", 1.0, 0, 0),
+            ("조직손상", "촉발", "염증", 0.3, 10, 11),
+        ]
+
+    agg_edges = []
+    for subj, rel, obj, ratio, err, miss in edges:
+        correct = total_students - err - miss
+        agg_edges.append(AggregateEdge(
+            subject=subj,
+            relation=rel,
+            obj=obj,
+            correct_count=correct,
+            error_count=err,
+            missing_count=miss,
+            total_students=total_students,
+            correct_ratio=ratio,
+        ))
+    return ClassKnowledgeAggregate(
+        question_sn=question_sn,
+        edges=agg_edges,
+        total_students=total_students,
+    )
+
+
+class TestBuildClassKnowledgeGraphChart:
+    """T009: build_class_knowledge_graph_chart() chart tests (SC-003, FR-005, FR-007)."""
+
+    def test_returns_bytesio(self, chart_gen):
+        """build_class_knowledge_graph_chart returns io.BytesIO (SC-003)."""
+        agg = _make_aggregate()
+        result = chart_gen.build_class_knowledge_graph_chart(agg)
+        assert isinstance(result, io.BytesIO)
+
+    def test_returns_nonempty_png(self, chart_gen):
+        """build_class_knowledge_graph_chart returns non-empty PNG (FR-005)."""
+        agg = _make_aggregate()
+        result = chart_gen.build_class_knowledge_graph_chart(agg)
+        data = result.getvalue()
+        assert len(data) > 0
+        assert data[:4] == PNG_HEADER
+
+    def test_min_ratio_filtering(self, chart_gen):
+        """Edges with correct_ratio < min_ratio_to_show are filtered (SC-004, FR-007).
+
+        We set min_ratio_to_show=0.5. Only the edge with ratio=0.8 and ratio=1.0
+        should appear in the graph. The edge with ratio=0.3 should be filtered out.
+        The chart should still be produced without error.
+        """
+        agg = _make_aggregate()
+        result = chart_gen.build_class_knowledge_graph_chart(agg, min_ratio_to_show=0.5)
+        assert isinstance(result, io.BytesIO)
+        data = result.getvalue()
+        assert len(data) > 0
+
+    def test_single_edge_aggregate(self, chart_gen):
+        """Single-edge aggregate works without error."""
+        agg = _make_aggregate(
+            edges=[("A", "R", "B", 0.6, 5, 7)],
+            total_students=30,
+        )
+        result = chart_gen.build_class_knowledge_graph_chart(agg)
+        assert isinstance(result, io.BytesIO)
+        assert len(result.getvalue()) > 0
+
+    def test_all_edges_below_threshold(self, chart_gen):
+        """All edges below min_ratio_to_show: returns non-empty BytesIO (FR-009)."""
+        agg = _make_aggregate(
+            edges=[("A", "R", "B", 0.02, 1, 28)],
+            total_students=30,
+        )
+        result = chart_gen.build_class_knowledge_graph_chart(agg, min_ratio_to_show=0.05)
+        assert isinstance(result, io.BytesIO)
+        data = result.getvalue()
+        assert len(data) > 0
+
+    def test_empty_edges(self, chart_gen):
+        """Empty aggregate (no edges): returns non-empty BytesIO (FR-009)."""
+        agg = _make_aggregate(edges=[], total_students=0)
+        result = chart_gen.build_class_knowledge_graph_chart(agg)
+        assert isinstance(result, io.BytesIO)
+        data = result.getvalue()
+        assert len(data) > 0
+
+    def test_seek_position_zero(self, chart_gen):
+        """Returned BytesIO has seek position at 0."""
+        agg = _make_aggregate()
+        result = chart_gen.build_class_knowledge_graph_chart(agg)
+        assert result.tell() == 0

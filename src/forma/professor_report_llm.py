@@ -136,3 +136,61 @@ def generate_professor_analysis(provider: LLMProvider, report_data: "ProfessorRe
     report_data.llm_generation_failed = overall_failed or suggestions_failed
     report_data.llm_model_used = getattr(provider, "model_name", "unknown")
     report_data.llm_error_message = "; ".join(errors) if errors else None
+
+
+def generate_cluster_correction(
+    cluster: object,
+    master_edge: object,
+    provider: LLMProvider,
+) -> str:
+    """Generate a 1-2 sentence correction point for a misconception cluster.
+
+    Called ONLY from CLI entry points (Constitution VI). Never from
+    professor_report.py (PDF generation).
+
+    Args:
+        cluster: MisconceptionCluster with pattern, representative_error,
+            and student_errors.
+        master_edge: TripletEdge or None. None for CONCEPT_ABSENCE pattern.
+        provider: LLM provider with .generate() method.
+
+    Returns:
+        Correction point as str. Empty string "" on failure or empty
+        response. Never returns None (I2 fix).
+    """
+    try:
+        pattern_name = (
+            cluster.pattern.value
+            if hasattr(cluster.pattern, "value")
+            else str(cluster.pattern)
+        )
+
+        if master_edge is not None:
+            edge_str = (
+                f"{master_edge.subject} -> {master_edge.relation} -> {master_edge.object}"
+            )
+        else:
+            edge_str = "없음"
+
+        prompt = (
+            f"다음 오개념 클러스터에 대한 교정 포인트를 1-2문장으로 작성해 주세요.\n\n"
+            f"패턴: {pattern_name}\n"
+            f"대표 오류: {cluster.representative_error}\n"
+            f"마스터 엣지: {edge_str}\n"
+            f"학생 수: {cluster.member_count}명\n\n"
+            f"간결하고 명확한 교정 포인트를 한국어로 작성해 주세요."
+        )
+
+        raw = provider.generate(
+            prompt,
+            max_tokens=500,
+            temperature=0.3,
+        )
+
+        if raw is None or not str(raw).strip():
+            return ""
+
+        return str(raw).strip()
+    except Exception as exc:
+        logger.warning("Cluster correction generation failed: %s", exc)
+        return ""

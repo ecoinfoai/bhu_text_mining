@@ -2157,3 +2157,105 @@ class TestMergeProfessorReportData:
         # All students come from section A
         assert merged.n_students == len(report_a.student_rows)
         assert len(merged.student_rows) == len(report_a.student_rows)
+
+
+# ===========================================================================
+# T003 (v0.7.3): New fields — class_knowledge_aggregate, misconception_clusters,
+#                 class_knowledge_aggregates
+# ===========================================================================
+
+
+class TestQuestionClassStatsNewFieldsV073:
+    """T003: QuestionClassStats new fields for v0.7.3."""
+
+    def test_class_knowledge_aggregate_default_none(self):
+        """QuestionClassStats.class_knowledge_aggregate defaults to None."""
+        from forma.professor_report_data import QuestionClassStats
+
+        qcs = QuestionClassStats(question_sn=1)
+        assert qcs.class_knowledge_aggregate is None
+
+    def test_class_knowledge_aggregate_accepts_value(self):
+        """QuestionClassStats.class_knowledge_aggregate can hold a ClassKnowledgeAggregate."""
+        from forma.professor_report_data import QuestionClassStats
+        from forma.class_knowledge_aggregate import ClassKnowledgeAggregate
+
+        agg = ClassKnowledgeAggregate(question_sn=1, edges=[], total_students=0)
+        qcs = QuestionClassStats(question_sn=1, class_knowledge_aggregate=agg)
+        assert qcs.class_knowledge_aggregate is not None
+        assert qcs.class_knowledge_aggregate.question_sn == 1
+
+    def test_misconception_clusters_default_empty_list(self):
+        """QuestionClassStats.misconception_clusters defaults to empty list."""
+        from forma.professor_report_data import QuestionClassStats
+
+        qcs = QuestionClassStats(question_sn=1)
+        assert qcs.misconception_clusters == []
+
+    def test_misconception_clusters_independent_across_instances(self):
+        """QuestionClassStats.misconception_clusters list is independent per instance."""
+        from forma.professor_report_data import QuestionClassStats
+
+        qcs1 = QuestionClassStats(question_sn=1)
+        qcs2 = QuestionClassStats(question_sn=2)
+        qcs1.misconception_clusters.append("cluster")
+        assert qcs2.misconception_clusters == []
+
+
+class TestProfessorReportDataNewFieldsV073:
+    """T003: ProfessorReportData new fields for v0.7.3."""
+
+    def _make_minimal_report(self, **overrides):
+        from forma.professor_report_data import ProfessorReportData
+
+        defaults = dict(
+            class_name="1A",
+            week_num=1,
+            subject="Biology",
+            exam_title="Week 1 Formative Test",
+            generation_date="2026-03-08",
+            n_students=3,
+            n_questions=2,
+            class_ensemble_mean=0.53,
+            class_ensemble_std=0.23,
+            class_ensemble_median=0.55,
+            class_ensemble_q1=0.25,
+            class_ensemble_q3=0.80,
+            overall_level_distribution={k: 0 for k in CANONICAL_LEVELS},
+            question_stats=[],
+            student_rows=[],
+            n_at_risk=0,
+            pct_at_risk=0.0,
+        )
+        defaults.update(overrides)
+        return ProfessorReportData(**defaults)
+
+    def test_class_knowledge_aggregates_default_empty_list(self):
+        """ProfessorReportData.class_knowledge_aggregates defaults to empty list."""
+        report = self._make_minimal_report()
+        assert report.class_knowledge_aggregates == []
+
+    def test_class_knowledge_aggregates_independent_across_instances(self):
+        """ProfessorReportData.class_knowledge_aggregates list is independent per instance."""
+        report1 = self._make_minimal_report()
+        report2 = self._make_minimal_report()
+        report1.class_knowledge_aggregates.append("agg")
+        assert report2.class_knowledge_aggregates == []
+
+    def test_class_knowledge_aggregates_can_be_set(self):
+        """ProfessorReportData.class_knowledge_aggregates accepts a list."""
+        from forma.class_knowledge_aggregate import ClassKnowledgeAggregate
+
+        agg = ClassKnowledgeAggregate(question_sn=1, edges=[], total_students=10)
+        report = self._make_minimal_report(class_knowledge_aggregates=[agg])
+        assert len(report.class_knowledge_aggregates) == 1
+        assert report.class_knowledge_aggregates[0].total_students == 10
+
+    def test_existing_tests_still_pass_with_new_defaults(self):
+        """Backward compatibility: creating ProfessorReportData without new fields works."""
+        report = self._make_minimal_report()
+        # All existing required fields still accessible
+        assert report.class_name == "1A"
+        assert report.n_students == 3
+        # New fields have safe defaults
+        assert report.class_knowledge_aggregates == []

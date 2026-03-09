@@ -2447,3 +2447,253 @@ class TestEmphasisComparisonSection:
         # Should not raise XML parsing error
         result = gen._build_emphasis_comparison_section(report_data)
         assert len(result) > 0
+
+
+# ===========================================================================
+# T010 (v0.7.3): _build_class_graph_section() — PDF section tests
+# ===========================================================================
+
+
+def _make_test_aggregate(
+    edges=None,
+    question_sn=1,
+    total_students=30,
+):
+    """Build a synthetic ClassKnowledgeAggregate for PDF section testing."""
+    from forma.class_knowledge_aggregate import AggregateEdge, ClassKnowledgeAggregate
+
+    if edges is None:
+        edges = [
+            AggregateEdge("A", "R1", "B", 24, 5, 1, 30, 0.8),
+            AggregateEdge("B", "R2", "C", 6, 10, 14, 30, 0.2),
+            AggregateEdge("C", "R3", "D", 28, 1, 1, 30, 0.93),
+        ]
+    return ClassKnowledgeAggregate(
+        question_sn=question_sn,
+        edges=edges,
+        total_students=total_students,
+    )
+
+
+class TestBuildClassGraphSection:
+    """T010: _build_class_graph_section() PDF section tests (FR-008, FR-009, SC-007)."""
+
+    @staticmethod
+    def _extract_all_text(story_elements):
+        """Extract all text from Paragraph and Table elements in the story."""
+        texts = []
+        for el in story_elements:
+            if hasattr(el, "text"):
+                texts.append(el.text)
+            if hasattr(el, "_cellvalues"):
+                for row in el._cellvalues:
+                    for cell in row:
+                        if hasattr(cell, "text"):
+                            texts.append(cell.text)
+        return " ".join(texts)
+
+    def test_section_appends_elements(self, mock_font):
+        """_build_class_graph_section appends non-empty elements to story list."""
+        gen = _make_generator_for_question_detail(mock_font)
+        agg = _make_test_aggregate()
+        chart_buf = io.BytesIO(b"fake_png_data")
+        story = []
+        gen._build_class_graph_section(story, agg, chart_buf)
+        assert len(story) > 0
+
+    def test_section_heading_contains_question_sn(self, mock_font):
+        """Section heading includes the question number."""
+        gen = _make_generator_for_question_detail(mock_font)
+        agg = _make_test_aggregate(question_sn=3)
+        chart_buf = io.BytesIO(b"fake_png_data")
+        story = []
+        gen._build_class_graph_section(story, agg, chart_buf)
+        text = self._extract_all_text(story)
+        assert "3" in text
+
+    def test_weak_edge_list_shown(self, mock_font):
+        """Weak edges (correct_ratio < 0.3) appear in story content (FR-008)."""
+        from forma.class_knowledge_aggregate import AggregateEdge
+
+        gen = _make_generator_for_question_detail(mock_font)
+        # Edge B→C has ratio 0.2 (below 0.3 threshold)
+        agg = _make_test_aggregate()
+        chart_buf = io.BytesIO(b"fake_png_data")
+        story = []
+        gen._build_class_graph_section(story, agg, chart_buf)
+        text = self._extract_all_text(story)
+        # The weak edge B→C should be mentioned
+        assert "B" in text
+
+    def test_empty_aggregate_no_exception(self, mock_font):
+        """Empty aggregate (no displayable edges) handled without exception (FR-009)."""
+        gen = _make_generator_for_question_detail(mock_font)
+        agg = _make_test_aggregate(edges=[], total_students=0)
+        chart_buf = io.BytesIO(b"fake_png_data")
+        story = []
+        # Should not raise
+        gen._build_class_graph_section(story, agg, chart_buf)
+
+    def test_no_weak_edges(self, mock_font):
+        """When all edges have high ratio, weak-edge table section is minimal."""
+        from forma.class_knowledge_aggregate import AggregateEdge
+
+        gen = _make_generator_for_question_detail(mock_font)
+        agg = _make_test_aggregate(edges=[
+            AggregateEdge("A", "R1", "B", 28, 1, 1, 30, 0.93),
+            AggregateEdge("B", "R2", "C", 27, 2, 1, 30, 0.90),
+        ])
+        chart_buf = io.BytesIO(b"fake_png_data")
+        story = []
+        gen._build_class_graph_section(story, agg, chart_buf)
+        # Should still have elements (at least heading + chart)
+        assert len(story) > 0
+
+
+# ===========================================================================
+# T014 (v0.7.3 US3): _build_misconception_cluster_section() — PDF section
+# ===========================================================================
+
+
+def _make_test_clusters():
+    """Build synthetic MisconceptionCluster list for PDF section testing."""
+    from forma.misconception_clustering import MisconceptionCluster
+    from forma.misconception_classifier import MisconceptionPattern
+    from forma.evaluation_types import TripletEdge
+
+    return [
+        MisconceptionCluster(
+            cluster_id=0,
+            pattern=MisconceptionPattern.CAUSAL_REVERSAL,
+            representative_error="인과 방향 역전: A->causes->B",
+            member_count=5,
+            student_errors=[
+                "인과 방향 역전: A->causes->B",
+                "인과 방향 역전: C->causes->D",
+                "인과 방향 역전: E->causes->F",
+                "인과 방향 역전: G->causes->H",
+                "인과 방향 역전: I->causes->J",
+            ],
+            correction_point="A는 B의 원인이 아니라 결과입니다.",
+            centroid_edge=TripletEdge("B", "causes", "A"),
+        ),
+        MisconceptionCluster(
+            cluster_id=1,
+            pattern=MisconceptionPattern.CONCEPT_ABSENCE,
+            representative_error="핵심 개념 부재: 항상성",
+            member_count=3,
+            student_errors=[
+                "핵심 개념 부재: 항상성",
+                "핵심 개념 부재: 세포막",
+                "핵심 개념 부재: 음성되먹임",
+            ],
+            correction_point="",  # not generated
+            centroid_edge=None,
+        ),
+    ]
+
+
+class TestBuildMisconceptionClusterSection:
+    """T014: _build_misconception_cluster_section() PDF section tests.
+
+    RED phase: _build_misconception_cluster_section() does not exist yet ->
+    all tests FAIL until T017 is implemented.
+    """
+
+    @staticmethod
+    def _extract_all_text(story_elements):
+        """Extract all text from Paragraph and Table elements in the story."""
+        texts = []
+        for el in story_elements:
+            if hasattr(el, "text"):
+                texts.append(el.text)
+            if hasattr(el, "_cellvalues"):
+                for row in el._cellvalues:
+                    for cell in row:
+                        if hasattr(cell, "text"):
+                            texts.append(cell.text)
+        return " ".join(texts)
+
+    def test_section_renders_without_error(self, mock_font):
+        """_build_misconception_cluster_section renders cluster table without error."""
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = _make_test_clusters()
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        assert len(story) > 0
+
+    def test_section_contains_cluster_heading(self, mock_font):
+        """Section contains heading text."""
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = _make_test_clusters()
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        text = self._extract_all_text(story)
+        assert "오개념 클러스터" in text
+
+    def test_section_shows_member_count(self, mock_font):
+        """Table shows member_count for each cluster."""
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = _make_test_clusters()
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        text = self._extract_all_text(story)
+        assert "5" in text  # member_count of first cluster
+        assert "3" in text  # member_count of second cluster
+
+    def test_section_shows_representative_error(self, mock_font):
+        """Table shows representative_error text."""
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = _make_test_clusters()
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        text = self._extract_all_text(story)
+        assert "인과 방향 역전" in text
+
+    def test_section_shows_correction_point_when_present(self, mock_font):
+        """Table shows correction_point when it is non-empty."""
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = _make_test_clusters()
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        text = self._extract_all_text(story)
+        assert "A는 B의 원인이 아니라 결과입니다" in text
+
+    def test_section_shows_fallback_when_correction_empty(self, mock_font):
+        """Table shows '교정 포인트 없음' when correction_point == ''."""
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = _make_test_clusters()
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        text = self._extract_all_text(story)
+        # Second cluster has correction_point=""
+        assert "교정 포인트 없음" in text
+
+    def test_empty_clusters_shows_no_misconceptions(self, mock_font):
+        """Empty cluster list shows '오개념 없음' paragraph."""
+        gen = _make_generator_for_question_detail(mock_font)
+        story = []
+        gen._build_misconception_cluster_section(story, [])
+        text = self._extract_all_text(story)
+        assert "오개념 없음" in text
+
+    def test_section_does_not_crash_with_none_centroid(self, mock_font):
+        """Cluster with centroid_edge=None does not crash rendering."""
+        from forma.misconception_clustering import MisconceptionCluster
+        from forma.misconception_classifier import MisconceptionPattern
+
+        gen = _make_generator_for_question_detail(mock_font)
+        clusters = [
+            MisconceptionCluster(
+                cluster_id=0,
+                pattern=MisconceptionPattern.CONCEPT_ABSENCE,
+                representative_error="핵심 개념 부재: 세포",
+                member_count=2,
+                student_errors=["부재1", "부재2"],
+                correction_point="",
+                centroid_edge=None,
+            ),
+        ]
+        story = []
+        gen._build_misconception_cluster_section(story, clusters)
+        assert len(story) > 0

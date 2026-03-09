@@ -11,6 +11,7 @@ import datetime
 import logging
 from collections import Counter
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import numpy as np
 from reportlab.lib.colors import Color
@@ -18,6 +19,10 @@ from reportlab.lib.colors import Color
 from forma.report_data_loader import ClassDistributions, StudentReportData
 from forma.emphasis_map import InstructionalEmphasisMap
 from forma.lecture_gap_analysis import LectureGapReport
+
+if TYPE_CHECKING:
+    from forma.class_knowledge_aggregate import ClassKnowledgeAggregate
+    from forma.misconception_clustering import MisconceptionCluster
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +78,8 @@ class QuestionClassStats:
     misconception_frequencies: list[tuple[str, int]] = field(default_factory=list)
     hub_gap_entries: list = field(default_factory=list)
     classified_misconceptions: list = field(default_factory=list)
+    class_knowledge_aggregate: ClassKnowledgeAggregate | None = None
+    misconception_clusters: list[MisconceptionCluster] = field(default_factory=list)
 
 
 @dataclass
@@ -164,6 +171,7 @@ class ProfessorReportData:
     lecture_gap_report: LectureGapReport | None = None
     emphasis_map: InstructionalEmphasisMap | None = None
     class_emphasis_maps: dict[str, InstructionalEmphasisMap] | None = None
+    class_knowledge_aggregates: list[ClassKnowledgeAggregate] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

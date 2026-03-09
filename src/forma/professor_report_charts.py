@@ -375,3 +375,112 @@ class ProfessorReportChartGenerator:
 
         plt.tight_layout()
         return self._save_fig(fig)
+
+    def build_class_knowledge_graph_chart(
+        self,
+        aggregate: object,
+        min_ratio_to_show: float = 0.05,
+    ) -> io.BytesIO:
+        """Build a directed knowledge graph chart from class aggregate data.
+
+        Filters edges below min_ratio_to_show, then renders a NetworkX
+        directed graph with edge widths and colors based on correct_ratio.
+
+        Color rules (FR-006):
+            - correct_ratio > 0.5: green (#2E7D32)
+            - 0.2 <= correct_ratio <= 0.5: orange (#F57F17)
+            - error_count > missing_count: red (#C62828)
+            - else: grey (#9E9E9E), dashed
+
+        Args:
+            aggregate: ClassKnowledgeAggregate instance.
+            min_ratio_to_show: Minimum correct_ratio to include an edge
+                in the chart (default 0.05). Edges below this are filtered.
+
+        Returns:
+            PNG image as io.BytesIO.
+        """
+        import networkx as nx
+
+        display_edges = [
+            e for e in aggregate.edges
+            if e.correct_ratio >= min_ratio_to_show
+        ]
+
+        fig, ax = plt.subplots(figsize=(160 / 25.4, 100 / 25.4))
+        fp = self._font_prop
+
+        if not display_edges:
+            ax.text(
+                0.5, 0.5, "표시할 데이터 없음",
+                ha="center", va="center",
+                fontproperties=fp, fontsize=12,
+            )
+            ax.axis("off")
+            return self._save_fig(fig)
+
+        G = nx.DiGraph()
+        edge_colors = []
+        edge_widths = []
+        edge_styles = []
+
+        for e in display_edges:
+            G.add_edge(e.subject, e.obj, label=e.relation)
+
+            if e.correct_ratio > 0.5:
+                edge_colors.append("#2E7D32")
+                edge_styles.append("solid")
+            elif e.correct_ratio >= 0.2:
+                edge_colors.append("#F57F17")
+                edge_styles.append("solid")
+            elif e.error_count > e.missing_count:
+                edge_colors.append("#C62828")
+                edge_styles.append("solid")
+            else:
+                edge_colors.append("#9E9E9E")
+                edge_styles.append("dashed")
+
+            edge_widths.append(max(0.5, e.correct_ratio * 5))
+
+        pos = nx.spring_layout(G, seed=42)
+
+        nx.draw_networkx_nodes(
+            G, pos, ax=ax,
+            node_color="#E3F2FD", node_size=800, edgecolors="#1565C0",
+        )
+
+        for i, (u, v) in enumerate(G.edges()):
+            nx.draw_networkx_edges(
+                G, pos, ax=ax,
+                edgelist=[(u, v)],
+                edge_color=[edge_colors[i]],
+                width=edge_widths[i],
+                style=edge_styles[i],
+                arrows=True,
+                arrowsize=15,
+                connectionstyle="arc3,rad=0.1",
+            )
+
+        nx.draw_networkx_labels(
+            G, pos, ax=ax,
+            font_family=fp.get_name() if hasattr(fp, "get_name") else "sans-serif",
+            font_size=9,
+        )
+
+        edge_labels = {
+            (e.subject, e.obj): f"{e.relation}\n({e.correct_ratio:.0%})"
+            for e in display_edges
+        }
+        nx.draw_networkx_edge_labels(
+            G, pos, edge_labels=edge_labels, ax=ax,
+            font_size=7,
+            font_family=fp.get_name() if hasattr(fp, "get_name") else "sans-serif",
+        )
+
+        ax.set_title(
+            f"학급 지식 지도 — 문제 {aggregate.question_sn}",
+            fontproperties=fp, fontsize=11,
+        )
+        ax.axis("off")
+        fig.tight_layout()
+        return self._save_fig(fig)

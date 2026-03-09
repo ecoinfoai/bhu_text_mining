@@ -196,6 +196,16 @@ class ProfessorPDFReportGenerator:
         story.extend(self._build_at_risk_summary(report_data))
         for q in report_data.question_stats:
             story.extend(self._build_question_detail_page(q))
+        # Class knowledge graph sections (v0.7.3 US2)
+        for agg in report_data.class_knowledge_aggregates:
+            chart_buf = self._chart_gen.build_class_knowledge_graph_chart(agg)
+            self._build_class_graph_section(story, agg, chart_buf)
+
+        # Misconception cluster sections (v0.7.3 US3)
+        for q in report_data.question_stats:
+            if q.misconception_clusters:
+                self._build_misconception_cluster_section(story, q.misconception_clusters)
+
         story.extend(self._build_lecture_gap_section(report_data))
         story.extend(self._build_emphasis_comparison_section(report_data))
         story.extend(self._build_llm_analysis_page(report_data))
@@ -1035,6 +1045,162 @@ class ProfessorPDFReportGenerator:
         story.append(Spacer(1, 4 * mm))
 
         return story
+
+    def _build_class_graph_section(
+        self,
+        story: list,
+        aggregate: object,
+        chart_buf: object,
+    ) -> None:
+        """Build the class knowledge graph section in the PDF story.
+
+        Adds a section heading, embedded chart image, and a weak-edge table
+        listing edges with correct_ratio < 0.3, sorted by ratio ascending.
+
+        Args:
+            story: The PDF story list to append elements to.
+            aggregate: ClassKnowledgeAggregate with edges and question_sn.
+            chart_buf: io.BytesIO containing the PNG chart image.
+        """
+        story.append(
+            Paragraph(
+                _esc(f"학급 지식 지도 — 문제 {aggregate.question_sn}"),
+                self._styles["ProfSection"],
+            )
+        )
+        story.append(Spacer(1, 6))
+
+        # Embed chart image (14cm x 9cm)
+        story.append(self._safe_image(chart_buf, width=140 * mm, height=90 * mm))
+        story.append(Spacer(1, 6))
+
+        # Weak-edge table: edges where correct_ratio < 0.3
+        weak_edges = sorted(
+            [e for e in aggregate.edges if e.correct_ratio < 0.3],
+            key=lambda e: e.correct_ratio,
+        )
+
+        if weak_edges:
+            story.append(
+                Paragraph(
+                    _esc("취약 엣지 (정답 비율 30% 미만)"),
+                    self._styles["ProfSubsection"],
+                )
+            )
+            story.append(Spacer(1, 4))
+
+            table_data = [
+                [
+                    Paragraph(_esc("관계"), self._styles["ProfBody"]),
+                    Paragraph(_esc("정답 수"), self._styles["ProfBody"]),
+                    Paragraph(_esc("오류 수"), self._styles["ProfBody"]),
+                    Paragraph(_esc("누락 수"), self._styles["ProfBody"]),
+                    Paragraph(_esc("정답 비율"), self._styles["ProfBody"]),
+                ],
+            ]
+            for e in weak_edges:
+                table_data.append([
+                    Paragraph(
+                        _esc(f"{e.subject} → {e.obj}"),
+                        self._styles["ProfBody"],
+                    ),
+                    Paragraph(_esc(str(e.correct_count)), self._styles["ProfBody"]),
+                    Paragraph(_esc(str(e.error_count)), self._styles["ProfBody"]),
+                    Paragraph(_esc(str(e.missing_count)), self._styles["ProfBody"]),
+                    Paragraph(
+                        _esc(f"{e.correct_ratio:.1%}"),
+                        self._styles["ProfBody"],
+                    ),
+                ])
+
+            col_widths = [60 * mm, 25 * mm, 25 * mm, 25 * mm, 25 * mm]
+            tbl = Table(table_data, colWidths=col_widths)
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]))
+            story.append(tbl)
+
+        story.append(Spacer(1, 8))
+
+    def _build_misconception_cluster_section(
+        self,
+        story: list,
+        clusters: list,
+    ) -> None:
+        """Build the misconception cluster table section in the PDF story.
+
+        Adds a section heading and a table with columns for cluster pattern,
+        member count, representative error, and correction point. Shows
+        '오개념 없음' when clusters list is empty. Shows '교정 포인트 없음'
+        when correction_point is empty string.
+
+        No LLM calls are made in this method (Constitution VI).
+
+        Args:
+            story: The PDF story list to append elements to.
+            clusters: List of MisconceptionCluster instances.
+        """
+        story.append(
+            Paragraph(
+                _esc("오개념 클러스터 분석"),
+                self._styles["ProfSection"],
+            )
+        )
+        story.append(Spacer(1, 6))
+
+        if not clusters:
+            story.append(
+                Paragraph(_esc("오개념 없음"), self._styles["ProfBody"])
+            )
+            story.append(Spacer(1, 8))
+            return
+
+        # Build table: header + one row per cluster
+        table_data = [
+            [
+                Paragraph(_esc("패턴"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("학생수"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("대표 오류"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("교정 포인트"), self._styles["ProfTableHeader"]),
+            ],
+        ]
+
+        for cluster in clusters:
+            pattern_name = (
+                cluster.pattern.value
+                if hasattr(cluster.pattern, "value")
+                else str(cluster.pattern)
+            )
+            correction = (
+                cluster.correction_point
+                if cluster.correction_point
+                else "교정 포인트 없음"
+            )
+            table_data.append([
+                Paragraph(_esc(pattern_name), self._styles["ProfTableData"]),
+                Paragraph(_esc(str(cluster.member_count)), self._styles["ProfTableData"]),
+                Paragraph(_esc(cluster.representative_error), self._styles["ProfTableData"]),
+                Paragraph(_esc(correction), self._styles["ProfTableData"]),
+            ])
+
+        col_widths = [60 * mm, 20 * mm, 55 * mm, 55 * mm]
+        tbl = Table(table_data, colWidths=col_widths)
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("ALIGN", (2, 1), (3, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]))
+        story.append(tbl)
+        story.append(Spacer(1, 8))
 
     def _build_llm_analysis_page(self, report_data: ProfessorReportData) -> list:
         """Build LLM analysis page with overall assessment only."""

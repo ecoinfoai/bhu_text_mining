@@ -80,6 +80,67 @@ def main() -> int | None:
         exam_title="형성평가",
     )
 
+    # v0.7.3 T013a: Compute class knowledge aggregates from graph comparison data
+    try:
+        from forma.class_knowledge_aggregate import build_class_knowledge_aggregate
+        from forma.evaluation_types import GraphComparisonResult
+
+        for qstat in report_data.question_stats:
+            qsn = qstat.question_sn
+            # Collect comparison results and master edges for this question
+            comparison_results = []
+            master_edges_set: set[tuple[str, str, str]] = set()
+
+            for student in students:
+                for q in student.questions:
+                    if q.question_sn != qsn:
+                        continue
+                    if not q.graph_master_edges:
+                        continue
+
+                    for me in q.graph_master_edges:
+                        master_edges_set.add((me.subject, me.relation, me.object))
+
+                    comparison_results.append(GraphComparisonResult(
+                        student_id=student.student_id,
+                        question_sn=qsn,
+                        precision=0.0, recall=0.0, f1=q.graph_comparison_f1,
+                        matched_edges=q.graph_matched_edges,
+                        missing_edges=q.graph_missing_edges,
+                        extra_edges=q.graph_extra_edges,
+                        wrong_direction_edges=q.graph_wrong_direction_edges,
+                    ))
+
+            if comparison_results and master_edges_set:
+                from forma.evaluation_types import TripletEdge
+                master_edges_list = [
+                    TripletEdge(subject=s, relation=r, object=o)
+                    for s, r, o in sorted(master_edges_set)
+                ]
+                agg = build_class_knowledge_aggregate(
+                    master_edges_list, comparison_results, qsn,
+                )
+                report_data.class_knowledge_aggregates.append(agg)
+                qstat.class_knowledge_aggregate = agg
+    except Exception as exc:
+        _LOG.warning("학급 집합 그래프 계산 실패 (계속 진행): %s", exc)
+
+    # v0.7.3 T017a: Compute misconception clusters per question
+    try:
+        from forma.misconception_clustering import cluster_misconceptions
+
+        for qstat in report_data.question_stats:
+            classified = getattr(qstat, "classified_misconceptions", [])
+            if classified:
+                clusters = cluster_misconceptions(classified)
+                qstat.misconception_clusters = clusters
+                _LOG.info(
+                    "문항 %d 오개념 클러스터링: %d개 입력 -> %d개 클러스터",
+                    qstat.question_sn, len(classified), len(clusters),
+                )
+    except Exception as exc:
+        _LOG.warning("오개념 클러스터링 실패 (계속 진행): %s", exc)
+
     # T042: transcript loading + emphasis/gap computation (FR-019a)
     if args.transcript_dir and os.path.isdir(args.transcript_dir):
         from forma.emphasis_map import compute_emphasis_map
@@ -157,6 +218,21 @@ def main() -> int | None:
             generate_professor_analysis(provider, report_data)
         except Exception as exc:
             _LOG.warning("LLM analysis skipped: %s", exc)
+
+        # v0.7.3 T021a: Generate LLM correction points for misconception clusters
+        if provider is not None:
+            try:
+                from forma.professor_report_llm import generate_cluster_correction
+
+                for qstat in report_data.question_stats:
+                    for cluster in qstat.misconception_clusters:
+                        if not cluster.correction_point:
+                            correction = generate_cluster_correction(
+                                cluster, cluster.centroid_edge, provider,
+                            )
+                            cluster.correction_point = correction
+            except Exception as exc:
+                _LOG.warning("오개념 클러스터 교정 포인트 생성 실패 (계속 진행): %s", exc)
 
     # Validate font path if provided
     if args.font_path is not None and not os.path.isfile(args.font_path):

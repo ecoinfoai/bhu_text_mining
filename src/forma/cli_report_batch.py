@@ -163,6 +163,61 @@ def main(argv=None):
                 exam_title=exam_title,
             )
 
+            # v0.7.3 T013a: Compute class knowledge aggregates
+            try:
+                from forma.class_knowledge_aggregate import build_class_knowledge_aggregate
+                from forma.evaluation_types import GraphComparisonResult, TripletEdge
+
+                for qstat in report_data.question_stats:
+                    qsn = qstat.question_sn
+                    comparison_results = []
+                    master_edges_set: set[tuple[str, str, str]] = set()
+
+                    for student in students:
+                        for q in student.questions:
+                            if q.question_sn != qsn or not q.graph_master_edges:
+                                continue
+                            for me in q.graph_master_edges:
+                                master_edges_set.add((me.subject, me.relation, me.object))
+                            comparison_results.append(GraphComparisonResult(
+                                student_id=student.student_id,
+                                question_sn=qsn,
+                                precision=0.0, recall=0.0, f1=q.graph_comparison_f1,
+                                matched_edges=q.graph_matched_edges,
+                                missing_edges=q.graph_missing_edges,
+                                extra_edges=q.graph_extra_edges,
+                                wrong_direction_edges=q.graph_wrong_direction_edges,
+                            ))
+
+                    if comparison_results and master_edges_set:
+                        master_edges_list = [
+                            TripletEdge(subject=s, relation=r, object=o)
+                            for s, r, o in sorted(master_edges_set)
+                        ]
+                        agg = build_class_knowledge_aggregate(
+                            master_edges_list, comparison_results, qsn,
+                        )
+                        report_data.class_knowledge_aggregates.append(agg)
+                        qstat.class_knowledge_aggregate = agg
+            except Exception as exc:
+                logger.warning("분반 %s 학급 집합 그래프 계산 실패: %s", class_id, exc)
+
+            # v0.7.3 T017a: Compute misconception clusters per question
+            try:
+                from forma.misconception_clustering import cluster_misconceptions
+
+                for qstat in report_data.question_stats:
+                    classified = getattr(qstat, "classified_misconceptions", [])
+                    if classified:
+                        clusters = cluster_misconceptions(classified)
+                        qstat.misconception_clusters = clusters
+                        logger.info(
+                            "분반 %s 문항 %d 오개념 클러스터링: %d개 입력 -> %d개 클러스터",
+                            class_id, qstat.question_sn, len(classified), len(clusters),
+                        )
+            except Exception as exc:
+                logger.warning("분반 %s 오개념 클러스터링 실패: %s", class_id, exc)
+
             # T044: per-class transcript processing (FR-019b, FR-020)
             if args.transcript_pattern:
                 from forma.emphasis_map import compute_emphasis_map
@@ -215,6 +270,31 @@ def main(argv=None):
                 else:
                     logger.warning(
                         "분반 %s 트랜스크립트 디렉토리 없음: %s", class_id, transcript_dir
+                    )
+
+            # v0.7.3 T021a: Generate LLM correction points for misconception clusters
+            if not args.skip_llm:
+                try:
+                    from forma.professor_report_llm import generate_cluster_correction
+
+                    provider = None
+                    try:
+                        import anthropic  # noqa: PLC0415
+                        provider = anthropic.Anthropic()
+                    except Exception:
+                        pass
+
+                    if provider is not None:
+                        for qstat in report_data.question_stats:
+                            for cluster in qstat.misconception_clusters:
+                                if not cluster.correction_point:
+                                    correction = generate_cluster_correction(
+                                        cluster, cluster.centroid_edge, provider,
+                                    )
+                                    cluster.correction_point = correction
+                except Exception as exc:
+                    logger.warning(
+                        "분반 %s 오개념 클러스터 교정 포인트 생성 실패: %s", class_id, exc,
                     )
 
             # Generate professor PDF

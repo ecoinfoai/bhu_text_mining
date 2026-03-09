@@ -444,3 +444,138 @@ class TestPromptRendering:
                 assert row.student_number not in result, (
                     f"PII '{row.student_number}' found in teaching suggestions prompt"
                 )
+
+
+# ---------------------------------------------------------------------------
+# T019: Tests for generate_cluster_correction() (US4)
+# ---------------------------------------------------------------------------
+
+
+def _make_test_cluster():
+    """Build a minimal MisconceptionCluster for LLM correction tests."""
+    from forma.misconception_clustering import MisconceptionCluster
+    from forma.misconception_classifier import MisconceptionPattern
+    from forma.evaluation_types import TripletEdge
+
+    return MisconceptionCluster(
+        cluster_id=0,
+        pattern=MisconceptionPattern.CAUSAL_REVERSAL,
+        representative_error="인과 방향 역전: A->causes->B",
+        member_count=5,
+        student_errors=[
+            "인과 방향 역전: A->causes->B",
+            "인과 방향 역전: C->causes->D",
+            "인과 방향 역전: E->causes->F",
+            "인과 방향 역전: G->causes->H",
+            "인과 방향 역전: I->causes->J",
+        ],
+        correction_point="",
+        centroid_edge=TripletEdge("B", "causes", "A"),
+    )
+
+
+def _make_test_cluster_no_edge():
+    """Build a MisconceptionCluster with no master edge (CONCEPT_ABSENCE)."""
+    from forma.misconception_clustering import MisconceptionCluster
+    from forma.misconception_classifier import MisconceptionPattern
+
+    return MisconceptionCluster(
+        cluster_id=1,
+        pattern=MisconceptionPattern.CONCEPT_ABSENCE,
+        representative_error="핵심 개념 부재: 항상성",
+        member_count=3,
+        student_errors=["부재1", "부재2", "부재3"],
+        correction_point="",
+        centroid_edge=None,
+    )
+
+
+class TestGenerateClusterCorrection:
+    """Tests for generate_cluster_correction(cluster, master_edge, provider).
+
+    RED phase: function does not exist yet -> all tests FAIL until T020
+    is implemented.
+    """
+
+    def test_success_returns_nonempty_str(self):
+        """Mock LLM returning a string -> returns non-empty str (FR-015)."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster()
+        provider = _make_mock_provider(responses=["A는 B를 유발하는 것이 아니라 B가 A를 유발합니다."])
+
+        result = generate_cluster_correction(cluster, cluster.centroid_edge, provider)
+
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_llm_exception_returns_empty_string(self):
+        """Mock LLM raising exception -> returns '' (not None) without raising (FR-016, I2)."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster()
+        provider = _make_mock_provider(side_effects=[RuntimeError("API timeout")])
+
+        result = generate_cluster_correction(cluster, cluster.centroid_edge, provider)
+
+        assert isinstance(result, str)
+        assert result == ""
+
+    def test_llm_returns_none_returns_empty_string(self):
+        """Mock LLM returning None -> returns '' (not None) without raising (FR-016)."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster()
+        provider = _make_mock_provider(responses=[None])
+
+        result = generate_cluster_correction(cluster, cluster.centroid_edge, provider)
+
+        assert isinstance(result, str)
+        assert result == ""
+
+    def test_llm_called_once(self):
+        """LLM called exactly once per cluster (not per student) (FR-015)."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster()
+        provider = _make_mock_provider(responses=["교정 포인트 텍스트"])
+
+        generate_cluster_correction(cluster, cluster.centroid_edge, provider)
+
+        assert provider.generate.call_count == 1
+
+    def test_result_type_is_str_not_optional(self):
+        """correction_point type is str not Optional[str] (I2 fix)."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster()
+        provider = _make_mock_provider(responses=["교정 결과"])
+
+        result = generate_cluster_correction(cluster, cluster.centroid_edge, provider)
+
+        assert isinstance(result, str)
+        assert result is not None
+
+    def test_with_none_master_edge(self):
+        """Works with centroid_edge=None (CONCEPT_ABSENCE pattern)."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster_no_edge()
+        provider = _make_mock_provider(responses=["항상성 개념을 다시 설명하세요."])
+
+        result = generate_cluster_correction(cluster, None, provider)
+
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_empty_response_returns_empty_string(self):
+        """Empty string response from LLM returns ''."""
+        from forma.professor_report_llm import generate_cluster_correction
+
+        cluster = _make_test_cluster()
+        provider = _make_mock_provider(responses=[""])
+
+        result = generate_cluster_correction(cluster, cluster.centroid_edge, provider)
+
+        assert isinstance(result, str)
+        assert result == ""
