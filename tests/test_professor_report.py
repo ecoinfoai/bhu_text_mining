@@ -2697,3 +2697,81 @@ class TestBuildMisconceptionClusterSection:
         story = []
         gen._build_misconception_cluster_section(story, clusters)
         assert len(story) > 0
+
+
+# ===========================================================================
+# T025 (v0.7.3): Backward-compatibility regression — empty new fields
+# ===========================================================================
+
+
+class TestBackwardCompatV073:
+    """T025: generate_pdf() with empty v0.7.3 fields produces valid PDF.
+
+    When class_knowledge_aggregates=[] and all misconception_clusters=[],
+    the PDF should generate without error and contain no new sections
+    (FR-017 backward compat).
+    """
+
+    def test_generate_pdf_no_new_sections(self, tmp_path):
+        """PDF generated successfully with all v0.7.3 fields empty."""
+        import os
+        from forma.professor_report import ProfessorPDFReportGenerator
+        from forma.report_data_loader import (
+            StudentReportData,
+            QuestionReportData,
+            compute_class_distributions,
+        )
+        from forma.professor_report_data import build_professor_report_data
+
+        students = []
+        for i in range(5):
+            score = round(0.4 + i * 0.1, 2)
+            level = (
+                "Advanced" if score >= 0.85
+                else "Proficient" if score >= 0.65
+                else "Developing" if score >= 0.45
+                else "Beginning"
+            )
+            students.append(StudentReportData(
+                student_id=f"S{i:03d}",
+                real_name=f"학생{i:03d}",
+                student_number=f"2026{i:04d}",
+                class_name="1A",
+                course_name="생리학",
+                chapter_name="Chapter 1",
+                week_num=1,
+                questions=[
+                    QuestionReportData(
+                        question_sn=1,
+                        question_text="항상성의 정의를 서술하시오.",
+                        ensemble_score=score,
+                        understanding_level=level,
+                        concept_coverage=0.5,
+                        llm_median_score=2.0,
+                        rasch_theta=0.0,
+                        misconceptions=[],
+                    ),
+                ],
+            ))
+
+        dists = compute_class_distributions(students)
+        report_data = build_professor_report_data(
+            students=students,
+            distributions=dists,
+            class_name="1A",
+            week_num=1,
+            subject="생리학",
+            exam_title="Ch01 형성평가",
+        )
+
+        # Ensure v0.7.3 fields are empty
+        assert report_data.class_knowledge_aggregates == []
+        for qstat in report_data.question_stats:
+            assert qstat.misconception_clusters == []
+
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(report_data, str(tmp_path))
+
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0

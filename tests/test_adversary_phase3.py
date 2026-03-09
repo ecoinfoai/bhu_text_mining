@@ -191,17 +191,31 @@ class TestMemorySaboteur:
     def test_1000_students_10_edges_no_crash(self):
         """1000 students with 10 master edges completes without error."""
         master = [TripletEdge(f"S{i}", "R", f"O{i}") for i in range(10)]
+        # Properly reverse wrong_direction edges (student writes O->R->S)
+        reversed_5_8 = [
+            TripletEdge(me.object, me.relation, me.subject)
+            for me in master[5:8]
+        ]
         results = [
             _make_comparison_result(
                 f"S{i}", 1,
                 matched=master[:5],
-                wrong_direction=master[5:8],
+                wrong_direction=reversed_5_8,
             )
             for i in range(1000)
         ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         assert agg.total_students == 1000
         assert len(agg.edges) == 10
+        # Verify the counts are correct with properly reversed edges
+        for edge in agg.edges:
+            idx = int(edge.subject[1:])
+            if idx < 5:
+                assert edge.correct_count == 1000
+            elif idx < 8:
+                assert edge.error_count == 1000
+            else:
+                assert edge.missing_count == 1000
 
     def test_aggregate_returns_new_list_each_call(self):
         """Each call returns a new edges list (no shared mutable state)."""
@@ -467,10 +481,14 @@ class TestPDFKiller:
 class TestDataIntegrityEnforcer:
     """Persona 6: Mathematical invariant violations."""
 
-    def test_invariant_counts_sum_to_total_random(self):
-        """correct + error + missing == total for ALL edges across 1000 random scenarios."""
+    def test_invariant_counts_sum_to_total_random_1000(self):
+        """correct + error + missing == total for ALL edges across 1000 random scenarios.
+
+        Team-lead requirement: Persona 6 must verify this invariant with 1000
+        parametrized random cases. Uses properly reversed wrong_direction edges.
+        """
         random.seed(42)
-        for trial in range(100):
+        for trial in range(1000):
             n_edges = random.randint(1, 10)
             n_students = random.randint(0, 50)
             master = [TripletEdge(f"S{i}", "R", f"O{i}") for i in range(n_edges)]
@@ -485,7 +503,8 @@ class TestDataIntegrityEnforcer:
                     if r < 0.5:
                         matched.append(me)
                     elif r < 0.7:
-                        wrong.append(me)
+                        # Store the REVERSED edge (student's wrong direction)
+                        wrong.append(TripletEdge(me.object, me.relation, me.subject))
                     # else: missing
                 results.append(_make_comparison_result(
                     f"S{j}", 1, matched=matched, wrong_direction=wrong
@@ -500,10 +519,10 @@ class TestDataIntegrityEnforcer:
                     f"= {total} != {edge.total_students}"
                 )
 
-    def test_correct_ratio_exact_for_all_random(self):
-        """correct_ratio == correct_count / total_students for all edges across random scenarios."""
+    def test_correct_ratio_exact_for_all_random_1000(self):
+        """correct_ratio == correct_count / total_students for all edges across 1000 random scenarios."""
         random.seed(123)
-        for trial in range(100):
+        for trial in range(1000):
             n_edges = random.randint(1, 5)
             n_students = random.randint(1, 30)
             master = [TripletEdge(f"S{i}", "R", f"O{i}") for i in range(n_edges)]
@@ -511,7 +530,12 @@ class TestDataIntegrityEnforcer:
             results = []
             for j in range(n_students):
                 matched = [me for me in master if random.random() < 0.4]
-                wrong = [me for me in master if me not in matched and random.random() < 0.3]
+                # Properly reverse for wrong_direction
+                wrong = [
+                    TripletEdge(me.object, me.relation, me.subject)
+                    for me in master
+                    if me not in matched and random.random() < 0.3
+                ]
                 results.append(_make_comparison_result(
                     f"S{j}", 1, matched=matched, wrong_direction=wrong
                 ))
@@ -591,3 +615,98 @@ class TestDataIntegrityEnforcer:
         assert edge.obj == "Object1"
         assert edge.subject == "Subject1"
         assert edge.relation == "Relation1"
+
+    def test_wrong_direction_cross_contamination(self):
+        """ATTACK: Two master edges where one's reversal coincidentally matches another.
+
+        Master: A->R1->B and B->R2->C
+        If student reverses A->R1->B (producing B->R1->A), the wrong_direction
+        matching uses (e.subject == master.object and e.object == master.subject).
+        For master B->R2->C, the reversed edge B->R1->A does NOT match because
+        e.object='A' != master.subject='B'.
+        This verifies no cross-contamination between master edges.
+        """
+        master = [
+            TripletEdge("A", "R1", "B"),
+            TripletEdge("B", "R2", "C"),
+        ]
+        # Student reverses A->R1->B producing B->R1->A in wrong_direction
+        results = [
+            _make_comparison_result(
+                "S001", 1,
+                wrong_direction=[TripletEdge("B", "R1", "A")],
+            ),
+        ]
+        agg = build_class_knowledge_aggregate(master, results, question_sn=1)
+        edge_ab = next(e for e in agg.edges if e.subject == "A")
+        edge_bc = next(e for e in agg.edges if e.subject == "B")
+
+        # A->R1->B should count as error (B->R1->A matches reversal)
+        assert edge_ab.error_count == 1
+        assert edge_ab.missing_count == 0
+        # B->R2->C should count as missing (no cross-contamination)
+        assert edge_bc.error_count == 0
+        assert edge_bc.missing_count == 1
+
+    def test_wrong_direction_relation_not_checked(self):
+        """ATTACK: wrong_direction matching does NOT check relation field.
+
+        Implementation line 110-111: checks only e.subject == master.object
+        and e.object == master.subject, ignoring relation.
+
+        This tests that a wrong-direction edge with a DIFFERENT relation
+        still gets counted as error (by design), not silently dropped.
+        """
+        master = [TripletEdge("A", "causes", "B")]
+        # Student reverses it but writes a different relation
+        results = [
+            _make_comparison_result(
+                "S001", 1,
+                wrong_direction=[TripletEdge("B", "caused-by", "A")],
+            ),
+        ]
+        agg = build_class_knowledge_aggregate(master, results, question_sn=1)
+        edge = agg.edges[0]
+        # The matching logic only checks subject/object reversal, not relation
+        assert edge.error_count == 1
+        assert edge.correct_count == 0
+        assert edge.missing_count == 0
+
+    def test_random_1000_invariant_with_mixed_relation_names(self):
+        """1000 random trials with diverse relation names to stress invariant."""
+        random.seed(999)
+        relations = ["원인", "유발", "포함", "구성", "is-a", "part-of", "causes"]
+        for trial in range(1000):
+            n_edges = random.randint(1, 8)
+            n_students = random.randint(0, 30)
+            master = [
+                TripletEdge(f"S{i}", relations[i % len(relations)], f"O{i}")
+                for i in range(n_edges)
+            ]
+
+            results = []
+            for j in range(n_students):
+                matched = []
+                wrong = []
+                for me in master:
+                    r = random.random()
+                    if r < 0.4:
+                        matched.append(me)
+                    elif r < 0.65:
+                        wrong.append(TripletEdge(me.object, me.relation, me.subject))
+                results.append(_make_comparison_result(
+                    f"S{j}", 1, matched=matched, wrong_direction=wrong
+                ))
+
+            agg = build_class_knowledge_aggregate(master, results, question_sn=1)
+            for edge in agg.edges:
+                total = edge.correct_count + edge.error_count + edge.missing_count
+                assert total == edge.total_students, (
+                    f"Trial {trial}: {edge.subject}->{edge.obj}: "
+                    f"{edge.correct_count}+{edge.error_count}+{edge.missing_count}"
+                    f"={total} != {edge.total_students}"
+                )
+                assert 0.0 <= edge.correct_ratio <= 1.0
+                if edge.total_students > 0:
+                    expected = edge.correct_count / edge.total_students
+                    assert abs(edge.correct_ratio - expected) < 1e-9
