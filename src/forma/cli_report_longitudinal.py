@@ -40,6 +40,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--font-path", default=None, dest="font_path",
         help="한국어 폰트 경로 (생략 시 자동 감지)",
     )
+    parser.add_argument(
+        "--no-config", action="store_true", default=False, dest="no_config",
+        help="forma.yaml 설정 파일 무시",
+    )
+    parser.add_argument(
+        "--model", default=None, dest="model_path",
+        help="드롭 리스크 예측 모델 파일 경로 (.pkl)",
+    )
     return parser
 
 
@@ -47,6 +55,10 @@ def main() -> int | None:
     """Entry point for forma-report-longitudinal CLI."""
     args = _build_parser().parse_args()
     logging.basicConfig(level=logging.INFO)
+
+    # Apply project config (three-layer merge)
+    from forma.project_config import apply_project_config
+    apply_project_config(args, argv=sys.argv[1:])
 
     # Validate store file exists
     if not os.path.isfile(args.store):
@@ -82,6 +94,35 @@ def main() -> int | None:
     # Build summary data
     from forma.longitudinal_report_data import build_longitudinal_summary
     summary = build_longitudinal_summary(store, weeks, args.class_name)
+
+    # v0.9.0: Risk prediction from pre-trained model (FR-014, FR-015)
+    if args.model_path:
+        if not os.path.isfile(args.model_path):
+            _LOG.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+            sys.exit(1)
+        try:
+            from forma.risk_predictor import (
+                FeatureExtractor, RiskPredictor, load_model,
+            )
+
+            trained_model = load_model(args.model_path)
+            predictor = RiskPredictor()
+            extractor = FeatureExtractor()
+            matrix, feat_names, student_ids = extractor.extract(store, weeks)
+            if matrix.shape[0] > 0:
+                if feat_names == trained_model.feature_names:
+                    preds = predictor.predict(
+                        trained_model, matrix, student_ids,
+                    )
+                else:
+                    _LOG.warning("모델 피처 불일치 — cold start 예측 사용")
+                    preds = predictor.predict_cold_start(
+                        matrix, student_ids, feat_names,
+                    )
+                summary.risk_predictions = preds
+                _LOG.info("드롭 리스크 예측 완료: %d명", len(preds))
+        except Exception as exc:
+            _LOG.warning("리스크 예측 실패 (계속 진행): %s", exc)
 
     # Generate PDF
     from forma.longitudinal_report import LongitudinalPDFReportGenerator

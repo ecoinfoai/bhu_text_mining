@@ -77,6 +77,7 @@ class LongitudinalSummaryData:
     persistent_risk_students: list[str]
     concept_mastery_changes: list[ConceptMasteryChange]
     total_students: int
+    risk_predictions: list | None = None
 
 
 # ---------------------------------------------------------------------------

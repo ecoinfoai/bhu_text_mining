@@ -2905,3 +2905,89 @@ class TestRiskMovementSection:
         assert pdf_path.endswith(".pdf")
         assert os.path.exists(pdf_path)
         assert os.path.getsize(pdf_path) > 0
+
+
+# ---------------------------------------------------------------------------
+# T051 [US4]: Cross-Section Comparison section in professor report
+# ---------------------------------------------------------------------------
+
+
+def _make_generator_for_cross_section(mock_font: str) -> "ProfessorPDFReportGenerator":
+    """Helper: instantiate ProfessorPDFReportGenerator with mocked font."""
+    with patch("forma.professor_report.find_korean_font", return_value=mock_font):
+        with patch("forma.professor_report.pdfmetrics.registerFont"):
+            with patch("forma.professor_report.TTFont"):
+                from forma.professor_report import ProfessorPDFReportGenerator
+
+                return ProfessorPDFReportGenerator(font_path=mock_font)
+
+
+class TestCrossSectionComparisonSection:
+    """Tests for _build_cross_section_comparison_section in ProfessorPDFReportGenerator."""
+
+    def test_section_renders_with_comparison_data(self, mock_font):
+        """Cross-section comparison section renders when cross_section_report is set."""
+        from forma.section_comparison import (
+            CrossSectionReport,
+            SectionComparison,
+            SectionStats,
+        )
+
+        gen = _make_generator_for_cross_section(mock_font)
+
+        cross_report = CrossSectionReport(
+            section_stats=[
+                SectionStats("A", 30, 0.7, 0.72, 0.1, 3, 0.1),
+                SectionStats("B", 25, 0.65, 0.66, 0.12, 5, 0.2),
+            ],
+            pairwise_comparisons=[
+                SectionComparison(
+                    "A", "B", 30, 25, 0.7, 0.65, 0.1, 0.12,
+                    "welch_t", 1.8, 0.07, None, 0.45, "small", False,
+                ),
+            ],
+            concept_mastery_by_section={
+                "A": {"cell": 0.8},
+                "B": {"cell": 0.7},
+            },
+            weekly_interaction=None,
+        )
+
+        story = gen._build_cross_section_comparison_section(cross_report)
+
+        # Should contain flowables (PageBreak, Paragraphs, Tables, etc.)
+        assert len(story) > 0
+
+        # Check that section title paragraph exists
+        from reportlab.platypus import Paragraph, Table, PageBreak as PB
+
+        has_page_break = any(isinstance(f, PB) for f in story)
+        has_table = any(isinstance(f, Table) for f in story)
+        assert has_page_break
+        assert has_table
+
+    def test_section_omitted_when_none(self):
+        """Cross-section comparison section is omitted when cross_section_report is None."""
+        report_data = ProfessorReportData(
+            class_name="A",
+            week_num=1,
+            subject="test",
+            exam_title="test",
+            generation_date="2026-03-10",
+            n_students=10,
+            n_questions=2,
+            class_ensemble_mean=0.7,
+            class_ensemble_std=0.1,
+            class_ensemble_median=0.7,
+            class_ensemble_q1=0.6,
+            class_ensemble_q3=0.8,
+            overall_level_distribution={"Advanced": 5, "Proficient": 5},
+            question_stats=[],
+            student_rows=[],
+            n_at_risk=0,
+            pct_at_risk=0.0,
+            cross_section_report=None,
+        )
+
+        # Verify the cross_section_report field defaults to None
+        assert report_data.cross_section_report is None

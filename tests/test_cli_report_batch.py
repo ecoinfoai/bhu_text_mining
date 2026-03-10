@@ -850,3 +850,182 @@ class TestTranscriptPattern:
         # compute_emphasis_map should have been called for class A
         mock_cem.assert_called_once()
         mock_clg.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# T060 [US4]: Cross-section comparison integration in --aggregate flow
+# ---------------------------------------------------------------------------
+
+
+class TestAggregateCrossSectionComparison:
+    """Tests for cross-section comparison attached to aggregate report (T060)."""
+
+    def _setup_two_classes(self, tmp_path):
+        """Create filesystem + mock reports for two-class aggregate run."""
+        config = tmp_path / "exam.yaml"
+        config.write_text("questions: []", encoding="utf-8")
+        join_dir = tmp_path / "results"
+        join_dir.mkdir()
+        for cls in ("A", "B"):
+            (join_dir / f"anp_1{cls}_final.yaml").write_text("[]", encoding="utf-8")
+            (tmp_path / f"eval_1{cls}").mkdir()
+        output_dir = tmp_path / "out"
+        output_dir.mkdir()
+        return config, join_dir, output_dir
+
+    def _make_report_data_with_students(self, class_name, scores, at_risk_flags):
+        """Build a ProfessorReportData with real student_rows."""
+        from forma.professor_report_data import (
+            ProfessorReportData,
+            StudentSummaryRow,
+        )
+
+        rows = []
+        for i, (score, is_risk) in enumerate(zip(scores, at_risk_flags)):
+            rows.append(StudentSummaryRow(
+                student_id=f"S{i+1:03d}",
+                overall_ensemble_mean=score,
+                is_at_risk=is_risk,
+                section=class_name,
+            ))
+
+        n_at_risk = sum(at_risk_flags)
+        return ProfessorReportData(
+            class_name=class_name,
+            week_num=1,
+            subject="test",
+            exam_title="test",
+            generation_date="2026-03-10",
+            n_students=len(scores),
+            n_questions=1,
+            class_ensemble_mean=sum(scores) / len(scores),
+            class_ensemble_std=0.1,
+            class_ensemble_median=sorted(scores)[len(scores) // 2],
+            class_ensemble_q1=0.5,
+            class_ensemble_q3=0.8,
+            overall_level_distribution={"Advanced": 2, "Proficient": 3},
+            question_stats=[],
+            student_rows=rows,
+            n_at_risk=n_at_risk,
+            pct_at_risk=n_at_risk / len(scores) if scores else 0.0,
+        )
+
+    def test_aggregate_attaches_cross_section_report(self, tmp_path, monkeypatch):
+        """--aggregate with 2+ classes attaches CrossSectionReport to merged data."""
+        config, join_dir, output_dir = self._setup_two_classes(tmp_path)
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-batch",
+            "--config", str(config),
+            "--join-dir", str(join_dir),
+            "--join-pattern", "anp_1{class}_final.yaml",
+            "--eval-pattern", "eval_1{class}",
+            "--output-dir", str(output_dir),
+            "--classes", "A", "B",
+            "--aggregate",
+            "--skip-llm",
+            "--no-individual",
+        ])
+
+        scores_a = [0.8, 0.7, 0.6, 0.5, 0.9]
+        scores_b = [0.6, 0.5, 0.4, 0.55, 0.65]
+        report_a = self._make_report_data_with_students(
+            "A", scores_a, [False, False, True, True, False],
+        )
+        report_b = self._make_report_data_with_students(
+            "B", scores_b, [True, True, True, False, False],
+        )
+
+        reports = [report_a, report_b]
+        call_idx = [0]
+
+        def _build_side_effect(*args, **kwargs):
+            rd = reports[call_idx[0] % len(reports)]
+            call_idx[0] += 1
+            return rd
+
+        mock_prof_gen = MagicMock()
+        captured_merged = []
+
+        def _capture_generate_pdf(data, output_path):
+            captured_merged.append(data)
+
+        mock_prof_gen.generate_pdf.side_effect = _capture_generate_pdf
+
+        with patch(
+            "forma.cli_report_batch.load_all_student_data",
+            return_value=(_make_mock_students(5), MagicMock()),
+        ), patch(
+            "forma.cli_report_batch.build_professor_report_data",
+            side_effect=_build_side_effect,
+        ), patch(
+            "forma.cli_report_batch.ProfessorPDFReportGenerator",
+            return_value=mock_prof_gen,
+        ):
+            try:
+                main()
+            except SystemExit as exc:
+                assert exc.code in (None, 0)
+
+        # The last generate_pdf call is the aggregate report
+        assert len(captured_merged) >= 3  # 2 per-class + 1 aggregate
+
+        aggregate_data = captured_merged[-1]
+        assert aggregate_data.cross_section_report is not None
+
+        cross_report = aggregate_data.cross_section_report
+        assert len(cross_report.section_stats) == 2
+        assert len(cross_report.pairwise_comparisons) == 1
+
+        # Section names should match
+        section_names = {s.section_name for s in cross_report.section_stats}
+        assert section_names == {"A", "B"}
+
+    def test_aggregate_single_class_no_cross_section(self, tmp_path, monkeypatch):
+        """--aggregate with only 1 class does not attach CrossSectionReport."""
+        config = tmp_path / "exam.yaml"
+        config.write_text("questions: []", encoding="utf-8")
+        join_dir = tmp_path / "results"
+        join_dir.mkdir()
+        (join_dir / "anp_1A_final.yaml").write_text("[]", encoding="utf-8")
+        (tmp_path / "eval_1A").mkdir()
+        output_dir = tmp_path / "out"
+        output_dir.mkdir()
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-batch",
+            "--config", str(config),
+            "--join-dir", str(join_dir),
+            "--join-pattern", "anp_1{class}_final.yaml",
+            "--eval-pattern", "eval_1{class}",
+            "--output-dir", str(output_dir),
+            "--classes", "A",
+            "--aggregate",
+            "--skip-llm",
+            "--no-individual",
+        ])
+
+        report_a = self._make_report_data_with_students(
+            "A", [0.8, 0.7, 0.6], [False, False, True],
+        )
+        mock_prof_gen = MagicMock()
+
+        with patch(
+            "forma.cli_report_batch.load_all_student_data",
+            return_value=(_make_mock_students(3), MagicMock()),
+        ), patch(
+            "forma.cli_report_batch.build_professor_report_data",
+            return_value=report_a,
+        ), patch(
+            "forma.cli_report_batch.ProfessorPDFReportGenerator",
+            return_value=mock_prof_gen,
+        ):
+            try:
+                main()
+            except SystemExit as exc:
+                assert exc.code in (None, 0)
+
+        # With only 1 class, aggregate shouldn't be generated (per existing logic)
+        # The warning is logged but no aggregate PDF is generated
+        # So the per-class report should NOT have cross_section_report
+        assert report_a.cross_section_report is None

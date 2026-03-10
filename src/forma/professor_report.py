@@ -204,6 +204,11 @@ class ProfessorPDFReportGenerator:
         # Risk movement section (v0.8.0 US2)
         if risk_movement is not None:
             story.extend(self._build_risk_movement_section(risk_movement))
+
+        # Predicted risk section (v0.9.0 US2)
+        if report_data.risk_predictions:
+            story.extend(self._build_predicted_risk_section(report_data.risk_predictions))
+
         for q in report_data.question_stats:
             story.extend(self._build_question_detail_page(q))
         # Class knowledge graph sections (v0.7.3 US2)
@@ -218,6 +223,16 @@ class ProfessorPDFReportGenerator:
 
         story.extend(self._build_lecture_gap_section(report_data))
         story.extend(self._build_emphasis_comparison_section(report_data))
+
+        # Cross-section comparison section (v0.9.0 US4)
+        if report_data.cross_section_report is not None:
+            story.extend(
+                self._build_cross_section_comparison_section(
+                    report_data.cross_section_report,
+                    report_data,
+                ),
+            )
+
         story.extend(self._build_llm_analysis_page(report_data))
 
         doc = SimpleDocTemplate(
@@ -1260,6 +1275,224 @@ class ProfessorPDFReportGenerator:
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ]))
         story.append(tbl)
+        return story
+
+    def _build_cross_section_comparison_section(
+        self, cross_report, report_data=None,
+    ) -> list:
+        """Build cross-section comparison section for aggregate reports.
+
+        Includes statistics table, pairwise comparison results, box plot,
+        concept mastery heatmap, and weekly interaction chart.
+
+        Args:
+            cross_report: CrossSectionReport instance.
+            report_data: ProfessorReportData for extracting per-section scores
+                from student_rows (used for box plot).
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        from forma.section_comparison_charts import (
+            build_section_box_plot,
+            build_concept_mastery_heatmap,
+            build_weekly_interaction_chart,
+        )
+
+        story: list = []
+        story.append(PageBreak())
+        story.append(
+            Paragraph(_esc("분반 간 비교 분석"), self._styles["ProfSection"]),
+        )
+        story.append(Spacer(1, 8))
+
+        # --- Section descriptive statistics table ---
+        story.append(
+            Paragraph(_esc("분반별 기술 통계"), self._styles["ProfSubsection"]),
+        )
+        story.append(Spacer(1, 4))
+
+        header = ["분반", "N", "평균", "중위수", "표준편차", "위험군", "위험군 비율"]
+        table_data = [header]
+        for ss in cross_report.section_stats:
+            table_data.append([
+                _esc(ss.section_name),
+                str(ss.n_students),
+                f"{ss.mean:.3f}",
+                f"{ss.median:.3f}",
+                f"{ss.std:.3f}",
+                str(ss.n_at_risk),
+                f"{ss.pct_at_risk:.1%}",
+            ])
+
+        col_widths = [50, 30, 50, 50, 50, 40, 60]
+        tbl = Table(table_data, colWidths=col_widths)
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+            ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+        ]))
+        story.append(tbl)
+        story.append(Spacer(1, 12))
+
+        # --- Pairwise comparison table ---
+        if cross_report.pairwise_comparisons:
+            story.append(
+                Paragraph(_esc("쌍대 비교 결과"), self._styles["ProfSubsection"]),
+            )
+            story.append(Spacer(1, 4))
+
+            pw_header = [
+                "비교", "검정", "통계량", "p값",
+                "보정p값", "Cohen's d", "효과크기", "유의",
+            ]
+            pw_data = [pw_header]
+            for pc in cross_report.pairwise_comparisons:
+                test_label = (
+                    "Welch t" if pc.test_name == "welch_t"
+                    else "Mann-Whitney U"
+                )
+                p_corr = f"{pc.p_value_corrected:.4f}" if pc.p_value_corrected is not None else "-"
+                sig = "Yes" if pc.is_significant else "No"
+                pw_data.append([
+                    _esc(f"{pc.section_a} vs {pc.section_b}"),
+                    _esc(test_label),
+                    f"{pc.test_statistic:.3f}",
+                    f"{pc.p_value:.4f}",
+                    p_corr,
+                    f"{pc.cohens_d:.3f}",
+                    _esc(pc.effect_size_label),
+                    sig,
+                ])
+
+            pw_col_widths = [70, 65, 45, 45, 45, 50, 50, 30]
+            pw_tbl = Table(pw_data, colWidths=pw_col_widths)
+            pw_tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#2E7D32")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+            ]))
+            story.append(pw_tbl)
+            story.append(Spacer(1, 12))
+
+        # --- Box plot chart ---
+        try:
+            section_scores: dict[str, list[float]] = {}
+            if report_data is not None:
+                for row in report_data.student_rows:
+                    sec = row.section or report_data.class_name
+                    section_scores.setdefault(sec, []).append(
+                        row.overall_ensemble_mean,
+                    )
+            if section_scores:
+                box_buf = build_section_box_plot(section_scores)
+                story.append(
+                    self._safe_image(box_buf, 400, 250),
+                )
+                story.append(Spacer(1, 8))
+        except Exception as exc:
+            logger.warning("분반 비교 박스플롯 생성 실패: %s", exc)
+
+        # --- Concept mastery heatmap ---
+        if cross_report.concept_mastery_by_section:
+            try:
+                heatmap_buf = build_concept_mastery_heatmap(
+                    cross_report.concept_mastery_by_section,
+                )
+                if heatmap_buf is not None:
+                    story.append(
+                        self._safe_image(heatmap_buf, 450, 200),
+                    )
+                    story.append(Spacer(1, 8))
+            except Exception as exc:
+                logger.warning("개념 숙달도 히트맵 생성 실패: %s", exc)
+
+        # --- Weekly interaction chart ---
+        if cross_report.weekly_interaction:
+            try:
+                interaction_buf = build_weekly_interaction_chart(
+                    cross_report.weekly_interaction,
+                )
+                if interaction_buf is not None:
+                    story.append(
+                        self._safe_image(interaction_buf, 400, 250),
+                    )
+                    story.append(Spacer(1, 8))
+            except Exception as exc:
+                logger.warning("주차별 상호작용 차트 생성 실패: %s", exc)
+
+        return story
+
+    def _build_predicted_risk_section(self, risk_predictions: list) -> list:
+        """Build section showing predicted drop risk for students.
+
+        Args:
+            risk_predictions: List of RiskPrediction objects.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("드롭 리스크 예측"),
+            self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 4))
+
+        # Sort by drop_probability descending
+        sorted_preds = sorted(
+            risk_predictions, key=lambda p: p.drop_probability, reverse=True,
+        )
+
+        # Show top 50 or all if fewer
+        display_preds = sorted_preds[:50]
+
+        header = [
+            Paragraph("학생", self._styles["ProfTableHeader"]),
+            Paragraph("드롭 확률", self._styles["ProfTableHeader"]),
+            Paragraph("주요 위험 요인", self._styles["ProfTableHeader"]),
+            Paragraph("예측 방식", self._styles["ProfTableHeader"]),
+        ]
+        rows = [header]
+
+        for pred in display_preds:
+            top_factors = pred.risk_factors[:3] if pred.risk_factors else []
+            factors_str = ", ".join(f.name for f in top_factors) if top_factors else "-"
+            source = "모델 기반" if pred.is_model_based else "규칙 기반"
+
+            rows.append([
+                Paragraph(_esc(pred.student_id), self._styles["ProfTableData"]),
+                Paragraph(f"{pred.drop_probability:.2f}", self._styles["ProfTableData"]),
+                Paragraph(_esc(factors_str), self._styles["ProfTableData"]),
+                Paragraph(_esc(source), self._styles["ProfTableData"]),
+            ])
+
+        col_widths = [60, 60, 220, 70]
+        table = Table(rows, colWidths=col_widths, repeatRows=1)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565C0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F5")]),
+        ]))
+        story.append(table)
+
         return story
 
     def _build_llm_analysis_page(self, report_data: ProfessorReportData) -> list:

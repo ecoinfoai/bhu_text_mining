@@ -150,6 +150,10 @@ class LongitudinalPDFReportGenerator:
         story.extend(self._build_risk_analysis_section(summary_data))
         story.extend(self._build_concept_mastery_section(summary_data))
 
+        # Risk trend section (v0.9.0 US2)
+        if summary_data.risk_predictions:
+            story.extend(self._build_risk_trend_section(summary_data))
+
         doc = SimpleDocTemplate(
             output_path,
             pagesize=A4,
@@ -390,5 +394,41 @@ class LongitudinalPDFReportGenerator:
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
         ]))
         story.append(table)
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_risk_trend_section(self, data: LongitudinalSummaryData) -> list:
+        """Build risk prediction trend section with chart.
+
+        Args:
+            data: Summary data with risk_predictions field.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph("6. 드롭 리스크 예측", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        if not data.risk_predictions:
+            story.append(Paragraph(
+                "리스크 예측 데이터가 없습니다.",
+                self._styles["LongBody"],
+            ))
+            return story
+
+        from forma.longitudinal_report_charts import build_risk_trend_chart
+        try:
+            chart_buf = build_risk_trend_chart(
+                data.risk_predictions,
+                font_path=self._font_path,
+                dpi=self._dpi,
+            )
+            story.append(Image(chart_buf, width=160 * mm, height=80 * mm))
+        except Exception as exc:
+            logger.warning("리스크 트렌드 차트 생성 실패: %s", exc)
+            story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
+
         story.append(Spacer(1, 5 * mm))
         return story

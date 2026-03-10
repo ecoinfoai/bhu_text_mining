@@ -2,6 +2,7 @@
 
 T013: US1 batch mode CLI tests (argparse, file validation, batch generation).
 T027: US2 --student filter tests (single student, student not found).
+T011: v0.9.0 US1 backward compatibility + --no-config tests.
 """
 from __future__ import annotations
 
@@ -325,3 +326,86 @@ class TestT027StudentFilter:
         combined = captured.out + captured.err
         assert "S999" in combined
         assert "찾을 수 없습니다" in combined
+
+
+# ---------------------------------------------------------------------------
+# T011: v0.9.0 US1 — Backward compatibility & --no-config tests
+# ---------------------------------------------------------------------------
+
+
+class TestT011BackwardCompat:
+    """T011 [US1] Verify forma-report works identically with/without forma.yaml,
+    and that --no-config ignores config file."""
+
+    def test_no_config_flag_accepted(self, cli_env, monkeypatch):
+        """--no-config flag is accepted without error."""
+        monkeypatch.setattr("sys.argv", [
+            "forma-report",
+            *_base_argv(cli_env),
+            "--no-config",
+        ])
+
+        mock_generator_instance = MagicMock()
+        mock_generator_cls = MagicMock(return_value=mock_generator_instance)
+
+        with patch(
+            "forma.cli_report.load_all_student_data",
+            return_value=(MOCK_STUDENTS, MOCK_DISTS),
+        ), patch(
+            "forma.cli_report.StudentPDFReportGenerator",
+            mock_generator_cls,
+        ):
+            from forma.cli_report import main
+            main()
+
+        assert mock_generator_instance.generate_pdf.call_count == 2
+
+    def test_works_without_config_file(self, cli_env, monkeypatch):
+        """Works identically when no forma.yaml exists (backward compat)."""
+        monkeypatch.setattr("sys.argv", [
+            "forma-report", *_base_argv(cli_env),
+        ])
+
+        mock_generator_instance = MagicMock()
+        mock_generator_cls = MagicMock(return_value=mock_generator_instance)
+
+        with patch(
+            "forma.cli_report.load_all_student_data",
+            return_value=(MOCK_STUDENTS, MOCK_DISTS),
+        ), patch(
+            "forma.cli_report.StudentPDFReportGenerator",
+            mock_generator_cls,
+        ):
+            from forma.cli_report import main
+            main()
+
+        assert mock_generator_instance.generate_pdf.call_count == 2
+
+    def test_dpi_flag_still_works(self, cli_env, monkeypatch):
+        """Explicit --dpi flag is respected."""
+        monkeypatch.setattr("sys.argv", [
+            "forma-report",
+            *_base_argv(cli_env),
+            "--dpi", "300",
+        ])
+
+        mock_generator_instance = MagicMock()
+        mock_generator_cls = MagicMock(return_value=mock_generator_instance)
+
+        with patch(
+            "forma.cli_report.load_all_student_data",
+            return_value=(MOCK_STUDENTS, MOCK_DISTS),
+        ), patch(
+            "forma.cli_report.StudentPDFReportGenerator",
+            mock_generator_cls,
+        ):
+            from forma.cli_report import main
+            main()
+
+        # Verify DPI was passed to generator constructor
+        call_kwargs = mock_generator_cls.call_args
+        if call_kwargs.kwargs:
+            assert call_kwargs.kwargs.get("dpi") == 300
+        else:
+            # Positional: font_path, dpi
+            assert 300 in call_kwargs.args

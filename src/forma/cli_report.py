@@ -73,6 +73,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="상세 로그 출력",
     )
     parser.add_argument(
+        "--no-config",
+        action="store_true",
+        dest="no_config",
+        help="forma.yaml 설정 파일 무시",
+    )
+    parser.add_argument(
         "--longitudinal-store",
         default=None,
         dest="longitudinal_store",
@@ -91,6 +97,10 @@ def main() -> None:
     """Main entry point for forma-report CLI."""
     parser = _build_parser()
     args = parser.parse_args()
+
+    # Apply project config (three-layer merge)
+    from forma.project_config import apply_project_config
+    apply_project_config(args, argv=sys.argv[1:])
 
     # Configure logging
     level = logging.DEBUG if args.verbose else logging.INFO

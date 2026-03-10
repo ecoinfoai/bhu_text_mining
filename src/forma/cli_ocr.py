@@ -29,6 +29,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="bhu-ocr",
         description="스캔된 답안지 OCR 파이프라인",
     )
+    parser.add_argument(
+        "--no-config", action="store_true", default=False, dest="no_config",
+        help="forma.yaml 설정 파일 무시",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # ── scan subcommand ───────────────────────────
@@ -113,6 +117,11 @@ def _load_ocr_config(path: str) -> dict:
 def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint for bhu-ocr."""
     args = _parse_args(argv)
+
+    # Apply project config (three-layer merge)
+    from forma.project_config import apply_project_config
+    raw_argv = argv if argv is not None else sys.argv[1:]
+    apply_project_config(args, argv=raw_argv)
 
     if args.command == "scan":
         cfg = _load_ocr_config(args.config)

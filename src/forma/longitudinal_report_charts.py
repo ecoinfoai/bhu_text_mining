@@ -270,3 +270,50 @@ def build_concept_mastery_bar_chart(
 
     fig.tight_layout()
     return _save_fig(fig, dpi)
+
+
+def build_risk_trend_chart(
+    risk_predictions: list,
+    *,
+    font_path: str | None = None,
+    dpi: int = 150,
+) -> io.BytesIO:
+    """Build risk probability horizontal bar chart for top at-risk students.
+
+    Args:
+        risk_predictions: List of RiskPrediction objects.
+        font_path: Korean font path.
+        dpi: Image resolution.
+
+    Returns:
+        PNG image as BytesIO buffer.
+    """
+    font_prop = _get_font_prop(font_path)
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    # Sort by probability descending, show top 10
+    sorted_preds = sorted(
+        risk_predictions, key=lambda p: p.drop_probability, reverse=True,
+    )[:10]
+
+    if not sorted_preds:
+        ax.text(0.5, 0.5, "예측 데이터 없음", ha="center", va="center",
+                fontproperties=font_prop, fontsize=14)
+    else:
+        student_ids = [p.student_id for p in sorted_preds]
+        probs = [p.drop_probability for p in sorted_preds]
+        bar_colors = ["#C62828" if p >= 0.5 else "#F57F17" for p in probs]
+
+        y_pos = np.arange(len(student_ids))
+        ax.barh(y_pos, probs, color=bar_colors, height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(student_ids, fontsize=8)
+        ax.set_xlim(0, 1)
+        ax.axvline(x=0.5, color="red", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.invert_yaxis()
+
+    ax.set_xlabel("드롭 확률", fontproperties=font_prop)
+    ax.set_title("드롭 리스크 예측 (상위 10명)", fontproperties=font_prop, fontsize=12)
+
+    fig.tight_layout()
+    return _save_fig(fig, dpi)

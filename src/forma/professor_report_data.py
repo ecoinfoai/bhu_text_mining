@@ -23,6 +23,7 @@ from forma.lecture_gap_analysis import LectureGapReport
 if TYPE_CHECKING:
     from forma.class_knowledge_aggregate import ClassKnowledgeAggregate
     from forma.misconception_clustering import MisconceptionCluster
+    from forma.section_comparison import CrossSectionReport
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +174,8 @@ class ProfessorReportData:
     class_emphasis_maps: dict[str, InstructionalEmphasisMap] | None = None
     class_knowledge_aggregates: list[ClassKnowledgeAggregate] = field(default_factory=list)
     risk_movement: "RiskMovement | None" = None
+    cross_section_report: "CrossSectionReport | None" = None
+    risk_predictions: list | None = None
 
 
 @dataclass

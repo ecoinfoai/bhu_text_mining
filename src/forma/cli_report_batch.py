@@ -81,6 +81,10 @@ def create_parser() -> argparse.ArgumentParser:
         help="Verbose logging",
     )
     parser.add_argument(
+        "--no-config", action="store_true", default=False, dest="no_config",
+        help="Skip forma.yaml loading",
+    )
+    parser.add_argument(
         "--transcript-pattern", default=None, dest="transcript_pattern",
         help="Transcript file pattern with {class} placeholder",
     )
@@ -89,8 +93,15 @@ def create_parser() -> argparse.ArgumentParser:
 
 def main(argv=None):
     """Entry point for forma-report-batch CLI."""
+    import sys as _sys
+
     parser = create_parser()
     args = parser.parse_args(argv)
+
+    # Apply project config (three-layer merge)
+    from forma.project_config import apply_project_config
+    raw_argv = argv if argv is not None else _sys.argv[1:]
+    apply_project_config(args, argv=raw_argv)
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -323,6 +334,59 @@ def main(argv=None):
     # Aggregate report
     if args.aggregate and len(per_class_reports) > 1:
         merged = merge_professor_report_data(per_class_reports)
+
+        # T060 [US4]: Compute cross-section comparison for aggregate report
+        try:
+            from forma.section_comparison import (
+                CrossSectionReport,
+                compute_concept_mastery_by_section,
+                compute_pairwise_comparisons,
+                compute_section_stats,
+            )
+
+            section_scores: dict[str, list[float]] = {}
+            section_at_risk: dict[str, set[str]] = {}
+
+            for report_data in per_class_reports:
+                sec = report_data.class_name
+                scores = [r.overall_ensemble_mean for r in report_data.student_rows]
+                at_risk = {
+                    r.student_id for r in report_data.student_rows if r.is_at_risk
+                }
+                section_scores[sec] = scores
+                section_at_risk[sec] = at_risk
+
+            stats_list = [
+                compute_section_stats(sec, section_scores[sec], section_at_risk[sec])
+                for sec in sorted(section_scores.keys())
+            ]
+            pairwise = compute_pairwise_comparisons(section_scores)
+
+            # Concept mastery: section -> concept -> list of per-student values
+            section_concept_data: dict[str, dict[str, list[float]]] = {}
+            for report_data in per_class_reports:
+                sec = report_data.class_name
+                concept_values: dict[str, list[float]] = {}
+                for qstat in report_data.question_stats:
+                    for concept, rate in qstat.concept_mastery_rates.items():
+                        concept_values.setdefault(concept, []).append(rate)
+                section_concept_data[sec] = concept_values
+
+            concept_mastery = compute_concept_mastery_by_section(section_concept_data)
+
+            merged.cross_section_report = CrossSectionReport(
+                section_stats=stats_list,
+                pairwise_comparisons=pairwise,
+                concept_mastery_by_section=concept_mastery,
+                weekly_interaction=None,
+            )
+            logger.info(
+                "분반 간 비교 분석 완료: %d개 분반, %d개 쌍대 비교",
+                len(stats_list), len(pairwise),
+            )
+        except Exception as exc:
+            logger.warning("분반 간 비교 분석 실패: %s", exc)
+
         agg_gen = ProfessorPDFReportGenerator(
             font_path=args.font_path,
             dpi=args.dpi,
