@@ -1111,3 +1111,228 @@ class TestFeedbackParseIntegration:
         pdf_path = gen.generate_pdf(student, dists, str(tmp_path))
         assert os.path.exists(pdf_path)
         assert os.path.getsize(pdf_path) > 0
+
+
+# ---------------------------------------------------------------------------
+# T040: Learning path section in student report (v0.10.0 US4, FR-020, FR-023)
+# ---------------------------------------------------------------------------
+
+
+class TestLearningPathSection:
+    """Tests for _build_learning_path_section in student report."""
+
+    def test_learning_path_renders_in_pdf(self, tmp_path):
+        """generate_pdf with learning_path kwarg produces valid PDF (FR-020)."""
+        from forma.learning_path import LearningPath
+        from forma.student_report import StudentPDFReportGenerator
+
+        lp = LearningPath(
+            student_id="S001",
+            deficit_concepts=["물질 이동", "삼투압"],
+            ordered_path=["물질 이동", "삼투압"],
+            capped=False,
+        )
+        student = _make_student()
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            student, dists, str(tmp_path),
+            learning_path=lp,
+        )
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_empty_learning_path_shows_mastered_message(self, tmp_path):
+        """Empty path produces PDF with mastered message."""
+        from forma.learning_path import LearningPath
+        from forma.student_report import StudentPDFReportGenerator
+
+        lp = LearningPath(
+            student_id="S001",
+            deficit_concepts=[],
+            ordered_path=[],
+            capped=False,
+        )
+        student = _make_student()
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            student, dists, str(tmp_path),
+            learning_path=lp,
+        )
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_no_learning_path_backward_compat(self, tmp_path):
+        """FR-023: Without learning_path kwarg, report generates normally."""
+        from forma.student_report import StudentPDFReportGenerator
+
+        student = _make_student()
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(student, dists, str(tmp_path))
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_capped_learning_path_renders(self, tmp_path):
+        """Capped path (>20 concepts) renders with notice."""
+        from forma.learning_path import LearningPath
+        from forma.student_report import StudentPDFReportGenerator
+
+        lp = LearningPath(
+            student_id="S001",
+            deficit_concepts=[f"C{i}" for i in range(25)],
+            ordered_path=[f"C{i}" for i in range(20)],
+            capped=True,
+        )
+        student = _make_student()
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            student, dists, str(tmp_path),
+            learning_path=lp,
+        )
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+
+# ---------------------------------------------------------------------------
+# T061 [US6] Softened grade language in student report — FR-031
+# ---------------------------------------------------------------------------
+
+
+class TestStudentGradeTrend:
+    """Tests for softened grade trend display in student report."""
+
+    @patch("forma.student_report.os.path.exists", return_value=True)
+    @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.student_report.pdfmetrics.registerFont")
+    @patch("forma.student_report.TTFont")
+    def test_build_grade_trend_section_returns_flowables(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """_build_grade_trend_section returns non-empty story list."""
+        from forma.student_report import StudentPDFReportGenerator
+
+        gen = StudentPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_grade_trend_section("상위권")
+        assert isinstance(story, list)
+        assert len(story) > 0
+
+    @patch("forma.student_report.os.path.exists", return_value=True)
+    @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.student_report.pdfmetrics.registerFont")
+    @patch("forma.student_report.TTFont")
+    def test_upper_tier_text(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """'상위권' prediction shows softened trend text with '상위권'."""
+        from reportlab.platypus import Paragraph
+
+        from forma.student_report import StudentPDFReportGenerator
+
+        gen = StudentPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_grade_trend_section("상위권")
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("상위권" in t for t in texts)
+
+    @patch("forma.student_report.os.path.exists", return_value=True)
+    @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.student_report.pdfmetrics.registerFont")
+    @patch("forma.student_report.TTFont")
+    def test_mid_tier_text(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """'중위권' prediction shows softened text."""
+        from reportlab.platypus import Paragraph
+
+        from forma.student_report import StudentPDFReportGenerator
+
+        gen = StudentPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_grade_trend_section("중위권")
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("중위권" in t for t in texts)
+
+    @patch("forma.student_report.os.path.exists", return_value=True)
+    @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.student_report.pdfmetrics.registerFont")
+    @patch("forma.student_report.TTFont")
+    def test_lower_tier_text(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """'하위권' prediction shows softened text."""
+        from reportlab.platypus import Paragraph
+
+        from forma.student_report import StudentPDFReportGenerator
+
+        gen = StudentPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_grade_trend_section("하위권")
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("하위권" in t for t in texts)
+
+    @patch("forma.student_report.os.path.exists", return_value=True)
+    @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.student_report.pdfmetrics.registerFont")
+    @patch("forma.student_report.TTFont")
+    def test_no_explicit_grade_in_student_report(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Student report must NOT show explicit A/B/C/D/F grades (FR-031)."""
+        from reportlab.platypus import Paragraph
+
+        from forma.student_report import StudentPDFReportGenerator
+
+        gen = StudentPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        for tier in ("상위권", "중위권", "하위권"):
+            story = gen._build_grade_trend_section(tier)
+            paragraphs = [e for e in story if isinstance(e, Paragraph)]
+            texts = " ".join(p.text for p in paragraphs)
+            # Should not contain explicit grade letters in context of prediction
+            for grade in ("A등급", "B등급", "C등급", "D등급", "F등급"):
+                assert grade not in texts, f"Explicit grade '{grade}' found in student report"
+
+    @patch("forma.student_report.os.path.exists", return_value=True)
+    @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.student_report.pdfmetrics.registerFont")
+    @patch("forma.student_report.TTFont")
+    def test_section_has_heading(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes '학습 추이' heading."""
+        from reportlab.platypus import Paragraph
+
+        from forma.student_report import StudentPDFReportGenerator
+
+        gen = StudentPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_grade_trend_section("상위권")
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("학습 추이" in t for t in texts)
+
+    def test_grade_trend_renders_in_pdf(self, tmp_path):
+        """generate_pdf with grade_trend kwarg produces valid PDF."""
+        from forma.student_report import StudentPDFReportGenerator
+
+        student = _make_student()
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            student, dists, str(tmp_path),
+            grade_trend="상위권",
+        )
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_no_grade_trend_backward_compat(self, tmp_path):
+        """Without grade_trend kwarg, report generates normally (SC-008)."""
+        from forma.student_report import StudentPDFReportGenerator
+
+        student = _make_student()
+        dists = _make_distributions()
+        gen = StudentPDFReportGenerator()
+        pdf_path = gen.generate_pdf(student, dists, str(tmp_path))
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0

@@ -132,12 +132,18 @@ class LongitudinalPDFReportGenerator:
             alignment=1,
         ))
 
-    def generate(self, summary_data: LongitudinalSummaryData, output_path: str) -> str:
+    def generate(
+        self,
+        summary_data: LongitudinalSummaryData,
+        output_path: str,
+        intervention_effects: list | None = None,
+    ) -> str:
         """Generate the longitudinal summary report PDF.
 
         Args:
             summary_data: Complete summary data.
             output_path: Output path for the PDF file.
+            intervention_effects: Optional list of InterventionEffect (v0.10.0 US2, FR-011).
 
         Returns:
             Absolute path to generated PDF file.
@@ -153,6 +159,10 @@ class LongitudinalPDFReportGenerator:
         # Risk trend section (v0.9.0 US2)
         if summary_data.risk_predictions:
             story.extend(self._build_risk_trend_section(summary_data))
+
+        # Intervention effect chart section (v0.10.0 US2, FR-011)
+        if intervention_effects:
+            story.extend(self._build_intervention_chart_section(intervention_effects))
 
         doc = SimpleDocTemplate(
             output_path,
@@ -430,5 +440,45 @@ class LongitudinalPDFReportGenerator:
             logger.warning("리스크 트렌드 차트 생성 실패: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_intervention_chart_section(self, effects: list) -> list:
+        """Build intervention effect pre/post chart section (FR-011).
+
+        Args:
+            effects: List of InterventionEffect objects.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph("개입 전후 점수 변화", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        from forma.longitudinal_report_charts import build_intervention_effect_chart
+        try:
+            n_sufficient = sum(1 for e in effects if e.sufficient_data)
+            chart_height = max(60, n_sufficient * 12)
+            chart_buf = build_intervention_effect_chart(
+                effects,
+                font_path=self._font_path,
+                dpi=self._dpi,
+            )
+            story.append(Image(
+                chart_buf, width=160 * mm,
+                height=min(chart_height, 200) * mm,
+            ))
+        except Exception as exc:
+            logger.warning("개입 효과 차트 생성 실패: %s", exc)
+            story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
+
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            "파랑 = 개입 전 평균, 초록 = 개입 후 평균. "
+            "데이터 부족 건은 제외.",
+            self._styles["LongBody"],
+        ))
         story.append(Spacer(1, 5 * mm))
         return story

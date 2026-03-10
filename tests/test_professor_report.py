@@ -2991,3 +2991,517 @@ class TestCrossSectionComparisonSection:
 
         # Verify the cross_section_report field defaults to None
         assert report_data.cross_section_report is None
+
+
+# ---------------------------------------------------------------------------
+# T041: Class deficit map section in professor report (v0.10.0 US4, FR-021)
+# ---------------------------------------------------------------------------
+
+
+class TestDeficitMapSection:
+    """Tests for _build_deficit_map_section in professor report."""
+
+    @staticmethod
+    def _make_report_data():
+        """Create ProfessorReportData for deficit map testing."""
+        return _make_professor_report_data()
+
+    def test_deficit_map_renders_in_pdf(self, tmp_path):
+        """generate_pdf with deficit_map kwarg produces valid PDF (FR-021)."""
+        import os
+
+        from forma.concept_dependency import ConceptDependency, build_and_validate_dag
+        from forma.learning_path import ClassDeficitMap
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        dag = build_and_validate_dag([
+            ConceptDependency(prerequisite="세포막", dependent="삼투압"),
+        ])
+        deficit_map = ClassDeficitMap(
+            concept_counts={"세포막": 1, "삼투압": 3},
+            total_students=5,
+            dag=dag,
+        )
+        report_data = self._make_report_data()
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            report_data, str(tmp_path),
+            deficit_map=deficit_map,
+        )
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_no_deficit_map_backward_compat(self, tmp_path):
+        """Without deficit_map kwarg, report generates normally."""
+        import os
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        report_data = self._make_report_data()
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(report_data, str(tmp_path))
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+
+# ---------------------------------------------------------------------------
+# T060 [US6] Grade prediction section in professor report — FR-030, FR-032
+# ---------------------------------------------------------------------------
+
+
+class TestGradePredictionSection:
+    """Tests for professor report grade prediction section."""
+
+    @staticmethod
+    def _make_grade_predictions():
+        """Build sample GradePrediction list."""
+        from forma.grade_predictor import GradePrediction
+
+        return [
+            GradePrediction(
+                student_id="S001",
+                predicted_grade="A",
+                grade_probabilities={"A": 0.70, "B": 0.20, "C": 0.05, "D": 0.03, "F": 0.02},
+                predicted_ordinal=4,
+                is_model_based=True,
+                confidence="high",
+            ),
+            GradePrediction(
+                student_id="S002",
+                predicted_grade="B",
+                grade_probabilities={"A": 0.15, "B": 0.55, "C": 0.20, "D": 0.08, "F": 0.02},
+                predicted_ordinal=3,
+                is_model_based=True,
+                confidence="high",
+            ),
+            GradePrediction(
+                student_id="S003",
+                predicted_grade="C",
+                grade_probabilities={"A": 0.05, "B": 0.10, "C": 0.50, "D": 0.25, "F": 0.10},
+                predicted_ordinal=2,
+                is_model_based=False,
+                confidence="limited",
+            ),
+        ]
+
+    @staticmethod
+    def _make_report_data_with_grades(grade_predictions=None):
+        """Build ProfessorReportData with optional grade_predictions."""
+        data = _make_professor_report_data()
+        if grade_predictions is not None:
+            data.grade_predictions = grade_predictions
+        return data
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_build_grade_prediction_section_returns_flowables(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """_build_grade_prediction_section returns non-empty story list."""
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        predictions = self._make_grade_predictions()
+        story = gen._build_grade_prediction_section(predictions)
+        assert isinstance(story, list)
+        assert len(story) > 0
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_section_contains_heading(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes '학기말 성적 예측' heading."""
+        from reportlab.platypus import Paragraph
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        predictions = self._make_grade_predictions()
+        story = gen._build_grade_prediction_section(predictions)
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("학기말 성적 예측" in t for t in texts)
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_section_contains_student_table(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes a Table flowable with per-student rows."""
+        from reportlab.platypus import Table
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        predictions = self._make_grade_predictions()
+        story = gen._build_grade_prediction_section(predictions)
+        tables = [e for e in story if isinstance(e, Table)]
+        assert len(tables) >= 1
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_section_contains_disclaimer(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes FR-032 disclaimer text."""
+        from reportlab.platypus import Paragraph
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        predictions = self._make_grade_predictions()
+        story = gen._build_grade_prediction_section(predictions)
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("통계 모델에 의한 추정" in t for t in texts)
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_cold_start_label_displayed(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Cold-start predictions show '규칙 기반' label."""
+        from reportlab.platypus import Paragraph, Table
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        predictions = self._make_grade_predictions()
+        # S003 is cold-start (is_model_based=False)
+        story = gen._build_grade_prediction_section(predictions)
+        # Find all text content in tables
+        tables = [e for e in story if isinstance(e, Table)]
+        found_cold_start = False
+        for tbl in tables:
+            for row in tbl._cellvalues:
+                for cell in row:
+                    if isinstance(cell, Paragraph) and "규칙 기반" in cell.text:
+                        found_cold_start = True
+        assert found_cold_start, "Cold-start predictions should show '규칙 기반' label"
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_probability_distribution_in_table(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Table shows probability distribution for each student."""
+        from reportlab.platypus import Paragraph, Table
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        predictions = self._make_grade_predictions()
+        story = gen._build_grade_prediction_section(predictions)
+        tables = [e for e in story if isinstance(e, Table)]
+        # At least one table should exist with probability values
+        found_prob = False
+        for tbl in tables:
+            for row in tbl._cellvalues:
+                for cell in row:
+                    if isinstance(cell, Paragraph) and "0.70" in cell.text:
+                        found_prob = True
+        assert found_prob, "Table should show probability values like '0.70'"
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_empty_predictions_shows_no_data(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Empty predictions list returns story with '예측 데이터 없음'."""
+        from reportlab.platypus import Paragraph
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_grade_prediction_section([])
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("예측 데이터 없음" in t or "데이터 없음" in t for t in texts)
+
+    def test_grade_prediction_renders_in_pdf(self, tmp_path):
+        """generate_pdf with grade_predictions kwarg produces valid PDF (FR-030)."""
+        import os
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        predictions = self._make_grade_predictions()
+        report_data = self._make_report_data_with_grades(predictions)
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            report_data, str(tmp_path),
+            grade_predictions=predictions,
+        )
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_no_grade_predictions_backward_compat(self, tmp_path):
+        """Without grade_predictions, report generates normally (SC-008)."""
+        import os
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        report_data = _make_professor_report_data()
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(report_data, str(tmp_path))
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+
+# ---------------------------------------------------------------------------
+# T022 [US2] Intervention section in professor report — FR-010, FR-014
+# ---------------------------------------------------------------------------
+
+
+class TestInterventionSection:
+    """Tests for professor report intervention effects section."""
+
+    @staticmethod
+    def _make_effects():
+        """Build sample InterventionEffect list."""
+        from forma.intervention_effect import InterventionEffect
+
+        return [
+            InterventionEffect(
+                student_id="S001",
+                intervention_id=1,
+                intervention_type="면담",
+                intervention_week=3,
+                pre_mean=0.35,
+                post_mean=0.60,
+                score_change=0.25,
+                sufficient_data=True,
+            ),
+            InterventionEffect(
+                student_id="S002",
+                intervention_id=2,
+                intervention_type="보충학습",
+                intervention_week=3,
+                pre_mean=0.40,
+                post_mean=0.45,
+                score_change=0.05,
+                sufficient_data=True,
+            ),
+            InterventionEffect(
+                student_id="S003",
+                intervention_id=3,
+                intervention_type="면담",
+                intervention_week=4,
+                pre_mean=None,
+                post_mean=None,
+                score_change=None,
+                sufficient_data=False,
+            ),
+        ]
+
+    @staticmethod
+    def _make_type_summaries():
+        """Build sample InterventionTypeSummary list."""
+        from forma.intervention_effect import InterventionTypeSummary
+
+        return [
+            InterventionTypeSummary(
+                intervention_type="면담",
+                n_total=2,
+                n_sufficient=1,
+                n_positive=1,
+                n_negative=0,
+                mean_change=0.25,
+            ),
+            InterventionTypeSummary(
+                intervention_type="보충학습",
+                n_total=1,
+                n_sufficient=1,
+                n_positive=1,
+                n_negative=0,
+                mean_change=0.05,
+            ),
+        ]
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_build_intervention_section_returns_flowables(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """_build_intervention_section returns non-empty story list."""
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        story = gen._build_intervention_section(effects, type_summaries)
+        assert isinstance(story, list)
+        assert len(story) > 0
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_section_contains_heading(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes '개입 이력 및 효과' heading (FR-010)."""
+        from reportlab.platypus import Paragraph
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        story = gen._build_intervention_section(effects, type_summaries)
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("개입 이력 및 효과" in t for t in texts)
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_section_contains_disclaimer(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes FR-014 disclaimer about correlation."""
+        from reportlab.platypus import Paragraph
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        story = gen._build_intervention_section(effects, type_summaries)
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("상관관계" in t and "인과관계" in t for t in texts)
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_section_contains_effect_table(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes per-student effect table."""
+        from reportlab.platypus import Table
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        story = gen._build_intervention_section(effects, type_summaries)
+        tables = [e for e in story if isinstance(e, Table)]
+        assert len(tables) >= 1
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_insufficient_data_displayed(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Insufficient data effects show '데이터 부족' in table (FR-012)."""
+        from reportlab.platypus import Paragraph, Table
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        story = gen._build_intervention_section(effects, type_summaries)
+        tables = [e for e in story if isinstance(e, Table)]
+        found_insufficient = False
+        for tbl in tables:
+            for row in tbl._cellvalues:
+                for cell in row:
+                    if isinstance(cell, Paragraph) and "데이터 부족" in cell.text:
+                        found_insufficient = True
+        assert found_insufficient, "Insufficient data should show '데이터 부족'"
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_type_summary_table(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Section includes type summary table with 면담/보충학습 entries."""
+        from reportlab.platypus import Paragraph, Table
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        story = gen._build_intervention_section(effects, type_summaries)
+        tables = [e for e in story if isinstance(e, Table)]
+        assert len(tables) >= 2  # effect table + type summary table
+
+    @patch("forma.professor_report.os.path.exists", return_value=True)
+    @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    @patch("forma.professor_report.pdfmetrics.registerFont")
+    @patch("forma.professor_report.TTFont")
+    def test_empty_effects_shows_no_records(
+        self, mock_ttfont, mock_register, mock_find, mock_exists,
+    ):
+        """Empty effects list shows '기록 없음' message."""
+        from reportlab.platypus import Paragraph
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        gen = ProfessorPDFReportGenerator(font_path="/fake/NanumGothic.ttf")
+        story = gen._build_intervention_section([], [])
+        paragraphs = [e for e in story if isinstance(e, Paragraph)]
+        texts = [p.text for p in paragraphs]
+        assert any("기록 없음" in t for t in texts)
+
+    def test_intervention_section_renders_in_pdf(self, tmp_path):
+        """generate_pdf with intervention_effects produces valid PDF (FR-010)."""
+        import os
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        effects = self._make_effects()
+        type_summaries = self._make_type_summaries()
+        report_data = _make_professor_report_data()
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(
+            report_data, str(tmp_path),
+            intervention_effects=effects,
+            intervention_type_summaries=type_summaries,
+        )
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0
+
+    def test_no_intervention_backward_compat(self, tmp_path):
+        """Without intervention data, report generates normally."""
+        import os
+
+        from forma.professor_report import ProfessorPDFReportGenerator
+
+        report_data = _make_professor_report_data()
+        gen = ProfessorPDFReportGenerator()
+        pdf_path = gen.generate_pdf(report_data, str(tmp_path))
+        assert pdf_path.endswith(".pdf")
+        assert os.path.exists(pdf_path)
+        assert os.path.getsize(pdf_path) > 0

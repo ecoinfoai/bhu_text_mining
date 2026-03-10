@@ -176,6 +176,7 @@ class ProfessorReportData:
     risk_movement: "RiskMovement | None" = None
     cross_section_report: "CrossSectionReport | None" = None
     risk_predictions: list | None = None
+    grade_predictions: list | None = None
 
 
 @dataclass

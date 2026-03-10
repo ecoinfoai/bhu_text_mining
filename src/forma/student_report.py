@@ -141,6 +141,9 @@ class StudentPDFReportGenerator:
         output_dir: str,
         weekly_deltas: Optional[dict] = None,
         trajectory_chart: Optional["io.BytesIO"] = None,
+        learning_path: Optional["LearningPath"] = None,
+        learning_path_chart: Optional["io.BytesIO"] = None,
+        grade_trend: Optional[str] = None,
     ) -> str:
         """Generate a single student's PDF report.
 
@@ -150,6 +153,10 @@ class StudentPDFReportGenerator:
             output_dir: Directory for output PDF files.
             weekly_deltas: Optional dict of delta info {qsn_or_"overall": WeeklyDelta}.
             trajectory_chart: Optional PNG BytesIO of weekly trajectory bar chart.
+            learning_path: Optional LearningPath for this student (v0.10.0 US4).
+            learning_path_chart: Optional PNG BytesIO of learning path DAG chart.
+            grade_trend: Optional softened grade tier ("상위권"/"중위권"/"하위권")
+                for grade trend display (v0.10.0 US6, FR-031).
 
         Returns:
             Absolute path to the generated PDF.
@@ -183,6 +190,16 @@ class StudentPDFReportGenerator:
         # Trajectory chart (if available)
         if trajectory_chart is not None:
             story.extend(self._build_trajectory_section(trajectory_chart))
+
+        # Learning path section (v0.10.0 US4, FR-020, FR-023)
+        if learning_path is not None:
+            story.extend(
+                self._build_learning_path_section(learning_path, learning_path_chart)
+            )
+
+        # Grade trend section (v0.10.0 US6, FR-031)
+        if grade_trend is not None:
+            story.extend(self._build_grade_trend_section(grade_trend))
 
         # Per-question sections
         for q in student_data.questions:
@@ -242,6 +259,98 @@ class StudentPDFReportGenerator:
         trajectory_chart.seek(0)
         img = Image(trajectory_chart, width=120 * mm, height=60 * mm)
         story.append(img)
+        return story
+
+    def _build_learning_path_section(
+        self,
+        learning_path: "LearningPath",
+        learning_path_chart: Optional["io.BytesIO"] = None,
+    ) -> list:
+        """Build recommended learning path section (v0.10.0 US4, FR-020).
+
+        Shows ordered concept list and optional DAG visualization.
+        Displays "추가 학습 불필요" when path is empty.
+
+        Args:
+            learning_path: LearningPath for this student.
+            learning_path_chart: Optional PNG BytesIO of DAG chart.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(Spacer(1, 5 * mm))
+        story.append(Paragraph(
+            _esc("추천 학습 경로"),
+            self._styles["KoreanHeading"],
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+        if not learning_path.ordered_path:
+            story.append(Paragraph(
+                _esc("추가 학습 불필요 — 모든 개념이 숙달되었습니다."),
+                self._styles["KoreanBody"],
+            ))
+            return story
+
+        # Ordered concept table
+        header = ["순서", "개념"]
+        rows = [header]
+        for i, concept in enumerate(learning_path.ordered_path, 1):
+            rows.append([str(i), _esc(concept)])
+
+        tbl = Table(rows, colWidths=[20 * mm, 130 * mm])
+        tbl.setStyle(TableStyle([
+            ("FONT", (0, 0), (-1, -1), "NanumGothic", 9),
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+            ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ]))
+        story.append(tbl)
+
+        if learning_path.capped:
+            story.append(Spacer(1, 2 * mm))
+            story.append(Paragraph(
+                _esc("※ 결손 개념이 많아 상위 20개만 표시합니다."),
+                self._styles["KoreanBody"],
+            ))
+
+        # DAG chart (if provided)
+        if learning_path_chart is not None:
+            story.append(Spacer(1, 3 * mm))
+            learning_path_chart.seek(0)
+            img = Image(learning_path_chart, width=140 * mm, height=80 * mm)
+            story.append(img)
+
+        return story
+
+    def _build_grade_trend_section(self, grade_trend: str) -> list:
+        """Build softened grade trend section (FR-031).
+
+        Shows only tier-level language (상위권/중위권/하위권) without
+        explicit grade predictions (A/B/C/D/F). No specific grades
+        are revealed to students.
+
+        Args:
+            grade_trend: Softened tier string ("상위권", "중위권", or "하위권").
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(Spacer(1, 5 * mm))
+        story.append(Paragraph(
+            _esc("학습 추이 예측"),
+            self._styles["KoreanHeading"],
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+        trend_text = (
+            f"현재 학습 추이가 유지되면 "
+            f"{_esc(grade_trend)}으로 예상됩니다."
+        )
+        story.append(Paragraph(trend_text, self._styles["KoreanBody"]))
+
         return story
 
     def _build_header_section(

@@ -446,3 +446,109 @@ class TestHeatmapEdgeCases:
         data = result.read()
         assert data[:4] == PNG_HEADER
         assert len(data) > 100
+
+
+# ---------------------------------------------------------------------------
+# T021 [US2]: build_intervention_effect_chart() — FR-011
+# ---------------------------------------------------------------------------
+
+
+class TestInterventionEffectChart:
+    """Tests for build_intervention_effect_chart()."""
+
+    @staticmethod
+    def _make_effects():
+        """Build sample InterventionEffect list."""
+        from forma.intervention_effect import InterventionEffect
+
+        return [
+            InterventionEffect(
+                student_id="S001",
+                intervention_id=1,
+                intervention_type="면담",
+                intervention_week=3,
+                pre_mean=0.35,
+                post_mean=0.60,
+                score_change=0.25,
+                sufficient_data=True,
+            ),
+            InterventionEffect(
+                student_id="S002",
+                intervention_id=2,
+                intervention_type="보충학습",
+                intervention_week=3,
+                pre_mean=0.50,
+                post_mean=0.45,
+                score_change=-0.05,
+                sufficient_data=True,
+            ),
+            InterventionEffect(
+                student_id="S003",
+                intervention_id=3,
+                intervention_type="면담",
+                intervention_week=4,
+                pre_mean=None,
+                post_mean=None,
+                score_change=None,
+                sufficient_data=False,
+            ),
+        ]
+
+    def test_returns_png(self):
+        """Chart returns valid PNG bytes in BytesIO."""
+        from forma.longitudinal_report_charts import build_intervention_effect_chart
+
+        result = build_intervention_effect_chart(self._make_effects())
+        assert isinstance(result, io.BytesIO)
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+        assert len(data) > 100
+
+    def test_empty_effects(self):
+        """Empty effects list produces placeholder chart."""
+        from forma.longitudinal_report_charts import build_intervention_effect_chart
+
+        result = build_intervention_effect_chart([])
+        assert isinstance(result, io.BytesIO)
+        assert result.read()[:4] == PNG_HEADER
+
+    def test_all_insufficient(self):
+        """All insufficient data effects produces placeholder chart."""
+        from forma.intervention_effect import InterventionEffect
+        from forma.longitudinal_report_charts import build_intervention_effect_chart
+
+        effects = [
+            InterventionEffect("S001", 1, "면담", 3, None, None, None, False),
+            InterventionEffect("S002", 2, "면담", 4, None, None, None, False),
+        ]
+        result = build_intervention_effect_chart(effects)
+        assert isinstance(result, io.BytesIO)
+        assert result.read()[:4] == PNG_HEADER
+
+    def test_single_effect(self):
+        """Single sufficient effect renders correctly."""
+        from forma.intervention_effect import InterventionEffect
+        from forma.longitudinal_report_charts import build_intervention_effect_chart
+
+        effects = [
+            InterventionEffect("S001", 1, "면담", 3, 0.30, 0.50, 0.20, True),
+        ]
+        result = build_intervention_effect_chart(effects)
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+        assert len(data) > 100
+
+    def test_many_effects(self):
+        """10+ effects — chart handles vertical sizing."""
+        from forma.intervention_effect import InterventionEffect
+        from forma.longitudinal_report_charts import build_intervention_effect_chart
+
+        effects = [
+            InterventionEffect(
+                f"S{i:03d}", i, "면담", 3,
+                0.30 + i * 0.02, 0.50 + i * 0.02, 0.20, True,
+            )
+            for i in range(15)
+        ]
+        result = build_intervention_effect_chart(effects)
+        assert result.read()[:4] == PNG_HEADER

@@ -12,6 +12,7 @@ import pytest
 
 from forma.report_data_loader import (
     ClassDistributions,
+    ConceptDetail,
     QuestionReportData,
     StudentReportData,
 )
@@ -409,3 +410,177 @@ class TestT011BackwardCompat:
         else:
             # Positional: font_path, dpi
             assert 300 in call_kwargs.args
+
+
+# ---------------------------------------------------------------------------
+# T047: US4 — --concept-deps flag wiring tests (FR-020, FR-023)
+# ---------------------------------------------------------------------------
+
+
+# Students with concept details for concept-deps tests
+MOCK_STUDENTS_WITH_CONCEPTS = [
+    StudentReportData(
+        student_id="S015",
+        real_name="이유정",
+        student_number="2026194126",
+        class_name="A반",
+        course_name="인체구조와기능",
+        week_num=1,
+        questions=[QuestionReportData(
+            question_sn=1,
+            ensemble_score=0.5,
+            concepts=[
+                ConceptDetail(concept="세포막 구조", is_present=True, similarity=0.8, threshold=0.5),
+                ConceptDetail(concept="물질 이동", is_present=False, similarity=0.2, threshold=0.5),
+            ],
+        )],
+    ),
+    StudentReportData(
+        student_id="S039",
+        real_name="박수영",
+        student_number="2026194063",
+        class_name="B반",
+        course_name="인체구조와기능",
+        week_num=1,
+        questions=[QuestionReportData(
+            question_sn=1,
+            ensemble_score=0.8,
+            concepts=[
+                ConceptDetail(concept="세포막 구조", is_present=True, similarity=0.9, threshold=0.5),
+                ConceptDetail(concept="물질 이동", is_present=True, similarity=0.7, threshold=0.5),
+            ],
+        )],
+    ),
+]
+
+
+class TestT047ConceptDeps:
+    """T047 [US4] --concept-deps flag wiring in forma-report CLI."""
+
+    def test_concept_deps_flag_accepted(self, cli_env, monkeypatch):
+        """--concept-deps flag is accepted by the parser (FR-023)."""
+        from forma.cli_report import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--final", cli_env["final"],
+            "--config", cli_env["config"],
+            "--eval-dir", cli_env["eval_dir"],
+            "--output-dir", cli_env["output_dir"],
+            "--concept-deps",
+        ])
+        assert args.concept_deps is True
+
+    def test_concept_deps_default_false(self, cli_env):
+        """--concept-deps defaults to False (FR-023)."""
+        from forma.cli_report import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--final", cli_env["final"],
+            "--config", cli_env["config"],
+            "--eval-dir", cli_env["eval_dir"],
+            "--output-dir", cli_env["output_dir"],
+        ])
+        assert args.concept_deps is False
+
+    def test_concept_deps_passes_learning_path_to_generate_pdf(
+        self, cli_env, monkeypatch, tmp_path,
+    ):
+        """With --concept-deps and valid YAML, generate_pdf receives learning_path kwarg."""
+        import yaml
+
+        # Write exam config with concept_dependencies
+        config_file = tmp_path / "exam_config_deps.yaml"
+        config_data = {
+            "questions": [],
+            "concept_dependencies": [
+                {"prerequisite": "세포막 구조", "dependent": "물질 이동"},
+            ],
+        }
+        config_file.write_text(yaml.dump(config_data, allow_unicode=True), encoding="utf-8")
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report",
+            "--final", cli_env["final"],
+            "--config", str(config_file),
+            "--eval-dir", cli_env["eval_dir"],
+            "--output-dir", cli_env["output_dir"],
+            "--concept-deps",
+        ])
+
+        mock_generator_instance = MagicMock()
+        mock_generator_cls = MagicMock(return_value=mock_generator_instance)
+
+        with patch(
+            "forma.cli_report.load_all_student_data",
+            return_value=(MOCK_STUDENTS_WITH_CONCEPTS, MOCK_DISTS),
+        ), patch(
+            "forma.cli_report.StudentPDFReportGenerator",
+            mock_generator_cls,
+        ):
+            from forma.cli_report import main
+            main()
+
+        # Verify generate_pdf was called with learning_path kwarg
+        assert mock_generator_instance.generate_pdf.call_count == 2
+        for call in mock_generator_instance.generate_pdf.call_args_list:
+            assert "learning_path" in call.kwargs
+            assert call.kwargs["learning_path"] is not None
+
+    def test_without_concept_deps_no_learning_path(self, cli_env, monkeypatch):
+        """Without --concept-deps, learning_path is None in generate_pdf call."""
+        monkeypatch.setattr("sys.argv", [
+            "forma-report", *_base_argv(cli_env),
+        ])
+
+        mock_generator_instance = MagicMock()
+        mock_generator_cls = MagicMock(return_value=mock_generator_instance)
+
+        with patch(
+            "forma.cli_report.load_all_student_data",
+            return_value=(MOCK_STUDENTS, MOCK_DISTS),
+        ), patch(
+            "forma.cli_report.StudentPDFReportGenerator",
+            mock_generator_cls,
+        ):
+            from forma.cli_report import main
+            main()
+
+        # learning_path should be None when --concept-deps not provided
+        for call in mock_generator_instance.generate_pdf.call_args_list:
+            assert call.kwargs.get("learning_path") is None
+
+    def test_concept_deps_no_dependencies_in_yaml_omits_silently(
+        self, cli_env, monkeypatch, tmp_path,
+    ):
+        """--concept-deps with YAML lacking concept_dependencies → learning_path is None (FR-023)."""
+        import yaml
+
+        config_file = tmp_path / "exam_no_deps.yaml"
+        config_file.write_text(yaml.dump({"questions": []}, allow_unicode=True), encoding="utf-8")
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report",
+            "--final", cli_env["final"],
+            "--config", str(config_file),
+            "--eval-dir", cli_env["eval_dir"],
+            "--output-dir", cli_env["output_dir"],
+            "--concept-deps",
+        ])
+
+        mock_generator_instance = MagicMock()
+        mock_generator_cls = MagicMock(return_value=mock_generator_instance)
+
+        with patch(
+            "forma.cli_report.load_all_student_data",
+            return_value=(MOCK_STUDENTS, MOCK_DISTS),
+        ), patch(
+            "forma.cli_report.StudentPDFReportGenerator",
+            mock_generator_cls,
+        ):
+            from forma.cli_report import main
+            main()
+
+        for call in mock_generator_instance.generate_pdf.call_args_list:
+            assert call.kwargs.get("learning_path") is None

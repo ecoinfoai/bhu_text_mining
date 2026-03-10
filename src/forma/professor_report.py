@@ -179,6 +179,11 @@ class ProfessorPDFReportGenerator:
         report_data: ProfessorReportData,
         output_dir: str,
         risk_movement=None,
+        deficit_map=None,
+        deficit_map_chart=None,
+        grade_predictions=None,
+        intervention_effects=None,
+        intervention_type_summaries=None,
     ) -> str:
         """Generate the professor report PDF.
 
@@ -186,6 +191,11 @@ class ProfessorPDFReportGenerator:
             report_data: Complete professor report data.
             output_dir: Output directory for the PDF file.
             risk_movement: Optional RiskMovement data for week-over-week comparison.
+            deficit_map: Optional ClassDeficitMap for class deficit section (v0.10.0 US4).
+            deficit_map_chart: Optional PNG BytesIO of deficit map DAG chart.
+            grade_predictions: Optional list of GradePrediction for grade section (v0.10.0 US6).
+            intervention_effects: Optional list of InterventionEffect (v0.10.0 US2, FR-010).
+            intervention_type_summaries: Optional list of InterventionTypeSummary (v0.10.0 US2).
 
         Returns:
             Absolute path to generated PDF file.
@@ -232,6 +242,27 @@ class ProfessorPDFReportGenerator:
                     report_data,
                 ),
             )
+
+        # Class deficit map section (v0.10.0 US4, FR-021)
+        if deficit_map is not None:
+            story.extend(
+                self._build_deficit_map_section(deficit_map, deficit_map_chart)
+            )
+
+        # Grade prediction section (v0.10.0 US6, FR-030)
+        if grade_predictions:
+            story.extend(self._build_grade_prediction_section(grade_predictions))
+        elif report_data.grade_predictions:
+            story.extend(
+                self._build_grade_prediction_section(report_data.grade_predictions)
+            )
+
+        # Intervention effects section (v0.10.0 US2, FR-010)
+        if intervention_effects is not None:
+            story.extend(self._build_intervention_section(
+                intervention_effects,
+                intervention_type_summaries or [],
+            ))
 
         story.extend(self._build_llm_analysis_page(report_data))
 
@@ -1492,6 +1523,291 @@ class ProfessorPDFReportGenerator:
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F5")]),
         ]))
         story.append(table)
+
+        return story
+
+    def _build_grade_prediction_section(
+        self,
+        grade_predictions: list,
+    ) -> list:
+        """Build grade prediction section for professor report (FR-030, FR-032).
+
+        Shows per-student predicted grade, probability distribution, and
+        prediction source (model-based or rule-based). Includes disclaimer.
+
+        Args:
+            grade_predictions: List of GradePrediction objects.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("학기말 성적 예측"),
+            self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 4))
+
+        if not grade_predictions:
+            story.append(Paragraph(
+                _esc("예측 데이터 없음"),
+                self._styles["ProfBody"],
+            ))
+            return story
+
+        # Per-student table
+        header = [
+            Paragraph(_esc("학생"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("예측 등급"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("A"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("B"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("C"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("D"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("F"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("예측 방식"), self._styles["ProfTableHeader"]),
+        ]
+        rows = [header]
+
+        for pred in grade_predictions:
+            probs = pred.grade_probabilities or {}
+            source = "모델 기반" if pred.is_model_based else "규칙 기반"
+            rows.append([
+                Paragraph(_esc(pred.student_id), self._styles["ProfTableData"]),
+                Paragraph(_esc(pred.predicted_grade), self._styles["ProfTableData"]),
+                Paragraph(f"{probs.get('A', 0.0):.2f}", self._styles["ProfTableData"]),
+                Paragraph(f"{probs.get('B', 0.0):.2f}", self._styles["ProfTableData"]),
+                Paragraph(f"{probs.get('C', 0.0):.2f}", self._styles["ProfTableData"]),
+                Paragraph(f"{probs.get('D', 0.0):.2f}", self._styles["ProfTableData"]),
+                Paragraph(f"{probs.get('F', 0.0):.2f}", self._styles["ProfTableData"]),
+                Paragraph(_esc(source), self._styles["ProfTableData"]),
+            ])
+
+        col_widths = [50, 40, 35, 35, 35, 35, 35, 55]
+        table = Table(rows, colWidths=col_widths, repeatRows=1)
+        from reportlab.lib import colors
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+             [colors.white, HexColor("#F5F5F5")]),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 8))
+
+        # Disclaimer (FR-032)
+        disclaimer = (
+            "※ 본 예측은 통계 모델에 의한 추정이며, "
+            "실제 성적은 다를 수 있습니다."
+        )
+        story.append(Paragraph(
+            _esc(disclaimer),
+            self._styles["ProfBody"],
+        ))
+
+        return story
+
+    def _build_intervention_section(
+        self,
+        effects: list,
+        type_summaries: list,
+    ) -> list:
+        """Build intervention history and effects section (FR-010, FR-014).
+
+        Shows per-student intervention effect table, per-type summary table,
+        and FR-014 disclaimer about correlation vs causation.
+
+        Args:
+            effects: List of InterventionEffect objects.
+            type_summaries: List of InterventionTypeSummary objects.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("개입 이력 및 효과"),
+            self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 4))
+
+        if not effects:
+            story.append(Paragraph(
+                _esc("개입 기록 없음"),
+                self._styles["ProfBody"],
+            ))
+            return story
+
+        # Per-student effect table
+        header = [
+            Paragraph(_esc("학생"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("개입 유형"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("주차"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("개입 전"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("개입 후"), self._styles["ProfTableHeader"]),
+            Paragraph(_esc("변화량"), self._styles["ProfTableHeader"]),
+        ]
+        rows = [header]
+
+        for e in effects:
+            if e.sufficient_data:
+                pre_str = f"{e.pre_mean:.3f}"
+                post_str = f"{e.post_mean:.3f}"
+                change_str = f"{e.score_change:+.3f}"
+            else:
+                pre_str = "데이터 부족"
+                post_str = "데이터 부족"
+                change_str = "—"
+            rows.append([
+                Paragraph(_esc(e.student_id), self._styles["ProfTableData"]),
+                Paragraph(_esc(e.intervention_type), self._styles["ProfTableData"]),
+                Paragraph(f"W{e.intervention_week}", self._styles["ProfTableData"]),
+                Paragraph(pre_str, self._styles["ProfTableData"]),
+                Paragraph(post_str, self._styles["ProfTableData"]),
+                Paragraph(change_str, self._styles["ProfTableData"]),
+            ])
+
+        from reportlab.lib import colors
+        col_widths = [50, 50, 35, 50, 50, 50]
+        table = Table(rows, colWidths=col_widths, repeatRows=1)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+             [colors.white, HexColor("#F5F5F5")]),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 8))
+
+        # Type summary table
+        if type_summaries:
+            story.append(Paragraph(
+                _esc("개입 유형별 효과 요약"),
+                self._styles["ProfSubsection"],
+            ))
+            story.append(Spacer(1, 4))
+
+            ts_header = [
+                Paragraph(_esc("유형"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("전체"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("유효"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("개선"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("악화"), self._styles["ProfTableHeader"]),
+                Paragraph(_esc("평균 변화"), self._styles["ProfTableHeader"]),
+            ]
+            ts_rows = [ts_header]
+
+            for s in type_summaries:
+                ts_rows.append([
+                    Paragraph(_esc(s.intervention_type), self._styles["ProfTableData"]),
+                    Paragraph(str(s.n_total), self._styles["ProfTableData"]),
+                    Paragraph(str(s.n_sufficient), self._styles["ProfTableData"]),
+                    Paragraph(str(s.n_positive), self._styles["ProfTableData"]),
+                    Paragraph(str(s.n_negative), self._styles["ProfTableData"]),
+                    Paragraph(f"{s.mean_change:+.3f}", self._styles["ProfTableData"]),
+                ])
+
+            ts_table = Table(ts_rows, colWidths=[55, 35, 35, 35, 35, 50], repeatRows=1)
+            ts_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+                 [colors.white, HexColor("#F5F5F5")]),
+            ]))
+            story.append(ts_table)
+            story.append(Spacer(1, 8))
+
+        # Disclaimer (FR-014)
+        disclaimer = (
+            "※ 개입 효과는 상관관계이며, "
+            "인과관계를 보장하지 않습니다."
+        )
+        story.append(Paragraph(
+            _esc(disclaimer),
+            self._styles["ProfBody"],
+        ))
+
+        return story
+
+    def _build_deficit_map_section(
+        self,
+        deficit_map,
+        deficit_map_chart=None,
+    ) -> list:
+        """Build class concept deficit map section (v0.10.0 US4, FR-021).
+
+        Shows a DAG chart with per-concept deficit counts and a summary table.
+
+        Args:
+            deficit_map: ClassDeficitMap with concept counts and DAG.
+            deficit_map_chart: Optional PNG BytesIO of deficit map DAG chart.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("학급 개념 결손 맵"),
+            self._styles["ProfSection"],
+        ))
+        story.append(Spacer(1, 6))
+
+        # DAG chart (if provided)
+        if deficit_map_chart is not None:
+            deficit_map_chart.seek(0)
+            img = Image(deficit_map_chart, width=160 * mm, height=100 * mm)
+            story.append(img)
+            story.append(Spacer(1, 6))
+
+        # Summary table: concept → deficit count / total
+        if deficit_map.concept_counts:
+            total = deficit_map.total_students or 1
+            header = ["개념", "결손 학생 수", "비율"]
+            rows = [header]
+            for concept in sorted(
+                deficit_map.concept_counts.keys(),
+                key=lambda c: deficit_map.concept_counts[c],
+                reverse=True,
+            ):
+                count = deficit_map.concept_counts[concept]
+                ratio = count / total
+                rows.append([
+                    _esc(concept),
+                    str(count),
+                    f"{ratio:.0%}",
+                ])
+            table = Table(rows, colWidths=[80 * mm, 35 * mm, 35 * mm])
+            table.setStyle(TableStyle([
+                ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+                ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ]))
+            story.append(table)
+        else:
+            story.append(Paragraph(
+                _esc("개념 의존성이 정의되지 않았습니다."),
+                self._styles["ProfBody"],
+            ))
 
         return story
 

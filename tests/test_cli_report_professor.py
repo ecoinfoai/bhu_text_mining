@@ -1046,3 +1046,128 @@ class TestTranscriptDir:
         mock_cem.assert_called_once()
         # compute_lecture_gap should have been called
         mock_clg.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# T048: US4 — concept_dependencies wiring in professor report CLI (FR-021)
+# ---------------------------------------------------------------------------
+
+
+class TestConceptDepsWiring:
+    """T048 [US4] concept_dependencies wiring in forma-report-professor CLI."""
+
+    def test_deficit_map_passed_to_generate_pdf_when_deps_present(
+        self, cli_env, monkeypatch, tmp_path,
+    ):
+        """When exam YAML has concept_dependencies, deficit_map is passed to generate_pdf (FR-021)."""
+        import yaml
+
+        config_file = tmp_path / "exam_with_deps.yaml"
+        config_data = {
+            "questions": [],
+            "concept_dependencies": [
+                {"prerequisite": "세포막", "dependent": "삼투압"},
+            ],
+        }
+        config_file.write_text(yaml.dump(config_data, allow_unicode=True), encoding="utf-8")
+
+        # Build students with concept details
+        mock_students = []
+        for i in range(5):
+            s = MagicMock()
+            s.student_id = f"S{i + 1:03d}"
+            s.real_name = f"학생{i + 1}"
+            s.student_number = f"202600{i + 1:04d}"
+            s.class_name = "1A"
+            s.week_num = 1
+            q = MagicMock()
+            q.question_sn = 1
+            concept1 = MagicMock()
+            concept1.concept = "세포막"
+            concept1.similarity = 0.8
+            concept2 = MagicMock()
+            concept2.concept = "삼투압"
+            concept2.similarity = 0.3 if i < 3 else 0.7
+            q.concepts = [concept1, concept2]
+            s.questions = [q]
+            mock_students.append(s)
+
+        mock_distributions = MagicMock()
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = []
+        mock_generator = MagicMock()
+        mock_generator.generate_pdf.return_value = str(
+            cli_env["output_dir"] + "/professor_report.pdf"
+        )
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-professor",
+            "--final", cli_env["final"],
+            "--config", str(config_file),
+            "--eval-dir", cli_env["eval_dir"],
+            "--output-dir", cli_env["output_dir"],
+            "--skip-llm",
+        ])
+
+        with patch(
+            "forma.cli_report_professor.load_all_student_data",
+            return_value=(mock_students, mock_distributions),
+        ), patch(
+            "forma.cli_report_professor.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_professor.ProfessorPDFReportGenerator",
+            return_value=mock_generator,
+        ):
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        # generate_pdf should have been called with deficit_map kwarg
+        mock_generator.generate_pdf.assert_called_once()
+        call_kwargs = mock_generator.generate_pdf.call_args.kwargs
+        assert "deficit_map" in call_kwargs
+        assert call_kwargs["deficit_map"] is not None
+        # Check deficit_map has correct structure
+        dm = call_kwargs["deficit_map"]
+        assert dm.total_students == 5
+        assert "세포막" in dm.concept_counts
+        assert "삼투압" in dm.concept_counts
+
+    def test_no_deps_in_yaml_deficit_map_none(
+        self, cli_env, monkeypatch,
+    ):
+        """When exam YAML has no concept_dependencies, deficit_map is None (FR-023)."""
+        mock_students = _make_mock_students(5)
+        mock_distributions = MagicMock()
+        mock_report_data = _make_mock_professor_report_data()
+        mock_report_data.question_stats = []
+        mock_generator = MagicMock()
+        mock_generator.generate_pdf.return_value = str(
+            cli_env["output_dir"] + "/professor_report.pdf"
+        )
+
+        monkeypatch.setattr("sys.argv", [
+            "forma-report-professor",
+            *_base_argv(cli_env),
+        ])
+
+        with patch(
+            "forma.cli_report_professor.load_all_student_data",
+            return_value=(mock_students, mock_distributions),
+        ), patch(
+            "forma.cli_report_professor.build_professor_report_data",
+            return_value=mock_report_data,
+        ), patch(
+            "forma.cli_report_professor.ProfessorPDFReportGenerator",
+            return_value=mock_generator,
+        ):
+            try:
+                main()
+            except SystemExit:
+                pass
+
+        mock_generator.generate_pdf.assert_called_once()
+        call_kwargs = mock_generator.generate_pdf.call_args.kwargs
+        assert call_kwargs.get("deficit_map") is None

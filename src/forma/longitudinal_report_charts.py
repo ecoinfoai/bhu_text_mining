@@ -272,6 +272,65 @@ def build_concept_mastery_bar_chart(
     return _save_fig(fig, dpi)
 
 
+def build_intervention_effect_chart(
+    effects: list,
+    *,
+    font_path: str | None = None,
+    dpi: int = 150,
+) -> io.BytesIO:
+    """Build pre/post bar chart for intervention effects.
+
+    Shows paired bars (pre=blue, post=green) for each student with
+    sufficient data. Insufficient data effects are excluded.
+
+    Args:
+        effects: List of InterventionEffect objects.
+        font_path: Korean font path.
+        dpi: Image resolution.
+
+    Returns:
+        PNG image as BytesIO buffer.
+    """
+    font_prop = _get_font_prop(font_path)
+
+    # Filter to sufficient data only
+    sufficient = [e for e in effects if e.sufficient_data]
+
+    if not sufficient:
+        fig, ax = plt.subplots(figsize=(160 / 25.4, 60 / 25.4))
+        ax.text(0.5, 0.5, "개입 효과 데이터 없음",
+                ha="center", va="center", fontproperties=font_prop, fontsize=12)
+        ax.axis("off")
+        return _save_fig(fig, dpi)
+
+    n = len(sufficient)
+    fig_height = max(60 / 25.4, n * 12 / 25.4)
+    fig, ax = plt.subplots(figsize=(160 / 25.4, fig_height))
+
+    labels = [f"{e.student_id} ({e.intervention_type})" for e in sufficient]
+    pre_scores = [e.pre_mean for e in sufficient]
+    post_scores = [e.post_mean for e in sufficient]
+
+    y_pos = np.arange(n)
+    bar_height = 0.35
+
+    ax.barh(y_pos - bar_height / 2, pre_scores, bar_height,
+            label="개입 전", color="#42A5F5", alpha=0.8)
+    ax.barh(y_pos + bar_height / 2, post_scores, bar_height,
+            label="개입 후", color="#66BB6A", alpha=0.8)
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontproperties=font_prop, fontsize=8)
+    ax.set_xlim(0, 1.05)
+    ax.set_xlabel("앙상블 점수", fontproperties=font_prop, fontsize=9)
+    ax.set_title("개입 전후 점수 변화", fontproperties=font_prop, fontsize=11)
+    ax.legend(prop=font_prop, fontsize=8, loc="best")
+    ax.invert_yaxis()
+
+    fig.tight_layout()
+    return _save_fig(fig, dpi)
+
+
 def build_risk_trend_chart(
     risk_predictions: list,
     *,

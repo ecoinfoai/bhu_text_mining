@@ -43,6 +43,10 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="종단 저장소 YAML 경로 (위험군 변동 표시)")
     parser.add_argument("--week", type=int, default=None,
                         help="현재 주차 번호")
+    parser.add_argument("--grade-model", default=None, dest="grade_model_path",
+                        help="성적 예측 모델 파일 경로 (.pkl, forma-train-grade 출력)")
+    parser.add_argument("--intervention-log", default=None, dest="intervention_log",
+                        help="개입 활동 로그 YAML 경로 (개입 효과 분석 활성화)")
     return parser
 
 
@@ -99,6 +103,51 @@ def main() -> int | None:
         subject="과목",
         exam_title="형성평가",
     )
+
+    # v0.10.0: Parse concept dependencies from exam YAML → class deficit map (FR-021)
+    concept_dag = None
+    deficit_map = None
+    deficit_map_chart = None
+    try:
+        import yaml
+
+        from forma.concept_dependency import (
+            build_and_validate_dag,
+            parse_concept_dependencies,
+        )
+
+        with open(args.config, encoding="utf-8") as fh:
+            exam_yaml = yaml.safe_load(fh) or {}
+
+        deps = parse_concept_dependencies(exam_yaml)
+        if deps:
+            concept_dag = build_and_validate_dag(deps)
+            _LOG.info("개념 의존성 DAG 구축 완료: %d개 노드", len(concept_dag.nodes))
+
+            # Build per-student concept scores from question concepts
+            from forma.learning_path import build_class_deficit_map
+
+            all_students_scores: dict[str, dict[str, float]] = {}
+            for student in students:
+                scores: dict[str, float] = {}
+                for q in student.questions:
+                    for c in q.concepts:
+                        if c.concept not in scores or c.similarity > scores[c.concept]:
+                            scores[c.concept] = c.similarity
+                all_students_scores[student.student_id] = scores
+
+            deficit_map = build_class_deficit_map(all_students_scores, concept_dag)
+            _LOG.info("학급 개념 결손 맵 구축 완료: %d개 개념", len(deficit_map.concept_counts))
+
+            # Generate deficit map chart
+            try:
+                from forma.learning_path_charts import build_deficit_map_chart
+
+                deficit_map_chart = build_deficit_map_chart(deficit_map)
+            except Exception as chart_exc:
+                _LOG.warning("결손 맵 차트 생성 실패 (계속 진행): %s", chart_exc)
+    except Exception as exc:
+        _LOG.warning("개념 의존성 처리 실패 (계속 진행): %s", exc)
 
     # v0.7.3 T013a: Compute class knowledge aggregates from graph comparison data
     try:
@@ -337,6 +386,81 @@ def main() -> int | None:
         except Exception as exc:
             _LOG.warning("리스크 예측 실패 (계속 진행): %s", exc)
 
+    # v0.10.0: Grade prediction from pre-trained grade model (FR-029, FR-030)
+    grade_predictions = None
+    if args.grade_model_path:
+        if not os.path.isfile(args.grade_model_path):
+            _LOG.error("성적 예측 모델 파일이 존재하지 않습니다: %s", args.grade_model_path)
+            sys.exit(1)
+        try:
+            from forma.grade_predictor import (
+                GradeFeatureExtractor, GradePredictor, load_grade_model,
+            )
+
+            trained_grade_model = load_grade_model(args.grade_model_path)
+            grade_predictor = GradePredictor()
+
+            if args.longitudinal_store:
+                from forma.longitudinal_store import LongitudinalStore as GLS
+                gls = GLS(args.longitudinal_store)
+                gls.load()
+                g_weeks = sorted({r.week for r in gls.get_all_records()})
+                g_extractor = GradeFeatureExtractor()
+                g_matrix, g_feat_names, g_student_ids = g_extractor.extract(
+                    gls, g_weeks,
+                )
+                if g_matrix.shape[0] > 0:
+                    if g_feat_names == trained_grade_model.feature_names:
+                        grade_predictions = grade_predictor.predict(
+                            trained_grade_model, g_matrix, g_student_ids,
+                        )
+                    else:
+                        _LOG.warning(
+                            "성적 모델 피처 불일치 — cold start 예측 사용",
+                        )
+                        grade_predictions = grade_predictor.predict_cold_start(
+                            g_matrix, g_student_ids, g_feat_names,
+                        )
+                    report_data.grade_predictions = grade_predictions
+                    _LOG.info("성적 예측 완료: %d명", len(grade_predictions))
+            else:
+                _LOG.info("종단 저장소 없음 — 성적 예측 건너뜀")
+        except Exception as exc:
+            _LOG.warning("성적 예측 실패 (계속 진행): %s", exc)
+
+    # v0.10.0: Intervention effect analysis (FR-008, FR-010, FR-013)
+    intervention_effects = None
+    intervention_type_summaries = None
+    if args.intervention_log:
+        if not os.path.isfile(args.intervention_log):
+            _LOG.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
+            sys.exit(1)
+        try:
+            from forma.intervention_effect import (
+                compute_intervention_effects,
+                compute_type_summary,
+            )
+            from forma.intervention_store import InterventionLog
+
+            ilog = InterventionLog(args.intervention_log)
+            ilog.load()
+
+            if args.longitudinal_store:
+                from forma.longitudinal_store import LongitudinalStore as ILS
+                ils = ILS(args.longitudinal_store)
+                ils.load()
+                intervention_effects = compute_intervention_effects(ilog, ils)
+                intervention_type_summaries = compute_type_summary(intervention_effects)
+                _LOG.info(
+                    "개입 효과 분석 완료: %d건 (유효 %d건)",
+                    len(intervention_effects),
+                    sum(1 for e in intervention_effects if e.sufficient_data),
+                )
+            else:
+                _LOG.info("종단 저장소 없음 — 개입 효과 분석 건너뜀")
+        except Exception as exc:
+            _LOG.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
+
     # Validate font path if provided
     if args.font_path is not None and not os.path.isfile(args.font_path):
         _LOG.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
@@ -346,6 +470,11 @@ def main() -> int | None:
     try:
         ProfessorPDFReportGenerator(font_path=args.font_path, dpi=args.dpi).generate_pdf(
             report_data, args.output_dir, risk_movement=risk_movement,
+            grade_predictions=grade_predictions,
+            deficit_map=deficit_map,
+            deficit_map_chart=deficit_map_chart,
+            intervention_effects=intervention_effects,
+            intervention_type_summaries=intervention_type_summaries,
         )
     except FileNotFoundError as exc:
         _LOG.error("PDF 생성 중 파일을 찾을 수 없습니다: %s", exc)

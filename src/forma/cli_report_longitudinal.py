@@ -48,6 +48,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--model", default=None, dest="model_path",
         help="드롭 리스크 예측 모델 파일 경로 (.pkl)",
     )
+    parser.add_argument(
+        "--intervention-log", default=None, dest="intervention_log",
+        help="개입 활동 로그 YAML 경로 (개입 전후 차트 활성화)",
+    )
     return parser
 
 
@@ -124,10 +128,34 @@ def main() -> int | None:
         except Exception as exc:
             _LOG.warning("리스크 예측 실패 (계속 진행): %s", exc)
 
+    # v0.10.0: Intervention effect analysis (FR-008, FR-011)
+    intervention_effects = None
+    if args.intervention_log:
+        if not os.path.isfile(args.intervention_log):
+            _LOG.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
+            sys.exit(1)
+        try:
+            from forma.intervention_effect import compute_intervention_effects
+            from forma.intervention_store import InterventionLog
+
+            ilog = InterventionLog(args.intervention_log)
+            ilog.load()
+            intervention_effects = compute_intervention_effects(ilog, store)
+            _LOG.info(
+                "개입 효과 분석 완료: %d건 (유효 %d건)",
+                len(intervention_effects),
+                sum(1 for e in intervention_effects if e.sufficient_data),
+            )
+        except Exception as exc:
+            _LOG.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
+
     # Generate PDF
     from forma.longitudinal_report import LongitudinalPDFReportGenerator
     gen = LongitudinalPDFReportGenerator(font_path=args.font_path)
-    output_path = gen.generate(summary, args.output)
+    output_path = gen.generate(
+        summary, args.output,
+        intervention_effects=intervention_effects,
+    )
 
     _LOG.info("종단 분석 보고서 생성 완료: %s", output_path)
     return None

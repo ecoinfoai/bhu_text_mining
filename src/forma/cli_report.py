@@ -90,6 +90,25 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="현재 주차 번호 (변화 비교 기준)",
     )
+    parser.add_argument(
+        "--grade-model",
+        default=None,
+        dest="grade_model_path",
+        help="성적 예측 모델 파일 경로 (.pkl, 학습 추이 표시용)",
+    )
+    parser.add_argument(
+        "--concept-deps",
+        action="store_true",
+        default=False,
+        dest="concept_deps",
+        help="개념 의존성 기반 학습 경로 활성화 (exam YAML에 정의 필요)",
+    )
+    parser.add_argument(
+        "--intervention-log",
+        default=None,
+        dest="intervention_log",
+        help="개입 활동 로그 YAML 경로 (학생 리포트에서는 무시됨, FR-013)",
+    )
     return parser
 
 
@@ -194,6 +213,59 @@ def main() -> None:
         long_store.load()
         logger.info("Loaded longitudinal store: %s", args.longitudinal_store)
 
+    # Parse concept dependencies from exam YAML (FR-015, FR-023)
+    concept_dag = None
+    if args.concept_deps:
+        try:
+            import yaml
+
+            from forma.concept_dependency import (
+                build_and_validate_dag,
+                parse_concept_dependencies,
+            )
+
+            with open(args.config, encoding="utf-8") as fh:
+                exam_yaml = yaml.safe_load(fh) or {}
+
+            deps = parse_concept_dependencies(exam_yaml)
+            if deps:
+                concept_dag = build_and_validate_dag(deps)
+                logger.info("개념 의존성 DAG 구축 완료: %d개 노드", len(concept_dag.nodes))
+            else:
+                logger.info("exam YAML에 concept_dependencies가 없어 학습 경로 생략")
+        except Exception as exc:
+            logger.warning("개념 의존성 파싱 실패 (계속 진행): %s", exc)
+
+    # Load grade model and predict softened tiers (FR-031)
+    grade_trend_map: dict[str, str] = {}
+    if getattr(args, "grade_model_path", None) and long_store is not None:
+        try:
+            from forma.grade_predictor import (
+                GradeFeatureExtractor, GradePredictor, load_grade_model,
+            )
+
+            trained = load_grade_model(args.grade_model_path)
+            g_extractor = GradeFeatureExtractor()
+            g_weeks = sorted({r.week for r in long_store.get_all_records()})
+            g_matrix, g_feat, g_sids = g_extractor.extract(long_store, g_weeks)
+            predictor = GradePredictor()
+            if g_matrix.shape[0] > 0:
+                if g_feat == trained.feature_names:
+                    preds = predictor.predict(trained, g_matrix, g_sids)
+                else:
+                    preds = predictor.predict_cold_start(g_matrix, g_sids, g_feat)
+                # Map predicted ordinal to softened tier
+                for pred in preds:
+                    if pred.predicted_ordinal >= 3:
+                        grade_trend_map[pred.student_id] = "상위권"
+                    elif pred.predicted_ordinal == 2:
+                        grade_trend_map[pred.student_id] = "중위권"
+                    else:
+                        grade_trend_map[pred.student_id] = "하위권"
+                logger.info("성적 추이 예측 완료: %d명", len(grade_trend_map))
+        except Exception as exc:
+            logger.warning("성적 추이 예측 실패 (계속 진행): %s", exc)
+
     # Create report generator
     try:
         generator = StudentPDFReportGenerator(
@@ -264,10 +336,42 @@ def main() -> None:
                         weekly_scores, args.week,
                     )
 
+            # Compute learning path if concept DAG available (FR-020, FR-023)
+            learning_path = None
+            learning_path_chart = None
+            if concept_dag is not None:
+                from forma.learning_path import generate_learning_path
+                from forma.learning_path_charts import build_learning_path_chart
+
+                # Build per-concept scores from student's question concepts
+                student_scores: dict[str, float] = {}
+                for q in student.questions:
+                    for c in q.concepts:
+                        # Use max similarity across questions for same concept
+                        if c.concept not in student_scores or c.similarity > student_scores[c.concept]:
+                            student_scores[c.concept] = c.similarity
+
+                learning_path = generate_learning_path(
+                    student.student_id, student_scores, concept_dag,
+                )
+                if learning_path.ordered_path:
+                    try:
+                        learning_path_chart = build_learning_path_chart(
+                            learning_path, concept_dag,
+                        )
+                    except Exception as chart_exc:
+                        logger.warning(
+                            "학습 경로 차트 생성 실패 (계속 진행): %s", chart_exc,
+                        )
+
+            grade_trend = grade_trend_map.get(student.student_id)
             generator.generate_pdf(
                 student, distributions, args.output_dir,
                 weekly_deltas=weekly_deltas,
                 trajectory_chart=trajectory_chart,
+                grade_trend=grade_trend,
+                learning_path=learning_path,
+                learning_path_chart=learning_path_chart,
             )
             print(" done")
         except Exception as exc:
