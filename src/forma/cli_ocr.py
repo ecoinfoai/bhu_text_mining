@@ -60,6 +60,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--recrop", action="store_true", default=False,
         help="저장된 crop 좌표 무시, 재선택",
     )
+    scan_p.add_argument(
+        "--week-config", default=None, dest="week_config",
+        help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
+    )
 
     # ── join subcommand ───────────────────────────
     join_p = subparsers.add_parser(
@@ -97,6 +101,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     join_p.add_argument(
         "--student-id-column", default="student_id",
         help="학생 ID 컬럼명 (기본값: student_id)",
+    )
+    join_p.add_argument(
+        "--week-config", default=None, dest="week_config",
+        help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
     )
 
     return parser.parse_args(argv)
@@ -148,8 +156,12 @@ def main(argv: list[str] | None = None) -> None:
                 resolve_class_patterns,
                 save_crop_coords,
             )
+            from pathlib import Path
 
-            week_yaml_path = find_week_config()
+            if args.week_config:
+                week_yaml_path = Path(args.week_config)
+            else:
+                week_yaml_path = find_week_config()
             if week_yaml_path is None:
                 print("오류: week.yaml을 찾을 수 없습니다.")
                 sys.exit(1)
@@ -230,8 +242,12 @@ def main(argv: list[str] | None = None) -> None:
                 load_week_config,
                 resolve_class_patterns,
             )
+            from pathlib import Path
 
-            week_yaml_path = find_week_config()
+            if args.week_config:
+                week_yaml_path = Path(args.week_config)
+            else:
+                week_yaml_path = find_week_config()
             if week_yaml_path is None:
                 print("오류: week.yaml을 찾을 수 없습니다.")
                 sys.exit(1)
