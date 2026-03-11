@@ -84,3 +84,6 @@ eval:
 
   # 통계 분석 건너뛰기 (true/false)
   skip_statistical: false
+
+  # 학생별 PDF 보고서 생성 (true/false)
+  generate_reports: false
