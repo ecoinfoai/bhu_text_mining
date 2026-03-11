@@ -88,8 +88,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="이메일 템플릿 YAML 파일 경로",
     )
     send_parser.add_argument(
-        "--smtp-config", required=True, dest="smtp_config",
-        help="SMTP 설정 YAML 파일 경로",
+        "--smtp-config", required=False, default=None, dest="smtp_config",
+        help="SMTP 설정 YAML 파일 경로 (미지정 시 forma.json smtp 섹션 사용)",
     )
     send_parser.add_argument(
         "--dry-run", action="store_true", default=False, dest="dry_run",
@@ -188,9 +188,40 @@ def _cmd_send(args: argparse.Namespace) -> None:
         print(f"Error: 템플릿 파일을 찾을 수 없습니다: {args.template}", file=sys.stderr)
         sys.exit(2)
 
-    if not os.path.exists(args.smtp_config):
-        print(f"Error: SMTP 설정 파일을 찾을 수 없습니다: {args.smtp_config}", file=sys.stderr)
-        sys.exit(2)
+    # Resolve SMTP configuration: --smtp-config path or forma.json fallback
+    smtp_config_obj = None
+    smtp_config_path = getattr(args, "smtp_config", None) or ""
+
+    if args.smtp_config:
+        # Explicit --smtp-config path (deprecated)
+        import warnings
+
+        warnings.warn(
+            "--smtp-config는 향후 버전에서 제거됩니다. "
+            "forma.json의 smtp 섹션으로 마이그레이션하세요.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if not os.path.exists(args.smtp_config):
+            print(
+                f"Error: SMTP 설정 파일을 찾을 수 없습니다: {args.smtp_config}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+    else:
+        # Fallback to forma.json smtp section
+        try:
+            from forma.config import get_smtp_config, load_config
+
+            config = load_config()
+            smtp_config_obj = get_smtp_config(config)
+        except (FileNotFoundError, KeyError, ValueError):
+            print(
+                "Error: SMTP 설정을 찾을 수 없습니다. "
+                "--smtp-config 또는 forma.json smtp 섹션을 설정하세요.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
     # Flag interaction: --retry-failed + --force is invalid
     if getattr(args, "retry_failed", False) and getattr(args, "force", False):
@@ -206,11 +237,12 @@ def _cmd_send(args: argparse.Namespace) -> None:
         log = send_emails(
             staging_dir=args.staged,
             template_path=args.template,
-            smtp_config_path=args.smtp_config,
+            smtp_config_path=smtp_config_path,
             force=getattr(args, "force", False),
             dry_run=getattr(args, "dry_run", False),
             retry_failed=getattr(args, "retry_failed", False),
             password=password,
+            smtp_config=smtp_config_obj,
         )
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -235,7 +267,10 @@ def _cmd_send(args: argparse.Namespace) -> None:
             notify_password = os.environ.get("FORMA_SMTP_PASSWORD", "")
         if notify_password:
             try:
-                smtp_cfg = load_smtp_config(args.smtp_config)
+                if smtp_config_obj is not None:
+                    smtp_cfg = smtp_config_obj
+                else:
+                    smtp_cfg = load_smtp_config(args.smtp_config)
                 send_summary_email(log, smtp_cfg, password=notify_password)
             except Exception as e:
                 print(f"Warning: 요약 이메일 발송 실패: {e}", file=sys.stderr)

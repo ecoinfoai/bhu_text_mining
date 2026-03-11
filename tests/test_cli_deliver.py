@@ -838,17 +838,17 @@ class TestCliDeliverSendParser:
                 "--smtp-config", "s.yaml",
             ])
 
-    def test_send_missing_smtp_config_exits(self):
-        """send without --smtp-config exits with argparse error."""
+    def test_send_without_smtp_config_defaults_none(self):
+        """send without --smtp-config defaults to None (optional since US1)."""
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        with pytest.raises(SystemExit):
-            parser.parse_args([
-                "send",
-                "--staged", "/tmp/staged",
-                "--template", "t.yaml",
-            ])
+        args = parser.parse_args([
+            "send",
+            "--staged", "/tmp/staged",
+            "--template", "t.yaml",
+        ])
+        assert args.smtp_config is None
 
 
 # ---------------------------------------------------------------------------
@@ -1379,3 +1379,332 @@ class TestCliDeliverSendRetryFailed:
             log_data = yaml.safe_load(f)
         assert log_data["total"] == 1
         assert log_data["dry_run"] is True
+
+
+# ===========================================================================
+# Phase 3 (US1): --smtp-config optional + forma.json fallback
+# ===========================================================================
+
+
+class TestCliDeliverSendSmtpConfigOptional:
+    """Tests for --smtp-config being optional with forma.json fallback."""
+
+    def test_parser_accepts_send_without_smtp_config(self):
+        """send subcommand parses successfully without --smtp-config."""
+        from forma.cli_deliver import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args([
+            "send",
+            "--staged", "/tmp/staged",
+            "--template", "t.yaml",
+        ])
+        assert args.subcommand == "send"
+        assert args.smtp_config is None
+
+    def test_parser_still_accepts_smtp_config(self):
+        """send subcommand still accepts --smtp-config when provided."""
+        from forma.cli_deliver import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args([
+            "send",
+            "--staged", "/tmp/staged",
+            "--template", "t.yaml",
+            "--smtp-config", "smtp.yaml",
+        ])
+        assert args.smtp_config == "smtp.yaml"
+
+    def test_send_fallback_to_forma_json(self, tmp_path, monkeypatch):
+        """Without --smtp-config, send reads from forma.json smtp section."""
+        import json
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+
+        # Create forma.json with smtp section
+        forma_json = tmp_path / "forma.json"
+        forma_json.write_text(json.dumps({
+            "smtp": {
+                "server": "json.smtp.com",
+                "port": 587,
+                "sender_email": "json@test.com",
+                "use_tls": True,
+                "send_interval_sec": 0,
+            }
+        }), encoding="utf-8")
+
+        # Mock load_config to return our config
+        monkeypatch.setattr(
+            "forma.config.load_config",
+            lambda config_path=None: json.loads(forma_json.read_text()),
+        )
+        monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
+
+        try:
+            main([
+                "--no-config",
+                "send",
+                "--staged", staged_dir,
+                "--template", template_path,
+                "--dry-run",
+            ])
+        except SystemExit as e:
+            assert e.code == 0
+
+        # Verify the delivery log references json.smtp.com
+        log_path = os.path.join(staged_dir, "delivery_log.yaml")
+        with open(log_path, encoding="utf-8") as f:
+            log_data = yaml.safe_load(f)
+        assert log_data["smtp_server"] == "json.smtp.com"
+
+    def test_send_no_smtp_anywhere_exit_2(self, tmp_path, monkeypatch):
+        """No --smtp-config and no forma.json smtp section exits 2."""
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+
+        # Mock load_config to raise FileNotFoundError (no forma.json)
+        monkeypatch.setattr(
+            "forma.config.load_config",
+            lambda config_path=None: (_ for _ in ()).throw(
+                FileNotFoundError("No config")
+            ),
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            main([
+                "--no-config",
+                "send",
+                "--staged", staged_dir,
+                "--template", template_path,
+            ])
+        assert exc_info.value.code == 2
+
+    def test_send_forma_json_no_smtp_section_exit_2(self, tmp_path, monkeypatch):
+        """forma.json exists but has no 'smtp' section exits 2."""
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+
+        # Mock load_config returns config without smtp
+        monkeypatch.setattr(
+            "forma.config.load_config",
+            lambda config_path=None: {"llm": {"provider": "gemini"}},
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            main([
+                "--no-config",
+                "send",
+                "--staged", staged_dir,
+                "--template", template_path,
+            ])
+        assert exc_info.value.code == 2
+
+    def test_send_error_message_korean(self, tmp_path, monkeypatch, capsys):
+        """When no SMTP config found, error message is in Korean."""
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+
+        monkeypatch.setattr(
+            "forma.config.load_config",
+            lambda config_path=None: (_ for _ in ()).throw(
+                FileNotFoundError("No config")
+            ),
+        )
+
+        with pytest.raises(SystemExit):
+            main([
+                "--no-config",
+                "send",
+                "--staged", staged_dir,
+                "--template", template_path,
+            ])
+
+        captured = capsys.readouterr()
+        assert "SMTP 설정을 찾을 수 없습니다" in captured.err
+
+    def test_explicit_smtp_config_takes_priority(self, tmp_path, monkeypatch):
+        """When --smtp-config is given, use it even if forma.json has smtp section."""
+        import json
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+        smtp_path = _write_smtp_config(tmp_path)  # uses smtp.gmail.com
+
+        # forma.json has a different server
+        monkeypatch.setattr(
+            "forma.config.load_config",
+            lambda config_path=None: {
+                "smtp": {
+                    "server": "different.smtp.com",
+                    "sender_email": "other@test.com",
+                }
+            },
+        )
+        monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
+
+        try:
+            main([
+                "--no-config",
+                "send",
+                "--staged", staged_dir,
+                "--template", template_path,
+                "--smtp-config", smtp_path,
+                "--dry-run",
+            ])
+        except SystemExit as e:
+            assert e.code == 0
+
+        log_path = os.path.join(staged_dir, "delivery_log.yaml")
+        with open(log_path, encoding="utf-8") as f:
+            log_data = yaml.safe_load(f)
+        # Should use the YAML file's server, not forma.json's
+        assert log_data["smtp_server"] == "smtp.gmail.com"
+
+
+# ===========================================================================
+# Phase 4 (US2): Deprecation warning for --smtp-config
+# ===========================================================================
+
+
+class TestCliDeliverSendDeprecation:
+    """Tests for --smtp-config deprecation warning."""
+
+    def test_smtp_config_flag_emits_deprecation_warning(self, tmp_path, monkeypatch):
+        """Using --smtp-config emits DeprecationWarning."""
+        import warnings
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+        smtp_path = _write_smtp_config(tmp_path)
+        monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            try:
+                main([
+                    "--no-config",
+                    "send",
+                    "--staged", staged_dir,
+                    "--template", template_path,
+                    "--smtp-config", smtp_path,
+                    "--dry-run",
+                ])
+            except SystemExit:
+                pass
+
+            deprecation_warnings = [
+                x for x in w if issubclass(x.category, DeprecationWarning)
+            ]
+            assert len(deprecation_warnings) >= 1
+            assert "smtp-config" in str(deprecation_warnings[0].message).lower() or \
+                   "--smtp-config" in str(deprecation_warnings[0].message)
+
+    def test_deprecation_warning_message_korean(self, tmp_path, monkeypatch):
+        """Deprecation warning message is in Korean."""
+        import warnings
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+        smtp_path = _write_smtp_config(tmp_path)
+        monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            try:
+                main([
+                    "--no-config",
+                    "send",
+                    "--staged", staged_dir,
+                    "--template", template_path,
+                    "--smtp-config", smtp_path,
+                    "--dry-run",
+                ])
+            except SystemExit:
+                pass
+
+            deprecation_warnings = [
+                x for x in w if issubclass(x.category, DeprecationWarning)
+            ]
+            msg = str(deprecation_warnings[0].message)
+            assert "forma.json" in msg
+            assert "마이그레이션" in msg
+
+    def test_no_deprecation_without_smtp_config_flag(self, tmp_path, monkeypatch):
+        """When --smtp-config is NOT used, no deprecation warning is emitted."""
+        import json
+        import warnings
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+
+        monkeypatch.setattr(
+            "forma.config.load_config",
+            lambda config_path=None: {
+                "smtp": {
+                    "server": "smtp.x.com",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": 0,
+                }
+            },
+        )
+        monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            try:
+                main([
+                    "--no-config",
+                    "send",
+                    "--staged", staged_dir,
+                    "--template", template_path,
+                    "--dry-run",
+                ])
+            except SystemExit:
+                pass
+
+            deprecation_warnings = [
+                x for x in w if issubclass(x.category, DeprecationWarning)
+            ]
+            assert len(deprecation_warnings) == 0
+
+    def test_smtp_config_flag_still_works(self, tmp_path, monkeypatch):
+        """--smtp-config still works correctly (backward compat) despite deprecation."""
+        import warnings
+        from forma.cli_deliver import main
+
+        staged_dir = _create_staged_folder(tmp_path, n_students=1)
+        template_path = _write_email_template(tmp_path)
+        smtp_path = _write_smtp_config(tmp_path)
+        monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            try:
+                main([
+                    "--no-config",
+                    "send",
+                    "--staged", staged_dir,
+                    "--template", template_path,
+                    "--smtp-config", smtp_path,
+                    "--dry-run",
+                ])
+            except SystemExit as e:
+                assert e.code == 0
+
+        # Should still create delivery_log from the YAML path
+        log_path = os.path.join(staged_dir, "delivery_log.yaml")
+        with open(log_path, encoding="utf-8") as f:
+            log_data = yaml.safe_load(f)
+        assert log_data["smtp_server"] == "smtp.gmail.com"
