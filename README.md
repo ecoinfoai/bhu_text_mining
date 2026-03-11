@@ -1,7 +1,7 @@
 # formative-analysis (FormA)
 
 [![CI](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ecoinfoai/formative-analysis/badge.svg)](https://codecov.io/gh/ecoinfoai/formative-analysis)
+[![codecov](https://codecov.io/gh/ecoinfoai/formative-analysis/graph/badge.svg?token=f04853f2-aaa2-4d32-b934-8a9542fc8bf0)](https://codecov.io/gh/ecoinfoai/formative-analysis)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Version](https://img.shields.io/badge/version-0.11.1-green.svg)](https://github.com/ecoinfoai/formative-analysis/releases)
 
