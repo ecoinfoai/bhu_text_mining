@@ -67,6 +67,7 @@ forma-train = "forma.cli_train:main"
 forma-report-warning = "forma.cli_report_warning:main"
 forma-intervention = "forma.cli_intervention:main"
 forma-train-grade = "forma.cli_train_grade:main"
+forma-deliver = "forma.cli_deliver:main"
 
 [build-system]
 requires = ["hatchling"]
