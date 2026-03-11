@@ -1,6 +1,6 @@
 [project]
 name = "formative-analysis"
-version = "0.10.0"
+version = "0.11.1"
 description = "Formative assessment analysis tool for evaluating student understanding via knowledge graph matching"
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},
@@ -25,6 +25,7 @@ dependencies = [
     "bertopic>=0.16.4",
     "umap-learn>=0.5.7",
     "bert-score>=0.3.13",
+    "sentence-transformers>=2.0.0",
     "reportlab>=4.4.4",
     "qrcode[pil]>=7.0",
     "pytesseract>=0.3.13",
@@ -46,6 +47,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "pylint>=3.3.3",
     "black>=24.10.0",
+    "ruff>=0.8.0",
 ]
 jupyter = [
     "ipykernel>=6.29.5",
