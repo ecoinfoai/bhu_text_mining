@@ -101,3 +101,6 @@ node_modules/
 *.tmp
 *.temp
 ~$*
+
+# Week-specific config (contains personal paths/URLs)
+week.yaml

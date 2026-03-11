@@ -262,6 +262,13 @@ def main(argv: list[str] | None = None) -> None:
             spreadsheet_url = args.spreadsheet_url
             credentials_path = args.credentials
             forms_csv = args.forms_csv or resolved.ocr_join_forms_csv
+            if forms_csv and not Path(forms_csv).is_absolute():
+                forms_csv = str(base_dir / forms_csv)
+            student_id_column = (
+                args.student_id_column
+                if args.student_id_column != "student_id"
+                else resolved.ocr_student_id_column or args.student_id_column
+            )
             if spreadsheet_url is None and not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
@@ -289,7 +296,7 @@ def main(argv: list[str] | None = None) -> None:
                 spreadsheet_url=spreadsheet_url or None,
                 credentials_path=credentials_path,
                 manual_mapping_path=args.manual_mapping,
-                student_id_column=args.student_id_column,
+                student_id_column=student_id_column,
             )
         else:
             # Legacy mode

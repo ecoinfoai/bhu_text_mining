@@ -52,6 +52,7 @@ class WeekConfiguration:
         ocr_ocr_output_pattern: OCR results YAML output pattern.
         ocr_join_output_pattern: Joined results YAML output pattern.
         ocr_join_forms_csv: CSV fallback for Google Forms data.
+        ocr_student_id_column: Column name for student ID in CSV/Sheets.
         ocr_crop_coords: Crop coordinates per question area.
         eval_config: Path to exam config YAML.
         eval_questions_used: Question sn numbers used in evaluation.
@@ -75,6 +76,7 @@ class WeekConfiguration:
     ocr_ocr_output_pattern: str = ""
     ocr_join_output_pattern: str = ""
     ocr_join_forms_csv: str = ""
+    ocr_student_id_column: str = ""
     ocr_crop_coords: list[list[int]] = field(default_factory=list)
     # eval section
     eval_config: str = ""
@@ -162,6 +164,7 @@ def load_week_config(path: Path) -> WeekConfiguration:
         config.ocr_ocr_output_pattern = ocr.get("ocr_output_pattern", "")
         config.ocr_join_output_pattern = ocr.get("join_output_pattern", "")
         config.ocr_join_forms_csv = ocr.get("join_forms_csv", "")
+        config.ocr_student_id_column = ocr.get("student_id_column", "")
         config.ocr_crop_coords = ocr.get("crop_coords", [])
 
     eval_sec = data.get("eval", {})

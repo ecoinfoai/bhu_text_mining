@@ -1,0 +1,86 @@
+# week.yaml — 주차별 형성평가 설정 파일
+#
+# 사용 방법:
+#   1. 이 파일을 주차별 결과 폴더에 week.yaml로 복사합니다.
+#      예: cp week.yaml.example 형성평가_1주차_결과/week.yaml
+#   2. 각 항목을 실제 값으로 수정합니다.
+#   3. forma-select, forma-ocr, forma-eval 명령에서 자동으로 탐색합니다.
+#
+# 명령어 예시:
+#   forma-select --week-config week.yaml
+#   forma-ocr scan --class A --week-config week.yaml
+#   forma-ocr join --class A --week-config week.yaml
+#   forma-eval --class A --week-config week.yaml
+
+week: 1  # 주차 번호 (1 이상의 정수)
+
+# ── forma-select ──────────────────────────────────────────────────────────────
+# 문제 은행에서 출제 문제를 선택하여 questions.yaml을 생성합니다.
+select:
+  # 문제 은행 YAML 파일 경로 (week.yaml 기준 상대경로 또는 절대경로)
+  source: "../question_bank/Ch01_Introduction_FormativeTest.yaml"
+
+  # 출제할 문제 번호 (sn) 목록
+  questions: [1, 3]
+
+  # 응시 인원 (분반 전체 합산)
+  num_papers: 200
+
+  # Google Forms URL ({student_id} 자리표시자 포함)
+  form_url: "https://docs.google.com/forms/d/e/EXAMPLE_FORM_ID/viewform?usp=pp_url&entry.123456789={student_id}"
+
+  # 시험지 PDF 출력 경로 (비워두면 PDF 생성 안 함)
+  exam_output: ""
+
+# ── forma-ocr ─────────────────────────────────────────────────────────────────
+# 스캔된 답안지 이미지를 OCR하고 Google Forms 응답과 조인합니다.
+ocr:
+  # 문항 수 (OCR 크롭 영역 개수)
+  num_questions: 2
+
+  # 스캔 이미지 폴더명 패턴 ({class}는 분반 식별자로 치환됨)
+  # 예: --class A → "answers_classA_week1"
+  image_dir_pattern: "answers_class{class}_week1"
+
+  # OCR 결과 출력 파일 패턴
+  ocr_output_pattern: "ocr_results_{class}.yaml"
+
+  # OCR + Forms 조인 결과 출력 파일 패턴
+  join_output_pattern: "final_{class}.yaml"
+
+  # 답안 크롭 좌표 (첫 실행 후 자동 저장됨, 수동 입력도 가능)
+  # forma-ocr scan --class A 첫 실행 시 화면에서 직접 선택하면 자동 기록됩니다.
+  # crop_coords:
+  #   - [x1, y1, x2, y2]   # 1번 문항 영역
+  #   - [x1, y1, x2, y2]   # 2번 문항 영역
+
+  # Google Forms CSV 폴백 경로 (Sheets URL 없을 때 사용)
+  # join_forms_csv: "forms_responses.csv"
+
+  # CSV/Sheets에서 학생 ID로 사용할 컬럼명 (기본값: "student_id")
+  # Google Forms에서 익명ID를 수집한 경우 해당 컬럼명을 지정합니다.
+  # student_id_column: "익명ID - 자동 입력되니 임의로 수정하지 마세요."
+
+# ── forma-eval ────────────────────────────────────────────────────────────────
+# OCR 결과를 LLM으로 채점하고 피드백을 생성합니다.
+eval:
+  # 문제 은행 YAML 파일 경로 (모범답안·루브릭 포함)
+  config: "../question_bank/Ch01_Introduction_FormativeTest.yaml"
+
+  # 채점할 문제 번호 (sn) 목록 — select.questions와 일치해야 합니다
+  questions_used: [1, 3]
+
+  # 조인 결과 파일 패턴 (ocr.join_output_pattern과 일치해야 합니다)
+  responses_pattern: "final_{class}.yaml"
+
+  # 평가 결과 출력 디렉토리 패턴
+  output_pattern: "eval_{class}"
+
+  # 피드백 생성 건너뛰기 (true/false)
+  skip_feedback: false
+
+  # 그래프 비교 건너뛰기 — 1주차처럼 종단 데이터 없을 때 true로 설정
+  skip_graph: true
+
+  # 통계 분석 건너뛰기 (true/false)
+  skip_statistical: false
