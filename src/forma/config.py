@@ -81,6 +81,41 @@ def get_naver_ocr_config(config: dict) -> tuple[str, str]:
     return config["secret_key"], config["api_url"]
 
 
+JSON_FIELD_MAP = {
+    "server": "smtp_server",
+    "port": "smtp_port",
+    "sender_email": "sender_email",
+    "sender_name": "sender_name",
+    "use_tls": "use_tls",
+    "send_interval_sec": "send_interval_sec",
+}
+
+
+def get_smtp_config(config: dict):
+    """Extract SMTP settings from forma.json config dict.
+
+    Maps JSON-style field names (``server``, ``port``, etc.) to
+    ``SmtpConfig`` fields via ``_build_smtp_config()``.
+
+    Args:
+        config: Parsed forma.json config dict.
+
+    Returns:
+        ``SmtpConfig`` instance.
+
+    Raises:
+        KeyError: If ``smtp`` section is missing or not a dict.
+        ValueError: If required SMTP fields are invalid.
+    """
+    from forma.delivery_send import _build_smtp_config
+
+    smtp_data = config.get("smtp")
+    if not isinstance(smtp_data, dict):
+        raise KeyError("forma.json에 'smtp' 섹션이 없습니다")
+
+    return _build_smtp_config(smtp_data, field_map=JSON_FIELD_MAP)
+
+
 def get_llm_config(config: dict) -> dict:
     """Extract LLM settings from config dict.
 
