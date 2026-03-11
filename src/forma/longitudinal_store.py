@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import os
+import shutil
 import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -24,6 +25,7 @@ class LongitudinalStore:
 
     def __init__(self, store_path: str) -> None:
         self.store_path = store_path
+        self._lock_path = str(self.store_path) + ".lock"
         self._records: dict[str, dict] = {}
 
     def _to_dict(self, record: LongitudinalRecord, manual_override: bool = False) -> dict:
@@ -95,29 +97,38 @@ class LongitudinalStore:
         data = {"records": self._records}
         dir_name = os.path.dirname(self.store_path) or "."
         fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+        lock_file = open(self._lock_path, "a")
         try:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
             with os.fdopen(fd, "w") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
                 yaml.dump(data, f, Dumper=FormaDumper, default_flow_style=False, allow_unicode=True, sort_keys=False)
-                fcntl.flock(f, fcntl.LOCK_UN)
-            if os.path.exists(self.store_path):
-                os.replace(self.store_path, self.store_path + ".bak")
             os.replace(tmp_path, self.store_path)
+            try:
+                shutil.copy2(str(self.store_path), str(self.store_path) + ".bak")
+            except OSError:
+                pass
         except BaseException:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
             raise
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
 
     def load(self) -> None:
         """Load records from YAML file. Initializes empty if file doesn't exist."""
         if not os.path.exists(self.store_path):
             self._records = {}
             return
-        with open(self.store_path) as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
-            data = yaml.safe_load(f)
-            fcntl.flock(f, fcntl.LOCK_UN)
-        self._records = data.get("records", {}) if data else {}
+        lock_file = open(self._lock_path, "a")
+        try:
+            fcntl.flock(lock_file, fcntl.LOCK_SH)
+            with open(self.store_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            self._records = data.get("records", {}) if data else {}
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
 
     def get_class_snapshot(self, week: int) -> list[LongitudinalRecord]:
         """Return all records for a given week, sorted by student_id."""

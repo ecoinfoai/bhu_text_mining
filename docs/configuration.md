@@ -45,7 +45,7 @@ LLM provider settings for feedback generation and analysis.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `provider` | string | no | `"gemini"` | LLM provider (`openai`, `anthropic`, `google`) |
+| `provider` | string | no | `"gemini"` | LLM provider (`"gemini"` or `"anthropic"`) |
 | `model` | string | no | -- | Model name (e.g., `gpt-4o`, `claude-sonnet-4-6`) |
 | `api_key` | string | no | -- | API key (recommend using environment variables instead) |
 
@@ -86,7 +86,7 @@ Naver CLOVA OCR credentials for answer sheet scanning.
 
 ## forma.yaml
 
-**Location:** Auto-discovered by searching from the current working directory upward (stops at `.git` sentinel or filesystem root). You can also specify a path explicitly with `--config`.
+**Location:** Auto-discovered by searching from the current working directory upward (stops at `.git` sentinel or filesystem root).
 
 Stores project-level settings. All fields are optional and have sensible defaults.
 

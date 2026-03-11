@@ -201,6 +201,14 @@ def load_project_config(path: Path) -> dict:
         raise FileNotFoundError(f"Configuration file not found: {path}")
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
+    if data is not None and not isinstance(data, dict):
+        logger.warning(
+            "Configuration file %s contains non-dict data (type: %s); "
+            "treating as empty configuration",
+            path,
+            type(data).__name__,
+        )
+        return {}
     return data if isinstance(data, dict) else {}
 
 

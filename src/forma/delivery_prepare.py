@@ -281,10 +281,17 @@ def match_files_for_student(
     Returns:
         List of full file paths that exist on disk.
     """
+    if os.sep in student_id or (os.altsep and os.altsep in student_id):
+        raise ValueError(f"student_id contains path separator: {student_id!r}")
+
+    real_manifest_dir = os.path.realpath(manifest.directory)
     matched: list[str] = []
     for pattern in manifest.file_patterns:
         filename = pattern.replace("{student_id}", student_id)
         full_path = os.path.join(manifest.directory, filename)
+        real_full_path = os.path.realpath(full_path)
+        if not real_full_path.startswith(real_manifest_dir + os.sep) and real_full_path != real_manifest_dir:
+            raise ValueError(f"Resolved path escapes manifest directory: {full_path!r}")
         if os.path.isfile(full_path):
             matched.append(full_path)
     return matched
@@ -353,6 +360,7 @@ def save_prepare_summary(summary: PrepareSummary, path: str) -> None:
 
     path_obj = os.path.abspath(path)
     dir_name = os.path.dirname(path_obj)
+    os.makedirs(dir_name, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:

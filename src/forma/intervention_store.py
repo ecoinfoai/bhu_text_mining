@@ -19,6 +19,7 @@ from __future__ import annotations
 import fcntl
 import logging
 import os
+import shutil
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -79,6 +80,7 @@ class InterventionLog:
 
     def __init__(self, store_path: str) -> None:
         self.store_path = store_path
+        self._lock_path = str(self.store_path) + ".lock"
         self._next_id: int = 1
         self._records: list[dict] = []
 
@@ -88,17 +90,30 @@ class InterventionLog:
             self._records = []
             self._next_id = 1
             return
-        with open(self.store_path, encoding="utf-8") as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
-            data = yaml.safe_load(f)
-            fcntl.flock(f, fcntl.LOCK_UN)
-        if not data:
-            self._records = []
-            self._next_id = 1
-            return
-        meta = data.get("_meta", {})
-        self._next_id = meta.get("next_id", 1)
-        self._records = data.get("records", [])
+        lock_file = open(self._lock_path, "a")
+        try:
+            fcntl.flock(lock_file, fcntl.LOCK_SH)
+            with open(self.store_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            if not data:
+                self._records = []
+                self._next_id = 1
+                return
+            meta = data.get("_meta", {})
+            self._next_id = meta.get("next_id", 1)
+            self._records = data.get("records", [])
+
+            if self._records:
+                max_existing_id = max(r["id"] for r in self._records)
+                if self._next_id <= max_existing_id:
+                    logger.warning(
+                        "intervention_store: next_id=%d inconsistent with max record id=%d; correcting to %d",
+                        self._next_id, max_existing_id, max_existing_id + 1,
+                    )
+                    self._next_id = max_existing_id + 1
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
 
     def save(self) -> None:
         """Atomic write with .bak backup and file locking."""
@@ -108,23 +123,28 @@ class InterventionLog:
         }
         dir_name = os.path.dirname(self.store_path) or "."
         fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+        lock_file = open(self._lock_path, "a")
         try:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
                 yaml.dump(
                     data, f,
                     default_flow_style=False,
                     allow_unicode=True,
                     sort_keys=False,
                 )
-                fcntl.flock(f, fcntl.LOCK_UN)
-            if os.path.exists(self.store_path):
-                os.replace(self.store_path, self.store_path + ".bak")
             os.replace(tmp_path, self.store_path)
+            try:
+                shutil.copy2(str(self.store_path), str(self.store_path) + ".bak")
+            except OSError:
+                pass
         except BaseException:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
             raise
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
 
     def add_record(
         self,
@@ -152,6 +172,12 @@ class InterventionLog:
         Raises:
             ValueError: If intervention_type is not in INTERVENTION_TYPES.
         """
+        if not student_id or not isinstance(student_id, str):
+            raise ValueError("student_id must be a non-empty string")
+        if not isinstance(week, int) or isinstance(week, bool) or week < 1:
+            raise ValueError(f"week must be a positive integer, got {week!r}")
+        if description is not None and len(description) > 2000:
+            raise ValueError(f"description exceeds 2000 character limit ({len(description)} chars)")
         if intervention_type not in INTERVENTION_TYPES:
             raise ValueError(
                 f"Invalid intervention_type '{intervention_type}'. "

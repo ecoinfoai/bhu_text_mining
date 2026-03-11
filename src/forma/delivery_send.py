@@ -402,6 +402,7 @@ def save_delivery_log(log: DeliveryLog, path: str) -> None:
 
     path_obj = os.path.abspath(path)
     dir_name = os.path.dirname(path_obj)
+    os.makedirs(dir_name, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -509,6 +510,9 @@ def send_emails(
     summary_path = os.path.join(staging_dir, "prepare_summary.yaml")
     with open(summary_path, encoding="utf-8") as f:
         summary_data = yaml.safe_load(f)
+
+    if not isinstance(summary_data, dict):
+        raise ValueError(f"prepare_summary.yaml 형식이 올바르지 않습니다: {summary_path}")
 
     # Check for existing delivery log (FR-022)
     log_path = os.path.join(staging_dir, "delivery_log.yaml")

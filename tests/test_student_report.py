@@ -151,8 +151,8 @@ def mock_font(tmp_path):
 def generator(mock_font):
     """Create a StudentPDFReportGenerator with mocked font registration."""
     with patch("forma.student_report.find_korean_font", return_value=mock_font):
-        with patch("forma.student_report.pdfmetrics.registerFont"):
-            with patch("forma.student_report.TTFont"):
+        with patch("forma.font_utils.pdfmetrics.registerFont"):
+            with patch("forma.font_utils.TTFont"):
                 with patch("forma.student_report.ReportChartGenerator"):
                     from forma.student_report import StudentPDFReportGenerator
 
@@ -173,9 +173,9 @@ class TestGeneratorInit:
             "forma.student_report.find_korean_font", return_value=mock_font,
         ):
             with patch(
-                "forma.student_report.pdfmetrics.registerFont",
+                "forma.font_utils.pdfmetrics.registerFont",
             ) as mock_register:
-                with patch("forma.student_report.TTFont") as mock_ttfont:
+                with patch("forma.font_utils.TTFont") as mock_ttfont:
                     from forma.student_report import StudentPDFReportGenerator
 
                     StudentPDFReportGenerator(font_path=mock_font)
@@ -1206,8 +1206,8 @@ class TestStudentGradeTrend:
 
     @patch("forma.student_report.os.path.exists", return_value=True)
     @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.student_report.pdfmetrics.registerFont")
-    @patch("forma.student_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_build_grade_trend_section_returns_flowables(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -1221,8 +1221,8 @@ class TestStudentGradeTrend:
 
     @patch("forma.student_report.os.path.exists", return_value=True)
     @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.student_report.pdfmetrics.registerFont")
-    @patch("forma.student_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_upper_tier_text(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -1239,8 +1239,8 @@ class TestStudentGradeTrend:
 
     @patch("forma.student_report.os.path.exists", return_value=True)
     @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.student_report.pdfmetrics.registerFont")
-    @patch("forma.student_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_mid_tier_text(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -1257,8 +1257,8 @@ class TestStudentGradeTrend:
 
     @patch("forma.student_report.os.path.exists", return_value=True)
     @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.student_report.pdfmetrics.registerFont")
-    @patch("forma.student_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_lower_tier_text(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -1275,8 +1275,8 @@ class TestStudentGradeTrend:
 
     @patch("forma.student_report.os.path.exists", return_value=True)
     @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.student_report.pdfmetrics.registerFont")
-    @patch("forma.student_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_no_explicit_grade_in_student_report(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -1296,8 +1296,8 @@ class TestStudentGradeTrend:
 
     @patch("forma.student_report.os.path.exists", return_value=True)
     @patch("forma.student_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.student_report.pdfmetrics.registerFont")
-    @patch("forma.student_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_has_heading(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):

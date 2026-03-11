@@ -13,7 +13,7 @@ internal data stores.
 | Student Roster | `delivery/roster.yaml` | YAML | `forma-deliver prepare` | No |
 | Delivery Manifest | `delivery/manifest.yaml` | YAML | `forma-deliver prepare` | No |
 | Email Template | `delivery/template.yaml` | YAML | `forma-deliver send` | No |
-| SMTP Configuration | `smtp.yaml` | YAML | `forma-deliver send` | No |
+| SMTP Configuration (deprecated) | `smtp.yaml` | YAML | `forma-deliver send` | No |
 | Credentials (forma.json) | `~/.config/formative-analysis/forma.json` | JSON | All CLI commands | No |
 | Evaluation Results | `results/*/eval_*/res_lvl4/*.yaml` | YAML | `forma-report`, `forma-report-professor` | Yes |
 | Longitudinal Store | `longitudinal.yaml` | YAML | `forma-report-longitudinal`, `forma-train` | Yes |
@@ -215,7 +215,7 @@ students:
 |-------|------|----------|---------|-------------|
 | `report_source` | object | Yes | - | Report source configuration section |
 | `report_source.directory` | string | Yes | - | Path to the directory containing report files; must exist on disk |
-| `report_source.file_patterns` | list[string] | Yes | - | Glob patterns with `{student_id}` placeholder (at least 1) |
+| `report_source.file_patterns` | list[string] | Yes | - | Filename templates with `{student_id}` placeholder (at least 1) |
 
 Each pattern in `file_patterns` must contain the literal string `{student_id}`, which is substituted with the actual student ID during file matching.
 

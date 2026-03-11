@@ -192,46 +192,39 @@ class TestInterventionSaboteur:
             os.unlink(path)
 
     def test_10kb_description(self):
-        """10KB+ description should be stored without truncation."""
+        """10KB+ description should be rejected (exceeds 2000 char limit)."""
         log, path = _make_log()
         try:
             huge_desc = "A" * 10240
-            log.add_record("S001", 1, "면담", description=huge_desc)
-            records = log.get_records(student_id="S001")
-            assert len(records) == 1
-            assert len(records[0].description) == 10240
+            with pytest.raises(ValueError, match="2000"):
+                log.add_record("S001", 1, "면담", description=huge_desc)
         finally:
             os.unlink(path)
 
     def test_negative_week(self):
-        """Negative week number should be stored (no validation at store level)."""
+        """Negative week number should be rejected."""
         log, path = _make_log()
         try:
-            log.add_record("S001", -1, "면담")
-            records = log.get_records(week=-1)
-            assert len(records) == 1
-            assert records[0].week == -1
+            with pytest.raises(ValueError, match="positive integer"):
+                log.add_record("S001", -1, "면담")
         finally:
             os.unlink(path)
 
     def test_zero_week(self):
-        """Week 0 should be stored."""
+        """Week 0 should be rejected."""
         log, path = _make_log()
         try:
-            log.add_record("S001", 0, "면담")
-            records = log.get_records(week=0)
-            assert len(records) == 1
+            with pytest.raises(ValueError, match="positive integer"):
+                log.add_record("S001", 0, "면담")
         finally:
             os.unlink(path)
 
     def test_empty_student_id(self):
-        """Empty string student_id should be stored."""
+        """Empty string student_id should be rejected."""
         log, path = _make_log()
         try:
-            log.add_record("", 1, "면담")
-            records = log.get_records(student_id="")
-            assert len(records) == 1
-            assert records[0].student_id == ""
+            with pytest.raises(ValueError, match="student_id"):
+                log.add_record("", 1, "면담")
         finally:
             os.unlink(path)
 

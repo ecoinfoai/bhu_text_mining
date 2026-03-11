@@ -84,14 +84,14 @@ forma-report \
   --final results/anp_w1/anp_1A_final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir results/anp_w1/eval_1A/ \
-  --output reports/student_1A.pdf
+  --output-dir reports/
 
 # 3. Generate professor summary report
 forma-report-professor \
   --final results/anp_w1/anp_1A_final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir results/anp_w1/eval_1A/ \
-  --output reports/professor_1A.pdf
+  --output-dir reports/
 
 # 4. Prepare and deliver reports via email
 forma-deliver prepare \
@@ -100,7 +100,7 @@ forma-deliver prepare \
   --output-dir delivery/packages/
 
 forma-deliver send \
-  --summary delivery/packages/prepare_summary.yaml \
+  --staged delivery/packages/ \
   --template delivery/template.yaml
 ```
 
@@ -160,7 +160,7 @@ uv run ruff check src/ tests/
 uv run black --check src/ tests/
 ```
 
-CI runs automatically on push via GitHub Actions (`.github/workflows/ci.yml`): tests on Python 3.11 and 3.12, ruff lint, and coverage reporting.
+CI runs automatically on push via GitHub Actions (`.github/workflows/ci.yml`): tests on Python 3.11, 3.12, and 3.13, ruff lint, and coverage reporting.
 
 ## Project Structure
 

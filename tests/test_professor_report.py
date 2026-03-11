@@ -161,8 +161,8 @@ def report_data() -> ProfessorReportData:
 def generator(mock_font):
     """Create a ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-        with patch("forma.professor_report.pdfmetrics.registerFont"):
-            with patch("forma.professor_report.TTFont"):
+        with patch("forma.font_utils.pdfmetrics.registerFont"):
+            with patch("forma.font_utils.TTFont"):
                 from forma.professor_report import ProfessorPDFReportGenerator
 
                 return ProfessorPDFReportGenerator(font_path=mock_font)
@@ -179,8 +179,8 @@ class TestGeneratorInit:
     def test_instantiation_succeeds_with_mocked_font(self, mock_font):
         """ProfessorPDFReportGenerator instantiates without error with a valid font path."""
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-            with patch("forma.professor_report.pdfmetrics.registerFont"):
-                with patch("forma.professor_report.TTFont"):
+            with patch("forma.font_utils.pdfmetrics.registerFont"):
+                with patch("forma.font_utils.TTFont"):
                     from forma.professor_report import ProfessorPDFReportGenerator
 
                     gen = ProfessorPDFReportGenerator(font_path=mock_font)
@@ -229,8 +229,8 @@ class TestGeneratorInit:
     def test_registers_nanum_gothic_font(self, mock_font):
         """ProfessorPDFReportGenerator registers NanumGothic font on init."""
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-            with patch("forma.professor_report.pdfmetrics.registerFont") as mock_register:
-                with patch("forma.professor_report.TTFont") as mock_ttfont:
+            with patch("forma.font_utils.pdfmetrics.registerFont") as mock_register:
+                with patch("forma.font_utils.TTFont") as mock_ttfont:
                     from forma.professor_report import ProfessorPDFReportGenerator
 
                     ProfessorPDFReportGenerator(font_path=mock_font)
@@ -547,8 +547,8 @@ class TestBuildComparisonTable:
     def _make_generator(self, mock_font):
         """Create ProfessorPDFReportGenerator with mocked font registration."""
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-            with patch("forma.professor_report.pdfmetrics.registerFont"):
-                with patch("forma.professor_report.TTFont"):
+            with patch("forma.font_utils.pdfmetrics.registerFont"):
+                with patch("forma.font_utils.TTFont"):
                     from forma.professor_report import ProfessorPDFReportGenerator
 
                     return ProfessorPDFReportGenerator(font_path=mock_font)
@@ -1002,8 +1002,8 @@ def _make_report_data_with_at_risk() -> "ProfessorReportData":
 def _make_generator_for_at_risk(mock_font_path: str) -> "ProfessorPDFReportGenerator":
     """Helper: instantiate ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font_path):
-        with patch("forma.professor_report.pdfmetrics.registerFont"):
-            with patch("forma.professor_report.TTFont"):
+        with patch("forma.font_utils.pdfmetrics.registerFont"):
+            with patch("forma.font_utils.TTFont"):
                 from forma.professor_report import ProfessorPDFReportGenerator
 
                 return ProfessorPDFReportGenerator(font_path=mock_font_path)
@@ -1300,8 +1300,8 @@ class TestBuildLlmAnalysisPage:
     def _make_generator(self, mock_font: str) -> "ProfessorPDFReportGenerator":
         """Create ProfessorPDFReportGenerator with mocked font registration."""
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-            with patch("forma.professor_report.pdfmetrics.registerFont"):
-                with patch("forma.professor_report.TTFont"):
+            with patch("forma.font_utils.pdfmetrics.registerFont"):
+                with patch("forma.font_utils.TTFont"):
                     from forma.professor_report import ProfessorPDFReportGenerator
 
                     return ProfessorPDFReportGenerator(font_path=mock_font)
@@ -1479,8 +1479,8 @@ def _make_mock_chart_gen_for_detail() -> MagicMock:
 def _make_generator_for_question_detail(mock_font_path: str) -> "ProfessorPDFReportGenerator":
     """Instantiate ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font_path):
-        with patch("forma.professor_report.pdfmetrics.registerFont"):
-            with patch("forma.professor_report.TTFont"):
+        with patch("forma.font_utils.pdfmetrics.registerFont"):
+            with patch("forma.font_utils.TTFont"):
                 from forma.professor_report import ProfessorPDFReportGenerator
 
                 return ProfessorPDFReportGenerator(font_path=mock_font_path)
@@ -1739,8 +1739,8 @@ class TestBuildQuestionDetailPage:
 def _make_generator_for_edge(tmp_font_path: str) -> "ProfessorPDFReportGenerator":
     """Create ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=tmp_font_path):
-        with patch("forma.professor_report.pdfmetrics.registerFont"):
-            with patch("forma.professor_report.TTFont"):
+        with patch("forma.font_utils.pdfmetrics.registerFont"):
+            with patch("forma.font_utils.TTFont"):
                 from forma.professor_report import ProfessorPDFReportGenerator
                 return ProfessorPDFReportGenerator(font_path=tmp_font_path)
 
@@ -1861,8 +1861,8 @@ class TestLongAIResponseHandling:
 
     def _make_gen(self, mock_font: str) -> "ProfessorPDFReportGenerator":
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-            with patch("forma.professor_report.pdfmetrics.registerFont"):
-                with patch("forma.professor_report.TTFont"):
+            with patch("forma.font_utils.pdfmetrics.registerFont"):
+                with patch("forma.font_utils.TTFont"):
                     from forma.professor_report import ProfessorPDFReportGenerator
                     return ProfessorPDFReportGenerator(font_path=mock_font)
 
@@ -2915,8 +2915,8 @@ class TestRiskMovementSection:
 def _make_generator_for_cross_section(mock_font: str) -> "ProfessorPDFReportGenerator":
     """Helper: instantiate ProfessorPDFReportGenerator with mocked font."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font):
-        with patch("forma.professor_report.pdfmetrics.registerFont"):
-            with patch("forma.professor_report.TTFont"):
+        with patch("forma.font_utils.pdfmetrics.registerFont"):
+            with patch("forma.font_utils.TTFont"):
                 from forma.professor_report import ProfessorPDFReportGenerator
 
                 return ProfessorPDFReportGenerator(font_path=mock_font)
@@ -3096,8 +3096,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_build_grade_prediction_section_returns_flowables(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3112,8 +3112,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_contains_heading(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3131,8 +3131,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_contains_student_table(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3149,8 +3149,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_contains_disclaimer(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3168,8 +3168,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_cold_start_label_displayed(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3194,8 +3194,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_probability_distribution_in_table(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3219,8 +3219,8 @@ class TestGradePredictionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_empty_predictions_shows_no_data(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3338,8 +3338,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_build_intervention_section_returns_flowables(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3355,8 +3355,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_contains_heading(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3375,8 +3375,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_contains_disclaimer(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3395,8 +3395,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_section_contains_effect_table(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3414,8 +3414,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_insufficient_data_displayed(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3439,8 +3439,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_type_summary_table(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
@@ -3458,8 +3458,8 @@ class TestInterventionSection:
 
     @patch("forma.professor_report.os.path.exists", return_value=True)
     @patch("forma.professor_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
-    @patch("forma.professor_report.pdfmetrics.registerFont")
-    @patch("forma.professor_report.TTFont")
+    @patch("forma.font_utils.pdfmetrics.registerFont")
+    @patch("forma.font_utils.TTFont")
     def test_empty_effects_shows_no_records(
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):

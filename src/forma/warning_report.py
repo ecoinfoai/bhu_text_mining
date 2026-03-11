@@ -14,30 +14,21 @@ from __future__ import annotations
 import io
 import logging
 import os
-import xml.sax.saxutils
 from collections import Counter
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     Image, PageBreak, Paragraph, SimpleDocTemplate,
     Spacer, Table, TableStyle,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.fonts import addMapping
 
-from forma.font_utils import find_korean_font
+from forma.font_utils import esc as _esc, find_korean_font, register_korean_fonts
 from forma.warning_report_data import RiskType, WarningCard
 
 logger = logging.getLogger(__name__)
-
-
-def _esc(text: str) -> str:
-    """Escape text for safe use in ReportLab Paragraph XML."""
-    return xml.sax.saxutils.escape(str(text))
 
 
 # Risk type display colors
@@ -66,18 +57,7 @@ class WarningPDFReportGenerator:
         self._font_path = font_path
         self._dpi = dpi
 
-        # Register fonts
-        pdfmetrics.registerFont(TTFont("NanumGothic", font_path))
-        bold_path = font_path.replace(".ttf", "Bold.ttf")
-        if os.path.exists(bold_path):
-            pdfmetrics.registerFont(TTFont("NanumGothicBold", bold_path))
-        else:
-            pdfmetrics.registerFont(TTFont("NanumGothicBold", font_path))
-
-        addMapping("NanumGothic", 0, 0, "NanumGothic")
-        addMapping("NanumGothic", 1, 0, "NanumGothicBold")
-        addMapping("NanumGothic", 0, 1, "NanumGothic")
-        addMapping("NanumGothic", 1, 1, "NanumGothicBold")
+        register_korean_fonts(font_path)
 
         # Define paragraph styles
         self._styles = getSampleStyleSheet()

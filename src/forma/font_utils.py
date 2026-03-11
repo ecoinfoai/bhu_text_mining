@@ -1,6 +1,7 @@
-"""Shared font discovery utilities for PDF generation.
+"""Shared font discovery and text utilities for PDF generation.
 
-Extracted from ``exam_generator.py`` for reuse by report_generator.
+Extracted from ``exam_generator.py`` for reuse by report generators.
+Provides font discovery, font registration, and XML-safe text escaping.
 """
 
 from __future__ import annotations
@@ -8,7 +9,12 @@ from __future__ import annotations
 import glob
 import os
 import platform
+import xml.sax.saxutils
 from typing import List
+
+from reportlab.lib.fonts import addMapping
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 
 def find_korean_font() -> str:
@@ -50,3 +56,34 @@ def find_korean_font() -> str:
     raise FileNotFoundError(
         "Korean font not found. Install NanumGothic or specify font_path."
     )
+
+
+def esc(text: str) -> str:
+    """Escape text for use in ReportLab XML/Paragraph markup."""
+    return xml.sax.saxutils.escape(str(text))
+
+
+def register_korean_fonts(font_path: str) -> None:
+    """Register NanumGothic regular and bold fonts with ReportLab.
+
+    Registers ``NanumGothic`` and ``NanumGothicBold`` font faces and
+    sets up font family mappings so ReportLab's paragraph parser can
+    resolve bold variants.
+
+    If the bold variant file (``NanumGothicBold.ttf``) is not found,
+    the regular font is used as a fallback for the bold face.
+
+    Args:
+        font_path: Path to the NanumGothic regular ``.ttf`` file.
+    """
+    pdfmetrics.registerFont(TTFont("NanumGothic", font_path))
+    bold_path = font_path.replace(".ttf", "Bold.ttf")
+    if os.path.exists(bold_path):
+        pdfmetrics.registerFont(TTFont("NanumGothicBold", bold_path))
+    else:
+        pdfmetrics.registerFont(TTFont("NanumGothicBold", font_path))
+
+    addMapping("NanumGothic", 0, 0, "NanumGothic")
+    addMapping("NanumGothic", 1, 0, "NanumGothicBold")
+    addMapping("NanumGothic", 0, 1, "NanumGothic")
+    addMapping("NanumGothic", 1, 1, "NanumGothicBold")

@@ -313,7 +313,10 @@ class GradePredictor:
         if n_unique >= 2:
             model.fit(X_scaled, labels)
         else:
-            logger.warning("Only one class in training labels — model will be trivial")
+            logger.warning(
+                "Training data contains only one class. "
+                "Synthetic augmentation used. Model predictions may be unreliable."
+            )
             X_aug = np.vstack([X_scaled, X_scaled[0:1]])
             other_label = (labels[0] + 1) % 5
             labels_aug = np.append(labels, other_label)

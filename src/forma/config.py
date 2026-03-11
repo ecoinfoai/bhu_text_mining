@@ -52,7 +52,12 @@ def load_config(config_path: Optional[str] = None) -> dict:
         expanded = os.path.expanduser(path)
         if os.path.isfile(expanded):
             with open(expanded, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError(
+                    f"forma.json must be a JSON object ({{...}}), got {type(data).__name__}"
+                )
+            return data
 
     searched = [os.path.expanduser(p) for p in candidates]
     raise FileNotFoundError(
@@ -77,6 +82,8 @@ def get_naver_ocr_config(config: dict) -> tuple[str, str]:
     """
     if "naver_ocr" in config:
         ocr = config["naver_ocr"]
+        if not isinstance(ocr, dict):
+            raise KeyError("naver_ocr 섹션이 dict 형식이 아닙니다")
         return ocr["secret_key"], ocr["api_url"]
     return config["secret_key"], config["api_url"]
 

@@ -346,7 +346,10 @@ class RiskPredictor:
             model.fit(X_scaled, labels)
         else:
             # Single class: fit with a dummy second class to avoid sklearn error
-            logger.warning("Only one class in training labels — model will be trivial")
+            logger.warning(
+                "Training data contains only one class. "
+                "Synthetic augmentation used. Model predictions may be unreliable."
+            )
             X_aug = np.vstack([X_scaled, X_scaled[0:1]])
             labels_aug = np.append(labels, 1 - labels[0])
             model.fit(X_aug, labels_aug)

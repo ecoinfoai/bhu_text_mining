@@ -103,8 +103,8 @@ def _make_summary():
 class TestLongitudinalPDFReportGeneratorMocked:
     """Test LongitudinalPDFReportGenerator with mocked fonts (unit tests)."""
 
-    @patch("forma.longitudinal_report.TTFont")
-    @patch("forma.longitudinal_report.pdfmetrics")
+    @patch("forma.font_utils.TTFont")
+    @patch("forma.font_utils.pdfmetrics")
     @patch("forma.longitudinal_report.find_korean_font",
            return_value="/fake/NanumGothic.ttf")
     def test_init_registers_fonts(self, mock_find, mock_metrics, mock_ttfont):
@@ -114,8 +114,8 @@ class TestLongitudinalPDFReportGeneratorMocked:
             gen = LongitudinalPDFReportGenerator()
         assert mock_metrics.registerFont.called
 
-    @patch("forma.longitudinal_report.TTFont")
-    @patch("forma.longitudinal_report.pdfmetrics")
+    @patch("forma.font_utils.TTFont")
+    @patch("forma.font_utils.pdfmetrics")
     @patch("forma.longitudinal_report.find_korean_font",
            return_value="/fake/NanumGothic.ttf")
     def test_explicit_font_path(self, mock_find, mock_metrics, mock_ttfont):
@@ -126,8 +126,8 @@ class TestLongitudinalPDFReportGeneratorMocked:
         # Should use /custom/font.ttf, not call find_korean_font
         mock_find.assert_not_called()
 
-    @patch("forma.longitudinal_report.TTFont")
-    @patch("forma.longitudinal_report.pdfmetrics")
+    @patch("forma.font_utils.TTFont")
+    @patch("forma.font_utils.pdfmetrics")
     @patch("forma.longitudinal_report.find_korean_font",
            return_value="/fake/NanumGothic.ttf")
     def test_story_has_multiple_flowables(self, mock_find, mock_metrics, mock_ttfont):
@@ -143,8 +143,8 @@ class TestLongitudinalPDFReportGeneratorMocked:
         story.extend(gen._build_cover_page(summary))
         assert len(story) > 0  # cover page has flowables
 
-    @patch("forma.longitudinal_report.TTFont")
-    @patch("forma.longitudinal_report.pdfmetrics")
+    @patch("forma.font_utils.TTFont")
+    @patch("forma.font_utils.pdfmetrics")
     @patch("forma.longitudinal_report.find_korean_font",
            return_value="/fake/NanumGothic.ttf")
     def test_cover_page_contains_class_name(self, mock_find, mock_metrics, mock_ttfont):
