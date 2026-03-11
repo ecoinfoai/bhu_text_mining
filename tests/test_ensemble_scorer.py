@@ -17,7 +17,6 @@ from forma.evaluation_types import (
 )
 from forma.ensemble_scorer import (
     DEFAULT_WEIGHTS,
-    UNDERSTANDING_THRESHOLDS,
     WEIGHTS_V2,
     EnsembleScorer,
     classify_understanding_level,
@@ -404,7 +403,7 @@ class TestEnsembleScorerV2:
         cr = _make_concept_results("s001", 1, 5, 4)
         gc_clean = _make_graph_comparison("s001", 1, f1=0.7, n_wrong=0)
         gc_wrong = _make_graph_comparison("s001", 1, f1=0.7, n_wrong=3)
-        r_clean = scorer.compute_score(
+        _r_clean = scorer.compute_score(
             cr, None, None, None, None, "s001", 1, graph_comparison=gc_clean,
         )
         r_wrong = scorer.compute_score(

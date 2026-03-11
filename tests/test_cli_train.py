@@ -6,7 +6,6 @@ T022 [US2]: Training workflow, insufficient data errors, flags.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -149,5 +148,5 @@ class TestCliTrain:
         from forma.cli_train import main
         main()
 
-        captured = capsys.readouterr()
+        _captured = capsys.readouterr()
         assert output_path.exists()

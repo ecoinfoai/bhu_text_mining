@@ -11,12 +11,9 @@
 
 from __future__ import annotations
 
-import math
-from collections import Counter
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 
 from forma.evaluation_types import TripletEdge
 from forma.misconception_classifier import (

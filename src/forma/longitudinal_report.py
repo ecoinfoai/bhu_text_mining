@@ -160,7 +160,7 @@ class LongitudinalPDFReportGenerator:
         story = []
         story.append(Spacer(1, 60 * mm))
         story.append(Paragraph(
-            _esc(f"종단 분석 요약 보고서"),
+            _esc("종단 분석 요약 보고서"),
             self._styles["LongTitle"],
         ))
         story.append(Spacer(1, 10 * mm))

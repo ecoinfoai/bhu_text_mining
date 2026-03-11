@@ -8,7 +8,6 @@ edge-list fields in _serialize_graph_comparison().
 
 from __future__ import annotations
 
-import pytest
 
 from forma.evaluation_types import (
     GraphComparisonResult,

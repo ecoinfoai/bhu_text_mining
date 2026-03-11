@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 from itertools import combinations
-from konlpy.tag import Okt, Mecab
+from konlpy.tag import Okt
 import pandas as pd
 from bert_score import score
 

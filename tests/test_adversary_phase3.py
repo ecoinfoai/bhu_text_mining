@@ -16,12 +16,10 @@ from __future__ import annotations
 import math
 import random
 import threading
-from typing import Any
 
 import pytest
 
 from forma.class_knowledge_aggregate import (
-    AggregateEdge,
     ClassKnowledgeAggregate,
     build_class_knowledge_aggregate,
 )

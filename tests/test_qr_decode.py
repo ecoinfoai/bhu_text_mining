@@ -7,13 +7,13 @@ import pytest
 import qrcode
 
 try:
-    import cv2
+    import cv2  # noqa: F401
     _HAS_CV2 = True
 except ImportError:
     _HAS_CV2 = False
 
 try:
-    from pyzbar.pyzbar import decode as _pyzbar_decode
+    from pyzbar.pyzbar import decode as _pyzbar_decode  # noqa: F401
     _HAS_PYZBAR = True
 except ImportError:
     _HAS_PYZBAR = False

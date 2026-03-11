@@ -1,6 +1,6 @@
 import networkx as nx
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import linear_sum_assignment

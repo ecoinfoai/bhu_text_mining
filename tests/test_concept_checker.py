@@ -9,7 +9,7 @@ import math
 
 import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from forma.concept_checker import (
     _select_particle,
@@ -258,10 +258,10 @@ class TestCheckAllConcepts:
     def test_returns_one_result_per_concept(self):
         """check_all_concepts returns exactly one result per concept."""
         concepts = ["세포막", "삼투", "확산"]
-        dim = 4
+        _dim = 4
         # 3 sentences + 3 concept templates = 6 embeddings per call
         # Mock encode_texts to return identity-like embeddings
-        call_count = [0]
+        _call_count = [0]
 
         def mock_encode(texts, model_name=None):
             n = len(texts)

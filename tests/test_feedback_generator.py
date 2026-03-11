@@ -223,9 +223,8 @@ class TestFeedbackConstants:
 # Phase 3: US1+US2 Prompt rewrite (T008-T014)
 # ---------------------------------------------------------------------------
 
-from forma.prompt_templates import (
+from forma.prompt_templates import (  # noqa: E402
     FEEDBACK_SYSTEM_INSTRUCTION,
-    FEEDBACK_GENERATION_TEMPLATE,
     render_feedback_prompt,
 )
 
@@ -339,7 +338,7 @@ class TestFeedbackPromptUS1US2:
 # Phase 4: US4 Negative expression filter (T015-T019)
 # ---------------------------------------------------------------------------
 
-from forma.feedback_generator import (
+from forma.feedback_generator import (  # noqa: E402
     FALLBACK_TEMPLATES,
     NEGATIVE_EXPRESSIONS,
     _soften_tone,
@@ -583,7 +582,7 @@ class TestIntegrationFullPipeline:
     def test_pipeline_single_llm_call(self, mock_provider):
         """Well-formed feedback needs only one LLM call (no retry)."""
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
+        _result = gen.generate(
             "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
         )
         assert mock_provider.generate.call_count == 1

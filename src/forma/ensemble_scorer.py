@@ -247,7 +247,7 @@ class EnsembleScorer:
         question_sn: int,
         graph_comparison: Optional[GraphComparisonResult] = None,
         rubric_tiers: Optional[list] = None,
-        emphasis_map: Optional["InstructionalEmphasisMap"] = None,
+        emphasis_map: Optional["InstructionalEmphasisMap"] = None,  # noqa: F821
     ) -> EnsembleResult:
         """Compute the weighted ensemble score from all available layers.
 

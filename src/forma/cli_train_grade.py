@@ -100,7 +100,6 @@ def main(argv=None) -> None:
 
     # Load grade mapping
     from forma.grade_predictor import (
-        GRADE_FEATURE_NAMES,
         GRADE_ORDINAL_MAP,
         GradeFeatureExtractor,
         GradePredictor,

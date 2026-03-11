@@ -26,7 +26,6 @@ Functions:
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path

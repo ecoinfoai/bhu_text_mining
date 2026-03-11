@@ -5,8 +5,6 @@ T041 [US3]: Required args, optional args, --no-config, end-to-end with mock data
 
 from __future__ import annotations
 
-import os
-from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml

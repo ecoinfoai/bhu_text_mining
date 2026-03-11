@@ -10,10 +10,8 @@ Covers T034:
 
 from __future__ import annotations
 
-import argparse
 import os
-import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 

@@ -139,7 +139,7 @@ def _generate_class_reports(class_dir: str, config_path: str) -> None:
 
     counseling_path = os.path.join(class_dir, "res_lvl4", "counseling_summary.yaml")
     if not os.path.isfile(counseling_path):
-        print(f"[batch] No counseling summary found, skipping reports.")
+        print("[batch] No counseling summary found, skipping reports.")
         return
 
     try:

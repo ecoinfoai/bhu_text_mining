@@ -21,7 +21,6 @@ import yaml
 from forma.evaluation_types import LongitudinalRecord
 from forma.longitudinal_store import LongitudinalStore
 from forma.project_config import (
-    ProjectConfiguration,
     load_project_config,
     merge_configs,
     validate_project_config,
@@ -40,7 +39,6 @@ from forma.section_comparison import (
     compute_section_stats,
 )
 from forma.warning_report_data import (
-    INTERVENTION_MAP,
     RiskType,
     WarningCard,
     build_warning_data,

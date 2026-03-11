@@ -413,9 +413,9 @@ class TestCliInterventionList:
 
         captured = capsys.readouterr()
         # Extract data lines (skip header and separator)
-        lines = [l for l in captured.out.strip().split("\n") if l.strip() and "---" not in l]
+        lines = [ln for ln in captured.out.strip().split("\n") if ln.strip() and "---" not in ln]
         # Data lines should be sorted by week: week1, week3, week4
-        data_lines = [l for l in lines if "면담" in l or "보충학습" in l or "기타" in l]
+        data_lines = [ln for ln in lines if "면담" in ln or "보충학습" in ln or "기타" in ln]
         assert len(data_lines) == 3
         # First line should be week 1, last should be week 4
         assert "면담" in data_lines[0]    # week 1

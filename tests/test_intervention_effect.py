@@ -5,9 +5,8 @@ T019-T020 [US2]: InterventionEffect computation, type-level summaries.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 import yaml
 
 
@@ -27,7 +26,7 @@ def _make_mock_store(trajectories: dict[str, list[tuple[int, float]]]):
     return store
 
 
-def _make_intervention_log(records: list[dict], tmp_path: Path) -> "InterventionLog":
+def _make_intervention_log(records: list[dict], tmp_path: Path) -> "InterventionLog":  # noqa: F821
     """Create a real InterventionLog with pre-loaded records."""
     from forma.intervention_store import InterventionLog
 

@@ -7,7 +7,6 @@ T021: TrainedRiskModel persistence tests (joblib roundtrip)
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from unittest.mock import MagicMock
 
 import numpy as np

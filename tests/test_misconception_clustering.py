@@ -22,7 +22,6 @@ from dataclasses import fields
 from unittest.mock import patch
 
 import numpy as np
-import pytest
 
 from forma.misconception_classifier import (
     ClassifiedMisconception,

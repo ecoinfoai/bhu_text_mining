@@ -11,11 +11,9 @@ Covers T033:
 
 from __future__ import annotations
 
-import io
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 from forma.evaluation_types import LongitudinalRecord
 from forma.longitudinal_store import LongitudinalStore
@@ -111,7 +109,7 @@ class TestLongitudinalPDFReportGeneratorMocked:
         """Constructor should register Korean fonts."""
         from forma.longitudinal_report import LongitudinalPDFReportGenerator
         with patch("os.path.exists", return_value=True):
-            gen = LongitudinalPDFReportGenerator()
+            _gen = LongitudinalPDFReportGenerator()
         assert mock_metrics.registerFont.called
 
     @patch("forma.font_utils.TTFont")
@@ -122,7 +120,7 @@ class TestLongitudinalPDFReportGeneratorMocked:
         """Constructor with explicit font_path should use it."""
         from forma.longitudinal_report import LongitudinalPDFReportGenerator
         with patch("os.path.exists", return_value=True):
-            gen = LongitudinalPDFReportGenerator(font_path="/custom/font.ttf")
+            _gen = LongitudinalPDFReportGenerator(font_path="/custom/font.ttf")
         # Should use /custom/font.ttf, not call find_korean_font
         mock_find.assert_not_called()
 
@@ -157,7 +155,7 @@ class TestLongitudinalPDFReportGeneratorMocked:
         summary = _make_summary()
         story = gen._build_cover_page(summary)
         # Serialize flowable content to check for class_name
-        content = " ".join(str(f) for f in story)
+        _content = " ".join(str(f) for f in story)
         # Class name might be embedded in Paragraph text — check that cover has flowables
         assert len(story) >= 1
 

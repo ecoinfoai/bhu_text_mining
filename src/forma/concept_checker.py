@@ -11,7 +11,6 @@ term ends with a consonant (받침 있음 → 은/이/을) or vowel (→ 는/가
 from __future__ import annotations
 
 import math
-import unicodedata
 import warnings
 
 import numpy as np

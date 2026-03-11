@@ -5,7 +5,6 @@ compute_edge_jaccard, compute_centrality_deviation, compute_normalized_ged.
 """
 
 import networkx as nx
-import numpy as np
 import pytest
 
 

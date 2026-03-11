@@ -6,7 +6,6 @@ Covers FR-018, FR-019, FR-020, FR-021, FR-022.
 
 from __future__ import annotations
 
-import pytest
 
 
 # ---------------------------------------------------------------------------

@@ -44,7 +44,7 @@ def decode_qr_from_image(image_path: str) -> Optional[str]:
             "Install: pip install pyzbar"
         )
 
-    from PIL import Image, ImageFilter
+    from PIL import Image
 
     img = Image.open(image_path)
 
@@ -61,7 +61,7 @@ def decode_qr_from_image(image_path: str) -> Optional[str]:
     return None
 
 
-def _decode_pyzbar_with_preprocess(img: "Image.Image") -> Optional[str]:
+def _decode_pyzbar_with_preprocess(img: "Image.Image") -> Optional[str]:  # noqa: F821
     """Try pyzbar with progressively stronger preprocessing."""
     from PIL import Image, ImageFilter
 

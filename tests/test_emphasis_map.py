@@ -12,7 +12,7 @@ Covers US2 (FR-008 ~ FR-012, SC-002 ~ SC-003):
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import numpy as np
 import pytest

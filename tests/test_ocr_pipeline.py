@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import csv
 import os
-import tempfile
-from typing import Any
 from unittest.mock import patch
 
 import pytest

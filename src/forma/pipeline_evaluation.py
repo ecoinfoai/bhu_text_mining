@@ -52,7 +52,6 @@ from forma.evaluation_types import (
     EnsembleResult,
     FeedbackResult,
     GraphComparisonResult,
-    GraphMetricResult,
     RubricTier,
     StatisticalResult,
     TripletEdge,
@@ -253,7 +252,7 @@ def _run_layer2_v1(
     provider: str = "gemini",
     model: Optional[str] = None,
     n_calls: int = 3,
-) -> tuple[dict[str, dict[int, AggregatedLLMResult]], "LLMEvaluator"]:
+) -> tuple[dict[str, dict[int, AggregatedLLMResult]], "LLMEvaluator"]:  # noqa: F821
     """Run v1 Layer 2 LLM evaluation for non-v2 questions.
 
     Returns:
@@ -838,7 +837,6 @@ def run_evaluation_pipeline(
         from forma.statistical_analysis import (
             RaschAnalyzer, LCAAnalyzer, compute_concept_matrix,
         )
-        import numpy as np
 
         print("[pipeline] Phase 2: statistical analysis …")
         stat_results = {}

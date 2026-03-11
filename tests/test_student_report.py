@@ -377,7 +377,7 @@ class TestBuildHeaderSection:
         )
 
         with patch("forma.student_report.Paragraph") as mock_para:
-            with patch("forma.student_report.Table") as mock_table:
+            with patch("forma.student_report.Table") as _mock_table:
                 with patch("forma.student_report.Spacer"):
                     story = generator._build_header_section(student)
 
@@ -392,7 +392,7 @@ class TestBuildHeaderSection:
             if call.args:
                 all_call_args.append(str(call.args[0]))
 
-        all_text = " ".join(all_call_args)
+        _all_text = " ".join(all_call_args)
 
         # The header should reference the report title
         title_found = any(
@@ -414,7 +414,7 @@ class TestBuildQuestionSection:
         # Mock chart generator to return dummy BytesIO
         import io
 
-        dummy_png = io.BytesIO(b"\x89PNG\x00" * 10)
+        _dummy_png = io.BytesIO(b"\x89PNG\x00" * 10)
 
         mock_chart = MagicMock()
         mock_chart.score_boxplot.return_value = io.BytesIO(
@@ -483,7 +483,7 @@ class TestXmlEscapeInAnswerText:
                     mock_chart,
                     create=True,
                 ):
-                    story = generator._build_question_section(
+                    _story = generator._build_question_section(
                         question, distributions,
                     )
 
@@ -494,7 +494,7 @@ class TestXmlEscapeInAnswerText:
                 all_para_texts.append(str(call.args[0]))
 
         # The raw '<script>' must NOT appear unescaped in any Paragraph
-        escaped_form = escape(dangerous_answer)
+        _escaped_form = escape(dangerous_answer)
         raw_in_paragraphs = any(
             "<script>" in text for text in all_para_texts
         )
@@ -615,7 +615,7 @@ class TestStudentReportGraphDiagram:
         """Build a QuestionReportData that has non-empty graph_matched_edges."""
         from types import SimpleNamespace
 
-        fake_edge = SimpleNamespace(subject="A", relation="r", object="B")
+        _fake_edge = SimpleNamespace(subject="A", relation="r", object="B")
         return _make_question(
             question_sn=1,
             # Pass graph edges via a compatible object; the dataclass field
@@ -671,7 +671,6 @@ class TestStudentReportGraphDiagram:
         graph_missing_edges are both empty."""
         import io
         from unittest.mock import patch, MagicMock
-        from reportlab.platypus import Image
 
         question = _make_question(question_sn=1)
         question.graph_matched_edges = []
@@ -691,7 +690,7 @@ class TestStudentReportGraphDiagram:
         # Even if GraphVisualizer is never called, we capture what the story
         # produces through the real Image constructor.
         with patch("forma.student_report.GraphVisualizer") as mock_gv_cls:
-            story = generator._build_question_section(question, distributions)
+            _story = generator._build_question_section(question, distributions)
 
         # GraphVisualizer must not be instantiated at all
         mock_gv_cls.assert_not_called()
@@ -938,7 +937,8 @@ class TestStudentReportDeltaDisplay:
         )
 
         # Create a minimal PNG for trajectory chart
-        import struct, zlib
+        import struct
+        import zlib
         def _make_tiny_png():
             width, height = 1, 1
             raw_data = b'\x00\xff\x00\x00'

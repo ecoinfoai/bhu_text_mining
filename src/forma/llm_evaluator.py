@@ -9,7 +9,6 @@ layer.
 
 from __future__ import annotations
 
-import os
 import re
 import statistics
 import warnings
@@ -20,7 +19,7 @@ import numpy as np
 import yaml
 
 from forma.evaluation_types import AggregatedLLMResult, FailedCall, LLMJudgeResult
-from forma.llm_provider import LLMProvider, create_provider
+from forma.llm_provider import create_provider
 from forma.prompt_templates import (
     RUBRIC_SYSTEM_INSTRUCTION,
     render_rubric_prompt,

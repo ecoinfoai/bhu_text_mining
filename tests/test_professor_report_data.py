@@ -13,7 +13,6 @@ Covers:
 from __future__ import annotations
 
 import math
-import statistics
 
 import pytest
 
@@ -943,7 +942,7 @@ class TestBuildProfessorReportDataAtRisk:
             subject="Biology",
             exam_title="Test",
         )
-        rows_by_id = {r.student_id: r for r in report.student_rows}
+        _rows_by_id = {r.student_id: r for r in report.student_rows}
         at_risk_rows = [r for r in report.student_rows if r.is_at_risk]
         for row in at_risk_rows:
             assert len(row.at_risk_reasons) > 0, (
@@ -1240,7 +1239,6 @@ class TestComputeConditionalIndicatorAugmented:
 
     def test_nan_score_does_not_crash(self):
         """compute_conditional_indicator with NaN score must not raise an exception."""
-        import math
         from forma.professor_report_data import compute_conditional_indicator
 
         # NaN >= any threshold is False, NaN <= any threshold is False → ''
@@ -1678,7 +1676,6 @@ def _make_student_with_nan(
     student_number: str,
 ) -> object:
     """Build a StudentReportData where all question scores are NaN."""
-    import math
     from forma.report_data_loader import StudentReportData, QuestionReportData
 
     return StudentReportData(
@@ -1862,7 +1859,6 @@ class TestBuildProfessorReportDataEdgeCases:
         from forma.professor_report_data import build_professor_report_data
 
         # Student A answered Q1 and Q2; Student B answered only Q1
-        from forma.report_data_loader import QuestionReportData as QRD
 
         students = [
             _make_student("SA", "Alice", "001", 0.7, "Proficient", 0.8, "Advanced"),
@@ -1870,7 +1866,6 @@ class TestBuildProfessorReportDataEdgeCases:
         ]
 
         # Build a student who only answered Q1
-        from forma.report_data_loader import StudentReportData
         students.append(StudentReportData(
             student_id="SB",
             real_name="Bob",

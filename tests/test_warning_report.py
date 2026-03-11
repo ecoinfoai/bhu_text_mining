@@ -6,9 +6,7 @@ T040 [US3]: PDF generation with warning cards, cover page, dashboard, per-studen
 from __future__ import annotations
 
 import os
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 from forma.warning_report_data import RiskType, WarningCard
 

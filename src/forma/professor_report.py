@@ -18,6 +18,7 @@ from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
 from reportlab.platypus import (
     Image, PageBreak, Paragraph, SimpleDocTemplate,
@@ -932,8 +933,6 @@ class ProfessorPDFReportGenerator:
         Returns:
             List of ReportLab flowables, empty if no gap report attached.
         """
-        from reportlab.lib import colors as rl_colors
-        from reportlab.lib.colors import white
 
         gap_report = getattr(report_data, "lecture_gap_report", None)
         if gap_report is None:

@@ -178,7 +178,7 @@ class TestLCAAnalyzerFit:
             labels, probs = lca.fit_predict(X)
 
         assert len(labels) == 40
-        assert all(isinstance(int(l), int) for l in labels)
+        assert all(isinstance(int(lb), int) for lb in labels)
 
     def test_fit_predict_proba_shape(self):
         """fit_predict returns probabilities with shape (n_students, n_classes)."""

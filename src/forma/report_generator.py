@@ -19,8 +19,6 @@ from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
     Spacer,
-    Table,
-    TableStyle,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 

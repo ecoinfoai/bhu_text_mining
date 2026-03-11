@@ -207,7 +207,7 @@ class TestCliDeliverPrepareHappyPath:
 
         # main() should not raise SystemExit or should raise SystemExit(0)
         try:
-            result = main([
+            _result = main([
                 "--no-config",
                 "prepare",
                 "--manifest", manifest_path,
@@ -451,7 +451,7 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         try:
-            result = main([
+            _result = main([
                 "--no-config",
                 "prepare",
                 "--manifest", manifest_path,
@@ -1532,7 +1532,6 @@ class TestCliDeliverSendSmtpConfigOptional:
 
     def test_explicit_smtp_config_takes_priority(self, tmp_path, monkeypatch):
         """When --smtp-config is given, use it even if forma.json has smtp section."""
-        import json
         from forma.cli_deliver import main
 
         staged_dir = _create_staged_folder(tmp_path, n_students=1)
@@ -1642,7 +1641,6 @@ class TestCliDeliverSendDeprecation:
 
     def test_no_deprecation_without_smtp_config_flag(self, tmp_path, monkeypatch):
         """When --smtp-config is NOT used, no deprecation warning is emitted."""
-        import json
         import warnings
         from forma.cli_deliver import main
 

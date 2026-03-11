@@ -125,7 +125,7 @@ class StudentPDFReportGenerator:
         output_dir: str,
         weekly_deltas: Optional[dict] = None,
         trajectory_chart: Optional["io.BytesIO"] = None,
-        learning_path: Optional["LearningPath"] = None,
+        learning_path: Optional["LearningPath"] = None,  # noqa: F821
         learning_path_chart: Optional["io.BytesIO"] = None,
         grade_trend: Optional[str] = None,
     ) -> str:
@@ -233,7 +233,6 @@ class StudentPDFReportGenerator:
 
     def _build_trajectory_section(self, trajectory_chart: "io.BytesIO") -> list:
         """Build section showing weekly score trajectory chart."""
-        import io as _io
         story = []
         story.append(Spacer(1, 3 * mm))
         story.append(Paragraph(
@@ -247,7 +246,7 @@ class StudentPDFReportGenerator:
 
     def _build_learning_path_section(
         self,
-        learning_path: "LearningPath",
+        learning_path: "LearningPath",  # noqa: F821
         learning_path_chart: Optional["io.BytesIO"] = None,
     ) -> list:
         """Build recommended learning path section (v0.10.0 US4, FR-020).

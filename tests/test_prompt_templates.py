@@ -9,8 +9,6 @@ import pytest
 from forma.prompt_templates import (
     render_rubric_prompt,
     render_concept_reasoning_prompt,
-    RUBRIC_EVALUATION_TEMPLATE,
-    CONCEPT_REASONING_TEMPLATE,
 )
 
 

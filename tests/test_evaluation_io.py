@@ -4,7 +4,6 @@ RED phase: validate file loading, saving, and student-response extraction.
 """
 
 import os
-import tempfile
 
 import pytest
 import yaml

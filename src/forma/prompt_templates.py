@@ -401,7 +401,7 @@ def render_lecture_triplet_prompt(lecture_text: str) -> str:
 # ---------------------------------------------------------------------------
 # Professor Report — LLM Analysis Templates
 # ---------------------------------------------------------------------------
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING  # noqa: E402
 
 if TYPE_CHECKING:
     from forma.professor_report_data import ProfessorReportData

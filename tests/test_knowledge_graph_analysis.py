@@ -1,6 +1,5 @@
 import pytest
 import pandas as pd
-from typing import Dict, List
 
 from forma.knowledge_graph_analysis import (
     display_comparison_results,

@@ -11,7 +11,6 @@ No LLM API calls are made during PDF generation (Constitution VI).
 
 from __future__ import annotations
 
-import io
 import logging
 import os
 from collections import Counter

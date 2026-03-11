@@ -29,11 +29,8 @@ Personas:
 
 from __future__ import annotations
 
-import io
 import logging
-import math
 import os
-import random
 import tempfile
 import threading
 import time
@@ -48,7 +45,6 @@ import pytest
 from forma.intervention_store import (
     INTERVENTION_TYPES,
     InterventionLog,
-    InterventionRecord,
 )
 from forma.intervention_effect import (
     InterventionEffect,
@@ -74,7 +70,6 @@ from forma.grade_predictor import (
     GRADE_ORDINAL_MAP,
     ORDINAL_GRADE_MAP,
     VALID_GRADES,
-    GradeFeatureExtractor,
     GradePrediction,
     GradePredictor,
     TrainedGradeModel,
@@ -1647,8 +1642,6 @@ class TestBoundaryPusher:
 
     def test_effect_insufficient_data_window_2(self):
         """Intervention at week 1 with window=2: no pre-weeks -> insufficient."""
-        from forma.evaluation_types import LongitudinalRecord
-        from forma.longitudinal_store import LongitudinalStore
 
         store, spath = _make_store_with_trajectory("S001", [1, 2, 3], [0.5, 0.6, 0.7])
         log, lpath = _make_log()

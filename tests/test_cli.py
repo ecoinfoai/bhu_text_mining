@@ -1,9 +1,6 @@
 """Tests for src.cli — bhu-exam CLI entrypoint."""
 import json
-import os
-import tempfile
 
-import pytest
 import yaml
 
 from forma.cli import _load_config, _load_questions, _parse_args, main

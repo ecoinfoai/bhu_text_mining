@@ -11,7 +11,6 @@ from __future__ import annotations
 import os
 import random
 
-import pytest
 
 from forma.evaluation_types import LongitudinalRecord
 from forma.longitudinal_store import LongitudinalStore

@@ -195,7 +195,7 @@ class TestProfessorReportChartGeneratorInit:
         import matplotlib.pyplot as plt
 
         fig, _ = plt.subplots()
-        num_before = plt.get_fignums()
+        _num_before = plt.get_fignums()
         chart_gen._save_fig(fig)
         num_after = plt.get_fignums()
         # The figure should be closed; its number should not appear anymore
@@ -468,7 +468,7 @@ def _make_student_summary_row(
     real_name: str,
     overall_ensemble_mean: float,
     is_at_risk: bool = False,
-) -> "StudentSummaryRow":
+) -> "StudentSummaryRow":  # noqa: F821
     """Build a minimal StudentSummaryRow for testing."""
     from forma.professor_report_data import StudentSummaryRow
 

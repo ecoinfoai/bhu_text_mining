@@ -1152,7 +1152,6 @@ class TestAdversaryDataManglerPrepare:
         load_roster(). The roster loads successfully; prepare_delivery records the
         student as status='error' and continues with the rest.
         """
-        import os
         from forma.delivery_prepare import load_roster, prepare_delivery
 
         roster_file = tmp_path / "roster.yaml"

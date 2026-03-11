@@ -8,6 +8,7 @@ FR Coverage: FR-006 ~ FR-014, FR-017 ~ FR-019, FR-022.
 
 from __future__ import annotations
 
+import email.message
 import fcntl
 import logging
 import os

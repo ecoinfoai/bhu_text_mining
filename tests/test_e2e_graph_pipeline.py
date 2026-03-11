@@ -15,8 +15,6 @@ import pytest
 import yaml
 
 from forma.evaluation_types import (
-    EnsembleResult,
-    GraphComparisonResult,
     TripletEdge,
     TripletExtractionResult,
 )

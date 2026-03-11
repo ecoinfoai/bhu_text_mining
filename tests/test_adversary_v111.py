@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import math
-import os
 import warnings
 import zipfile
 
@@ -386,7 +385,6 @@ class TestCliEdgeCases:
 
     def test_deprecation_warning_stacklevel(self, tmp_path, monkeypatch):
         """Deprecation warning points to correct call site (stacklevel=2)."""
-        import os
         import textwrap
         import warnings
         import zipfile

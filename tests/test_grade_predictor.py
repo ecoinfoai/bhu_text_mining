@@ -7,7 +7,6 @@ model persistence.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -155,7 +154,7 @@ class TestStudentIdMismatchWarning:
 
         store_student_ids = {"s001", "s002"}
         with caplog.at_level(logging.WARNING):
-            result = load_grade_mapping(path, store_student_ids=store_student_ids)
+            _result = load_grade_mapping(path, store_student_ids=store_student_ids)
         assert any("s999" in msg for msg in caplog.messages)
 
     def test_no_warn_when_all_match(self, tmp_path, caplog):
@@ -172,7 +171,7 @@ class TestStudentIdMismatchWarning:
 
         store_student_ids = {"s001", "s002", "s003"}
         with caplog.at_level(logging.WARNING):
-            result = load_grade_mapping(path, store_student_ids=store_student_ids)
+            _result = load_grade_mapping(path, store_student_ids=store_student_ids)
         assert not any("mismatch" in msg.lower() for msg in caplog.messages)
 
     def test_no_warn_when_store_ids_none(self, tmp_path, caplog):
@@ -187,7 +186,7 @@ class TestStudentIdMismatchWarning:
             yaml.dump(data, f, allow_unicode=True)
 
         with caplog.at_level(logging.WARNING):
-            result = load_grade_mapping(path, store_student_ids=None)
+            _result = load_grade_mapping(path, store_student_ids=None)
         assert len(caplog.records) == 0
 
 

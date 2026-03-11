@@ -237,7 +237,7 @@ class FeatureExtractor:
         # Average per week
         scores_by_week = {w: np.mean(vs) for w, vs in sorted(week_scores.items())}
         coverage_by_week = {w: np.mean(vs) for w, vs in sorted(week_coverage.items())}
-        tier_by_week = {w: np.mean(vs) for w, vs in sorted(week_tiers.items())}
+        _tier_by_week = {w: np.mean(vs) for w, vs in sorted(week_tiers.items())}
         misc_by_week = {w: np.mean(vs) for w, vs in sorted(week_misconceptions.items())}
         f1_by_week = {w: np.mean(vs) for w, vs in sorted(week_edge_f1.items())}
 

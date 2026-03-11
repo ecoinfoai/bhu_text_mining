@@ -455,7 +455,7 @@ class TestAdditionalEdgeCases:
         kg: set[str] = set()  # none match
         with caplog.at_level(logging.WARNING, logger="forma.concept_dependency"):
             build_and_validate_dag(deps, knowledge_graph_concepts=kg)
-        warned_concepts = {r.message for r in caplog.records}
+        _warned_concepts = {r.message for r in caplog.records}
         assert len(caplog.records) == 3  # X, Y, Z
 
     def test_topological_order_valid(self):

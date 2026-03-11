@@ -6,7 +6,6 @@ atomic write, auto-increment IDs, filtering, and outcome updates.
 from __future__ import annotations
 
 import os
-import time
 
 import pytest
 import yaml
@@ -301,7 +300,7 @@ class TestInterventionLogEdgeCases:
         path = str(tmp_path / "log.yaml")
         log = InterventionLog(path)
         log.load()
-        rec_id = log.add_record(
+        _rec_id = log.add_record(
             "s001", 2, "면담",
             description="상담",
             recorded_by="prof_kim",

@@ -8,9 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
 
-import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 from forma.embedding_cache import encode_texts

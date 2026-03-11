@@ -260,7 +260,7 @@ class GraphComparator:
         master_keys = {
             (e.subject, e.relation, e.object): e for e in master_edges
         }
-        master_reversed = {
+        _master_reversed = {
             (e.object, e.relation, e.subject): e for e in master_edges
         }
 

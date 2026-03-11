@@ -16,7 +16,6 @@ from forma.llm_provider import (
     create_provider,
     _is_retryable,
     MAX_RETRIES,
-    INITIAL_BACKOFF,
 )
 
 

@@ -106,7 +106,7 @@ def compare_topic_lengths_with_xy(topic_df: pd.DataFrame):
             person_data = summary_df[summary_df["Person"] == person]
 
             # Scatter plot for the current person
-            scatter = ax.scatter(
+            _scatter = ax.scatter(
                 person_data["Sentence Count"],
                 person_data["Avg Sentence Length"],
                 label=person,

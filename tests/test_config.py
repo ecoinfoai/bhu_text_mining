@@ -1,15 +1,11 @@
 """Tests for config.py — unified configuration management."""
 
 import json
-import os
 from unittest.mock import patch
 
 import pytest
 
 from forma.config import (
-    AGENIX_CONFIG_PATH,
-    DEFAULT_CONFIG_PATH,
-    LEGACY_CONFIG_PATHS,
     get_llm_config,
     get_naver_ocr_config,
     load_config,

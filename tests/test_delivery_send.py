@@ -1650,7 +1650,7 @@ class TestSendSummaryEmail:
 # T030: ADVERSARIAL EDGE CASE TESTS (delivery_send)
 # ===========================================================================
 
-import os
+import os  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -2145,7 +2145,7 @@ class TestAdversaryNonAtomicWrite:
         # Check for atomic write indicators
         uses_tempfile = "tempfile" in source or "mkstemp" in source
         uses_os_replace = "os.replace" in source
-        uses_flock = "fcntl" in source or "flock" in source
+        _uses_flock = "fcntl" in source or "flock" in source
 
         # Document the finding (this test passes as documentation)
         if not uses_tempfile and not uses_os_replace:
@@ -2376,7 +2376,7 @@ class TestAdversaryPasswordLeak:
                 break
 
         assert secret_pw not in body, (
-            f"EXPLOIT: Password leaked in summary email body!"
+            "EXPLOIT: Password leaked in summary email body!"
         )
 
 

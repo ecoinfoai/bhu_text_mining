@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
 from forma.evaluation_types import LongitudinalRecord
 from forma.longitudinal_store import LongitudinalStore
@@ -143,7 +142,7 @@ class TestAtomicWrite:
         store.add_record(_make_record(student_id="s002"))
         store.save()
 
-        bak_path = path + ".bak"
+        _bak_path = path + ".bak"
         assert (tmp_path / "store.yaml.bak").exists()
 
 

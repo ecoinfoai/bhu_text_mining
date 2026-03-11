@@ -24,7 +24,6 @@ import tempfile
 import matplotlib
 matplotlib.use("Agg")
 
-import numpy as np
 import pytest
 
 from forma.evaluation_types import (
@@ -36,10 +35,9 @@ from forma.evaluation_types import (
     TripletEdge,
 )
 from forma.longitudinal_store import LongitudinalStore, _compute_concept_scores, snapshot_from_evaluation
-from forma.report_data_loader import WeeklyDelta, compute_weekly_delta
-from forma.professor_report_data import RiskMovement, compute_risk_movement
+from forma.report_data_loader import compute_weekly_delta
+from forma.professor_report_data import compute_risk_movement
 from forma.longitudinal_report_data import (
-    ConceptMasteryChange,
     LongitudinalSummaryData,
     StudentTrajectory,
     build_longitudinal_summary,
@@ -295,7 +293,7 @@ class TestConcurrencyAssassin:
         store.add_record(r1)
 
         # Manually set override flag
-        key = f"S001_1_1"
+        key = "S001_1_1"
         store._records[key]["manual_override"] = True
 
         # Attempt overwrite — should be blocked

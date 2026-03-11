@@ -39,16 +39,13 @@ import numpy as np
 import pytest
 
 from forma.project_config import (
-    ProjectConfiguration,
     find_project_config,
     load_project_config,
     merge_configs,
     validate_project_config,
 )
 from forma.section_comparison import (
-    CrossSectionReport,
     SectionComparison,
-    SectionStats,
     _cohens_d,
     _effect_size_label,
     compute_concept_mastery_by_section,
@@ -1682,7 +1679,7 @@ class TestWarningDataCrasher:
     def test_interventions_mapped_from_risk_types(self):
         """Interventions should be mapped from INTERVENTION_MAP per risk type."""
         from forma.warning_report_data import (
-            build_warning_data, INTERVENTION_MAP, RiskType,
+            build_warning_data, INTERVENTION_MAP,
         )
         at_risk = {"S001": {"is_at_risk": True}}
         result = build_warning_data(
@@ -2156,7 +2153,7 @@ class TestConcurrentChaos:
             for _ in range(10):
                 try:
                     load_model(path)
-                except Exception as e:
+                except Exception:
                     # File may be mid-write — acceptable
                     pass
 
@@ -2304,7 +2301,7 @@ class TestInvariant1000Phase3:
 
     def test_risk_classification_always_deterministic(self):
         """1000 random: same input always produces same risk classification."""
-        from forma.warning_report_data import _classify_risk_types, RiskType
+        from forma.warning_report_data import _classify_risk_types
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n_concepts = rng.randint(0, 10)

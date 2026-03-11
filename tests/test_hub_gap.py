@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from forma.evaluation_types import HubGapEntry, TripletEdge
+from forma.evaluation_types import TripletEdge
 from forma.hub_gap import compute_hub_gap, compute_class_hub_gap
 
 

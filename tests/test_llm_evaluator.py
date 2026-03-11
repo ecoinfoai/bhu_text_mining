@@ -5,13 +5,11 @@ aggregation, and error paths.  All LLM API calls are mocked via
 the provider abstraction layer.
 """
 
-import os
-import statistics
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from forma.evaluation_types import LLMJudgeResult, AggregatedLLMResult
+from forma.evaluation_types import AggregatedLLMResult
 from forma.llm_evaluator import LLMEvaluator, compute_icc_2_1
 
 

@@ -201,7 +201,6 @@ def run_join_pipeline(
 
     # ── load forms data ──────────────────────────
     forms_data: dict[str, dict[str, str]] = {}
-    source_label = ""
 
     if spreadsheet_url is not None:
         try:
@@ -215,7 +214,6 @@ def run_join_pipeline(
                 sid = str(row.get(student_id_column, "")).strip()
                 if sid:
                     forms_data[sid] = {str(k): str(v) for k, v in row.items()}
-            source_label = "Google Sheets"
         except Exception as exc:
             if forms_csv_path is not None:
                 print(
@@ -227,7 +225,7 @@ def run_join_pipeline(
 
     if not forms_data and forms_csv_path is not None:
         forms_data = _load_forms_csv(forms_csv_path, student_id_column)
-        source_label = "CSV"
+        _source_label = "CSV"
 
     # ── manual mapping supplement ────────────────
     if manual_mapping_path is not None:

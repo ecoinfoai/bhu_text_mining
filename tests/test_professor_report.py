@@ -692,7 +692,7 @@ class TestBuildComparisonTable:
         story = gen._build_comparison_table(report_data)
 
         # If an Image is present, validate it is a proper Image flowable
-        images = [f for f in story if isinstance(f, Image)]
+        _images = [f for f in story if isinstance(f, Image)]
         # Either images exist (lollipop implemented) or story is still non-empty
         # (graceful skip). Both are acceptable.
         assert isinstance(story, list) and len(story) > 0, (
@@ -999,7 +999,7 @@ def _make_report_data_with_at_risk() -> "ProfessorReportData":
     )
 
 
-def _make_generator_for_at_risk(mock_font_path: str) -> "ProfessorPDFReportGenerator":
+def _make_generator_for_at_risk(mock_font_path: str) -> "ProfessorPDFReportGenerator":  # noqa: F821
     """Helper: instantiate ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font_path):
         with patch("forma.font_utils.pdfmetrics.registerFont"):
@@ -1297,7 +1297,7 @@ class TestBuildLlmAnalysisPage:
     RED phase: _build_llm_analysis_page raises NotImplementedError -> all tests FAIL.
     """
 
-    def _make_generator(self, mock_font: str) -> "ProfessorPDFReportGenerator":
+    def _make_generator(self, mock_font: str) -> "ProfessorPDFReportGenerator":  # noqa: F821
         """Create ProfessorPDFReportGenerator with mocked font registration."""
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
             with patch("forma.font_utils.pdfmetrics.registerFont"):
@@ -1476,7 +1476,7 @@ def _make_mock_chart_gen_for_detail() -> MagicMock:
     return mock
 
 
-def _make_generator_for_question_detail(mock_font_path: str) -> "ProfessorPDFReportGenerator":
+def _make_generator_for_question_detail(mock_font_path: str) -> "ProfessorPDFReportGenerator":  # noqa: F821
     """Instantiate ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font_path):
         with patch("forma.font_utils.pdfmetrics.registerFont"):
@@ -1736,7 +1736,7 @@ class TestBuildQuestionDetailPage:
 # ===========================================================================
 
 
-def _make_generator_for_edge(tmp_font_path: str) -> "ProfessorPDFReportGenerator":
+def _make_generator_for_edge(tmp_font_path: str) -> "ProfessorPDFReportGenerator":  # noqa: F821
     """Create ProfessorPDFReportGenerator with mocked font registration."""
     with patch("forma.professor_report.find_korean_font", return_value=tmp_font_path):
         with patch("forma.font_utils.pdfmetrics.registerFont"):
@@ -1859,7 +1859,7 @@ class TestSpecialCharactersInStudentNames:
 class TestLongAIResponseHandling:
     """T050: 2000+ character AI response handling in _build_llm_analysis_page."""
 
-    def _make_gen(self, mock_font: str) -> "ProfessorPDFReportGenerator":
+    def _make_gen(self, mock_font: str) -> "ProfessorPDFReportGenerator":  # noqa: F821
         with patch("forma.professor_report.find_korean_font", return_value=mock_font):
             with patch("forma.font_utils.pdfmetrics.registerFont"):
                 with patch("forma.font_utils.TTFont"):
@@ -2513,7 +2513,6 @@ class TestBuildClassGraphSection:
 
     def test_weak_edge_list_shown(self, mock_font):
         """Weak edges (correct_ratio < 0.3) appear in story content (FR-008)."""
-        from forma.class_knowledge_aggregate import AggregateEdge
 
         gen = _make_generator_for_question_detail(mock_font)
         # Edge B→C has ratio 0.2 (below 0.3 threshold)
@@ -2912,7 +2911,7 @@ class TestRiskMovementSection:
 # ---------------------------------------------------------------------------
 
 
-def _make_generator_for_cross_section(mock_font: str) -> "ProfessorPDFReportGenerator":
+def _make_generator_for_cross_section(mock_font: str) -> "ProfessorPDFReportGenerator":  # noqa: F821
     """Helper: instantiate ProfessorPDFReportGenerator with mocked font."""
     with patch("forma.professor_report.find_korean_font", return_value=mock_font):
         with patch("forma.font_utils.pdfmetrics.registerFont"):
@@ -2959,7 +2958,7 @@ class TestCrossSectionComparisonSection:
         assert len(story) > 0
 
         # Check that section title paragraph exists
-        from reportlab.platypus import Paragraph, Table, PageBreak as PB
+        from reportlab.platypus import Table, PageBreak as PB
 
         has_page_break = any(isinstance(f, PB) for f in story)
         has_table = any(isinstance(f, Table) for f in story)
@@ -3445,7 +3444,7 @@ class TestInterventionSection:
         self, mock_ttfont, mock_register, mock_find, mock_exists,
     ):
         """Section includes type summary table with 면담/보충학습 entries."""
-        from reportlab.platypus import Paragraph, Table
+        from reportlab.platypus import Table
 
         from forma.professor_report import ProfessorPDFReportGenerator
 
