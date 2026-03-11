@@ -81,7 +81,7 @@ class ReportChartGenerator:
 
         bp = ax.boxplot(
             scores_arr,
-            vert=False,
+            orientation="horizontal",
             widths=0.5,
             patch_artist=True,
             whis=whis,
@@ -151,7 +151,7 @@ class ReportChartGenerator:
 
         bp = ax.boxplot(
             data,
-            vert=False,
+            orientation="horizontal",
             positions=positions,
             widths=0.5,
             patch_artist=True,

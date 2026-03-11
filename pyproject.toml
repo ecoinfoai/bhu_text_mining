@@ -71,6 +71,13 @@ forma-intervention = "forma.cli_intervention:main"
 forma-train-grade = "forma.cli_train_grade:main"
 forma-deliver = "forma.cli_deliver:main"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Glyph \\d+ .* missing from font:UserWarning",
+    "ignore:scipy.optimize.*L-BFGS-B.*deprecated:DeprecationWarning",
+    "ignore:FigureCanvasAgg is non-interactive:UserWarning",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
