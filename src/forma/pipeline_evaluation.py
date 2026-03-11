@@ -1226,6 +1226,10 @@ def main() -> None:
         help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
     )
     parser.add_argument(
+        "--week-config", dest="week_config", default=None,
+        help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
+    )
+    parser.add_argument(
         "--eval-config",
         default=None,
         help="평가 환경설정 YAML (모든 옵션을 파일 하나에 지정)",
@@ -1300,7 +1304,11 @@ def main() -> None:
         )
         from forma.project_config import find_project_config, load_project_config
 
-        week_yaml_path = find_week_config()
+        if args.week_config:
+            from pathlib import Path as _Path
+            week_yaml_path = _Path(args.week_config)
+        else:
+            week_yaml_path = find_week_config()
         if week_yaml_path is None:
             parser.error("--class 사용 시 week.yaml이 필요합니다.")
 
