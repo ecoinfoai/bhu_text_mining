@@ -25,6 +25,7 @@ __all__ = [
     "DeliveryLog",
     "load_template",
     "load_smtp_config",
+    "_build_smtp_config",
     "validate_template_variables",
     "render_template",
     "compose_email",
@@ -162,6 +163,65 @@ def load_template(path: str) -> EmailTemplate:
     return EmailTemplate(subject=str(subject), body=str(body))
 
 
+def _build_smtp_config(data: dict, field_map: dict | None = None) -> SmtpConfig:
+    """Build an SmtpConfig from a raw dict with optional field name mapping.
+
+    Args:
+        data: Raw configuration dict.
+        field_map: Optional mapping from source keys to SmtpConfig field names.
+            When ``None``, source keys are assumed to match SmtpConfig fields
+            (identity mapping, i.e. YAML format).
+
+    Returns:
+        Validated ``SmtpConfig``.
+
+    Raises:
+        ValueError: If required fields are missing or invalid.
+    """
+    if field_map is not None:
+        mapped: dict = {}
+        for src_key, dst_key in field_map.items():
+            if src_key in data:
+                mapped[dst_key] = data[src_key]
+        data = mapped
+
+    smtp_server = data.get("smtp_server")
+    if not smtp_server:
+        raise ValueError("SMTP 설정에 'smtp_server' 필드가 필요합니다.")
+
+    sender_email = data.get("sender_email")
+    if not sender_email:
+        raise ValueError("SMTP 설정에 'sender_email' 필드가 필요합니다.")
+
+    sender_email = str(sender_email)
+    if "@" not in sender_email:
+        raise ValueError(f"sender_email 형식이 올바르지 않습니다: {sender_email}")
+
+    smtp_port = data.get("smtp_port", 587)
+    if isinstance(smtp_port, bool) or not isinstance(smtp_port, int):
+        raise ValueError(f"smtp_port는 유효한 정수여야 합니다: {smtp_port}")
+    if smtp_port < 1 or smtp_port > 65535:
+        raise ValueError(f"smtp_port는 1~65535 범위여야 합니다: {smtp_port}")
+
+    sender_name = str(data.get("sender_name", ""))
+    use_tls = data.get("use_tls", True)
+    send_interval_sec = data.get("send_interval_sec", 1.0)
+
+    if isinstance(send_interval_sec, bool) or not isinstance(send_interval_sec, (int, float)):
+        raise ValueError(f"send_interval_sec는 숫자여야 합니다: {send_interval_sec}")
+    if send_interval_sec < 0:
+        raise ValueError(f"send_interval_sec는 0 이상이어야 합니다: {send_interval_sec}")
+
+    return SmtpConfig(
+        smtp_server=str(smtp_server),
+        smtp_port=smtp_port,
+        sender_email=sender_email,
+        sender_name=sender_name,
+        use_tls=bool(use_tls),
+        send_interval_sec=float(send_interval_sec),
+    )
+
+
 def load_smtp_config(path: str) -> SmtpConfig:
     """Load SMTP configuration from a YAML file.
 
@@ -184,41 +244,7 @@ def load_smtp_config(path: str) -> SmtpConfig:
     if not isinstance(data, dict):
         raise ValueError("SMTP 설정 파일이 dict 형식이어야 합니다.")
 
-    smtp_server = data.get("smtp_server")
-    if not smtp_server:
-        raise ValueError("SMTP 설정에 'smtp_server' 필드가 필요합니다.")
-
-    sender_email = data.get("sender_email")
-    if not sender_email:
-        raise ValueError("SMTP 설정에 'sender_email' 필드가 필요합니다.")
-
-    sender_email = str(sender_email)
-    if "@" not in sender_email:
-        raise ValueError(f"sender_email 형식이 올바르지 않습니다: {sender_email}")
-
-    smtp_port = data.get("smtp_port", 587)
-    if not isinstance(smtp_port, int) or isinstance(smtp_port, bool):
-        raise ValueError(f"smtp_port는 유효한 정수여야 합니다: {smtp_port}")
-    if smtp_port < 1 or smtp_port > 65535:
-        raise ValueError(f"smtp_port는 1~65535 범위여야 합니다: {smtp_port}")
-
-    sender_name = str(data.get("sender_name", ""))
-    use_tls = data.get("use_tls", True)
-    send_interval_sec = data.get("send_interval_sec", 1.0)
-
-    if not isinstance(send_interval_sec, (int, float)) or isinstance(send_interval_sec, bool):
-        raise ValueError(f"send_interval_sec는 숫자여야 합니다: {send_interval_sec}")
-    if send_interval_sec < 0:
-        raise ValueError(f"send_interval_sec는 0 이상이어야 합니다: {send_interval_sec}")
-
-    return SmtpConfig(
-        smtp_server=str(smtp_server),
-        smtp_port=smtp_port,
-        sender_email=sender_email,
-        sender_name=sender_name,
-        use_tls=bool(use_tls),
-        send_interval_sec=float(send_interval_sec),
-    )
+    return _build_smtp_config(data)
 
 
 # ---------------------------------------------------------------------------
@@ -446,6 +472,7 @@ def send_emails(
     dry_run: bool = False,
     retry_failed: bool = False,
     password: str | None = None,
+    smtp_config: SmtpConfig | None = None,
 ) -> DeliveryLog:
     """Send emails to students based on prepare summary.
 
@@ -457,6 +484,8 @@ def send_emails(
         dry_run: Preview only, no actual SMTP connection.
         retry_failed: Only retry previously failed deliveries.
         password: SMTP password (if None, reads from env var).
+        smtp_config: Pre-built SMTP config. When provided, ``smtp_config_path``
+            is ignored and no file load occurs.
 
     Returns:
         ``DeliveryLog`` with per-student results.
@@ -470,7 +499,8 @@ def send_emails(
     from datetime import datetime, timezone
 
     template = load_template(template_path)
-    smtp_config = load_smtp_config(smtp_config_path)
+    if smtp_config is None:
+        smtp_config = load_smtp_config(smtp_config_path)
 
     # Validate template variables before sending (FR-017)
     validate_template_variables(template)

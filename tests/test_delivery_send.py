@@ -2378,3 +2378,316 @@ class TestAdversaryPasswordLeak:
         assert secret_pw not in body, (
             f"EXPLOIT: Password leaked in summary email body!"
         )
+
+
+# ===========================================================================
+# Phase 2: _build_smtp_config() helper tests
+# ===========================================================================
+
+
+class TestBuildSmtpConfigIdentityMapping:
+    """Tests for _build_smtp_config() with default (identity) field mapping."""
+
+    def test_minimal_valid_data(self):
+        """Minimal data with smtp_server and sender_email succeeds."""
+        from forma.delivery_send import _build_smtp_config, SmtpConfig
+
+        data = {"smtp_server": "smtp.gmail.com", "sender_email": "prof@univ.kr"}
+        cfg = _build_smtp_config(data)
+        assert isinstance(cfg, SmtpConfig)
+        assert cfg.smtp_server == "smtp.gmail.com"
+        assert cfg.sender_email == "prof@univ.kr"
+        assert cfg.smtp_port == 587  # default
+        assert cfg.use_tls is True  # default
+        assert cfg.send_interval_sec == 1.0  # default
+
+    def test_full_valid_data(self):
+        """All fields provided returns correct SmtpConfig."""
+        from forma.delivery_send import _build_smtp_config
+
+        data = {
+            "smtp_server": "mail.example.com",
+            "smtp_port": 465,
+            "sender_email": "test@example.com",
+            "sender_name": "Test Sender",
+            "use_tls": False,
+            "send_interval_sec": 2.5,
+        }
+        cfg = _build_smtp_config(data)
+        assert cfg.smtp_server == "mail.example.com"
+        assert cfg.smtp_port == 465
+        assert cfg.sender_email == "test@example.com"
+        assert cfg.sender_name == "Test Sender"
+        assert cfg.use_tls is False
+        assert cfg.send_interval_sec == 2.5
+
+    def test_missing_smtp_server_raises(self):
+        """Missing smtp_server raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="smtp_server"):
+            _build_smtp_config({"sender_email": "a@b.com"})
+
+    def test_missing_sender_email_raises(self):
+        """Missing sender_email raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="sender_email"):
+            _build_smtp_config({"smtp_server": "smtp.x.com"})
+
+    def test_invalid_email_no_at_raises(self):
+        """sender_email without '@' raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="sender_email"):
+            _build_smtp_config({"smtp_server": "s", "sender_email": "bad"})
+
+    def test_port_out_of_range_raises(self):
+        """smtp_port outside 1-65535 raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="smtp_port"):
+            _build_smtp_config({
+                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": 0,
+            })
+
+        with pytest.raises(ValueError, match="smtp_port"):
+            _build_smtp_config({
+                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": 70000,
+            })
+
+    def test_port_bool_raises(self):
+        """smtp_port as bool (True/False) raises ValueError (bool-as-int guard)."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="smtp_port"):
+            _build_smtp_config({
+                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": True,
+            })
+
+    def test_interval_negative_raises(self):
+        """send_interval_sec negative raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="send_interval_sec"):
+            _build_smtp_config({
+                "smtp_server": "s", "sender_email": "a@b.com",
+                "send_interval_sec": -1,
+            })
+
+    def test_interval_bool_raises(self):
+        """send_interval_sec as bool raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="send_interval_sec"):
+            _build_smtp_config({
+                "smtp_server": "s", "sender_email": "a@b.com",
+                "send_interval_sec": False,
+            })
+
+    def test_interval_zero_accepted(self):
+        """send_interval_sec=0 is valid (no delay)."""
+        from forma.delivery_send import _build_smtp_config
+
+        cfg = _build_smtp_config({
+            "smtp_server": "s", "sender_email": "a@b.com",
+            "send_interval_sec": 0,
+        })
+        assert cfg.send_interval_sec == 0.0
+
+
+class TestBuildSmtpConfigFieldMap:
+    """Tests for _build_smtp_config() with custom field_map."""
+
+    def test_json_style_field_map(self):
+        """Custom field_map maps JSON-style keys to SmtpConfig fields."""
+        from forma.delivery_send import _build_smtp_config
+
+        field_map = {
+            "server": "smtp_server",
+            "port": "smtp_port",
+            "sender_email": "sender_email",
+            "sender_name": "sender_name",
+            "use_tls": "use_tls",
+            "send_interval_sec": "send_interval_sec",
+        }
+        data = {
+            "server": "smtp.example.com",
+            "port": 465,
+            "sender_email": "me@example.com",
+            "sender_name": "Me",
+            "use_tls": False,
+            "send_interval_sec": 0.5,
+        }
+        cfg = _build_smtp_config(data, field_map=field_map)
+        assert cfg.smtp_server == "smtp.example.com"
+        assert cfg.smtp_port == 465
+        assert cfg.sender_email == "me@example.com"
+        assert cfg.sender_name == "Me"
+        assert cfg.use_tls is False
+        assert cfg.send_interval_sec == 0.5
+
+    def test_field_map_missing_required_raises(self):
+        """Missing required key in mapped data raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        field_map = {"server": "smtp_server", "sender_email": "sender_email"}
+        # No "server" key in data
+        with pytest.raises(ValueError, match="smtp_server"):
+            _build_smtp_config({"sender_email": "a@b.com"}, field_map=field_map)
+
+    def test_field_map_defaults_for_omitted_fields(self):
+        """Unmapped optional fields use defaults."""
+        from forma.delivery_send import _build_smtp_config
+
+        field_map = {"server": "smtp_server", "email": "sender_email"}
+        data = {"server": "smtp.x.com", "email": "a@b.com"}
+        cfg = _build_smtp_config(data, field_map=field_map)
+        assert cfg.smtp_port == 587
+        assert cfg.use_tls is True
+        assert cfg.send_interval_sec == 1.0
+
+
+class TestBuildSmtpConfigLoadSmtpConfigRefactor:
+    """Ensure load_smtp_config() still works after refactoring to use _build_smtp_config()."""
+
+    def test_load_smtp_config_still_works(self, tmp_path):
+        """load_smtp_config() round-trip with YAML file still produces correct SmtpConfig."""
+        from forma.delivery_send import load_smtp_config
+
+        cfg_path = tmp_path / "smtp.yaml"
+        cfg_path.write_text(
+            textwrap.dedent("""\
+                smtp_server: "smtp.gmail.com"
+                smtp_port: 587
+                sender_email: "prof@univ.ac.kr"
+                sender_name: "교수"
+                use_tls: true
+                send_interval_sec: 1.0
+            """),
+            encoding="utf-8",
+        )
+        cfg = load_smtp_config(str(cfg_path))
+        assert cfg.smtp_server == "smtp.gmail.com"
+        assert cfg.smtp_port == 587
+        assert cfg.sender_email == "prof@univ.ac.kr"
+
+
+class TestSendEmailsSmtpConfigParam:
+    """Tests for send_emails() with new smtp_config keyword parameter."""
+
+    def test_send_emails_with_smtp_config_skips_load(self, tmp_path, monkeypatch):
+        """When smtp_config is provided, send_emails() uses it directly (no file load)."""
+        import zipfile
+        from forma.delivery_send import SmtpConfig, send_emails
+
+        # Create staging folder
+        staged = tmp_path / "staged"
+        staged.mkdir()
+        sid = "s001"
+        student_dir = staged / f"{sid}_TestStudent"
+        student_dir.mkdir()
+        zip_path = student_dir / f"TestStudent_{sid}.zip"
+        with zipfile.ZipFile(str(zip_path), "w") as zf:
+            zf.writestr(f"{sid}_report.pdf", "content")
+
+        summary = {
+            "prepared_at": "2026-03-11T10:00:00",
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
+            "details": [{
+                "student_id": sid,
+                "name": "TestStudent",
+                "email": "test@u.kr",
+                "status": "ready",
+                "matched_files": [f"{sid}_report.pdf"],
+                "zip_path": str(zip_path),
+                "zip_size_bytes": 100,
+                "message": "",
+            }],
+        }
+        with open(str(staged / "prepare_summary.yaml"), "w") as f:
+            yaml.dump(summary, f)
+
+        # Create template
+        tpl_path = tmp_path / "template.yaml"
+        tpl_path.write_text(
+            'subject: "Test"\nbody: "Hello {student_name}"',
+            encoding="utf-8",
+        )
+
+        # Provide SmtpConfig directly — no smtp_config_path file needed
+        smtp_cfg = SmtpConfig(
+            smtp_server="direct.smtp.com",
+            smtp_port=587,
+            sender_email="direct@test.com",
+        )
+
+        import unittest.mock
+        mock_smtp = unittest.mock.MagicMock()
+        monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
+        monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
+
+        log = send_emails(
+            staging_dir=str(staged),
+            template_path=str(tpl_path),
+            smtp_config_path="",  # empty — should not be used
+            smtp_config=smtp_cfg,
+        )
+        assert log.smtp_server == "direct.smtp.com"
+        assert log.success == 1
+
+    def test_send_emails_without_smtp_config_uses_path(self, tmp_path, monkeypatch):
+        """When smtp_config is None, send_emails() loads from smtp_config_path."""
+        import zipfile
+        from forma.delivery_send import send_emails
+
+        # Create staging folder
+        staged = tmp_path / "staged"
+        staged.mkdir()
+        sid = "s001"
+        student_dir = staged / f"{sid}_T"
+        student_dir.mkdir()
+        zip_path = student_dir / f"T_{sid}.zip"
+        with zipfile.ZipFile(str(zip_path), "w") as zf:
+            zf.writestr(f"{sid}_report.pdf", "content")
+
+        summary = {
+            "prepared_at": "2026-03-11T10:00:00",
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
+            "details": [{
+                "student_id": sid, "name": "T", "email": "t@u.kr",
+                "status": "ready", "matched_files": [f"{sid}_report.pdf"],
+                "zip_path": str(zip_path), "zip_size_bytes": 100, "message": "",
+            }],
+        }
+        with open(str(staged / "prepare_summary.yaml"), "w") as f:
+            yaml.dump(summary, f)
+
+        tpl_path = tmp_path / "template.yaml"
+        tpl_path.write_text('subject: "T"\nbody: "Hi {student_name}"', encoding="utf-8")
+
+        smtp_path = tmp_path / "smtp.yaml"
+        smtp_path.write_text(textwrap.dedent("""\
+            smtp_server: "file.smtp.com"
+            smtp_port: 587
+            sender_email: "file@test.com"
+        """), encoding="utf-8")
+
+        import unittest.mock
+        mock_smtp = unittest.mock.MagicMock()
+        monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
+        monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
+
+        log = send_emails(
+            staging_dir=str(staged),
+            template_path=str(tpl_path),
+            smtp_config_path=str(smtp_path),
+            # smtp_config not provided — should default to None
+        )
+        assert log.smtp_server == "file.smtp.com"
