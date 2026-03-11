@@ -191,6 +191,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
     # Resolve SMTP configuration: --smtp-config path or forma.json fallback
     smtp_config_obj = None
     smtp_config_path = getattr(args, "smtp_config", None) or ""
+    _config_password: str | None = None
 
     if args.smtp_config:
         # Explicit --smtp-config path (deprecated)
@@ -211,10 +212,11 @@ def _cmd_send(args: argparse.Namespace) -> None:
     else:
         # Fallback to forma.json smtp section
         try:
-            from forma.config import get_smtp_config, load_config
+            from forma.config import get_smtp_config, get_smtp_password, load_config
 
             config = load_config()
             smtp_config_obj = get_smtp_config(config)
+            _config_password: str | None = get_smtp_password(config)
         except (FileNotFoundError, KeyError, ValueError):
             print(
                 "Error: SMTP 설정을 찾을 수 없습니다. "
@@ -228,10 +230,12 @@ def _cmd_send(args: argparse.Namespace) -> None:
         print("Error: --retry-failed와 --force는 함께 사용할 수 없습니다.", file=sys.stderr)
         sys.exit(1)
 
-    # Read password from stdin if requested
-    password = None
+    # Resolve password: stdin > forma.json smtp.password > env var (in send_emails)
+    password: str | None = None
     if getattr(args, "password_from_stdin", False):
         password = sys.stdin.readline().rstrip("\n")
+    elif _config_password is not None:
+        password = _config_password
 
     try:
         log = send_emails(
@@ -264,7 +268,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
 
         notify_password = password
         if notify_password is None:
-            notify_password = os.environ.get("FORMA_SMTP_PASSWORD", "")
+            notify_password = _config_password or os.environ.get("FORMA_SMTP_PASSWORD", "")
         if notify_password:
             try:
                 if smtp_config_obj is not None:

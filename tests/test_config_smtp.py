@@ -159,3 +159,45 @@ class TestJsonFieldMap:
         assert JSON_FIELD_MAP["sender_name"] == "sender_name"
         assert JSON_FIELD_MAP["use_tls"] == "use_tls"
         assert JSON_FIELD_MAP["send_interval_sec"] == "send_interval_sec"
+
+
+# ---------------------------------------------------------------------------
+# get_smtp_password()
+# ---------------------------------------------------------------------------
+
+
+class TestGetSmtpPassword:
+    """Tests for get_smtp_password() in config.py."""
+
+    def test_returns_password_when_present(self):
+        """smtp.password field is returned as string."""
+        from forma.config import get_smtp_password
+
+        config = {
+            "smtp": {
+                "server": "smtp.gmail.com",
+                "sender_email": "a@b.com",
+                "password": "app-secret-16chars",
+            }
+        }
+        assert get_smtp_password(config) == "app-secret-16chars"
+
+    def test_returns_none_when_password_absent(self):
+        """smtp section without password field returns None."""
+        from forma.config import get_smtp_password
+
+        config = {"smtp": {"server": "s", "sender_email": "a@b.com"}}
+        assert get_smtp_password(config) is None
+
+    def test_returns_none_when_no_smtp_section(self):
+        """Config without smtp section returns None (no exception)."""
+        from forma.config import get_smtp_password
+
+        assert get_smtp_password({}) is None
+
+    def test_password_is_string(self):
+        """Numeric password value is converted to string."""
+        from forma.config import get_smtp_password
+
+        config = {"smtp": {"password": 12345678}}
+        assert get_smtp_password(config) == "12345678"

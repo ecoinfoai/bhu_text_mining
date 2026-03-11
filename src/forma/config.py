@@ -123,6 +123,27 @@ def get_smtp_config(config: dict):
     return _build_smtp_config(smtp_data, field_map=JSON_FIELD_MAP)
 
 
+def get_smtp_password(config: dict) -> str | None:
+    """Extract SMTP password from config dict.
+
+    Returns the ``smtp.password`` field as a string, or ``None`` if absent.
+    Does not raise if the ``smtp`` section is missing.
+
+    Args:
+        config: Parsed forma.json config dict.
+
+    Returns:
+        SMTP password string, or ``None`` if not set.
+    """
+    smtp = config.get("smtp")
+    if not isinstance(smtp, dict):
+        return None
+    value = smtp.get("password")
+    if value is None:
+        return None
+    return str(value)
+
+
 def get_llm_config(config: dict) -> dict:
     """Extract LLM settings from config dict.
 

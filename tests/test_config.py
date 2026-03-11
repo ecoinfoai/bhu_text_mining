@@ -35,8 +35,9 @@ class TestLoadConfig:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps(cfg), encoding="utf-8")
 
-        with patch("forma.config.DEFAULT_CONFIG_PATH", str(cfg_file)):
-            result = load_config()
+        with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", str(cfg_file)):
+                result = load_config()
         assert result == cfg
 
     def test_legacy_fallback(self, tmp_path):
@@ -45,9 +46,10 @@ class TestLoadConfig:
         cfg_file = tmp_path / "legacy.json"
         cfg_file.write_text(json.dumps(cfg), encoding="utf-8")
 
-        with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/path.json"):
-            with patch("forma.config.LEGACY_CONFIG_PATHS", [str(cfg_file)]):
-                result = load_config()
+        with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/path.json"):
+                with patch("forma.config.LEGACY_CONFIG_PATHS", [str(cfg_file)]):
+                    result = load_config()
         assert result == cfg
 
     def test_agenix_path_found(self, tmp_path):
