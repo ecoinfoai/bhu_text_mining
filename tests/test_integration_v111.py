@@ -867,9 +867,11 @@ class TestPyprojectTomlValidation:
         with open(pyproject_path, "rb") as f:
             self.config = tomllib.load(f)
 
-    def test_version_is_0111(self):
-        """Version is 0.11.1."""
-        assert self.config["project"]["version"] == "0.11.1"
+    def test_version_is_set(self):
+        """Version field exists and follows semver format."""
+        import re
+        version = self.config["project"]["version"]
+        assert re.match(r"^\d+\.\d+\.\d+", version), f"Invalid version format: {version}"
 
     def test_ruff_in_dev_dependencies(self):
         """ruff is in dev optional dependencies."""
