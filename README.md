@@ -1,5 +1,10 @@
 # formative-analysis (FormA)
 
+[![CI](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ecoinfoai/formative-analysis/badge.svg)](https://codecov.io/gh/ecoinfoai/formative-analysis)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-0.11.1-green.svg)](https://github.com/ecoinfoai/formative-analysis/releases)
+
 An AI-powered formative assessment CLI toolkit for university professors. FormA automates the full assessment cycle — from exam generation and OCR scanning through knowledge-graph evaluation, personalized feedback, longitudinal tracking, and report delivery — enabling data-driven instructional decisions without manual grading overhead.
 
 ## Features
