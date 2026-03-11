@@ -1222,6 +1222,10 @@ def main() -> None:
         description="Multi-layer concept evaluation pipeline (v2)"
     )
     parser.add_argument(
+        "--class", dest="class_id", default=None,
+        help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
+    )
+    parser.add_argument(
         "--eval-config",
         default=None,
         help="평가 환경설정 YAML (모든 옵션을 파일 하나에 지정)",
@@ -1282,15 +1286,68 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    eval_logger = logging.getLogger(__name__)
+
+    # --- Load week.yaml when --class is provided ---
+    wcfg: dict = {}
+    if args.class_id:
+        from forma.week_config import (
+            find_week_config,
+            load_week_config,
+            resolve_class_patterns,
+            resolve_paths_relative_to,
+            warn_if_class_unknown,
+        )
+        from forma.project_config import find_project_config, load_project_config
+
+        week_yaml_path = find_week_config()
+        if week_yaml_path is None:
+            parser.error("--class 사용 시 week.yaml이 필요합니다.")
+
+        week_config = load_week_config(week_yaml_path)
+        week_config = resolve_class_patterns(week_config, args.class_id)
+        week_dir = week_yaml_path.parent
+
+        # Check class identifier against forma.yaml
+        proj_path = find_project_config()
+        if proj_path:
+            proj_dict = load_project_config(proj_path)
+            identifiers = proj_dict.get("classes", {}).get("identifiers", [])
+            if identifiers:
+                warn_if_class_unknown(args.class_id, identifiers)
+
+        # Build flat week config dict for merge
+        wcfg = {
+            "config": resolve_paths_relative_to(week_config.eval_config, week_dir) if week_config.eval_config else None,
+            "responses": resolve_paths_relative_to(week_config.eval_responses_pattern, week_dir) if week_config.eval_responses_pattern else None,
+            "output": resolve_paths_relative_to(week_config.eval_output_pattern, week_dir) if week_config.eval_output_pattern else None,
+            "questions_used": week_config.eval_questions_used or None,
+            "skip_feedback": week_config.eval_skip_feedback,
+            "skip_graph": week_config.eval_skip_graph,
+            "generate_reports": week_config.eval_generate_reports,
+        }
+        # Remove None values
+        wcfg = {k: v for k, v in wcfg.items() if v is not None}
+
+        # Deprecation warning when both are used
+        if args.eval_config:
+            eval_logger.warning(
+                "week.yaml과 --eval-config가 동시에 사용되었습니다. "
+                "week.yaml 값이 우선 적용됩니다. "
+                "--eval-config는 향후 제거될 예정입니다.",
+            )
+
     # --- Merge eval-config YAML with CLI flags (CLI wins) ---
     ecfg: dict = {}
     if args.eval_config:
         ecfg = _load_eval_config(args.eval_config)
 
     def _resolve(cli_val, yaml_key, default=None):
-        """CLI flag > eval-config YAML > default."""
+        """CLI flag > week.yaml > eval-config YAML > default."""
         if cli_val is not None:
             return cli_val
+        if yaml_key in wcfg:
+            return wcfg[yaml_key]
         return ecfg.get(yaml_key, default)
 
     config_path = _resolve(args.config, "config")

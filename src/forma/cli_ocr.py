@@ -1,17 +1,20 @@
 # src/cli_ocr.py
-"""bhu-ocr CLI — OCR pipeline for scanned exam answer sheets.
+"""forma-ocr CLI — OCR pipeline for scanned exam answer sheets.
 
 Usage:
-    bhu-ocr scan --config ocr_config.yaml
-    bhu-ocr scan --config ocr_config.yaml --num-questions 3
+    forma-ocr scan --config ocr_config.yaml
+    forma-ocr scan --class A
+    forma-ocr scan --class A --recrop
 
-    bhu-ocr join --ocr-results results.yaml \\
-                 --output final.yaml \\
-                 --spreadsheet-url "https://docs.google.com/spreadsheets/d/XXX" \\
-                 [--forms-csv fallback.csv] \\
-                 [--credentials credentials.json] \\
-                 [--manual-mapping mapping.yaml] \\
-                 [--student-id-column "sid"]
+    forma-ocr join --ocr-results results.yaml \\
+                   --output final.yaml \\
+                   --spreadsheet-url "https://docs.google.com/spreadsheets/d/XXX" \\
+                   [--forms-csv fallback.csv] \\
+                   [--credentials credentials.json] \\
+                   [--manual-mapping mapping.yaml] \\
+                   [--student-id-column "sid"]
+
+    forma-ocr join --class A
 """
 from __future__ import annotations
 
@@ -24,9 +27,9 @@ from forma.ocr_pipeline import run_join_pipeline, run_scan_pipeline
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse bhu-ocr CLI arguments."""
+    """Parse forma-ocr CLI arguments."""
     parser = argparse.ArgumentParser(
-        prog="bhu-ocr",
+        prog="forma-ocr",
         description="스캔된 답안지 OCR 파이프라인",
     )
     parser.add_argument(
@@ -40,13 +43,22 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "scan",
         help="이미지 스캔 → QR 디코딩 → OCR → YAML",
     )
-    scan_p.add_argument(
-        "--config", required=True,
-        help="OCR 설정 YAML 파일 경로",
+    scan_source = scan_p.add_mutually_exclusive_group(required=True)
+    scan_source.add_argument(
+        "--config",
+        help="OCR 설정 YAML 파일 경로 (레거시)",
+    )
+    scan_source.add_argument(
+        "--class", dest="class_id",
+        help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
     )
     scan_p.add_argument(
         "--num-questions", type=int, default=None,
         help="문제 수 (config YAML의 num-questions 값 사용 가능)",
+    )
+    scan_p.add_argument(
+        "--recrop", action="store_true", default=False,
+        help="저장된 crop 좌표 무시, 재선택",
     )
 
     # ── join subcommand ───────────────────────────
@@ -55,11 +67,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="OCR 결과 + Google Forms/Sheets 조인",
     )
     join_p.add_argument(
-        "--ocr-results", required=True,
+        "--class", dest="class_id", default=None,
+        help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
+    )
+    join_p.add_argument(
+        "--ocr-results", required=False, default=None,
         help="OCR 결과 YAML 파일 경로",
     )
     join_p.add_argument(
-        "--output", required=True,
+        "--output", required=False, default=None,
         help="출력 YAML 파일 경로",
     )
     join_p.add_argument(
@@ -115,7 +131,7 @@ def _load_ocr_config(path: str) -> dict:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for bhu-ocr."""
+    """CLI entrypoint for forma-ocr."""
     args = _parse_args(argv)
 
     # Apply project config (three-layer merge)

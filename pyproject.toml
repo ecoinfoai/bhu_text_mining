@@ -70,6 +70,7 @@ forma-report-warning = "forma.cli_report_warning:main"
 forma-intervention = "forma.cli_intervention:main"
 forma-train-grade = "forma.cli_train_grade:main"
 forma-deliver = "forma.cli_deliver:main"
+forma-select = "forma.cli_select:main"
 
 [tool.pytest.ini_options]
 filterwarnings = [

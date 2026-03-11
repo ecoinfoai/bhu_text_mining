@@ -110,9 +110,9 @@ Python >=3.11, <4: Follow standard conventions
 - `cli_report_longitudinal.py` — `+--intervention-log` flag
 
 ## Recent Changes
+- 012-unified-week-config: Added week_config.py (week.yaml loading, {class} pattern resolution, crop_coords write-back), cli_select.py (forma-select CLI). Extended project_config.py for 4-layer config merge. No new runtime dependencies.
 - 011-readme-docs: Added N/A (Markdown documentation only) + N/A (no runtime dependencies)
 - 010-credentials-ci: Added Python >=3.11, <4 + PyYAML >=6.0 (existing), json (stdlib), warnings (stdlib), smtplib (stdlib)
-- 009-email-delivery: Added Python >=3.11, <4 + PyYAML >=6.0 (기존), Python stdlib (smtplib, email.mime, zipfile, shutil, os)
 
 
 <!-- MANUAL ADDITIONS START -->

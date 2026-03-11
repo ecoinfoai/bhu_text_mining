@@ -162,6 +162,63 @@ class TestFormaInit:
         config = load_project_config(output_path)
         validate_project_config(config)  # Should not raise
 
+    # ---------------------------------------------------------------
+    # T061: Template does NOT contain week-specific fields
+    # ---------------------------------------------------------------
+    def test_template_excludes_week_specific_fields(self, tmp_path: Path, monkeypatch):
+        """Slimmed template must NOT contain week-specific fields."""
+        output_path = tmp_path / "forma.yaml"
+        monkeypatch.setattr("sys.argv", [
+            "forma-init", "--output", str(output_path),
+        ])
+
+        with patch("builtins.input", return_value=""):
+            from forma.cli_init import main
+            main()
+
+        content = output_path.read_text(encoding="utf-8")
+        # These fields should have been removed (moved to week.yaml)
+        assert "num_questions" not in content
+        assert "exam_config" not in content
+        assert "join_dir" not in content
+        assert "output_dir" not in content
+        assert "current_week" not in content
+        assert "join_pattern" not in content
+        assert "eval_pattern" not in content
+        assert "skip_feedback" not in content
+        assert "skip_graph" not in content
+        assert "skip_statistical" not in content
+        assert "skip_llm" not in content
+        assert "aggregate" not in content
+
+    # ---------------------------------------------------------------
+    # T062: Template DOES contain semester-level fields
+    # ---------------------------------------------------------------
+    def test_template_contains_semester_fields(self, tmp_path: Path, monkeypatch):
+        """Slimmed template must contain semester-level fields."""
+        output_path = tmp_path / "forma.yaml"
+        monkeypatch.setattr("sys.argv", [
+            "forma-init", "--output", str(output_path),
+        ])
+
+        with patch("builtins.input", return_value=""):
+            from forma.cli_init import main
+            main()
+
+        content = output_path.read_text(encoding="utf-8")
+        # These fields should be present
+        assert "project:" in content
+        assert "course_name" in content
+        assert "identifiers" in content
+        assert "naver_config" in content
+        assert "credentials" in content
+        assert "spreadsheet_url" in content
+        assert "provider" in content
+        assert "n_calls" in content
+        assert "longitudinal_store" in content
+        assert "font_path" in content
+        assert "dpi" in content
+
     def test_generated_yaml_utf8(self, tmp_path: Path, monkeypatch):
         """Generated file uses UTF-8 encoding for Korean content."""
         output_path = tmp_path / "forma.yaml"

@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 # Template with Korean comments and sensible defaults
 _TEMPLATE = """\
-# forma.yaml — 형성평가 분석 프로젝트 설정 파일
+# forma.yaml — 형성평가 분석 프로젝트 설정 파일 (학기 단위)
 # 이 파일은 forma init 으로 생성되었습니다.
-# 필요한 항목만 수정하고, 나머지는 기본값을 사용합니다.
+# 주차별 설정은 week.yaml에 작성합니다.
 
 project:
   course_name: "{course_name}"    # 과목명
@@ -33,13 +33,8 @@ project:
 
 classes:
   identifiers: {identifiers}      # 분반 목록 (예: [A, B, C, D])
-  join_pattern: ""                 # 조인 파일 패턴 ({{class}} 포함, 예: "anp_{{class}}_final.yaml")
-  eval_pattern: ""                 # 평가 디렉토리 패턴 ({{class}} 포함, 예: "eval_{{class}}/")
 
 paths:
-  exam_config: ""                  # 시험 설정 YAML 파일 경로
-  join_dir: ""                     # 조인 데이터 디렉토리
-  output_dir: ""                   # PDF 출력 디렉토리
   longitudinal_store: ""           # 종단 저장소 YAML 경로
   font_path: null                  # 한국어 폰트 경로 (null = 자동 탐색)
 
@@ -47,25 +42,17 @@ ocr:
   naver_config: ""                 # Naver OCR 설정 경로
   credentials: ""                  # 인증 정보 (환경변수에서 로드)
   spreadsheet_url: ""              # Google Sheets URL
-  num_questions: 5                 # 문제 수 (1 이상)
 
 evaluation:
   provider: "gemini"               # LLM 제공자 ("gemini" 또는 "anthropic")
   model: null                      # LLM 모델명 (null = 기본값)
-  skip_feedback: false             # 피드백 생성 건너뛰기
-  skip_graph: false                # 그래프 비교 건너뛰기
-  skip_statistical: false          # 통계 분석 건너뛰기
   n_calls: 3                       # LLM 호출 횟수 (1 이상)
 
 reports:
   dpi: 150                         # 차트 해상도 (72-600)
-  skip_llm: false                  # LLM 분석 건너뛰기
-  aggregate: true                  # 통합 보고서 생성
 
 prediction:
   model_path: null                 # 드롭 리스크 예측 모델 경로
-
-current_week: 1                    # 현재 주차 (1 이상)
 """
 
 

@@ -1,11 +1,11 @@
-"""bhu-exam CLI — formative exam paper generator.
+"""forma-exam CLI — formative exam paper generator.
 
 Usage:
-    bhu-exam --config exam.yaml --output exam.pdf
-    bhu-exam --config exam.yaml --output exam.pdf --num-papers 50
-    bhu-exam --questions questions.yaml --num-papers 200 --output exam.pdf
-    bhu-exam --questions-json '[{"topic":"T","text":"Q","limit":"50"}]' \\
-             --num-papers 30 --output exam.pdf
+    forma-exam --config exam.yaml --output exam.pdf
+    forma-exam --config exam.yaml --output exam.pdf --num-papers 50
+    forma-exam --questions questions.yaml --num-papers 200 --output exam.pdf
+    forma-exam --questions-json '[{"topic":"T","text":"Q","limit":"50"}]' \\
+               --num-papers 30 --output exam.pdf
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from forma.exam_generator import ExamPDFGenerator
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
-        prog="bhu-exam",
+        prog="forma-exam",
         description="형성평가 시험지 PDF 생성기",
     )
 
