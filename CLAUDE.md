@@ -15,6 +15,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - YAML files (intervention_log.yaml, grade_mapping.yaml), joblib .pkl (grade model) (008-intervention-path-prediction)
 - Python >=3.11, <4 + PyYAML >=6.0 (기존), Python stdlib (smtplib, email.mime, zipfile, shutil, os) (009-email-delivery)
 - YAML 파일 (manifest, roster, smtp config, prepare_summary, delivery_log) (009-email-delivery)
+- Python >=3.11, <4 + PyYAML >=6.0 (existing), json (stdlib), warnings (stdlib), smtplib (stdlib) (010-credentials-ci)
+- JSON files (`forma.json`), YAML files (`smtp.yaml` — deprecated path) (010-credentials-ci)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -107,9 +109,9 @@ Python >=3.11, <4: Follow standard conventions
 - `cli_report_longitudinal.py` — `+--intervention-log` flag
 
 ## Recent Changes
+- 010-credentials-ci: Added Python >=3.11, <4 + PyYAML >=6.0 (existing), json (stdlib), warnings (stdlib), smtplib (stdlib)
 - 009-email-delivery: Added Python >=3.11, <4 + PyYAML >=6.0 (기존), Python stdlib (smtplib, email.mime, zipfile, shutil, os)
 - 008-intervention-path-prediction: Added Python >=3.11, <4 + PyYAML >=6.0, scikit-learn >=1.4.0 (LogisticRegression, OrdinalEncoder), networkx >=3.4.2 (DAG, topological_sort, cycle detection), numpy <2.1.0, matplotlib >=3.10.0, ReportLab >=4.4.4, joblib (via scikit-learn)
-- 007-config-risk-warning-comparison: Added Python >=3.11, <4 + PyYAML >=6.0, scikit-learn >=1.4.0 (LogisticRegression, StandardScaler), scipy >=1.12.0 (NEW — ttest_ind, mannwhitneyu), numpy <2.1.0, ReportLab >=4.4.4, matplotlib >=3.10.0, joblib (via scikit-learn)
 
 
 <!-- MANUAL ADDITIONS START -->
