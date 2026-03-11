@@ -140,41 +140,158 @@ def main(argv: list[str] | None = None) -> None:
     apply_project_config(args, argv=raw_argv)
 
     if args.command == "scan":
-        cfg = _load_ocr_config(args.config)
-        num_questions = (
-            args.num_questions
-            if args.num_questions is not None
-            else int(cfg.get("num-questions", 2))
-        )
-        crop_coords = None
-        raw_coords = cfg.get("crop-coords")
-        if raw_coords is not None:
-            crop_coords = [tuple(c) for c in raw_coords]
+        if getattr(args, "class_id", None):
+            # --class mode: load week.yaml and resolve patterns
+            from forma.week_config import (
+                find_week_config,
+                load_week_config,
+                resolve_class_patterns,
+                save_crop_coords,
+            )
 
-        run_scan_pipeline(
-            image_dir=cfg["image-dir"],
-            naver_ocr_config=cfg["naver-ocr-config"],
-            output_path=cfg["output"],
-            num_questions=num_questions,
-            crop_coords=crop_coords,
-        )
+            week_yaml_path = find_week_config()
+            if week_yaml_path is None:
+                print("오류: week.yaml을 찾을 수 없습니다.")
+                sys.exit(1)
+            week_cfg = load_week_config(week_yaml_path)
+            resolved = resolve_class_patterns(week_cfg, args.class_id)
+            base_dir = week_yaml_path.parent
+
+            image_dir = str(base_dir / resolved.ocr_image_dir_pattern)
+            output_path = str(base_dir / resolved.ocr_ocr_output_pattern)
+            num_questions = (
+                args.num_questions
+                if args.num_questions is not None
+                else resolved.ocr_num_questions
+            )
+
+            # Use saved crop coords unless --recrop
+            crop_coords = None
+            if not args.recrop and resolved.ocr_crop_coords:
+                crop_coords = [tuple(c) for c in resolved.ocr_crop_coords]
+
+            # Load naver_ocr_config from forma.yaml
+            naver_ocr_config = ""
+            if not args.no_config:
+                try:
+                    from forma.project_config import find_project_config, load_project_config
+                    proj_path = find_project_config()
+                    if proj_path:
+                        proj = load_project_config(proj_path)
+                        naver_ocr_config = proj.get("ocr", {}).get("naver_config", "")
+                except Exception:
+                    pass
+
+            results = run_scan_pipeline(
+                image_dir=image_dir,
+                naver_ocr_config=naver_ocr_config,
+                output_path=output_path,
+                num_questions=num_questions,
+                crop_coords=crop_coords,
+            )
+
+            # Auto-save crop coords back to week.yaml if newly selected
+            if crop_coords is None and results:
+                # Extract crop coords from the pipeline's interactive selection
+                # The coords are saved by run_scan_pipeline internally;
+                # also persist to week.yaml for reuse across classes
+                try:
+                    from forma.preprocess_imgs import _last_crop_coords
+                    if _last_crop_coords:
+                        save_crop_coords(week_yaml_path, _last_crop_coords)
+                except (ImportError, AttributeError):
+                    pass
+        else:
+            # Legacy --config mode
+            cfg = _load_ocr_config(args.config)
+            num_questions = (
+                args.num_questions
+                if args.num_questions is not None
+                else int(cfg.get("num-questions", 2))
+            )
+            crop_coords = None
+            raw_coords = cfg.get("crop-coords")
+            if raw_coords is not None:
+                crop_coords = [tuple(c) for c in raw_coords]
+
+            run_scan_pipeline(
+                image_dir=cfg["image-dir"],
+                naver_ocr_config=cfg["naver-ocr-config"],
+                output_path=cfg["output"],
+                num_questions=num_questions,
+                crop_coords=crop_coords,
+            )
 
     elif args.command == "join":
-        if args.spreadsheet_url is None and args.forms_csv is None:
-            print(
-                "오류: --spreadsheet-url 또는 --forms-csv 중 "
-                "하나 이상 필요합니다."
+        if getattr(args, "class_id", None):
+            # --class mode: load week.yaml and resolve patterns
+            from forma.week_config import (
+                find_week_config,
+                load_week_config,
+                resolve_class_patterns,
             )
-            sys.exit(1)
-        run_join_pipeline(
-            ocr_results_path=args.ocr_results,
-            output_path=args.output,
-            forms_csv_path=args.forms_csv,
-            spreadsheet_url=args.spreadsheet_url,
-            credentials_path=args.credentials,
-            manual_mapping_path=args.manual_mapping,
-            student_id_column=args.student_id_column,
-        )
+
+            week_yaml_path = find_week_config()
+            if week_yaml_path is None:
+                print("오류: week.yaml을 찾을 수 없습니다.")
+                sys.exit(1)
+            week_cfg = load_week_config(week_yaml_path)
+            resolved = resolve_class_patterns(week_cfg, args.class_id)
+            base_dir = week_yaml_path.parent
+
+            ocr_results_path = str(base_dir / resolved.ocr_ocr_output_pattern)
+            output_path = str(base_dir / resolved.ocr_join_output_pattern)
+
+            # Load spreadsheet_url and credentials from forma.yaml
+            spreadsheet_url = args.spreadsheet_url
+            credentials_path = args.credentials
+            forms_csv = args.forms_csv or resolved.ocr_join_forms_csv
+            if spreadsheet_url is None and not args.no_config:
+                try:
+                    from forma.project_config import find_project_config, load_project_config
+                    proj_path = find_project_config()
+                    if proj_path:
+                        proj = load_project_config(proj_path)
+                        spreadsheet_url = proj.get("ocr", {}).get("spreadsheet_url", "")
+                        cred = proj.get("ocr", {}).get("credentials", "")
+                        if cred:
+                            credentials_path = cred
+                except Exception:
+                    pass
+
+            if not spreadsheet_url and not forms_csv:
+                print(
+                    "오류: spreadsheet_url(forma.yaml) 또는 "
+                    "--forms-csv 중 하나 이상 필요합니다."
+                )
+                sys.exit(1)
+
+            run_join_pipeline(
+                ocr_results_path=ocr_results_path,
+                output_path=output_path,
+                forms_csv_path=forms_csv,
+                spreadsheet_url=spreadsheet_url or None,
+                credentials_path=credentials_path,
+                manual_mapping_path=args.manual_mapping,
+                student_id_column=args.student_id_column,
+            )
+        else:
+            # Legacy mode
+            if args.spreadsheet_url is None and args.forms_csv is None:
+                print(
+                    "오류: --spreadsheet-url 또는 --forms-csv 중 "
+                    "하나 이상 필요합니다."
+                )
+                sys.exit(1)
+            run_join_pipeline(
+                ocr_results_path=args.ocr_results,
+                output_path=args.output,
+                forms_csv_path=args.forms_csv,
+                spreadsheet_url=args.spreadsheet_url,
+                credentials_path=args.credentials,
+                manual_mapping_path=args.manual_mapping,
+                student_id_column=args.student_id_column,
+            )
 
 
 if __name__ == "__main__":
