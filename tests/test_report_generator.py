@@ -104,14 +104,14 @@ class TestStudentReportGenerator:
         assert result is None
 
     def test_generate_report_creates_pdf(self, generator, tmp_path):
-        """generate_report creates a PDF file."""
+        """generate_pdf creates a PDF file."""
         output = str(tmp_path / "S001_report.pdf")
         with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
             with patch("forma.report_generator.Paragraph"):
                 with patch("forma.report_generator.Spacer"):
                     mock_doc = MagicMock()
                     mock_doc_cls.return_value = mock_doc
-                    path = generator.generate_report(
+                    path = generator.generate_pdf(
                         student_id="S001",
                         counseling_data=SAMPLE_COUNSELING,
                         config_data=SAMPLE_CONFIG,
@@ -121,14 +121,14 @@ class TestStudentReportGenerator:
                     assert path == os.path.abspath(output)
 
     def test_generate_report_missing_student(self, generator, tmp_path):
-        """generate_report handles missing student gracefully."""
+        """generate_pdf handles missing student gracefully."""
         output = str(tmp_path / "S999_report.pdf")
         with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
             with patch("forma.report_generator.Paragraph"):
                 with patch("forma.report_generator.Spacer"):
                     mock_doc = MagicMock()
                     mock_doc_cls.return_value = mock_doc
-                    generator.generate_report(
+                    generator.generate_pdf(
                         student_id="S999",
                         counseling_data=SAMPLE_COUNSELING,
                         config_data=SAMPLE_CONFIG,
@@ -139,7 +139,7 @@ class TestStudentReportGenerator:
     def test_generate_all_reports(self, generator, tmp_path):
         """generate_all_reports generates one PDF per student."""
         reports_dir = str(tmp_path / "reports")
-        with patch.object(generator, "generate_report") as mock_gen:
+        with patch.object(generator, "generate_pdf") as mock_gen:
             mock_gen.return_value = "path"
             paths = generator.generate_all_reports(
                 counseling_data=SAMPLE_COUNSELING,
@@ -152,7 +152,7 @@ class TestStudentReportGenerator:
     def test_generate_all_reports_creates_dir(self, generator, tmp_path):
         """generate_all_reports creates output directory."""
         reports_dir = str(tmp_path / "deep" / "nested" / "reports")
-        with patch.object(generator, "generate_report", return_value="p"):
+        with patch.object(generator, "generate_pdf", return_value="p"):
             generator.generate_all_reports(
                 counseling_data=SAMPLE_COUNSELING,
                 config_data=SAMPLE_CONFIG,
@@ -185,3 +185,111 @@ class TestFontUtils:
                 with patch("forma.font_utils.glob.glob", return_value=[]):
                     result = find_korean_font()
                     assert "NanumGothic.ttf" in result
+
+
+# ---------------------------------------------------------------------------
+# T009: XML-escape tests for report_generator.py
+# ---------------------------------------------------------------------------
+
+
+class TestReportGeneratorXmlEscape:
+    """Tests that report_generator.py escapes XML-special characters."""
+
+    def test_generate_report_escapes_student_id(self, generator, tmp_path):
+        """Student ID with XML chars is escaped in Paragraph calls."""
+        malicious_data = {
+            "students": [
+                {
+                    "student_id": "<script>alert(1)</script>",
+                    "questions": [
+                        {
+                            "question_sn": 1,
+                            "understanding_level": "Proficient",
+                            "concept_coverage": 0.75,
+                            "support_guidance": "guidance",
+                            "misconceptions": [],
+                        },
+                    ],
+                },
+            ],
+        }
+        output = str(tmp_path / "xss_report.pdf")
+        with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
+            with patch("forma.report_generator.Paragraph") as mock_para:
+                with patch("forma.report_generator.Spacer"):
+                    mock_doc = MagicMock()
+                    mock_doc_cls.return_value = mock_doc
+                    generator.generate_pdf(
+                        student_id="<script>alert(1)</script>",
+                        counseling_data=malicious_data,
+                        config_data=SAMPLE_CONFIG,
+                        output_path=output,
+                    )
+                    # Check that no Paragraph call contains raw '<script>'
+                    for call_args in mock_para.call_args_list:
+                        text = call_args[0][0] if call_args[0] else ""
+                        assert "<script>" not in text, (
+                            f"Unescaped XML in Paragraph: {text}"
+                        )
+
+    def test_generate_report_escapes_misconceptions(self, generator, tmp_path):
+        """Misconception text with & and < is escaped."""
+        data = {
+            "students": [
+                {
+                    "student_id": "S001",
+                    "questions": [
+                        {
+                            "question_sn": 1,
+                            "understanding_level": "Developing",
+                            "concept_coverage": 0.40,
+                            "support_guidance": "A & B < C 재학습",
+                            "misconceptions": ["X < Y & Z > W"],
+                        },
+                    ],
+                },
+            ],
+        }
+        output = str(tmp_path / "escape_report.pdf")
+        with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
+            with patch("forma.report_generator.Paragraph") as mock_para:
+                with patch("forma.report_generator.Spacer"):
+                    mock_doc = MagicMock()
+                    mock_doc_cls.return_value = mock_doc
+                    generator.generate_pdf(
+                        student_id="S001",
+                        counseling_data=data,
+                        config_data=SAMPLE_CONFIG,
+                        output_path=output,
+                    )
+                    # Check that & and < are escaped in misconception text
+                    for call_args in mock_para.call_args_list:
+                        text = call_args[0][0] if call_args[0] else ""
+                        # Raw ampersand should be escaped
+                        if "X" in text and "Y" in text:
+                            assert "&amp;" in text or "&lt;" in text or "<" not in text
+
+    def test_generate_report_escapes_course_name(self, generator, tmp_path):
+        """Course name with XML-special chars is escaped."""
+        config_with_special = {
+            "course_name": "과학 & 기술 <고급>",
+            "questions": [],
+        }
+        output = str(tmp_path / "course_escape.pdf")
+        with patch("forma.report_generator.SimpleDocTemplate") as mock_doc_cls:
+            with patch("forma.report_generator.Paragraph") as mock_para:
+                with patch("forma.report_generator.Spacer"):
+                    mock_doc = MagicMock()
+                    mock_doc_cls.return_value = mock_doc
+                    generator.generate_pdf(
+                        student_id="S001",
+                        counseling_data={"students": []},
+                        config_data=config_with_special,
+                        output_path=output,
+                    )
+                    # Course name Paragraph should not contain raw '&' or '<'
+                    for call_args in mock_para.call_args_list:
+                        text = call_args[0][0] if call_args[0] else ""
+                        if "과학" in text:
+                            assert "&amp;" in text, f"Unescaped & in: {text}"
+                            assert "&lt;" in text, f"Unescaped < in: {text}"

@@ -26,7 +26,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
-from forma.font_utils import find_korean_font
+from forma.font_utils import esc as _esc, find_korean_font
 
 
 # Understanding level → colour mapping
@@ -86,7 +86,7 @@ class StudentReportGenerator:
             leading=13,
         ))
 
-    def generate_report(
+    def generate_pdf(
         self,
         student_id: str,
         counseling_data: dict,
@@ -120,12 +120,12 @@ class StudentReportGenerator:
         # Header
         course_name = config_data.get("course_name", "")
         story.append(Paragraph(
-            f"학습 평가 리포트 — {student_id}",
+            f"학습 평가 리포트 — {_esc(student_id)}",
             self._styles["KoreanTitle"],
         ))
         if course_name:
             story.append(Paragraph(
-                f"과목: {course_name}",
+                f"과목: {_esc(course_name)}",
                 self._styles["KoreanBody"],
             ))
         story.append(Spacer(1, 10 * mm))
@@ -134,7 +134,7 @@ class StudentReportGenerator:
         student_entry = self._find_student(counseling_data, student_id)
         if not student_entry:
             story.append(Paragraph(
-                f"학생 {student_id}의 평가 데이터가 없습니다.",
+                f"학생 {_esc(student_id)}의 평가 데이터가 없습니다.",
                 self._styles["KoreanBody"],
             ))
             doc.build(story)
@@ -151,14 +151,14 @@ class StudentReportGenerator:
 
             # Question heading
             story.append(Paragraph(
-                f"문항 {qsn}",
+                f"문항 {_esc(str(qsn))}",
                 self._styles["KoreanHeading"],
             ))
 
             # Understanding level with colour
             color = _LEVEL_COLORS.get(level, HexColor("#000000"))
             story.append(Paragraph(
-                f'이해도 수준: <font color="{color.hexval()}">{level}</font>',
+                f'이해도 수준: <font color="{color.hexval()}">{_esc(str(level))}</font>',
                 self._styles["KoreanBody"],
             ))
 
@@ -176,7 +176,7 @@ class StudentReportGenerator:
                 ))
                 for m in misconceptions:
                     story.append(Paragraph(
-                        f"  • {m}",
+                        f"  • {_esc(str(m))}",
                         self._styles["KoreanSmall"],
                     ))
 
@@ -184,7 +184,7 @@ class StudentReportGenerator:
             if guidance:
                 story.append(Spacer(1, 3 * mm))
                 story.append(Paragraph(
-                    f"학습 지도 방안: {guidance}",
+                    f"학습 지도 방안: {_esc(str(guidance))}",
                     self._styles["KoreanBody"],
                 ))
 
@@ -212,7 +212,7 @@ class StudentReportGenerator:
         level_counts: dict[str, int] = {}
         for lv in levels:
             level_counts[lv] = level_counts.get(lv, 0) + 1
-        level_str = ", ".join(f"{k}: {v}문항" for k, v in level_counts.items())
+        level_str = ", ".join(f"{_esc(str(k))}: {v}문항" for k, v in level_counts.items())
         story.append(Paragraph(
             f"이해도 분포: {level_str}",
             self._styles["KoreanBody"],
@@ -243,7 +243,7 @@ class StudentReportGenerator:
         for student in counseling_data.get("students", []):
             sid = student.get("student_id", "unknown")
             output_path = os.path.join(output_dir, f"{sid}_report.pdf")
-            path = self.generate_report(
+            path = self.generate_pdf(
                 student_id=sid,
                 counseling_data=counseling_data,
                 config_data=config_data,
