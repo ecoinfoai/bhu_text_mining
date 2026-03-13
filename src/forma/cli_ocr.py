@@ -110,7 +110,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
     )
 
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if (
+        getattr(args, "command", None) == "join"
+        and not getattr(args, "class_id", None)
+        and getattr(args, "ocr_results", None) is not None
+        and getattr(args, "output", None) is None
+    ):
+        join_p.error("--output is required when --ocr-results is specified without --class")
+    return args
 
 
 def _load_ocr_config(path: str) -> dict:
