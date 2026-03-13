@@ -525,10 +525,15 @@ def load_model(path: Path | str) -> TrainedRiskModel:
 
     Raises:
         FileNotFoundError: If the file does not exist.
+        TypeError: If the loaded object is not a TrainedRiskModel.
     """
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"Model file not found: {path}")
-    model = joblib.load(str(path))
+    obj = joblib.load(str(path))
+    if not isinstance(obj, TrainedRiskModel):
+        raise TypeError(
+            f"Expected TrainedRiskModel, got {type(obj).__name__}"
+        )
     logger.info("Model loaded from %s", path)
-    return model
+    return obj

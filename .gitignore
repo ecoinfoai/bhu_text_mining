@@ -104,3 +104,13 @@ node_modules/
 
 # Week-specific config (contains personal paths/URLs)
 week.yaml
+
+# Credentials and secrets
+forma.json
+credentials.json
+token.json
+smtp*.yaml
+
+# ML model files
+*.pkl
+*.pkl.sig

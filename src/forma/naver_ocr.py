@@ -1,3 +1,4 @@
+"""Naver CLOVA OCR API client for scanned answer sheet text extraction."""
 import os
 import requests
 import uuid
@@ -143,6 +144,9 @@ def send_images_receive_ocr(
         each image. Each dictionary corresponds to the API's response for
         a single image.
 
+    Raises:
+        ValueError: If api_url does not use HTTPS.
+
     Examples:
         >>> api_url = "https://ocr.api.example.com/v1/process"
         >>> secret_key = "your_secret_key"
@@ -165,6 +169,10 @@ def send_images_receive_ocr(
             }
         ]
     """
+    # FR-010: HTTPS enforcement
+    if not api_url.startswith("https://"):
+        raise ValueError("OCR API URL must use HTTPS")
+
     results = []
 
     for image_file in image_files:

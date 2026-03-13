@@ -63,6 +63,7 @@ def fetch_sheet_as_records(
             )
             creds = flow.run_local_server(port=0)
         token_path.write_text(creds.to_json())
+        os.chmod(token_path, 0o600)
 
     try:
         gc = gspread.authorize(creds)

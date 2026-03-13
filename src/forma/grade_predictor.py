@@ -492,10 +492,15 @@ def load_grade_model(path: Path | str) -> TrainedGradeModel:
 
     Raises:
         FileNotFoundError: If the file does not exist.
+        TypeError: If the loaded object is not a TrainedGradeModel.
     """
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"Grade model file not found: {path}")
-    model = joblib.load(str(path))
+    obj = joblib.load(str(path))
+    if not isinstance(obj, TrainedGradeModel):
+        raise TypeError(
+            f"Expected TrainedGradeModel, got {type(obj).__name__}"
+        )
     logger.info("Grade model loaded from %s", path)
-    return model
+    return obj

@@ -12,6 +12,7 @@ import email.message
 import fcntl
 import logging
 import os
+import ssl
 import tempfile
 from dataclasses import dataclass, field
 
@@ -309,6 +310,37 @@ def render_template(
 
 
 # ---------------------------------------------------------------------------
+# Email header sanitization (FR-006)
+# ---------------------------------------------------------------------------
+
+
+def _sanitize_header(value: str) -> str:
+    """Strip CR and LF characters to prevent email header injection."""
+    return value.replace('\r', '').replace('\n', '')
+
+
+def _mask_email(email: str) -> str:
+    """Mask an email address for PII protection (FR-030).
+
+    Format: first 3 (or fewer) chars of local part + ``***`` + ``@domain``.
+    If no ``@`` is present, masks as first 3 chars + ``***``.
+
+    Args:
+        email: Raw email address.
+
+    Returns:
+        Masked email string, or empty string if input is empty.
+    """
+    if not email:
+        return ""
+    if "@" in email:
+        local, domain = email.split("@", 1)
+        prefix = local[:3]
+        return f"{prefix}***@{domain}"
+    return f"{email[:3]}***"
+
+
+# ---------------------------------------------------------------------------
 # Email composition
 # ---------------------------------------------------------------------------
 
@@ -340,14 +372,16 @@ def compose_email(
 
     msg = MIMEMultipart()
 
-    # Set From with display name if provided
+    # Set From with display name if provided (FR-006: sanitize headers)
     if sender_config.sender_name:
-        msg["From"] = f"{sender_config.sender_name} <{sender_config.sender_email}>"
+        msg["From"] = _sanitize_header(
+            f"{sender_config.sender_name} <{sender_config.sender_email}>"
+        )
     else:
-        msg["From"] = sender_config.sender_email
+        msg["From"] = _sanitize_header(sender_config.sender_email)
 
-    msg["To"] = to_email
-    msg["Subject"] = subject
+    msg["To"] = _sanitize_header(to_email)
+    msg["Subject"] = _sanitize_header(subject)
 
     # Attach body as plain text
     msg.attach(MIMEText(body, "plain", "utf-8"))
@@ -436,6 +470,13 @@ def load_delivery_log(path: str) -> DeliveryLog:
 
     if not isinstance(data, dict):
         raise ValueError(f"delivery_log.yaml 형식이 올바르지 않습니다: {path}")
+
+    _REQUIRED_KEYS = ("sent_at", "smtp_server", "total", "success", "failed")
+    missing = [k for k in _REQUIRED_KEYS if k not in data]
+    if missing:
+        raise ValueError(
+            f"delivery_log.yaml에 필수 키가 없습니다: {', '.join(missing)} ({path})"
+        )
 
     results = []
     for r in data.get("results", []):
@@ -557,13 +598,21 @@ def send_emails(
     success_count = 0
     failed_count = 0
 
+    # SMTP connection helper for reconnection (FR-023)
+    _MAX_RETRIES = 3
+
+    def _connect_smtp():
+        conn = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port, timeout=30)
+        if smtp_config.use_tls:
+            ctx = ssl.create_default_context()
+            conn.starttls(context=ctx)
+        conn.login(smtp_config.sender_email, password)
+        return conn
+
     # SMTP connection (skip for dry run)
     smtp_conn = None
     if not dry_run:
-        smtp_conn = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port)
-        if smtp_config.use_tls:
-            smtp_conn.starttls()
-        smtp_conn.login(smtp_config.sender_email, password)
+        smtp_conn = _connect_smtp()
 
     try:
         for i, target in enumerate(targets):
@@ -614,13 +663,40 @@ def send_emails(
                         body=body,
                         zip_path=zip_path,
                     )
-                    smtp_conn.send_message(msg)
-                    results.append(DeliveryResult(
-                        student_id=sid, email=email, status="success",
-                        sent_at=now, attachment=os.path.basename(zip_path),
-                        size_bytes=zip_size,
-                    ))
-                    success_count += 1
+                    # FR-023: Retry on SMTPServerDisconnected with reconnection
+                    sent = False
+                    last_error = None
+                    for attempt in range(_MAX_RETRIES):
+                        try:
+                            smtp_conn.send_message(msg)
+                            sent = True
+                            break
+                        except smtplib.SMTPServerDisconnected as disc_err:
+                            last_error = disc_err
+                            logger.warning(
+                                "SMTP 연결 끊김 (시도 %d/%d): %s (%s)",
+                                attempt + 1, _MAX_RETRIES, sid, disc_err,
+                            )
+                            try:
+                                smtp_conn = _connect_smtp()
+                            except Exception as reconn_err:
+                                logger.warning("SMTP 재연결 실패: %s", reconn_err)
+                                last_error = reconn_err
+                    if sent:
+                        results.append(DeliveryResult(
+                            student_id=sid, email=email, status="success",
+                            sent_at=now, attachment=os.path.basename(zip_path),
+                            size_bytes=zip_size,
+                        ))
+                        success_count += 1
+                    else:
+                        logger.warning("발송 실패: %s (%s): %s", sid, email, last_error)
+                        results.append(DeliveryResult(
+                            student_id=sid, email=email, status="failed",
+                            sent_at=now, attachment=os.path.basename(zip_path),
+                            size_bytes=zip_size, error=str(last_error),
+                        ))
+                        failed_count += 1
                 except Exception as e:
                     logger.warning("발송 실패: %s (%s): %s", sid, email, e)
                     results.append(DeliveryResult(
@@ -717,18 +793,24 @@ def send_summary_email(
     body = "\n".join(body_lines)
 
     msg = MIMEMultipart()
+    # FR-006: sanitize headers
     if smtp_config.sender_name:
-        msg["From"] = f"{smtp_config.sender_name} <{smtp_config.sender_email}>"
+        msg["From"] = _sanitize_header(
+            f"{smtp_config.sender_name} <{smtp_config.sender_email}>"
+        )
     else:
-        msg["From"] = smtp_config.sender_email
-    msg["To"] = smtp_config.sender_email
-    msg["Subject"] = f"[forma] 발송 결과 요약 ({log.success}/{log.total})"
+        msg["From"] = _sanitize_header(smtp_config.sender_email)
+    msg["To"] = _sanitize_header(smtp_config.sender_email)
+    msg["Subject"] = _sanitize_header(
+        f"[forma] 발송 결과 요약 ({log.success}/{log.total})"
+    )
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    conn = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port)
+    conn = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port, timeout=30)
     try:
         if smtp_config.use_tls:
-            conn.starttls()
+            ctx = ssl.create_default_context()
+            conn.starttls(context=ctx)
         conn.login(smtp_config.sender_email, password)
         conn.send_message(msg)
     finally:

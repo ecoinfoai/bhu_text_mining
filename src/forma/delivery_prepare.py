@@ -37,6 +37,9 @@ __all__ = [
 # Characters illegal in filenames across major OSes
 _ILLEGAL_CHARS = re.compile(r'[<>:"/\\|?*]')
 
+# Zero-width and control characters to strip from filenames
+_ZERO_WIDTH_CHARS = re.compile(r'[\u200b\u200c\u200d\u200e\u200f\ufeff\x00-\x1f\x7f]')
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -249,6 +252,9 @@ _MAX_FILENAME_BYTES = 200  # conservative limit (ext4 allows 255)
 def sanitize_filename(name: str) -> str:
     """Remove OS-illegal characters and truncate to safe byte length.
 
+    Zero-width Unicode characters (U+200B-U+200F, U+FEFF) and C0 control
+    characters are stripped.  If the result is empty, ``"_unnamed"`` is returned.
+
     Args:
         name: Original filename.
 
@@ -256,12 +262,15 @@ def sanitize_filename(name: str) -> str:
         Sanitized filename with illegal characters removed and
         byte length limited to ``_MAX_FILENAME_BYTES``.
     """
-    result = _ILLEGAL_CHARS.sub("", name)
+    result = _ZERO_WIDTH_CHARS.sub("", name)
+    result = _ILLEGAL_CHARS.sub("", result)
     # Truncate to safe byte length (char-by-char to avoid mid-char cut)
     encoded = result.encode("utf-8")
     if len(encoded) > _MAX_FILENAME_BYTES:
         while len(result.encode("utf-8")) > _MAX_FILENAME_BYTES:
             result = result[:-1]
+    if not result:
+        return "_unnamed"
     return result
 
 
@@ -280,7 +289,14 @@ def match_files_for_student(
 
     Returns:
         List of full file paths that exist on disk.
+
+    Raises:
+        ValueError: If student_id contains path traversal characters.
     """
+    # FR-001/FR-002: Path traversal defense
+    if any(c in student_id for c in ('/', '\\', '\x00')) or '..' in student_id:
+        raise ValueError(f"path traversal detected in student_id: {student_id!r}")
+
     if os.sep in student_id or (os.altsep and os.altsep in student_id):
         raise ValueError(f"student_id contains path separator: {student_id!r}")
 

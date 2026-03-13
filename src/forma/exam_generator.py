@@ -176,10 +176,11 @@ class ExamPDFGenerator:
             if q_num is not None:
                 return f"{base}|Q{q_num}"
             return base
-        url = form_url_template.format(
-            student_id=quote(student_id, safe=""),
-            course_name=quote(course_name, safe=""),
-            week_num=week_num,
+        url = (
+            form_url_template
+            .replace("{student_id}", quote(student_id, safe=""))
+            .replace("{course_name}", quote(course_name, safe=""))
+            .replace("{week_num}", str(week_num))
         )
         if q_num is not None:
             url = f"{url}&q={q_num}"
