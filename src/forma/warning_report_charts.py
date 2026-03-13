@@ -19,6 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
+from forma.chart_utils import save_fig as _save_fig  # noqa: E402
 from forma.font_utils import find_korean_font  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -37,17 +38,6 @@ def _get_font_prop(font_path: str | None = None) -> FontProperties:
     if font_path is None:
         font_path = find_korean_font()
     return FontProperties(fname=font_path)
-
-
-def _save_fig(fig: plt.Figure, dpi: int = 150) -> io.BytesIO:
-    """Save figure to BytesIO as PNG and close it."""
-    buf = io.BytesIO()
-    try:
-        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    finally:
-        plt.close(fig)
-    buf.seek(0)
-    return buf
 
 
 def build_risk_type_distribution_chart(
@@ -73,7 +63,7 @@ def build_risk_type_distribution_chart(
         ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
                 fontproperties=font_prop, fontsize=14)
         ax.set_axis_off()
-        return _save_fig(fig, dpi)
+        return _save_fig(fig, dpi=dpi)
 
     labels = []
     values = []
@@ -98,7 +88,7 @@ def build_risk_type_distribution_chart(
         )
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_deficit_concepts_chart(
@@ -126,7 +116,7 @@ def build_deficit_concepts_chart(
         ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
                 fontproperties=font_prop, fontsize=14)
         ax.set_axis_off()
-        return _save_fig(fig, dpi)
+        return _save_fig(fig, dpi=dpi)
 
     # Sort by count descending, take top N
     sorted_items = sorted(concept_counts.items(), key=lambda x: x[1], reverse=True)
@@ -145,4 +135,4 @@ def build_deficit_concepts_chart(
     ax.set_title("결손 개념 빈도 (상위)", fontproperties=font_prop, fontsize=12)
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)

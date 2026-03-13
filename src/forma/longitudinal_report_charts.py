@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
+from forma.chart_utils import save_fig as _save_fig  # noqa: E402
 from forma.font_utils import find_korean_font  # noqa: E402
 
 from typing import TYPE_CHECKING  # noqa: E402
@@ -29,17 +30,6 @@ def _get_font_prop(font_path: str | None = None) -> FontProperties:
     if font_path is None:
         font_path = find_korean_font()
     return FontProperties(fname=font_path)
-
-
-def _save_fig(fig: plt.Figure, dpi: int = 150) -> io.BytesIO:
-    """Save figure to BytesIO as PNG and close it."""
-    buf = io.BytesIO()
-    try:
-        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    finally:
-        plt.close(fig)
-    buf.seek(0)
-    return buf
 
 
 def build_trajectory_line_chart(
@@ -68,7 +58,7 @@ def build_trajectory_line_chart(
         ax.text(0.5, 0.5, "학생 데이터 없음",
                 ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
-        return _save_fig(fig, dpi)
+        return _save_fig(fig, dpi=dpi)
 
     weeks = sorted(summary_data.period_weeks)
 
@@ -113,7 +103,7 @@ def build_trajectory_line_chart(
                   prop=fp, fontsize=7, loc="best")
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_class_week_heatmap(
@@ -142,7 +132,7 @@ def build_class_week_heatmap(
         ax.text(0.5, 0.5, "학생 데이터 없음",
                 ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
-        return _save_fig(fig, dpi)
+        return _save_fig(fig, dpi=dpi)
 
     weeks = sorted(summary_data.period_weeks)
 
@@ -211,7 +201,7 @@ def build_class_week_heatmap(
     ax.set_title("학생×주차 히트맵", fontproperties=fp, fontsize=11)
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_concept_mastery_bar_chart(
@@ -240,7 +230,7 @@ def build_concept_mastery_bar_chart(
         ax.text(0.5, 0.5, "개념 데이터 없음",
                 ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
-        return _save_fig(fig, dpi)
+        return _save_fig(fig, dpi=dpi)
 
     n = len(changes)
     fig_height = max(60 / 25.4, n * 15 / 25.4)
@@ -269,7 +259,7 @@ def build_concept_mastery_bar_chart(
     ax.invert_yaxis()
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_intervention_effect_chart(
@@ -301,7 +291,7 @@ def build_intervention_effect_chart(
         ax.text(0.5, 0.5, "개입 효과 데이터 없음",
                 ha="center", va="center", fontproperties=font_prop, fontsize=12)
         ax.axis("off")
-        return _save_fig(fig, dpi)
+        return _save_fig(fig, dpi=dpi)
 
     n = len(sufficient)
     fig_height = max(60 / 25.4, n * 12 / 25.4)
@@ -328,7 +318,7 @@ def build_intervention_effect_chart(
     ax.invert_yaxis()
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_risk_trend_chart(
@@ -375,4 +365,4 @@ def build_risk_trend_chart(
     ax.set_title("드롭 리스크 예측 (상위 10명)", fontproperties=font_prop, fontsize=12)
 
     fig.tight_layout()
-    return _save_fig(fig, dpi)
+    return _save_fig(fig, dpi=dpi)

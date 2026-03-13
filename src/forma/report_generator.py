@@ -1,4 +1,8 @@
-"""Student counseling PDF report generator.
+"""Student counseling PDF report generator (deprecated).
+
+.. deprecated::
+    Use ``forma.student_report.StudentPDFReportGenerator`` instead.
+    This module is retained for backward compatibility only.
 
 Generates per-student A4 PDF reports summarising their evaluation
 results for professor-student counseling sessions.  Uses ReportLab

@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
+from forma.chart_utils import save_fig as _save_fig  # noqa: E402
 from forma.font_utils import find_korean_font  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -45,14 +46,6 @@ class ReportChartGenerator:
         self._font_path = font_path
         self._font_prop = FontProperties(fname=font_path)
         self._dpi = dpi
-
-    def _save_fig(self, fig: plt.Figure) -> io.BytesIO:
-        """Save figure to BytesIO as PNG and close it."""
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=self._dpi, bbox_inches="tight")
-        plt.close(fig)
-        buf.seek(0)
-        return buf
 
     def score_boxplot(
         self,
@@ -115,7 +108,7 @@ class ReportChartGenerator:
         ax.tick_params(axis="y", length=0)
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def component_comparison(
         self,
@@ -139,7 +132,7 @@ class ReportChartGenerator:
             fig, ax = plt.subplots(figsize=(160 / 25.4, 30 / 25.4))
             ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
                     fontproperties=self._font_prop)
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         n = len(components)
         fig, ax = plt.subplots(
@@ -185,7 +178,7 @@ class ReportChartGenerator:
         ax.set_title(title, fontproperties=self._font_prop, fontsize=11)
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def concept_coverage_bar(
         self,
@@ -204,7 +197,7 @@ class ReportChartGenerator:
             fig, ax = plt.subplots(figsize=(160 / 25.4, 30 / 25.4))
             ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center",
                     fontproperties=self._font_prop)
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         n = len(concepts)
         height = max(30, n * 20) / 25.4  # mm to inches
@@ -255,7 +248,7 @@ class ReportChartGenerator:
         ax.invert_yaxis()
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def understanding_badge(
         self,
@@ -291,7 +284,7 @@ class ReportChartGenerator:
         ax.axis("off")
 
         fig.tight_layout(pad=0)
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def radar_chart(
         self,
@@ -314,7 +307,7 @@ class ReportChartGenerator:
             fig, ax = plt.subplots(figsize=(120 / 25.4, 120 / 25.4))
             ax.text(0.5, 0.5, "축 부족", ha="center", va="center",
                     fontproperties=self._font_prop)
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         angles = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
         # Close the polygon
@@ -351,7 +344,7 @@ class ReportChartGenerator:
         )
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def build_trajectory_bar_chart(
         self,
@@ -372,7 +365,7 @@ class ReportChartGenerator:
             ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
                     fontproperties=self._font_prop)
             ax.set_axis_off()
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         weeks = sorted(weekly_scores.keys())
         scores = [weekly_scores[w] for w in weeks]
@@ -394,7 +387,7 @@ class ReportChartGenerator:
         ax.set_ylabel("점수", fontproperties=self._font_prop, fontsize=8)
         ax.tick_params(axis="y", labelsize=7)
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
 
 def _translate_component(name: str) -> str:

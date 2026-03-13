@@ -1,3 +1,4 @@
+"""Image preprocessing for scanned answer sheets (crop, split, rename)."""
 from PIL import Image
 import os
 import re

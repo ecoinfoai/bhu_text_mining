@@ -1,3 +1,4 @@
+"""Knowledge graph comparison and metrics (student vs reference graph overlay)."""
 import networkx as nx
 import pandas as pd
 from typing import Dict, List, Optional
@@ -271,6 +272,7 @@ def visualize_superimposed_graph(
     plt.legend()
     plt.axis("off")
     plt.show()
+    plt.close()
 
 
 # ---------------------------------------------------------------------------

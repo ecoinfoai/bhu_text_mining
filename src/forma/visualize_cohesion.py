@@ -1,3 +1,4 @@
+"""Cohesion analysis visualization with scatter plots and per-person networks."""
 import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
@@ -136,6 +137,7 @@ def compare_topic_lengths_with_xy(topic_df: pd.DataFrame):
 
         plt.tight_layout()
         plt.show()
+        plt.close(fig)
 
     return summary_df
 

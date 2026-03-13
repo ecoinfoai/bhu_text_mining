@@ -1,3 +1,4 @@
+"""Text cohesion analysis using BERTScore sentence similarity."""
 from typing import Dict, List, Tuple
 from itertools import combinations
 from konlpy.tag import Okt

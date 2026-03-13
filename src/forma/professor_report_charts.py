@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
+from forma.chart_utils import save_fig as _save_fig  # noqa: E402
 from forma.font_utils import find_korean_font  # noqa: E402
 from forma.professor_report_data import QuestionClassStats  # noqa: E402
 from forma.report_charts import _LEVEL_COLORS  # noqa: E402
@@ -49,16 +50,6 @@ class ProfessorReportChartGenerator:
         self._font_prop = FontProperties(fname=font_path)
         self._dpi = dpi
 
-    def _save_fig(self, fig: plt.Figure) -> io.BytesIO:
-        """Save figure to BytesIO as PNG and close it."""
-        buf = io.BytesIO()
-        try:
-            fig.savefig(buf, format="png", dpi=self._dpi, bbox_inches="tight")
-        finally:
-            plt.close(fig)
-        buf.seek(0)
-        return buf
-
     def score_histogram(self, scores: list[float], bins: int = 10) -> io.BytesIO:
         """Histogram of class ensemble scores with mean and median lines.
 
@@ -82,7 +73,7 @@ class ProfessorReportChartGenerator:
                 fontsize=12,
             )
             ax.set_xlim(0, 1.0)
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         scores_arr = np.array(scores, dtype=float)
         mean_val = float(np.mean(scores_arr))
@@ -104,7 +95,7 @@ class ProfessorReportChartGenerator:
         ax.legend(prop=self._font_prop, fontsize=8)
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def level_donut(self, level_dist: dict[str, int]) -> io.BytesIO:
         """Proportional donut chart of understanding level distribution.
@@ -129,7 +120,7 @@ class ProfessorReportChartGenerator:
                 fontsize=12,
             )
             ax.axis("off")
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         levels = _LEVEL_ORDER
         counts = [level_dist.get(lvl, 0) for lvl in levels]
@@ -157,7 +148,7 @@ class ProfessorReportChartGenerator:
         ax.set_title("이해 수준 분포", fontproperties=self._font_prop, fontsize=11)
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def question_difficulty_bar(self, stats: list[QuestionClassStats]) -> io.BytesIO:
         """Horizontal bar chart of per-question ensemble mean scores.
@@ -180,7 +171,7 @@ class ProfessorReportChartGenerator:
                 fontsize=12,
             )
             ax.axis("off")
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         n = len(stats)
         fig_w = 160 / 25.4  # 160mm — matches PDF embedding width, no horizontal stretch
@@ -223,7 +214,7 @@ class ProfessorReportChartGenerator:
         ax.invert_yaxis()
 
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def concept_mastery_heatmap(self, mastery_data: dict[int, dict[str, float]]) -> io.BytesIO:
         """Heatmap of concept mastery rates across questions.
@@ -239,7 +230,7 @@ class ProfessorReportChartGenerator:
             ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center",
                     transform=ax.transAxes)
             ax.axis("off")
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         # Collect all concepts across all questions
         all_concepts = sorted({
@@ -254,7 +245,7 @@ class ProfessorReportChartGenerator:
             ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center",
                     transform=ax.transAxes)
             ax.axis("off")
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         # Build matrix
         matrix = np.array([
@@ -277,7 +268,7 @@ class ProfessorReportChartGenerator:
         ax.set_title("개념 숙달도 히트맵", fontproperties=fp)
 
         plt.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def student_rank_lollipop(self, rows: list, highlight_at_risk: bool = True) -> io.BytesIO:
         """Horizontal lollipop chart of student scores sorted by rank.
@@ -290,7 +281,7 @@ class ProfessorReportChartGenerator:
             ax.text(0.5, 0.5, "학생 데이터 없음", ha="center", va="center",
                     transform=ax.transAxes)
             ax.axis("off")
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         sorted_rows = sorted(rows, key=lambda r: r.overall_ensemble_mean, reverse=True)
 
@@ -334,7 +325,7 @@ class ProfessorReportChartGenerator:
         ax.invert_yaxis()
 
         plt.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def question_level_stacked_bar(self, level_dist: dict[str, int], question_sn: int) -> io.BytesIO:
         """Horizontal stacked bar of level distribution for one question.
@@ -354,7 +345,7 @@ class ProfessorReportChartGenerator:
                     transform=ax.transAxes, fontproperties=fp)
             ax.axis("off")
             ax.set_title(f"Q{question_sn} 수준 분포", fontproperties=fp)
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         left = 0.0
         for level in LEVELS:
@@ -374,7 +365,7 @@ class ProfessorReportChartGenerator:
         ax.legend(loc="upper right", prop=fp, fontsize=7)
 
         plt.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)
 
     def build_class_knowledge_graph_chart(
         self,
@@ -417,7 +408,7 @@ class ProfessorReportChartGenerator:
                 fontproperties=fp, fontsize=12,
             )
             ax.axis("off")
-            return self._save_fig(fig)
+            return _save_fig(fig, dpi=self._dpi)
 
         G = nx.DiGraph()
         edge_colors = []
@@ -483,4 +474,4 @@ class ProfessorReportChartGenerator:
         )
         ax.axis("off")
         fig.tight_layout()
-        return self._save_fig(fig)
+        return _save_fig(fig, dpi=self._dpi)

@@ -1,3 +1,4 @@
+"""Keyword co-occurrence network analysis using KoNLPy noun extraction."""
 from konlpy.tag import Okt
 from collections import Counter
 import itertools
@@ -196,3 +197,4 @@ def visualize_network(G, font_prop, title="Keyword Network"):
     plt.title(title, fontproperties=font_prop)
     plt.axis("off")
     plt.show()
+    plt.close()

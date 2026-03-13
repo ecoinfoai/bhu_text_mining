@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import networkx as nx  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
+from forma.chart_utils import save_fig as _save_fig  # noqa: E402
 from forma.concept_dependency import ConceptDependencyDAG  # noqa: E402
 from forma.font_utils import find_korean_font  # noqa: E402
 from forma.learning_path import ClassDeficitMap, LearningPath  # noqa: E402
@@ -63,7 +64,7 @@ def build_learning_path_chart(
         ax.text(0.5, 0.5, "개념 의존성 없음", ha="center", va="center",
                 fontproperties=font_prop, fontsize=12)
         ax.set_axis_off()
-        buf = _save_fig(fig, dpi)
+        buf = _save_fig(fig, dpi=dpi)
         return buf
 
     deficit_set = set(learning_path.deficit_concepts)
@@ -100,7 +101,7 @@ def build_learning_path_chart(
                             font_size=8, font_family=font_prop.get_name())
 
     ax.set_axis_off()
-    buf = _save_fig(fig, dpi)
+    buf = _save_fig(fig, dpi=dpi)
     return buf
 
 
@@ -133,7 +134,7 @@ def build_deficit_map_chart(
         ax.text(0.5, 0.5, "개념 의존성 없음", ha="center", va="center",
                 fontproperties=font_prop, fontsize=12)
         ax.set_axis_off()
-        buf = _save_fig(fig, dpi)
+        buf = _save_fig(fig, dpi=dpi)
         return buf
 
     # Color by deficit ratio: higher ratio → more red
@@ -170,14 +171,5 @@ def build_deficit_map_chart(
                             font_size=7, font_family=font_prop.get_name())
 
     ax.set_axis_off()
-    buf = _save_fig(fig, dpi)
-    return buf
-
-
-def _save_fig(fig, dpi: int) -> io.BytesIO:
-    """Save figure to BytesIO and close."""
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
-    buf.seek(0)
+    buf = _save_fig(fig, dpi=dpi)
     return buf

@@ -11,6 +11,7 @@ Workflow:
 from __future__ import annotations
 
 import csv
+import logging
 import os
 from typing import Any, Optional
 
@@ -24,6 +25,8 @@ from forma.naver_ocr import (
 )
 from forma.preprocess_imgs import crop_and_save_images, show_image
 from forma.qr_decode import decode_qr_from_image, parse_qr_content
+
+logger = logging.getLogger(__name__)
 
 
 def run_scan_pipeline(
@@ -133,8 +136,8 @@ def run_scan_pipeline(
             )
             text_map = extract_text(ocr_responses)
             text = next(iter(text_map.values()), "")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("OCR failed for %s: %s", img_path, exc)
 
         results.append({
             "student_id": student_id,

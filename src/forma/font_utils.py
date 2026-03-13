@@ -9,12 +9,16 @@ from __future__ import annotations
 import glob
 import os
 import platform
+import re
 import xml.sax.saxutils
 from typing import List
 
 from reportlab.lib.fonts import addMapping
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+# C0 control characters illegal in XML (keep \t=0x09, \n=0x0A, \r=0x0D)
+_XML_ILLEGAL_CTRL = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
 
 
 def find_korean_font() -> str:
@@ -59,8 +63,13 @@ def find_korean_font() -> str:
 
 
 def esc(text: str) -> str:
-    """Escape text for use in ReportLab XML/Paragraph markup."""
-    return xml.sax.saxutils.escape(str(text))
+    """Escape text for use in ReportLab XML/Paragraph markup.
+
+    Strips C0 control characters (except tab, newline, carriage return)
+    before applying XML entity escaping.
+    """
+    cleaned = _XML_ILLEGAL_CTRL.sub('', str(text))
+    return xml.sax.saxutils.escape(cleaned)
 
 
 def register_korean_fonts(font_path: str) -> None:

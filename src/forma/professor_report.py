@@ -12,8 +12,6 @@ import io
 import logging
 import os
 import re
-import struct
-import zlib
 from typing import Optional
 
 from reportlab.lib.pagesizes import A4
@@ -29,14 +27,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from forma.font_utils import esc as _esc, find_korean_font, register_korean_fonts
 from forma.professor_report_data import ProfessorReportData, QuestionClassStats
 from forma.professor_report_charts import ProfessorReportChartGenerator
+from forma.report_utils import minimal_png_bytes
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_filename(name: str) -> str:
-    """Remove/replace characters unsafe for filenames."""
-    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', name)
-    return sanitized.strip('._')
 
 
 _LEVEL_COLORS = {
@@ -61,28 +54,25 @@ _KOREAN_LEVELS = {
 }
 
 
-def _minimal_png_bytes() -> bytes:
-    """Return a 1×1 RGB PNG as bytes — used as a safe fallback for Image()."""
+_FALLBACK_PNG: bytes = minimal_png_bytes()
 
-    def _chunk(type_: bytes, data: bytes) -> bytes:
-        return (
-            struct.pack(">I", len(data))
-            + type_
-            + data
-            + struct.pack(">I", zlib.crc32(type_ + data) & 0xFFFFFFFF)
-        )
-
-    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-    idat = zlib.compress(b"\x00\xff\x00\x00")
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + _chunk(b"IHDR", ihdr)
-        + _chunk(b"IDAT", idat)
-        + _chunk(b"IEND", b"")
-    )
+_TRUNCATE_THRESHOLD = 100
 
 
-_FALLBACK_PNG: bytes = _minimal_png_bytes()
+def _truncate_student_rows(rows: list, top_n: int = 25, bottom_n: int = 25) -> tuple[list, bool]:
+    """Truncate student rows to top_n + bottom_n for large classes.
+
+    Args:
+        rows: Student rows sorted by score descending.
+        top_n: Number of top-ranked rows to keep.
+        bottom_n: Number of bottom-ranked rows to keep.
+
+    Returns:
+        (truncated_rows, was_truncated) tuple.
+    """
+    if len(rows) <= _TRUNCATE_THRESHOLD:
+        return rows, False
+    return rows[:top_n] + rows[-bottom_n:], True
 
 
 class ProfessorPDFReportGenerator:
@@ -514,10 +504,21 @@ class ProfessorPDFReportGenerator:
         # Build student data rows (sorted descending by overall_ensemble_mean)
         # student_rows is already sorted descending per build_professor_report_data
         # ------------------------------------------------------------------
+        display_rows, was_truncated = _truncate_student_rows(student_rows)
+
+        # Build rank mapping: original 1-based rank for each displayed row
+        if was_truncated:
+            n_top = 25
+            original_ranks = list(range(1, n_top + 1)) + list(
+                range(len(student_rows) - 24, len(student_rows) + 1)
+            )
+        else:
+            original_ranks = list(range(1, len(display_rows) + 1))
+
         data_rows = []
-        for rank, row in enumerate(student_rows, start=1):
+        for idx, row in enumerate(display_rows):
             overall_level_kr = _KOREAN_LEVELS.get(row.overall_level, _esc(row.overall_level))
-            rank_text = str(rank)
+            rank_text = str(original_ranks[idx])
             data_row = [
                 Paragraph(_esc(rank_text), self._styles["ProfTableData"]),
                 Paragraph(_esc(row.student_number), self._styles["ProfTableData"]),
@@ -604,7 +605,7 @@ class ProfessorPDFReportGenerator:
             style_cmds.append(("SPAN", (col_start, 0), (col_end, 0)))
 
         # Conditional background colors for per-question score cells in data rows
-        for row_idx, row in enumerate(student_rows):
+        for row_idx, row in enumerate(display_rows):
             table_row_idx = row_idx + 2  # offset for 2 header rows
             for q_idx, qs in enumerate(question_stats):
                 qsn = qs.question_sn
@@ -617,7 +618,7 @@ class ProfessorPDFReportGenerator:
                 )
 
         # At-risk row visual indicators: full-row background + red LINEBEFORE
-        for row_idx, row in enumerate(student_rows):
+        for row_idx, row in enumerate(display_rows):
             if row.is_at_risk:
                 data_row_idx = row_idx + 2  # offset for 2 header rows
                 style_cmds.append(

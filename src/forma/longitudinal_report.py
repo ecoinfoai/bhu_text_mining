@@ -11,8 +11,6 @@ from __future__ import annotations
 import io
 import logging
 import os
-import struct
-import zlib
 from typing import Optional
 
 from reportlab.lib.pagesizes import A4
@@ -26,30 +24,12 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from forma.font_utils import esc as _esc, find_korean_font, register_korean_fonts
 from forma.longitudinal_report_data import LongitudinalSummaryData
+from forma.report_utils import minimal_png_bytes
 
 logger = logging.getLogger(__name__)
 
 
-def _minimal_png_bytes() -> bytes:
-    """Return a 1x1 RGB PNG as bytes — safe fallback for Image()."""
-    def _chunk(type_: bytes, data: bytes) -> bytes:
-        return (
-            struct.pack(">I", len(data))
-            + type_
-            + data
-            + struct.pack(">I", zlib.crc32(type_ + data) & 0xFFFFFFFF)
-        )
-    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-    idat = zlib.compress(b"\x00\xff\x00\x00")
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + _chunk(b"IHDR", ihdr)
-        + _chunk(b"IDAT", idat)
-        + _chunk(b"IEND", b"")
-    )
-
-
-_FALLBACK_PNG: bytes = _minimal_png_bytes()
+_FALLBACK_PNG: bytes = minimal_png_bytes()
 
 
 class LongitudinalPDFReportGenerator:

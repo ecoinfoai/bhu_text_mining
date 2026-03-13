@@ -31,6 +31,7 @@ Optional flags:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import warnings
 from typing import Optional
@@ -57,6 +58,8 @@ from forma.evaluation_types import (
     TripletEdge,
     TripletExtractionResult,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -811,8 +814,8 @@ def run_evaluation_pipeline(
         try:
             import kss as _kss  # noqa: F811
             _kss.split_sentences("_")  # triggers kss backend detection message
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("kss warm-up skipped: %s", exc)
     print(" done.")
     print("[pipeline] Phase 1: concept checking …")
     layer1_results = _run_layer1(student_responses, config_data)
@@ -928,8 +931,8 @@ def run_evaluation_pipeline(
                     icc = 1.0
                 for agg in q_aggs[qsn]:
                     agg.icc_value = icc
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("ICC computation failed for q%s: %s", qsn, exc)
 
     # === Phase 4: Ensemble scoring ===
     print("[pipeline] Phase 4: ensemble scoring …")
@@ -1135,7 +1138,7 @@ def _save_longitudinal(
         snapshot_from_evaluation(
             store=store,
             ensemble_results=ensemble_results,
-            graph_metric_results={},
+            graph_metric_results={},  # v0.8.0 이후 미구현, 항상 빈 dict
             graph_comparison_results=graph_results or {},
             layer1_results=flat_layer1,
             week=week,
