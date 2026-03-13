@@ -109,19 +109,39 @@ class TrainedRiskModel:
     target_threshold: float = 0.45
 
 
+def _safe_nanmean(values) -> float:
+    """Compute nanmean, returning 0.0 if all values are NaN or empty."""
+    with np.errstate(all="ignore"):
+        result = float(np.nanmean(values))
+    return 0.0 if np.isnan(result) else result
+
+
+def _safe_nanvar(values) -> float:
+    """Compute nanvar, returning 0.0 if all values are NaN or empty."""
+    with np.errstate(all="ignore"):
+        result = float(np.nanvar(values))
+    return 0.0 if np.isnan(result) else result
+
+
 def _ols_slope(values: list[float]) -> float:
     """Compute OLS slope from a sequence of values.
 
+    NaN values are filtered before fitting. Returns 0.0 if fewer than
+    2 non-NaN values remain.
+
     Args:
-        values: Time-ordered values.
+        values: Time-ordered values (may contain NaN).
 
     Returns:
-        OLS slope, or 0.0 if fewer than 2 values.
+        OLS slope, or 0.0 if fewer than 2 non-NaN values.
     """
-    if len(values) < 2:
+    arr = np.array(values, dtype=float)
+    mask = ~np.isnan(arr)
+    clean = arr[mask]
+    if len(clean) < 2:
         return 0.0
-    x = np.arange(len(values), dtype=float)
-    coeffs = np.polyfit(x, values, deg=1)
+    x = np.arange(len(clean), dtype=float)
+    coeffs = np.polyfit(x, clean, deg=1)
     return float(coeffs[0])
 
 
@@ -175,9 +195,12 @@ class FeatureExtractor:
                 scores[w] for scores in class_matrix.values() if w in scores
             ]
             if week_scores:
-                mean = np.mean(week_scores)
-                std = np.std(week_scores, ddof=0)
-                week_stats[w] = (float(mean), float(std))
+                mean = _safe_nanmean(week_scores)
+                with np.errstate(all="ignore"):
+                    std = float(np.nanstd(week_scores, ddof=0))
+                if np.isnan(std):
+                    std = 0.0
+                week_stats[w] = (mean, std)
 
         student_ids = sorted(student_records.keys())
         n_students = len(student_ids)
@@ -234,34 +257,35 @@ class FeatureExtractor:
                 float(r.edge_f1) if r.edge_f1 is not None else 0.0
             )
 
-        # Average per week
-        scores_by_week = {w: np.mean(vs) for w, vs in sorted(week_scores.items())}
-        coverage_by_week = {w: np.mean(vs) for w, vs in sorted(week_coverage.items())}
-        _tier_by_week = {w: np.mean(vs) for w, vs in sorted(week_tiers.items())}
-        misc_by_week = {w: np.mean(vs) for w, vs in sorted(week_misconceptions.items())}
-        f1_by_week = {w: np.mean(vs) for w, vs in sorted(week_edge_f1.items())}
+        # Average per week (NaN-safe)
+        scores_by_week = {w: _safe_nanmean(vs) for w, vs in sorted(week_scores.items())}
+        coverage_by_week = {w: _safe_nanmean(vs) for w, vs in sorted(week_coverage.items())}
+        _tier_by_week = {w: _safe_nanmean(vs) for w, vs in sorted(week_tiers.items())}
+        misc_by_week = {w: _safe_nanmean(vs) for w, vs in sorted(week_misconceptions.items())}
+        f1_by_week = {w: _safe_nanmean(vs) for w, vs in sorted(week_edge_f1.items())}
 
         score_values = [scores_by_week[w] for w in sorted(scores_by_week)]
         coverage_values = [coverage_by_week[w] for w in sorted(coverage_by_week)]
         misc_values = [misc_by_week[w] for w in sorted(misc_by_week)]
         f1_values = [f1_by_week[w] for w in sorted(f1_by_week)]
 
-        # 1-4: Score features
-        features[0] = np.mean(score_values) if score_values else 0.0  # score_mean
-        features[1] = np.var(score_values) if len(score_values) > 1 else 0.0  # score_variance
+        # 1-4: Score features (NaN-safe)
+        features[0] = _safe_nanmean(score_values) if score_values else 0.0  # score_mean
+        features[1] = _safe_nanvar(score_values) if len(score_values) > 1 else 0.0  # score_variance
         features[2] = _ols_slope(score_values)  # score_slope
-        features[3] = score_values[-1] if score_values else 0.0  # last_score
+        last = score_values[-1] if score_values else 0.0
+        features[3] = 0.0 if np.isnan(last) else last  # last_score
 
-        # 5-6: Coverage features
-        features[4] = np.mean(coverage_values) if coverage_values else 0.0  # coverage_mean
+        # 5-6: Coverage features (NaN-safe)
+        features[4] = _safe_nanmean(coverage_values) if coverage_values else 0.0  # coverage_mean
         features[5] = _ols_slope(coverage_values)  # coverage_slope
 
         # 7: Tier low ratio
         all_tiers = [t for tiers in week_tiers.values() for t in tiers]
         features[6] = sum(1 for t in all_tiers if t <= 1) / len(all_tiers) if all_tiers else 0.0
 
-        # 8-9: Misconception features
-        features[7] = np.mean(misc_values) if misc_values else 0.0  # misconception_mean
+        # 8-9: Misconception features (NaN-safe)
+        features[7] = _safe_nanmean(misc_values) if misc_values else 0.0  # misconception_mean
         features[8] = _ols_slope(misc_values)  # misconception_slope
 
         # 10-11: Absence features
@@ -280,11 +304,11 @@ class FeatureExtractor:
                 else:
                     z = 0.0
                 z_scores.append(z)
-        features[11] = np.mean(z_scores) if z_scores else 0.0  # z_score_mean
+        features[11] = _safe_nanmean(z_scores) if z_scores else 0.0  # z_score_mean
         features[12] = _ols_slope(z_scores)  # z_score_slope
 
-        # 14-15: Edge F1 features
-        features[13] = np.mean(f1_values) if f1_values else 0.0  # edge_f1_mean
+        # 14-15: Edge F1 features (NaN-safe)
+        features[13] = _safe_nanmean(f1_values) if f1_values else 0.0  # edge_f1_mean
         features[14] = _ols_slope(f1_values)  # edge_f1_slope
 
         return features

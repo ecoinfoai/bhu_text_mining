@@ -482,3 +482,115 @@ class TestModelPersistence:
         loaded = load_model(model_path)
 
         assert loaded.cv_score == model.cv_score
+
+
+# ---------------------------------------------------------------------------
+# T008: NaN-injected data tests for FeatureExtractor
+# ---------------------------------------------------------------------------
+
+
+class TestFeatureExtractorNanSafety:
+    """Tests that FeatureExtractor handles NaN values without crashing."""
+
+    def test_nan_in_ensemble_score(self):
+        """NaN in ensemble_score does not crash feature extraction."""
+        from forma.risk_predictor import FeatureExtractor
+
+        data = [
+            {"student_id": "S001", "week": 1, "question_sn": 1,
+             "scores": {"ensemble_score": float("nan"), "concept_coverage": 0.5},
+             "tier_level": 2, "tier_label": "Proficient"},
+            {"student_id": "S001", "week": 2, "question_sn": 1,
+             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+             "tier_level": 2, "tier_label": "Proficient"},
+            {"student_id": "S001", "week": 3, "question_sn": 1,
+             "scores": {"ensemble_score": 0.7, "concept_coverage": 0.6},
+             "tier_level": 3, "tier_label": "Advanced"},
+        ]
+        store = _build_mock_store(data)
+        extractor = FeatureExtractor()
+        matrix, names, sids = extractor.extract(store, weeks=[1, 2, 3])
+
+        assert matrix.shape == (1, 15)
+        # score_mean must not be NaN
+        score_mean_idx = names.index("score_mean")
+        assert not np.isnan(matrix[0, score_mean_idx]), "score_mean should be NaN-safe"
+
+    def test_nan_in_concept_coverage(self):
+        """NaN in concept_coverage does not produce NaN in coverage_mean."""
+        from forma.risk_predictor import FeatureExtractor
+
+        data = [
+            {"student_id": "S001", "week": 1, "question_sn": 1,
+             "scores": {"ensemble_score": 0.5, "concept_coverage": float("nan")},
+             "tier_level": 2, "tier_label": "Proficient"},
+            {"student_id": "S001", "week": 2, "question_sn": 1,
+             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+             "tier_level": 2, "tier_label": "Proficient"},
+        ]
+        store = _build_mock_store(data)
+        extractor = FeatureExtractor()
+        matrix, names, sids = extractor.extract(store, weeks=[1, 2])
+
+        cov_idx = names.index("coverage_mean")
+        assert not np.isnan(matrix[0, cov_idx]), "coverage_mean should be NaN-safe"
+
+    def test_nan_in_edge_f1(self):
+        """NaN in edge_f1 does not produce NaN in edge_f1_mean."""
+        from forma.risk_predictor import FeatureExtractor
+
+        data = [
+            {"student_id": "S001", "week": 1, "question_sn": 1,
+             "scores": {"ensemble_score": 0.5, "concept_coverage": 0.4},
+             "tier_level": 2, "tier_label": "Proficient",
+             "edge_f1": float("nan")},
+            {"student_id": "S001", "week": 2, "question_sn": 1,
+             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+             "tier_level": 2, "tier_label": "Proficient",
+             "edge_f1": 0.7},
+        ]
+        store = _build_mock_store(data)
+        extractor = FeatureExtractor()
+        matrix, names, sids = extractor.extract(store, weeks=[1, 2])
+
+        f1_idx = names.index("edge_f1_mean")
+        assert not np.isnan(matrix[0, f1_idx]), "edge_f1_mean should be NaN-safe"
+
+    def test_all_nan_scores_produces_zero(self):
+        """When all scores are NaN, features should be 0.0, not NaN."""
+        from forma.risk_predictor import FeatureExtractor
+
+        data = [
+            {"student_id": "S001", "week": w, "question_sn": 1,
+             "scores": {"ensemble_score": float("nan"), "concept_coverage": float("nan")},
+             "tier_level": 2, "tier_label": "Proficient",
+             "edge_f1": float("nan"), "misconception_count": None}
+            for w in [1, 2, 3]
+        ]
+        store = _build_mock_store(data)
+        extractor = FeatureExtractor()
+        matrix, names, sids = extractor.extract(store, weeks=[1, 2, 3])
+
+        # No NaN values in the feature matrix
+        assert not np.any(np.isnan(matrix)), "Feature matrix should have no NaN values"
+
+    def test_nan_in_class_mean_for_zscore(self):
+        """NaN in class-wide scores does not crash z-score computation."""
+        from forma.risk_predictor import FeatureExtractor
+
+        data = [
+            {"student_id": "S001", "week": 1, "question_sn": 1,
+             "scores": {"ensemble_score": float("nan"), "concept_coverage": 0.5},
+             "tier_level": 2, "tier_label": "Proficient"},
+            {"student_id": "S002", "week": 1, "question_sn": 1,
+             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+             "tier_level": 2, "tier_label": "Proficient"},
+        ]
+        store = _build_mock_store(data)
+        extractor = FeatureExtractor()
+        matrix, names, sids = extractor.extract(store, weeks=[1])
+
+        z_idx = names.index("z_score_mean")
+        # Should not crash and should not be NaN
+        for i in range(len(sids)):
+            assert not np.isnan(matrix[i, z_idx]), f"z_score_mean for {sids[i]} should not be NaN"
