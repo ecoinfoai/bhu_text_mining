@@ -9,24 +9,30 @@ An AI-powered formative assessment CLI toolkit for university professors. FormA 
 
 ## Features
 
-FormA provides 14 CLI commands spanning the entire assessment workflow. See [docs/cli-reference.md](docs/cli-reference.md) for full usage details.
+All commands are accessible through the unified `forma` entry point. Run `forma --help` to see the full command list.
 
-| Command | Description |
-|---------|-------------|
-| `forma-exam` | Exam PDF generation with per-student QR codes |
-| `forma-ocr` | OCR pipeline with `scan` and `join` subcommands for handwritten answer sheets |
-| `forma-eval` | 4-layer knowledge graph evaluation pipeline (concept coverage, LLM feedback, IRT statistics, ensemble scoring) |
-| `forma-eval-batch` | Multi-class batch evaluation across sections |
-| `forma-report` | Individual student PDF report generation |
-| `forma-report-professor` | Professor-facing class summary report with analytics |
-| `forma-report-batch` | Multi-class batch report generation |
-| `forma-report-longitudinal` | Multi-week longitudinal trend analysis report |
-| `forma-report-warning` | Early warning report identifying at-risk students |
-| `forma-train` | Train drop-risk prediction model from longitudinal data |
-| `forma-train-grade` | Train semester grade prediction model |
-| `forma-init` | Interactive project configuration initialization |
-| `forma-deliver` | Report delivery via email with `prepare` and `send` subcommands |
-| `forma-intervention` | Intervention activity tracking with `add`, `list`, and `update` subcommands |
+```
+forma
+├── exam              Exam PDF generation with per-student QR codes
+├── ocr               OCR pipeline (scan / join) for handwritten answer sheets
+├── eval              4-layer knowledge graph evaluation pipeline
+│   └── batch         Multi-class batch evaluation
+├── report
+│   ├── student       Individual student PDF report
+│   ├── professor     Professor-facing class summary report
+│   ├── longitudinal  Multi-week longitudinal trend analysis
+│   ├── warning       Early warning report for at-risk students
+│   └── batch         Multi-class batch report generation
+├── train
+│   ├── risk          Train drop-risk prediction model
+│   └── grade         Train semester grade prediction model
+├── intervention      Intervention activity tracking (add / list / update)
+├── deliver           Report email delivery (prepare / send)
+├── init              Interactive project configuration initialization
+└── select            Student answer selection
+```
+
+Legacy `forma-*` commands (e.g., `forma-report`, `forma-train`) remain functional but emit a `DeprecationWarning`. See [docs/cli-reference.md](docs/cli-reference.md) for full usage details.
 
 ## Requirements
 
@@ -78,33 +84,33 @@ Below is a minimal example using sample data included in the repository. See [do
 
 ```bash
 # 1. Run evaluation on a single class
-forma-eval \
+forma eval \
   --config exams/Ch01_FormativeTest.yaml \
   --responses results/anp_w1/anp_1A_final.yaml \
   --output results/anp_w1/eval_1A/ \
   --provider gemini
 
 # 2. Generate individual student reports
-forma-report \
+forma report student \
   --final results/anp_w1/anp_1A_final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir results/anp_w1/eval_1A/ \
   --output-dir reports/
 
 # 3. Generate professor summary report
-forma-report-professor \
+forma report professor \
   --final results/anp_w1/anp_1A_final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir results/anp_w1/eval_1A/ \
   --output-dir reports/
 
 # 4. Prepare and deliver reports via email
-forma-deliver prepare \
+forma deliver prepare \
   --manifest delivery/manifest.yaml \
   --roster delivery/roster.yaml \
   --output-dir delivery/packages/
 
-forma-deliver send \
+forma deliver send \
   --staged delivery/packages/ \
   --template delivery/template.yaml
 ```
@@ -144,7 +150,7 @@ Located at `~/.config/formative-analysis/forma.json`. Stores API keys and servic
 Auto-discovered from the current working directory. Initialize with:
 
 ```bash
-forma-init
+forma init
 ```
 
 This creates a `forma.yaml` with project-level defaults (class names, output paths, thresholds, etc.).
@@ -171,12 +177,13 @@ CI runs automatically on push via GitHub Actions (`.github/workflows/ci.yml`): t
 
 ```
 formative-analysis/
-├── src/forma/                  # Main package (79 modules)
-│   ├── cli.py                  # forma-exam entry point
-│   ├── cli_ocr.py              # forma-ocr entry point
-│   ├── cli_report.py           # forma-report entry point
-│   ├── cli_report_professor.py # forma-report-professor entry point
-│   ├── cli_report_batch.py     # forma-report-batch entry point
+├── src/forma/                  # Main package (80 modules)
+│   ├── cli_main.py             # Unified forma entry point
+│   ├── cli.py                  # forma exam
+│   ├── cli_ocr.py              # forma ocr
+│   ├── cli_report.py           # forma report student
+│   ├── cli_report_professor.py # forma report professor
+│   ├── cli_report_batch.py     # forma report batch
 │   ├── cli_report_longitudinal.py
 │   ├── cli_report_warning.py
 │   ├── cli_deliver.py          # forma-deliver entry point

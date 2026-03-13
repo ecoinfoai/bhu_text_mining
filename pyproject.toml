@@ -1,6 +1,6 @@
 [project]
 name = "formative-analysis"
-version = "0.11.3"
+version = "0.12.0"
 description = "Formative assessment analysis tool for evaluating student understanding via knowledge graph matching"
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},
@@ -56,6 +56,7 @@ jupyter = [
 ]
 
 [project.scripts]
+forma = "forma.cli_main:main"
 forma-exam = "forma.cli:main"
 forma-ocr = "forma.cli_ocr:main"
 forma-eval = "forma.pipeline_evaluation:main"

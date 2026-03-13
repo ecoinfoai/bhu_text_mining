@@ -18,6 +18,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - Python >=3.11, <4 + PyYAML >=6.0 (existing), json (stdlib), warnings (stdlib), smtplib (stdlib) (010-credentials-ci)
 - JSON files (`forma.json`), YAML files (`smtp.yaml` — deprecated path) (010-credentials-ci)
 - N/A (Markdown documentation only) + N/A (no runtime dependencies) (011-readme-docs)
+- Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, scikit-learn >=1.4.0, networkx >=3.4.2, smtplib (stdlib), ssl (stdlib), fcntl (stdlib), argparse (stdlib). No new runtime deps. (013-audit-hardening)
+- YAML files (PyYAML safe_load), joblib .pkl (model persistence), filesystem (reports/zips) (013-audit-hardening)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -110,9 +112,9 @@ Python >=3.11, <4: Follow standard conventions
 - `cli_report_longitudinal.py` — `+--intervention-log` flag
 
 ## Recent Changes
+- 013-audit-hardening: Added Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, scikit-learn >=1.4.0, networkx >=3.4.2, smtplib (stdlib), ssl (stdlib), fcntl (stdlib), argparse (stdlib). No new runtime deps.
 - 012-unified-week-config: Added week_config.py (week.yaml loading, {class} pattern resolution, crop_coords write-back), cli_select.py (forma-select CLI). Extended project_config.py for 4-layer config merge. No new runtime dependencies.
 - 011-readme-docs: Added N/A (Markdown documentation only) + N/A (no runtime dependencies)
-- 010-credentials-ci: Added Python >=3.11, <4 + PyYAML >=6.0 (existing), json (stdlib), warnings (stdlib), smtplib (stdlib)
 
 
 <!-- MANUAL ADDITIONS START -->
