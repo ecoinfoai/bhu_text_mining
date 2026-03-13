@@ -496,7 +496,10 @@ def _build_technical_report(
                         "rasch_theta": round(sr.rasch_theta, 2) if sr.rasch_theta is not None else None,
                         "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
                         "lca_class": sr.lca_class,
-                        "lca_class_probability": round(sr.lca_class_probability, 2) if sr.lca_class_probability is not None else None,
+                        "lca_class_probability": (
+                            round(sr.lca_class_probability, 2)
+                            if sr.lca_class_probability is not None else None
+                        ),
                         "lca_exploratory_warning": sr.lca_exploratory_warning,
                     }
 
@@ -637,7 +640,10 @@ def _serialize_layer3(results: dict[str, dict[int, StatisticalResult]]) -> dict:
                 "rasch_theta": round(sr.rasch_theta, 2) if sr.rasch_theta is not None else None,
                 "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
                 "lca_class": sr.lca_class,
-                "lca_class_probability": round(sr.lca_class_probability, 2) if sr.lca_class_probability is not None else None,
+                "lca_class_probability": (
+                    round(sr.lca_class_probability, 2)
+                    if sr.lca_class_probability is not None else None
+                ),
             })
         out["students"].append(entry)
     return out
@@ -1329,8 +1335,14 @@ def main() -> None:
 
         # Build flat week config dict for merge
         wcfg = {
-            "config": resolve_paths_relative_to(week_config.eval_config, week_dir) if week_config.eval_config else None,
-            "responses": resolve_paths_relative_to(week_config.eval_responses_pattern, week_dir) if week_config.eval_responses_pattern else None,
+            "config": (
+                resolve_paths_relative_to(week_config.eval_config, week_dir)
+                if week_config.eval_config else None
+            ),
+            "responses": (
+                resolve_paths_relative_to(week_config.eval_responses_pattern, week_dir)
+                if week_config.eval_responses_pattern else None
+            ),
             "output": resolve_paths_relative_to(week_config.eval_output_pattern, week_dir) if week_config.eval_output_pattern else None,
             "questions_used": week_config.eval_questions_used or None,
             "skip_feedback": week_config.eval_skip_feedback,

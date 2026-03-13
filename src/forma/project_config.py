@@ -295,7 +295,8 @@ def validate_project_config(config_dict: dict) -> None:
     ocr = config_dict.get("ocr", {})
     if isinstance(ocr, dict):
         _check_int(ocr, "num_questions", errors)
-        if "num_questions" in ocr and isinstance(ocr["num_questions"], int) and not isinstance(ocr["num_questions"], bool):
+        nq = ocr.get("num_questions")
+        if nq is not None and isinstance(nq, int) and not isinstance(nq, bool):
             if ocr["num_questions"] < 1:
                 errors.append("ocr.num_questions must be >= 1")
 
@@ -310,7 +311,8 @@ def validate_project_config(config_dict: dict) -> None:
                     "evaluation.provider must be 'gemini' or 'anthropic'",
                 )
         _check_int(evaluation, "n_calls", errors)
-        if "n_calls" in evaluation and isinstance(evaluation["n_calls"], int) and not isinstance(evaluation["n_calls"], bool):
+        nc = evaluation.get("n_calls")
+        if nc is not None and isinstance(nc, int) and not isinstance(nc, bool):
             if evaluation["n_calls"] < 1:
                 errors.append("evaluation.n_calls must be >= 1")
         _check_bool(evaluation, "skip_feedback", errors)
