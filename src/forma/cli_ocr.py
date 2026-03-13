@@ -129,7 +129,7 @@ def _load_ocr_config(path: str) -> dict:
         ValueError: if required keys are missing.
     """
     with open(path, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+        cfg = yaml.safe_load(f) or {}
     required = {"image-dir", "naver-ocr-config", "output"}
     missing = required - set(cfg.keys())
     if missing:

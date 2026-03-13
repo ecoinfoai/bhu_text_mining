@@ -13,9 +13,7 @@ Covers:
 
 from __future__ import annotations
 
-import io
 import logging
-import sys
 import warnings
 from unittest import mock
 

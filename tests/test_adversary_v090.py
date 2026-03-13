@@ -1839,7 +1839,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([], path, class_name="1A")
+            gen.generate_pdf([], path, class_name="1A")
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1852,7 +1852,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1865,7 +1865,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1882,7 +1882,7 @@ class TestPDFCrasher:
             path = f.name
         try:
             start = time.time()
-            gen.generate(cards, path)
+            gen.generate_pdf(cards, path)
             elapsed = time.time() - start
             assert os.path.getsize(path) > 0
             assert elapsed < 60.0  # generous limit
@@ -1901,7 +1901,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1920,7 +1920,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1933,7 +1933,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1948,7 +1948,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1965,7 +1965,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1978,7 +1978,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path, class_name='<"1A&B">')
+            gen.generate_pdf([card], path, class_name='<"1A&B">')
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -1991,7 +1991,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path, class_name="")
+            gen.generate_pdf([card], path, class_name="")
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
@@ -2009,7 +2009,7 @@ class TestPDFCrasher:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
-            gen.generate([card], path)
+            gen.generate_pdf([card], path)
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)

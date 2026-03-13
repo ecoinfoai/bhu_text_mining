@@ -359,10 +359,10 @@ class TestConcurrentAddRecord:
         log.save()
 
         def _add(student_id: str, week: int):
-            l = InterventionLog(path)
-            l.load()
-            l.add_record(student_id, week, "면담")
-            l.save()
+            log_inner = InterventionLog(path)
+            log_inner.load()
+            log_inner.add_record(student_id, week, "면담")
+            log_inner.save()
 
         t1 = threading.Thread(target=_add, args=("S001", 1))
         t2 = threading.Thread(target=_add, args=("S002", 2))
@@ -374,7 +374,6 @@ class TestConcurrentAddRecord:
         final = InterventionLog(path)
         final.load()
         records = final.get_records()
-        student_ids = {r.student_id for r in records}
         # At least the last writer's records are present; both ideally
         assert len(records) >= 1
 
