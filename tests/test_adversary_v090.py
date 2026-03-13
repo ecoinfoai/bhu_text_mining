@@ -962,9 +962,9 @@ class TestModelCorruptor:
         try:
             # Save a plain dict instead of TrainedRiskModel
             joblib.dump({"not": "a model"}, path)
-            # load_model should return whatever joblib loads — no type check
-            result = load_model(path)
-            assert isinstance(result, dict)  # wrong type, but loads
+            # FR-003: load_model now validates type — wrong type raises TypeError
+            with pytest.raises(TypeError, match="TrainedRiskModel"):
+                load_model(path)
         finally:
             os.unlink(path)
 

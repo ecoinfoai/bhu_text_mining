@@ -109,7 +109,7 @@ class MockSMTP:
     def __init__(self, *args, **kwargs):
         MockSMTP.instances.append(self)
 
-    def starttls(self):
+    def starttls(self, **kwargs):
         pass
 
     def login(self, user, password):

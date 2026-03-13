@@ -397,7 +397,7 @@ class TestSmtpSaboteur:
 
         class DisconnectSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 nonlocal call_count
@@ -429,7 +429,7 @@ class TestSmtpSaboteur:
 
         class OkSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -456,7 +456,7 @@ class TestSmtpSaboteur:
 
         class AuthFailSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p):
                 raise smtplib.SMTPAuthenticationError(535, b"Auth failed")
             def send_message(self, msg): pass
@@ -494,7 +494,7 @@ class TestSmtpSaboteur:
 
         class SpySMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p):
                 login_passwords.append(p)
             def send_message(self, msg): pass
@@ -575,7 +575,7 @@ class TestStagingCorruptor:
 
         class OkSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -755,7 +755,7 @@ class TestBoundaryPusher:
 
         class OkSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -780,7 +780,7 @@ class TestBoundaryPusher:
 
         class OkSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass

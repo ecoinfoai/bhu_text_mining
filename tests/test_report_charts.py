@@ -89,7 +89,8 @@ class TestReportChartGenerator:
 
             gen = ReportChartGenerator(font_path=mock_font)
 
-        with patch("forma.report_charts.plt") as mock_plt:
+        with patch("forma.report_charts.plt") as mock_plt, \
+             patch("forma.chart_utils.plt") as mock_chart_plt:
             # plt.subplots must return a (fig, ax) tuple for the code to work
             mock_fig = MagicMock()
             mock_ax = MagicMock()
@@ -105,7 +106,7 @@ class TestReportChartGenerator:
                 scores=[0.2, 0.4, 0.6, 0.8],
                 student_score=0.5,
             )
-            mock_plt.close.assert_called_once_with(mock_fig)
+            mock_chart_plt.close.assert_called_once_with(mock_fig)
 
     def test_score_boxplot_zero_variance(self, chart_gen):
         """score_boxplot handles zero-variance scores without crashing."""

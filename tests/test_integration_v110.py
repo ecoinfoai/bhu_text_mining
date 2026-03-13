@@ -145,7 +145,7 @@ class MockSMTP:
     def __init__(self, *args, **kwargs):
         MockSMTP.instances.append(self)
 
-    def starttls(self):
+    def starttls(self, **kwargs):
         pass
 
     def login(self, user, password):
@@ -336,7 +336,7 @@ class TestE2EPrepareAndSend:
 
         class FailSecondSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 nonlocal call_count

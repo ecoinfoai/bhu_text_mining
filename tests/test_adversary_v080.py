@@ -533,6 +533,7 @@ class TestRegressionHunter:
             "unknown_future_field": "some_value",
             "another_field": 42,
         }
+        store._rebuild_index()
         # _to_record should ignore unknown fields
         rec = store.get_student_history("S001")[0]
         assert rec.student_id == "S001"
@@ -565,6 +566,7 @@ class TestRegressionHunter:
             "exam_file": "exam.yaml",
             "recorded_at": "2026-01-01T00:00:00Z",
         }
+        store._rebuild_index()
         all_recs = store.get_all_records()
         assert len(all_recs) == 2
         v1 = next(r for r in all_recs if r.student_id == "S001")

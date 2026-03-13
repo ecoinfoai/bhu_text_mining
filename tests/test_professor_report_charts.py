@@ -165,40 +165,43 @@ class TestProfessorReportChartGeneratorInit:
         mock_find.assert_not_called()
 
     def test_save_fig_returns_bytesio(self, chart_gen):
-        """_save_fig returns an io.BytesIO object."""
+        """chart_utils.save_fig returns an io.BytesIO object."""
         import matplotlib.pyplot as plt
+        from forma.chart_utils import save_fig
 
         fig, _ = plt.subplots()
-        result = chart_gen._save_fig(fig)
+        result = save_fig(fig, dpi=chart_gen._dpi)
         assert isinstance(result, io.BytesIO)
 
     def test_save_fig_position_is_zero(self, chart_gen):
-        """_save_fig returns BytesIO with seek position at 0."""
+        """chart_utils.save_fig returns BytesIO with seek position at 0."""
         import matplotlib.pyplot as plt
+        from forma.chart_utils import save_fig
 
         fig, _ = plt.subplots()
-        result = chart_gen._save_fig(fig)
+        result = save_fig(fig, dpi=chart_gen._dpi)
         assert result.tell() == 0
 
     def test_save_fig_returns_valid_png(self, chart_gen):
-        """_save_fig returns BytesIO containing valid PNG data (correct header)."""
+        """chart_utils.save_fig returns BytesIO containing valid PNG data."""
         import matplotlib.pyplot as plt
+        from forma.chart_utils import save_fig
 
         fig, _ = plt.subplots()
-        result = chart_gen._save_fig(fig)
+        result = save_fig(fig, dpi=chart_gen._dpi)
         data = result.getvalue()
         assert len(data) > 0
         assert data[:4] == PNG_HEADER
 
     def test_save_fig_closes_figure(self, chart_gen):
-        """_save_fig closes the figure after saving (no resource leak)."""
+        """chart_utils.save_fig closes the figure after saving."""
         import matplotlib.pyplot as plt
+        from forma.chart_utils import save_fig
 
         fig, _ = plt.subplots()
         _num_before = plt.get_fignums()
-        chart_gen._save_fig(fig)
+        save_fig(fig, dpi=chart_gen._dpi)
         num_after = plt.get_fignums()
-        # The figure should be closed; its number should not appear anymore
         assert fig.number not in num_after
 
 

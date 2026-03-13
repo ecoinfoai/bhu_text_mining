@@ -476,7 +476,7 @@ class TestPathTraversalGuard:
             directory=str(tmp_path),
             file_patterns=["{student_id}_report.pdf"],
         )
-        with pytest.raises(ValueError, match="path separator"):
+        with pytest.raises(ValueError, match="path traversal"):
             match_files_for_student(manifest, "../../etc/passwd")
 
     def test_traversal_via_pattern_raises(self, tmp_path):
@@ -486,7 +486,7 @@ class TestPathTraversalGuard:
             directory=str(tmp_path),
             file_patterns=["{student_id}_report.pdf"],
         )
-        with pytest.raises(ValueError, match="path separator"):
+        with pytest.raises(ValueError, match="path traversal"):
             match_files_for_student(manifest, "../sibling/file")
 
 
@@ -672,3 +672,516 @@ class TestSingleClassAugmentationWarnings:
 
         assert "only one class" in caplog.text.lower()
         assert model.cv_score == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: US3 Data integrity — atomic stores, SMTP reconnection, validation
+# ---------------------------------------------------------------------------
+
+
+class TestAtomicInterventionLog:
+    """T054: Concurrent add_record preserves both records."""
+
+    def test_concurrent_add_preserves_both(self, tmp_path) -> None:
+        """Two sequential add_record + save cycles both persist."""
+        from forma.intervention_store import InterventionLog
+
+        path = str(tmp_path / "log.yaml")
+
+        # First writer
+        log1 = InterventionLog(path)
+        log1.load()
+        id1 = log1.add_record("S001", 1, "면담", description="첫 번째")
+        log1.save()
+
+        # Second writer (re-opens the same file)
+        log2 = InterventionLog(path)
+        log2.load()
+        id2 = log2.add_record("S002", 2, "멘토링", description="두 번째")
+        log2.save()
+
+        # Verify both records persist
+        log3 = InterventionLog(path)
+        log3.load()
+        records = log3.get_records()
+        sids = {r.student_id for r in records}
+        assert "S001" in sids
+        assert "S002" in sids
+        assert id1 != id2
+
+
+class TestAtomicLongitudinalStore:
+    """T055: Concurrent save preserves both snapshots."""
+
+    def test_concurrent_save_preserves_both(self, tmp_path) -> None:
+        """Two sequential add_record + save cycles both persist in LongitudinalStore."""
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+
+        # First writer
+        store1 = LongitudinalStore(path)
+        store1.load()
+        store1.add_record(LongitudinalRecord(
+            student_id="S001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.8}, tier_level=3, tier_label="상",
+        ))
+        store1.save()
+
+        # Second writer (re-opens the same file)
+        store2 = LongitudinalStore(path)
+        store2.load()
+        store2.add_record(LongitudinalRecord(
+            student_id="S002", week=1, question_sn=1,
+            scores={"ensemble_score": 0.6}, tier_level=2, tier_label="중상",
+        ))
+        store2.save()
+
+        # Verify both records persist
+        store3 = LongitudinalStore(path)
+        store3.load()
+        all_records = store3.get_all_records()
+        sids = {r.student_id for r in all_records}
+        assert "S001" in sids
+        assert "S002" in sids
+
+
+class TestSmtpReconnection:
+    """T056: Mock disconnect at email N, verify resume at N+1."""
+
+    def test_reconnection_on_disconnect(self, tmp_path) -> None:
+        """send_emails handles SMTPServerDisconnected gracefully."""
+        import smtplib
+        from unittest.mock import patch
+
+        from forma.delivery_send import send_emails
+
+        # Setup staging directory with prepare_summary
+        staging = tmp_path / "staging"
+        staging.mkdir()
+
+        # Create 3 student entries
+        students = []
+        for i in range(1, 4):
+            sid = f"S{i:03d}"
+            student_dir = staging / f"{sid}_Name{i}"
+            student_dir.mkdir()
+            zip_path = student_dir / f"Name{i}_{sid}.zip"
+            zip_path.write_bytes(b"PK\x03\x04fake")
+            students.append({
+                "student_id": sid,
+                "name": f"Name{i}",
+                "email": f"s{i}@test.com",
+                "status": "ready",
+                "matched_files": [str(zip_path)],
+                "zip_path": str(zip_path),
+                "zip_size_bytes": zip_path.stat().st_size,
+                "message": "",
+            })
+
+        import yaml
+        summary = {
+            "prepared_at": "2026-01-01T00:00:00",
+            "class_name": "TestClass",
+            "total_students": 3,
+            "ready": 3,
+            "warnings": 0,
+            "errors": 0,
+            "details": students,
+        }
+        summary_path = staging / "prepare_summary.yaml"
+        with open(summary_path, "w") as f:
+            yaml.dump(summary, f, allow_unicode=True)
+
+        template_path = tmp_path / "template.yaml"
+        with open(template_path, "w") as f:
+            yaml.dump({"subject": "Test {student_name}", "body": "Hello {student_name}"}, f)
+
+        smtp_path = tmp_path / "smtp.yaml"
+        with open(smtp_path, "w") as f:
+            yaml.dump({
+                "smtp_server": "smtp.test.com",
+                "smtp_port": 587,
+                "sender_email": "prof@test.com",
+                "use_tls": True,
+            }, f)
+
+        call_count = 0
+
+        class ReconnectingSMTP:
+            def __init__(self, *args, **kwargs): pass
+            def starttls(self, **kwargs): pass
+            def login(self, u, p): pass
+            def send_message(self, msg):
+                nonlocal call_count
+                call_count += 1
+                if call_count == 2:
+                    raise smtplib.SMTPServerDisconnected("Connection lost")
+            def quit(self): pass
+
+        with patch("smtplib.SMTP", ReconnectingSMTP):
+            os.environ["FORMA_SMTP_PASSWORD"] = "testpass"
+            try:
+                log = send_emails(str(staging), str(template_path), str(smtp_path))
+            finally:
+                os.environ.pop("FORMA_SMTP_PASSWORD", None)
+
+        # With reconnection: email 2 disconnects, reconnects, retries, succeeds
+        assert log.total == 3
+        assert log.success + log.failed == 3
+        # Reconnection retry should recover the disconnected email
+        assert log.success >= 2
+
+
+class TestSmtpTimeout:
+    """T057: Verify timeout parameter passed to SMTP constructor."""
+
+    def test_smtp_timeout_passed(self, tmp_path) -> None:
+        """send_emails() passes timeout=30 to smtplib.SMTP() constructor."""
+        from unittest.mock import patch
+        import yaml
+
+        from forma.delivery_send import send_emails
+
+        # Setup minimal staging
+        staging = tmp_path / "staging"
+        staging.mkdir()
+        s_dir = staging / "S001_Test"
+        s_dir.mkdir()
+        zip_path = s_dir / "Test_S001.zip"
+        zip_path.write_bytes(b"PK\x03\x04fake")
+
+        summary = {
+            "prepared_at": "2026-01-01", "class_name": "C",
+            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
+            "details": [{
+                "student_id": "S001", "name": "Test", "email": "s@t.com",
+                "status": "ready", "matched_files": [str(zip_path)],
+                "zip_path": str(zip_path), "zip_size_bytes": 10, "message": "",
+            }],
+        }
+        with open(staging / "prepare_summary.yaml", "w") as f:
+            yaml.dump(summary, f, allow_unicode=True)
+
+        tpl_path = tmp_path / "tpl.yaml"
+        with open(tpl_path, "w") as f:
+            yaml.dump({"subject": "Hi {student_name}", "body": "Hello {student_name}"}, f)
+
+        smtp_path = tmp_path / "smtp.yaml"
+        with open(smtp_path, "w") as f:
+            yaml.dump({
+                "smtp_server": "s.t.com", "smtp_port": 587,
+                "sender_email": "p@t.com", "use_tls": True,
+            }, f)
+
+        captured_args = {}
+
+        class CapturingSMTP:
+            def __init__(self, *args, **kwargs):
+                captured_args["args"] = args
+                captured_args["kwargs"] = kwargs
+            def starttls(self, **kwargs): pass
+            def login(self, u, p): pass
+            def send_message(self, msg): pass
+            def quit(self): pass
+
+        with patch("smtplib.SMTP", CapturingSMTP):
+            os.environ["FORMA_SMTP_PASSWORD"] = "testpass"
+            try:
+                send_emails(str(staging), str(tpl_path), str(smtp_path))
+            finally:
+                os.environ.pop("FORMA_SMTP_PASSWORD", None)
+
+        assert captured_args["kwargs"].get("timeout") == 30
+
+
+class TestSmtpAuthError:
+    """T058: SMTPAuthenticationError handling."""
+
+    def test_auth_error_propagated(self, tmp_path) -> None:
+        """SMTPAuthenticationError during login propagates."""
+        import smtplib
+        from unittest.mock import patch
+
+        from forma.delivery_send import SmtpConfig, send_summary_email, DeliveryLog
+
+        mock_log = DeliveryLog(
+            sent_at="2026-01-01", smtp_server="smtp.test.com",
+            dry_run=False, total=0, success=0, failed=0, results=[],
+        )
+        config = SmtpConfig(
+            smtp_server="smtp.test.com", smtp_port=587,
+            sender_email="test@test.com", use_tls=True,
+        )
+
+        class AuthFailSMTP:
+            def __init__(self, *a, **kw): pass
+            def starttls(self, **kwargs): pass
+            def login(self, u, p):
+                raise smtplib.SMTPAuthenticationError(535, b"Auth failed")
+            def quit(self): pass
+
+        with patch("smtplib.SMTP", AuthFailSMTP):
+            with pytest.raises(smtplib.SMTPAuthenticationError):
+                send_summary_email(mock_log, config, password="wrong")
+
+
+class TestDeliveryLogValidation:
+    """T059: Missing required key in delivery_log raises ValueError."""
+
+    def test_missing_key_raises(self, tmp_path) -> None:
+        """Delivery log YAML missing 'total' key raises ValueError or KeyError."""
+        import yaml
+        from forma.delivery_send import load_delivery_log
+
+        bad_log = tmp_path / "delivery_log.yaml"
+        with open(bad_log, "w") as f:
+            yaml.dump({"sent_at": "2026-01-01", "smtp_server": "s"}, f)
+
+        with pytest.raises((KeyError, ValueError)):
+            load_delivery_log(str(bad_log))
+
+
+class TestWeekTypeCheck:
+    """T060: Week as string raises TypeError/ValueError in InterventionLog."""
+
+    def test_week_string_raises(self, tmp_path) -> None:
+        """add_record with week='3' (string) raises ValueError."""
+        from forma.intervention_store import InterventionLog
+
+        log = InterventionLog(str(tmp_path / "log.yaml"))
+        log.load()
+
+        with pytest.raises((TypeError, ValueError)):
+            log.add_record("S001", "3", "면담")  # type: ignore[arg-type]
+
+    def test_week_bool_raises(self, tmp_path) -> None:
+        """add_record with week=True (bool) raises ValueError."""
+        from forma.intervention_store import InterventionLog
+
+        log = InterventionLog(str(tmp_path / "log.yaml"))
+        log.load()
+
+        with pytest.raises((TypeError, ValueError)):
+            log.add_record("S001", True, "면담")  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Phase 8: US5 Performance — LongitudinalStore index, table truncation
+# ---------------------------------------------------------------------------
+
+
+class TestLongitudinalStoreIndex:
+    """T084-T085: Index construction and indexed query."""
+
+    def test_by_student_index_built_after_load(self, tmp_path) -> None:
+        """After load(), _by_student index dict exists and maps student_id to keys."""
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="S001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.8}, tier_level=3, tier_label="상",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="S002", week=1, question_sn=1,
+            scores={"ensemble_score": 0.6}, tier_level=2, tier_label="중상",
+        ))
+        store.save()
+
+        store2 = LongitudinalStore(path)
+        store2.load()
+
+        assert hasattr(store2, "_by_student")
+        assert "S001" in store2._by_student
+        assert "S002" in store2._by_student
+
+    def test_by_week_index_built_after_load(self, tmp_path) -> None:
+        """After load(), _by_week index dict exists and maps week to keys."""
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="S001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.8}, tier_level=3, tier_label="상",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="S001", week=2, question_sn=1,
+            scores={"ensemble_score": 0.9}, tier_level=3, tier_label="상",
+        ))
+        store.save()
+
+        store2 = LongitudinalStore(path)
+        store2.load()
+
+        assert hasattr(store2, "_by_week")
+        assert 1 in store2._by_week
+        assert 2 in store2._by_week
+
+    def test_indexed_get_student_history(self, tmp_path) -> None:
+        """get_student_history() returns correct records using index."""
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        for i in range(50):
+            store.add_record(LongitudinalRecord(
+                student_id=f"S{i:03d}", week=1, question_sn=1,
+                scores={"ensemble_score": 0.5 + i * 0.01},
+                tier_level=2, tier_label="중상",
+            ))
+        store.save()
+
+        store2 = LongitudinalStore(path)
+        store2.load()
+
+        history = store2.get_student_history("S025")
+        assert len(history) == 1
+        assert history[0].student_id == "S025"
+
+    def test_indexed_get_class_snapshot(self, tmp_path) -> None:
+        """get_class_snapshot() returns correct records using week index."""
+        from forma.evaluation_types import LongitudinalRecord
+        from forma.longitudinal_store import LongitudinalStore
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        for w in [1, 2, 3]:
+            for i in range(10):
+                store.add_record(LongitudinalRecord(
+                    student_id=f"S{i:03d}", week=w, question_sn=1,
+                    scores={"ensemble_score": 0.5},
+                    tier_level=2, tier_label="중상",
+                ))
+        store.save()
+
+        store2 = LongitudinalStore(path)
+        store2.load()
+
+        snapshot = store2.get_class_snapshot(2)
+        assert len(snapshot) == 10
+        assert all(r.week == 2 for r in snapshot)
+
+
+# ---------------------------------------------------------------------------
+# T086: Set-based edge matching in build_class_knowledge_aggregate
+# ---------------------------------------------------------------------------
+
+
+class TestSetBasedEdgeMatching:
+    """FR-035: build_class_knowledge_aggregate uses set-based lookups."""
+
+    def _make_edge(self, s: str, r: str, o: str):
+        """Create a mock TripletEdge."""
+        from types import SimpleNamespace
+        return SimpleNamespace(subject=s, relation=r, object=o)
+
+    def _make_comparison(self, matched, wrong_direction):
+        """Create a mock GraphComparisonResult."""
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            matched_edges=matched,
+            wrong_direction_edges=wrong_direction,
+        )
+
+    def test_200_students_correct_counts(self) -> None:
+        """200 students, verify correct/error/missing tallies are accurate."""
+        from forma.class_knowledge_aggregate import build_class_knowledge_aggregate
+
+        master_edges = [
+            self._make_edge("A", "causes", "B"),
+            self._make_edge("C", "inhibits", "D"),
+        ]
+
+        comparisons = []
+        for i in range(200):
+            if i < 100:
+                # First 100: match edge 1 correctly
+                matched = [self._make_edge("A", "causes", "B")]
+                wrong = []
+            elif i < 150:
+                # Next 50: wrong direction for edge 1 (B->A)
+                matched = []
+                wrong = [self._make_edge("B", "causes", "A")]
+            else:
+                # Last 50: missing edge 1 entirely
+                matched = []
+                wrong = []
+
+            # All 200 match edge 2 correctly
+            matched.append(self._make_edge("C", "inhibits", "D"))
+            comparisons.append(self._make_comparison(matched, wrong))
+
+        result = build_class_knowledge_aggregate(master_edges, comparisons, 1)
+
+        assert result.total_students == 200
+        edge1 = result.edges[0]
+        assert edge1.correct_count == 100
+        assert edge1.error_count == 50
+        assert edge1.missing_count == 50
+
+        edge2 = result.edges[1]
+        assert edge2.correct_count == 200
+        assert edge2.error_count == 0
+        assert edge2.missing_count == 0
+
+    def test_empty_comparison_results(self) -> None:
+        """Zero students yields zero counts."""
+        from forma.class_knowledge_aggregate import build_class_knowledge_aggregate
+
+        master_edges = [self._make_edge("X", "rel", "Y")]
+        result = build_class_knowledge_aggregate(master_edges, [], 1)
+        assert result.edges[0].correct_count == 0
+        assert result.edges[0].correct_ratio == 0.0
+
+
+# ---------------------------------------------------------------------------
+# T087: Table truncation for >100 students
+# ---------------------------------------------------------------------------
+
+
+class TestTableTruncation:
+    """FR-036: professor_report student table truncates for large class sizes."""
+
+    def test_truncate_student_table_over_100(self) -> None:
+        """_truncate_student_rows returns top25+bottom25+summary for >100."""
+        from forma.professor_report import _truncate_student_rows
+
+        # Simulate 200 student rows (just need objects with overall_ensemble_mean)
+        from types import SimpleNamespace
+        rows = [
+            SimpleNamespace(
+                student_number=f"S{i:03d}",
+                real_name=f"Student{i}",
+                overall_ensemble_mean=1.0 - i * 0.005,
+                overall_level="Developing",
+                is_at_risk=False,
+                per_question_scores={},
+                per_question_levels={},
+                per_question_coverages={},
+                section=None,
+            )
+            for i in range(200)
+        ]
+        truncated, was_truncated = _truncate_student_rows(rows)
+        assert was_truncated is True
+        assert len(truncated) == 50  # top 25 + bottom 25
+
+    def test_no_truncation_under_100(self) -> None:
+        """_truncate_student_rows returns all rows for <=100."""
+        from forma.professor_report import _truncate_student_rows
+        from types import SimpleNamespace
+
+        rows = [
+            SimpleNamespace(overall_ensemble_mean=0.5)
+            for _ in range(80)
+        ]
+        result, was_truncated = _truncate_student_rows(rows)
+        assert was_truncated is False
+        assert len(result) == 80

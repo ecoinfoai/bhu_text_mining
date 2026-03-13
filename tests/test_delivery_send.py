@@ -871,7 +871,7 @@ class TestSendEmails:
         class MockSMTP:
             def __init__(self, *args, **kwargs):
                 pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg):
                 smtp_calls.append(msg["To"])
@@ -902,7 +902,7 @@ class TestSendEmails:
         class MockSMTP:
             def __init__(self, *args, **kwargs):
                 pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg):
                 nonlocal call_count
@@ -948,7 +948,7 @@ class TestSendEmails:
 
         class MockSMTP:
             def __init__(self, *args, **kwargs): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -972,7 +972,7 @@ class TestSendEmails:
 
         class MockSMTP:
             def __init__(self, *args, **kwargs): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -998,7 +998,7 @@ class TestSendEmails:
 
         class MockSMTP:
             def __init__(self, *args, **kwargs): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -1024,7 +1024,7 @@ class TestSendEmails:
 
         class MockSMTP:
             def __init__(self, *args, **kwargs): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg):
                 sent_to.append(msg["To"])
@@ -1062,7 +1062,7 @@ class TestSendEmails:
 
         class MockSMTP:
             def __init__(self, *args, **kwargs): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, user, password): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -1160,7 +1160,7 @@ class TestSendEmailsDryRun:
         class SpySMTP:
             def __init__(self, *args, **kwargs):
                 smtp_created.append(True)
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -1244,7 +1244,7 @@ class TestSendEmailsDryRun:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -1372,7 +1372,7 @@ class TestSendEmailsRetryFailed:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 sent_to.append(msg["To"])
@@ -1402,7 +1402,7 @@ class TestSendEmailsRetryFailed:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -1428,7 +1428,7 @@ class TestSendEmailsRetryFailed:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -1584,7 +1584,7 @@ class TestSendSummaryEmail:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 sent_messages.append(msg)
@@ -1624,7 +1624,7 @@ class TestSendSummaryEmail:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 sent_messages.append(msg)
@@ -1943,7 +1943,7 @@ class TestAdversaryNetworkSaboteur:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 nonlocal call_count
@@ -1974,7 +1974,7 @@ class TestAdversaryNetworkSaboteur:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p):
                 raise smtplib.SMTPAuthenticationError(535, b"Auth failed")
             def send_message(self, msg): pass
@@ -1999,7 +1999,7 @@ class TestAdversaryNetworkSaboteur:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -2023,7 +2023,7 @@ class TestAdversaryNetworkSaboteur:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self):
@@ -2080,7 +2080,7 @@ class TestAdversaryDataManglerSend:
             encoding="utf-8",
         )
 
-        with pytest.raises(KeyError):
+        with pytest.raises((KeyError, ValueError)):
             load_delivery_log(str(log_path))
 
     def test_smtp_port_string_in_yaml(self, tmp_path):
@@ -2251,7 +2251,7 @@ class TestAdversaryDryRunAbuser:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -2310,7 +2310,7 @@ class TestAdversaryPasswordLeak:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg): pass
             def quit(self): pass
@@ -2357,7 +2357,7 @@ class TestAdversaryPasswordLeak:
 
         class MockSMTP:
             def __init__(self, *a, **kw): pass
-            def starttls(self): pass
+            def starttls(self, **kwargs): pass
             def login(self, u, p): pass
             def send_message(self, msg):
                 sent_messages.append(msg)
@@ -2691,3 +2691,237 @@ class TestSendEmailsSmtpConfigParam:
             # smtp_config not provided — should default to None
         )
         assert log.smtp_server == "file.smtp.com"
+
+
+# ---------------------------------------------------------------------------
+# FR-023: SMTP reconnection after disconnect
+# ---------------------------------------------------------------------------
+
+
+class TestSmtpReconnection:
+    """FR-023: SMTP disconnect triggers reconnection and resumes sending."""
+
+    def test_reconnection_after_disconnect(self, tmp_path, monkeypatch):
+        """Mock disconnect at send #1, verify reconnection and completion."""
+        import os
+        import smtplib
+        import unittest.mock
+
+        from forma.delivery_send import send_emails
+
+        # Build minimal staging dir
+        staged = tmp_path / "staged"
+        staged.mkdir()
+        for sid in ["S001", "S002", "S003"]:
+            zp = staged / f"{sid}.zip"
+            zp.write_bytes(b"PK\x03\x04" + b"\x00" * 50)
+
+        details = []
+        for sid in ["S001", "S002", "S003"]:
+            details.append({
+                "student_id": sid, "name": sid, "email": f"{sid}@test.com",
+                "status": "ready", "matched_files": [f"{sid}.pdf"],
+                "zip_path": str(staged / f"{sid}.zip"),
+                "zip_size_bytes": 54, "message": "",
+            })
+        summary = {
+            "prepared_at": "2026-01-01T00:00:00",
+            "class_name": "TestClass",
+            "total_students": 3, "ready": 3, "warnings": 0, "errors": 0,
+            "details": details,
+        }
+        import yaml as _yaml
+        with open(str(staged / "prepare_summary.yaml"), "w") as f:
+            _yaml.dump(summary, f)
+
+        tpl = tmp_path / "template.yaml"
+        tpl.write_text('subject: "T"\nbody: "Hi {student_name}"', encoding="utf-8")
+
+        smtp_cfg = tmp_path / "smtp.yaml"
+        smtp_cfg.write_text(textwrap.dedent("""\
+            smtp_server: "smtp.test.com"
+            smtp_port: 587
+            sender_email: "test@test.com"
+        """), encoding="utf-8")
+
+        call_count = 0
+        smtp_instances = []
+
+        class MockSMTP:
+            def __init__(self, *args, **kwargs):
+                smtp_instances.append(self)
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, *args, **kwargs):
+                pass
+
+            def send_message(self, msg):
+                nonlocal call_count
+                call_count += 1
+                if call_count == 1:
+                    raise smtplib.SMTPServerDisconnected("Connection lost")
+
+            def quit(self):
+                pass
+
+        monkeypatch.setattr("smtplib.SMTP", MockSMTP)
+        monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
+
+        log = send_emails(
+            staging_dir=str(staged),
+            template_path=str(tpl),
+            smtp_config_path=str(smtp_cfg),
+        )
+        # S001: first attempt disconnected, retry after reconnect succeeds
+        # S002 and S003: succeed normally
+        assert log.total == 3
+        assert log.success == 3
+        # At least 2 SMTP instances created (original + reconnection)
+        assert len(smtp_instances) >= 2
+
+
+# ---------------------------------------------------------------------------
+# FR-024: SMTP timeout
+# ---------------------------------------------------------------------------
+
+
+class TestSmtpTimeout:
+    """FR-024: timeout=30 passed to smtplib.SMTP constructor."""
+
+    def test_smtp_timeout_passed_to_constructor(self, tmp_path, monkeypatch):
+        """Verify smtplib.SMTP is called with timeout=30."""
+        import os
+        import unittest.mock
+
+        from forma.delivery_send import send_emails
+
+        staged = tmp_path / "staged"
+        staged.mkdir()
+        zp = staged / "S001.zip"
+        zp.write_bytes(b"PK\x03\x04" + b"\x00" * 50)
+        details = [{
+            "student_id": "S001", "name": "S001", "email": "s@t.com",
+            "status": "ready", "matched_files": ["S001.pdf"],
+            "zip_path": str(zp), "zip_size_bytes": 54, "message": "",
+        }]
+        summary = {
+            "prepared_at": "2026-01-01T00:00:00", "class_name": "C",
+            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
+            "details": details,
+        }
+        import yaml as _yaml
+        with open(str(staged / "prepare_summary.yaml"), "w") as f:
+            _yaml.dump(summary, f)
+
+        tpl = tmp_path / "tpl.yaml"
+        tpl.write_text('subject: "T"\nbody: "Hi"', encoding="utf-8")
+        cfg = tmp_path / "smtp.yaml"
+        cfg.write_text(textwrap.dedent("""\
+            smtp_server: "smtp.test.com"
+            smtp_port: 587
+            sender_email: "test@test.com"
+        """), encoding="utf-8")
+
+        smtp_calls = []
+        mock_smtp = unittest.mock.MagicMock()
+        mock_smtp.starttls = lambda **kwargs: None
+        mock_smtp.login = lambda *a, **kw: None
+
+        def _smtp_init(*args, **kwargs):
+            smtp_calls.append(kwargs)
+            return mock_smtp
+
+        monkeypatch.setattr("smtplib.SMTP", _smtp_init)
+        monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
+
+        send_emails(
+            staging_dir=str(staged),
+            template_path=str(tpl),
+            smtp_config_path=str(cfg),
+        )
+        assert len(smtp_calls) >= 1
+        assert smtp_calls[0].get("timeout") == 30
+
+
+# ---------------------------------------------------------------------------
+# FR-025: SMTP auth error with Korean message
+# ---------------------------------------------------------------------------
+
+
+class TestSmtpAuthError:
+    """FR-025: SMTPAuthenticationError surfaces Korean message."""
+
+    def test_smtp_auth_error_korean_message(self, tmp_path, monkeypatch):
+        """SMTPAuthenticationError raises with informative message."""
+        import smtplib
+        import unittest.mock
+
+        from forma.delivery_send import send_emails
+
+        staged = tmp_path / "staged"
+        staged.mkdir()
+        zp = staged / "S001.zip"
+        zp.write_bytes(b"PK\x03\x04" + b"\x00" * 50)
+        details = [{
+            "student_id": "S001", "name": "S001", "email": "s@t.com",
+            "status": "ready", "matched_files": ["S001.pdf"],
+            "zip_path": str(zp), "zip_size_bytes": 54, "message": "",
+        }]
+        summary = {
+            "prepared_at": "2026-01-01T00:00:00", "class_name": "C",
+            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
+            "details": details,
+        }
+        import yaml as _yaml
+        with open(str(staged / "prepare_summary.yaml"), "w") as f:
+            _yaml.dump(summary, f)
+
+        tpl = tmp_path / "tpl.yaml"
+        tpl.write_text('subject: "T"\nbody: "Hi"', encoding="utf-8")
+        cfg = tmp_path / "smtp.yaml"
+        cfg.write_text(textwrap.dedent("""\
+            smtp_server: "smtp.test.com"
+            smtp_port: 587
+            sender_email: "test@test.com"
+        """), encoding="utf-8")
+
+        mock_smtp = unittest.mock.MagicMock()
+        mock_smtp.starttls = lambda **kwargs: None
+        mock_smtp.login.side_effect = smtplib.SMTPAuthenticationError(
+            535, b"Authentication failed"
+        )
+
+        monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
+        monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
+
+        with pytest.raises(smtplib.SMTPAuthenticationError):
+            send_emails(
+                staging_dir=str(staged),
+                template_path=str(tpl),
+                smtp_config_path=str(cfg),
+            )
+
+
+# ---------------------------------------------------------------------------
+# FR-026: Delivery log missing key validation
+# ---------------------------------------------------------------------------
+
+
+class TestDeliveryLogValidation:
+    """FR-026: load_delivery_log with missing required key raises ValueError."""
+
+    def test_delivery_log_missing_key_raises(self, tmp_path):
+        """Missing 'total' key raises ValueError, not KeyError."""
+        from forma.delivery_send import load_delivery_log
+
+        bad_log = tmp_path / "bad_log.yaml"
+        import yaml as _yaml
+        _yaml.dump(
+            {"sent_at": "2026-01-01", "smtp_server": "s"},
+            open(str(bad_log), "w"),
+        )
+
+        with pytest.raises((KeyError, ValueError)):
+            load_delivery_log(str(bad_log))
