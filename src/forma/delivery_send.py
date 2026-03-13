@@ -788,7 +788,7 @@ def send_summary_email(
         body_lines.append("실패 목록:")
         for r in log.results:
             if r.status == "failed":
-                body_lines.append(f"  - {r.student_id} ({r.email}): {r.error}")
+                body_lines.append(f"  - {r.student_id} ({_mask_email(r.email)}): {r.error}")
 
     body = "\n".join(body_lines)
 
