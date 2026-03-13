@@ -204,3 +204,31 @@ class TestCommandDelegation:
         """'forma deliver' delegates to cli_deliver.main()."""
         main(["deliver", "prepare", "--help-is-not-real"])
         mock_deliver_main.assert_called_once()
+
+
+class TestLectureDispatch:
+    """Verify lecture subcommands are registered in cli_main."""
+
+    def test_lecture_analyze_in_commands(self) -> None:
+        """("lecture", "analyze") key exists in _COMMANDS."""
+        from forma.cli_main import _COMMANDS
+
+        assert ("lecture", "analyze") in _COMMANDS
+
+    def test_lecture_compare_in_commands(self) -> None:
+        """("lecture", "compare") key exists in _COMMANDS."""
+        from forma.cli_main import _COMMANDS
+
+        assert ("lecture", "compare") in _COMMANDS
+
+    def test_lecture_class_compare_in_commands(self) -> None:
+        """("lecture", "class-compare") key exists in _COMMANDS."""
+        from forma.cli_main import _COMMANDS
+
+        assert ("lecture", "class-compare") in _COMMANDS
+
+    def test_lecture_in_nested_groups(self) -> None:
+        """'lecture' in _NESTED_GROUPS."""
+        from forma.cli_main import _NESTED_GROUPS
+
+        assert "lecture" in _NESTED_GROUPS

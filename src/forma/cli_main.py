@@ -113,10 +113,19 @@ _COMMANDS: dict[tuple[str, str | None], tuple[str, str]] = {
     ("deliver", None): ("forma.cli_deliver", "main"),
     ("init", None): ("forma.cli_init", "main"),
     ("select", None): ("forma.cli_select", "main"),
+    ("lecture", "analyze"): (
+        "forma.cli_lecture", "main_analyze",
+    ),
+    ("lecture", "compare"): (
+        "forma.cli_lecture", "main_compare",
+    ),
+    ("lecture", "class-compare"): (
+        "forma.cli_lecture", "main_class_compare",
+    ),
 }
 
 # Groups that have nested subcommands
-_NESTED_GROUPS = {"report", "train", "eval"}
+_NESTED_GROUPS = {"report", "train", "eval", "lecture"}
 
 
 def _import_delegate(module_path: str, func_name: str):
@@ -203,6 +212,21 @@ def _build_parser() -> _FormaParser:
     train_sub = train_parser.add_subparsers(dest="train_sub")
     train_sub.add_parser("risk", help="드롭 리스크 예측 모델 학습")
     train_sub.add_parser("grade", help="성적 예측 모델 학습")
+
+    # --- lecture (nested subcommands) ---
+    lecture_parser = subparsers.add_parser(
+        "lecture", help="강의 녹취록 분석",
+    )
+    lecture_sub = lecture_parser.add_subparsers(
+        dest="lecture_sub",
+    )
+    lecture_sub.add_parser("analyze", help="단일 녹취록 분석")
+    lecture_sub.add_parser(
+        "compare", help="동일 세션 반 간 비교",
+    )
+    lecture_sub.add_parser(
+        "class-compare", help="전체 세션 반 간 비교",
+    )
 
     return parser
 
