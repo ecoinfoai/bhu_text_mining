@@ -64,6 +64,18 @@ def find_korean_font() -> str:
     )
 
 
+def strip_invisible(text: str) -> str:
+    """Strip invisible characters from text.
+
+    Removes C0 control characters (except tab, newline, carriage return)
+    and zero-width Unicode characters (U+200B..U+200F, U+FEFF).
+
+    This is the shared stripping logic used by both :func:`esc` (for XML)
+    and ``delivery_prepare.sanitize_filename`` (for filenames).
+    """
+    return _XML_ILLEGAL_CTRL.sub('', str(text))
+
+
 def esc(text: str) -> str:
     """Escape text for use in ReportLab XML/Paragraph markup.
 
@@ -71,8 +83,7 @@ def esc(text: str) -> str:
     and zero-width Unicode characters (U+200B..U+200F, U+FEFF) before
     applying XML entity escaping.
     """
-    cleaned = _XML_ILLEGAL_CTRL.sub('', str(text))
-    return xml.sax.saxutils.escape(cleaned)
+    return xml.sax.saxutils.escape(strip_invisible(text))
 
 
 def register_korean_fonts(font_path: str) -> None:

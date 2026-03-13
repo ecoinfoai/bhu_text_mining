@@ -618,3 +618,42 @@ class TestConfigUnknownKeyWarning:
             )
         finally:
             logger.removeHandler(handler)
+
+
+# ---------------------------------------------------------------------------
+# T013: Shared zero-width stripping
+# ---------------------------------------------------------------------------
+
+
+class TestStripInvisibleShared:
+    """font_utils.strip_invisible() is used by delivery_prepare for zero-width stripping."""
+
+    def test_strip_invisible_importable(self):
+        """strip_invisible can be imported from forma.font_utils."""
+        from forma.font_utils import strip_invisible
+        assert callable(strip_invisible)
+
+    def test_strip_invisible_removes_zero_width(self):
+        """strip_invisible removes zero-width chars."""
+        from forma.font_utils import strip_invisible
+        assert strip_invisible("hello\u200bworld") == "helloworld"
+        assert strip_invisible("\ufefftest") == "test"
+
+    def test_strip_invisible_removes_control_chars(self):
+        """strip_invisible removes C0 control chars (except tab/newline/CR)."""
+        from forma.font_utils import strip_invisible
+        assert strip_invisible("a\x01b") == "ab"
+
+    def test_strip_invisible_preserves_tab_newline(self):
+        """strip_invisible preserves tab and newline (useful for text, not filenames)."""
+        from forma.font_utils import strip_invisible
+        assert strip_invisible("a\tb\n") == "a\tb\n"
+
+    def test_delivery_prepare_uses_strip_invisible(self):
+        """delivery_prepare.sanitize_filename delegates to strip_invisible."""
+        import inspect
+        from forma import delivery_prepare
+        source = inspect.getsource(delivery_prepare.sanitize_filename)
+        assert "strip_invisible" in source, (
+            "sanitize_filename should delegate zero-width stripping to font_utils.strip_invisible"
+        )

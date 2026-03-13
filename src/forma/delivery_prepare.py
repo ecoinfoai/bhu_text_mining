@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 
 import yaml
 
+from forma.font_utils import strip_invisible
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -37,8 +39,8 @@ __all__ = [
 # Characters illegal in filenames across major OSes
 _ILLEGAL_CHARS = re.compile(r'[<>:"/\\|?*]')
 
-# Zero-width and control characters to strip from filenames
-_ZERO_WIDTH_CHARS = re.compile(r'[\u200b\u200c\u200d\u200e\u200f\ufeff\x00-\x1f\x7f]')
+# Tab/newline/CR are preserved by strip_invisible() but illegal in filenames
+_FILENAME_WHITESPACE = re.compile(r'[\t\n\r]')
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +264,8 @@ def sanitize_filename(name: str) -> str:
         Sanitized filename with illegal characters removed and
         byte length limited to ``_MAX_FILENAME_BYTES``.
     """
-    result = _ZERO_WIDTH_CHARS.sub("", name)
+    result = strip_invisible(name)
+    result = _FILENAME_WHITESPACE.sub("", result)
     result = _ILLEGAL_CHARS.sub("", result)
     # Truncate to safe byte length (char-by-char to avoid mid-char cut)
     encoded = result.encode("utf-8")
