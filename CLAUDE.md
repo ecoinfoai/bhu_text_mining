@@ -22,6 +22,9 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - YAML files (PyYAML safe_load), joblib .pkl (model persistence), filesystem (reports/zips) (013-audit-hardening)
 - Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, numpy <2.1.0, scikit-learn >=1.4.0, joblib (via scikit-learn) (014-consistency-hardening)
 - YAML files (pipeline I/O, longitudinal store, intervention log, delivery log), JSON files (forma.json config), joblib `.pkl` (trained models) (014-consistency-hardening)
+- Filesystem — 6 existing `.md` files + 1 new `.md` file (001-update-docs)
+- Python >=3.11, <4 + KoNLPy (Okt), kss, BERTopic, UMAP, HDBSCAN, sentence-transformers, networkx >=3.4.2, matplotlib >=3.10.0 (Agg backend), ReportLab >=4.4.4 (Platypus API), PyYAML >=6.0, numpy <2.1.0 — all existing deps, no new runtime deps (001-stt-lecture-analysis)
+- YAML files (analysis results, comparison results), PNG (network charts), PDF (reports) (001-stt-lecture-analysis)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -71,6 +74,30 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
   forma-train-grade --store <longitudinal.yaml> --grades <grade_mapping.yaml> --output <model.pkl> [--semester LABEL] [--min-students 10]
   ```
 
+- `forma lecture analyze` — analyze a single STT lecture transcript (v0.12.4)
+
+  Usage:
+  ```
+  forma lecture analyze --input <transcript.txt> --output <dir> --class <A> --week <1> \
+    [--concepts <exam.yaml>] [--no-cache] [--top-n 50] [--no-triplets]
+  ```
+
+- `forma lecture compare` — compare class sections for the same session (v0.12.4)
+
+  Usage:
+  ```
+  forma lecture compare --input-dir <dir> --week <1> --classes A B C D --output <dir> \
+    [--concepts <exam.yaml>] [--top-n 50]
+  ```
+
+- `forma lecture class-compare` — compare class sections across all sessions combined (v0.12.4)
+
+  Usage:
+  ```
+  forma lecture class-compare --input-dir <dir> --weeks 1 2 --classes A B C D --output <dir> \
+    [--concepts <exam.yaml>] [--top-n 50]
+  ```
+
 - `forma-report-batch` — multi-class batch report generator
 
   Usage:
@@ -113,10 +140,22 @@ Python >=3.11, <4: Follow standard conventions
 - `cli_report_professor.py` — `+--intervention-log`, `+--grade-model` flags
 - `cli_report_longitudinal.py` — `+--intervention-log` flag
 
+## v0.12.4 New Modules (001-stt-lecture-analysis)
+- `lecture_preprocessor.py` — `BIOLOGY_ABBREVIATIONS` frozenset, `MAX_TRANSCRIPT_LENGTH=50000`, `preprocess_transcript(text, extra_stopwords, extra_abbreviations)` → `CleanedTranscript`, 8-step pipeline: UTF-8/EUC-KR decode, filler removal, char normalization, mixed-token split, 3-layer stopwords, abbreviation preservation, custom stopwords, empty validation
+- `lecture_analyzer.py` — `analyze_transcript(cleaned, concepts, top_n, no_triplets, provider)` → `AnalysisResult`, orchestrates keyword extraction, network generation, topic modeling, emphasis scoring, triplet extraction; independent stage failure (FR-027)
+- `lecture_merge.py` — `merge_transcripts(analyses, class_id)` → `MergedAnalysis`, preserves per-session keyword data alongside combined (FR-022), session boundary markers
+- `lecture_comparison.py` — `compare_sections(analyses, concepts, top_n)` → `ComparisonResult`, exclusive top-N keywords (FR-017), concept gaps (FR-018), emphasis variance ranking (FR-019)
+- `lecture_report.py` — `LectureReportGenerator` (story-based ReportLab Platypus), `generate_analysis_report(result)`, `generate_comparison_report(comparison)` → PDF; labeled placeholder for skipped/failed stages (FR-027)
+- `cli_lecture.py` — `main_analyze()`, `main_compare()`, `main_class_compare()`, registered under `forma lecture` namespace (FR-026)
+
+## v0.12.4 Existing Module Changes
+- `cli_main.py` — `+("lecture", "analyze/compare/class-compare")` in `_COMMANDS`, `+"lecture"` in `_NESTED_GROUPS`, lecture subparser in `_build_parser()`
+- `week_config.py` — `+lecture_*` fields in `WeekConfiguration`, `+"lecture_transcript_pattern"` in `_CLASS_PATTERN_FIELDS`, lecture section parsing in `load_week_config()`
+
 ## Recent Changes
+- 001-stt-lecture-analysis: Added KoNLPy, kss, BERTopic, UMAP, HDBSCAN, sentence-transformers (all existing deps)
+- 001-update-docs: Added N/A (Markdown documentation only)
 - 014-consistency-hardening: Added Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, numpy <2.1.0, scikit-learn >=1.4.0, joblib (via scikit-learn)
-- 013-audit-hardening: Added Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, scikit-learn >=1.4.0, networkx >=3.4.2, smtplib (stdlib), ssl (stdlib), fcntl (stdlib), argparse (stdlib). No new runtime deps.
-- 012-unified-week-config: Added week_config.py (week.yaml loading, {class} pattern resolution, crop_coords write-back), cli_select.py (forma-select CLI). Extended project_config.py for 4-layer config merge. No new runtime dependencies.
 
 
 <!-- MANUAL ADDITIONS START -->
