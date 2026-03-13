@@ -646,7 +646,7 @@ def send_emails(
                 # Preview output (no actual sending)
                 logger.info(
                     "[DRY-RUN] To: %s, Subject: %s, Attachment: %s",
-                    email, subject, os.path.basename(zip_path),
+                    _mask_email(email), subject, os.path.basename(zip_path),
                 )
                 results.append(DeliveryResult(
                     student_id=sid, email=email, status="success",
@@ -690,7 +690,7 @@ def send_emails(
                         ))
                         success_count += 1
                     else:
-                        logger.warning("발송 실패: %s (%s): %s", sid, email, last_error)
+                        logger.warning("발송 실패: %s (%s): %s", sid, _mask_email(email), last_error)
                         results.append(DeliveryResult(
                             student_id=sid, email=email, status="failed",
                             sent_at=now, attachment=os.path.basename(zip_path),
@@ -698,7 +698,7 @@ def send_emails(
                         ))
                         failed_count += 1
                 except Exception as e:
-                    logger.warning("발송 실패: %s (%s): %s", sid, email, e)
+                    logger.warning("발송 실패: %s (%s): %s", sid, _mask_email(email), e)
                     results.append(DeliveryResult(
                         student_id=sid, email=email, status="failed",
                         sent_at=now, attachment=os.path.basename(zip_path),
@@ -752,7 +752,7 @@ def print_delivery_summary(log: DeliveryLog) -> None:
     if log.failed > 0:
         failed_results = [r for r in log.results if r.status == "failed"]
         for r in failed_results:
-            print(f"  [FAILED] {r.student_id} ({r.email}): {r.error}")
+            print(f"  [FAILED] {r.student_id} ({_mask_email(r.email)}): {r.error}")
 
 
 def send_summary_email(

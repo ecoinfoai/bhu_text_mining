@@ -2703,9 +2703,7 @@ class TestSmtpReconnection:
 
     def test_reconnection_after_disconnect(self, tmp_path, monkeypatch):
         """Mock disconnect at send #1, verify reconnection and completion."""
-        import os
         import smtplib
-        import unittest.mock
 
         from forma.delivery_send import send_emails
 
@@ -2792,7 +2790,6 @@ class TestSmtpTimeout:
 
     def test_smtp_timeout_passed_to_constructor(self, tmp_path, monkeypatch):
         """Verify smtplib.SMTP is called with timeout=30."""
-        import os
         import unittest.mock
 
         from forma.delivery_send import send_emails
@@ -2925,3 +2922,112 @@ class TestDeliveryLogValidation:
 
         with pytest.raises((KeyError, ValueError)):
             load_delivery_log(str(bad_log))
+
+
+# ---------------------------------------------------------------------------
+# T014: PII masking in logger/print paths
+# ---------------------------------------------------------------------------
+
+
+class TestPiiMaskingInLogs:
+    """Verify that raw emails are masked in log/print output paths."""
+
+    def test_mask_email_in_dry_run_log(self, tmp_path):
+        """DRY-RUN log message uses masked email, not raw email."""
+        import logging
+
+        from forma.delivery_send import SmtpConfig, send_emails
+
+        # Setup staging dir with prepare_summary
+        staging = tmp_path / "staging"
+        staging.mkdir()
+        summary = {
+            "class_name": "1A",
+            "details": [{
+                "student_id": "S001",
+                "name": "홍길동",
+                "email": "student@example.com",
+                "status": "ready",
+                "zip_path": str(staging / "S001.zip"),
+            }],
+        }
+        # Create prepare_summary.yaml
+        import yaml as _yaml
+        with open(staging / "prepare_summary.yaml", "w") as f:
+            _yaml.dump(summary, f, allow_unicode=True)
+
+        # Create fake zip
+        with open(staging / "S001.zip", "wb") as f:
+            f.write(b"PK\x03\x04" + b"\x00" * 26)
+
+        # Create template
+        template_path = tmp_path / "template.yaml"
+        with open(template_path, "w") as f:
+            _yaml.dump({"subject": "Test", "body": "Hello"}, f)
+
+        smtp_cfg = SmtpConfig(
+            smtp_server="smtp.example.com",
+            smtp_port=587,
+            sender_email="prof@example.com",
+        )
+
+        log_messages = []
+
+        class LogCapture(logging.Handler):
+            def emit(self, record):
+                log_messages.append(record.getMessage())
+
+        handler = LogCapture()
+        logger = logging.getLogger("forma.delivery_send")
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+
+        try:
+            send_emails(
+                str(staging), str(template_path), "",
+                dry_run=True,
+                smtp_config=smtp_cfg,
+            )
+        finally:
+            logger.removeHandler(handler)
+
+        # Check that no log message contains the raw email
+        for msg in log_messages:
+            if "DRY-RUN" in msg and "student@example.com" in msg:
+                pytest.fail(f"Raw email found in log message: {msg}")
+
+    def test_mask_email_in_failed_print(self):
+        """print_delivery_summary masks emails in failed student output."""
+        import io
+        from contextlib import redirect_stdout
+        from forma.delivery_send import DeliveryLog, DeliveryResult, print_delivery_summary
+
+        log = DeliveryLog(
+            sent_at="2026-01-01T00:00:00Z",
+            smtp_server="smtp.example.com",
+            dry_run=False,
+            total=1,
+            success=0,
+            failed=1,
+            results=[
+                DeliveryResult(
+                    student_id="S001",
+                    email="longname@university.ac.kr",
+                    status="failed",
+                    sent_at="2026-01-01T00:00:00Z",
+                    attachment="S001.zip",
+                    size_bytes=1024,
+                    error="Connection refused",
+                ),
+            ],
+        )
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            print_delivery_summary(log)
+
+        output = buf.getvalue()
+        # Raw email should NOT appear in output
+        assert "longname@university.ac.kr" not in output, (
+            f"Raw email found in summary output: {output}"
+        )
