@@ -515,6 +515,9 @@ class TestFeatureExtractorNanSafety:
         # score_mean must not be NaN
         score_mean_idx = names.index("score_mean")
         assert not np.isnan(matrix[0, score_mean_idx]), "score_mean should be NaN-safe"
+        # Week 1 NaN -> _safe_nanmean([nan])=0.0; weeks 2,3 produce 0.6, 0.7
+        # score_mean = mean([0.0, 0.6, 0.7]) ≈ 0.433
+        assert abs(matrix[0, score_mean_idx] - 0.4333) < 0.05, "score_mean should include 0.0 for NaN weeks"
 
     def test_nan_in_concept_coverage(self):
         """NaN in concept_coverage does not produce NaN in coverage_mean."""
@@ -534,6 +537,8 @@ class TestFeatureExtractorNanSafety:
 
         cov_idx = names.index("coverage_mean")
         assert not np.isnan(matrix[0, cov_idx]), "coverage_mean should be NaN-safe"
+        # Week 1 NaN filtered, week 2 coverage = 0.5 -> mean should be close to 0.25..0.5
+        assert matrix[0, cov_idx] > 0.0, "coverage_mean should reflect valid data"
 
     def test_nan_in_edge_f1(self):
         """NaN in edge_f1 does not produce NaN in edge_f1_mean."""
@@ -555,6 +560,9 @@ class TestFeatureExtractorNanSafety:
 
         f1_idx = names.index("edge_f1_mean")
         assert not np.isnan(matrix[0, f1_idx]), "edge_f1_mean should be NaN-safe"
+        # Week 1 edge_f1 is NaN (passed as float('nan'), goes through float(r.edge_f1))
+        # Week 2 edge_f1 = 0.7 -> mean of [nan_mean, 0.7] should be non-NaN
+        assert matrix[0, f1_idx] > 0.0, "edge_f1_mean should reflect valid data"
 
     def test_all_nan_scores_produces_zero(self):
         """When all scores are NaN, features should be 0.0, not NaN."""
