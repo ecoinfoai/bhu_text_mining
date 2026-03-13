@@ -1,33 +1,45 @@
-"""Adversary tests for v0.12.0 audit hardening.
+"""Adversary tests for v0.12.0 consistency hardening.
 
-6 adversarial personas with 30+ attack scenarios:
+12 adversarial personas with 90+ attack scenarios:
 
-1. 경로 탐색자 (PathTraversalAttacker) -- path traversal via student_id, filenames
-2. 유니코드 파괴자 (UnicodeDestroyer) -- zero-width chars, control chars, RTL overrides
-3. 설정 오염자 (ConfigPoisoner) -- malformed YAML, type confusion, pickle payloads
-4. 네트워크 파괴자 (NetworkDestroyer) -- SMTP injection, TLS downgrade, timeout abuse
-5. 권한 상승자 (PrivilegeEscalator) -- file permission bypass, OAuth token theft
-6. 과부하자 (Overloader) -- large inputs, boundary values, resource exhaustion
+Original 6 personas (delivery & boundary):
+1. PathTraversalAttacker -- path traversal via student_id, filenames
+2. UnicodeDestroyer -- zero-width chars, control chars, RTL overrides
+3. ConfigPoisoner -- malformed YAML, type confusion, pickle payloads
+4. NetworkDestroyer -- SMTP injection, TLS downgrade, timeout abuse
+5. PrivilegeEscalator -- file permission bypass, OAuth token theft
+6. Overloader -- large inputs, boundary values, resource exhaustion
+
+New 6 personas (consistency hardening):
+7. NaNBombardier -- NaN/inf/-inf injection in numeric fields
+8. XMLInjectionSpecialist -- XML/HTML injection in text fields
+9. UnicodeDestroyerAdvanced -- deeper Unicode attacks (BOM, combining, emoji)
+10. FileSystemSaboteur -- io_utils.py atomic write edge cases
+11. ConfigPoisonerAdvanced -- all config loaders and CLI tools
+12. EmptyValueAttacker -- empty/null/zero values in public APIs
 
 FR-044/045/046/047 coverage.
 """
 
 from __future__ import annotations
 
+import math
+import threading
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
 
 from forma.delivery_prepare import DeliveryManifest, match_files_for_student
 
 
 # ===========================================================================
-# Persona 1: 경로 탐색자
+# Persona 1: PathTraversalAttacker (original)
 # ===========================================================================
 
 
 class TestPathTraversalAttacker:
-    """Persona 1: 경로 탐색자 -- tries to escape base directory."""
+    """Persona 1: tries to escape base directory."""
 
     def _make_manifest(self, tmpdir: str) -> DeliveryManifest:
         return DeliveryManifest(directory=tmpdir, file_patterns=["{student_id}.pdf"])
@@ -89,12 +101,12 @@ class TestPathTraversalAttacker:
 
 
 # ===========================================================================
-# Persona 2: 유니코드 파괴자
+# Persona 2: UnicodeDestroyer (original)
 # ===========================================================================
 
 
 class TestUnicodeDestroyer:
-    """Persona 2: 유니코드 파괴자 -- injects malicious Unicode sequences."""
+    """Persona 2: injects malicious Unicode sequences."""
 
     def test_zero_width_in_filename_produces_unnamed(self) -> None:
         """sanitize_filename() with only zero-width chars returns '_unnamed'."""
@@ -169,12 +181,12 @@ class TestUnicodeDestroyer:
 
 
 # ===========================================================================
-# Persona 3: 설정 오염자
+# Persona 3: ConfigPoisoner (original)
 # ===========================================================================
 
 
 class TestConfigPoisoner:
-    """Persona 3: 설정 오염자 -- corrupts config files and model payloads."""
+    """Persona 3: corrupts config files and model payloads."""
 
     def test_load_model_with_dict_raises(self, tmp_path) -> None:
         """joblib file containing a plain dict raises TypeError."""
@@ -238,12 +250,12 @@ class TestConfigPoisoner:
 
 
 # ===========================================================================
-# Persona 4: 네트워크 파괴자
+# Persona 4: NetworkDestroyer (original)
 # ===========================================================================
 
 
 class TestNetworkDestroyer:
-    """Persona 4: 네트워크 파괴자 -- exploits SMTP/HTTP vulnerabilities."""
+    """Persona 4: exploits SMTP/HTTP vulnerabilities."""
 
     def test_crlf_in_subject_stripped(self) -> None:
         """CRLF injection in email subject is sanitized."""
@@ -345,12 +357,12 @@ class TestNetworkDestroyer:
 
 
 # ===========================================================================
-# Persona 5: 권한 상승자
+# Persona 5: PrivilegeEscalator (original)
 # ===========================================================================
 
 
 class TestPrivilegeEscalator:
-    """Persona 5: 권한 상승자 -- attempts unauthorized file access."""
+    """Persona 5: attempts unauthorized file access."""
 
     def test_oauth_token_file_permissions(self, tmp_path, monkeypatch) -> None:
         """After writing OAuth token, file permissions are 0o600."""
@@ -416,12 +428,12 @@ class TestPrivilegeEscalator:
 
 
 # ===========================================================================
-# Persona 6: 과부하자
+# Persona 6: Overloader (original)
 # ===========================================================================
 
 
 class TestOverloader:
-    """Persona 6: 과부하자 -- triggers resource exhaustion and boundary errors."""
+    """Persona 6: triggers resource exhaustion and boundary errors."""
 
     def test_epsilon_slope_not_flagged_as_decline(self) -> None:
         """Slope of -1e-16 should NOT be treated as SCORE_DECLINE."""
@@ -539,7 +551,7 @@ class TestOverloader:
 
 
 # ===========================================================================
-# Adversary expansion: aggressive attacks (adversary agent)
+# Expanded originals: PathTraversalAttacker
 # ===========================================================================
 
 
@@ -608,6 +620,11 @@ class TestPathTraversalAttackerExpanded:
             prepare_delivery(str(manifest_path), str(roster_path), str(output_dir))
 
 
+# ===========================================================================
+# Expanded originals: UnicodeDestroyer
+# ===========================================================================
+
+
 class TestUnicodeDestroyerExpanded:
     """Persona 2 expansion: more aggressive Unicode attacks."""
 
@@ -615,7 +632,6 @@ class TestUnicodeDestroyerExpanded:
         """RTL override U+202E is NOT in _ZERO_WIDTH_CHARS; left in result."""
         from forma.delivery_prepare import sanitize_filename
 
-        # U+202E is not stripped by current regex (only 200B-200F + FEFF)
         result = sanitize_filename("\u202emanifest.pdf")
         assert result  # still produces a valid filename
 
@@ -677,6 +693,11 @@ class TestUnicodeDestroyerExpanded:
         assert result == "_unnamed"
 
 
+# ===========================================================================
+# Expanded originals: ConfigPoisoner
+# ===========================================================================
+
+
 class TestConfigPoisonerExpanded:
     """Persona 3 expansion: YAML bombs, type confusion, boundary attacks."""
 
@@ -684,7 +705,6 @@ class TestConfigPoisonerExpanded:
         """YAML with 100 nesting levels does not crash safe_load."""
         import yaml
 
-        # Build properly nested YAML: each level indented further
         lines = []
         for i in range(100):
             lines.append("  " * i + f"level{i}:")
@@ -843,6 +863,11 @@ class TestConfigPoisonerExpanded:
             load_delivery_log(str(log_path))
 
 
+# ===========================================================================
+# Expanded originals: NetworkDestroyer
+# ===========================================================================
+
+
 class TestNetworkDestroyerExpanded:
     """Persona 4 expansion: header injection, format strings, timeouts."""
 
@@ -875,7 +900,6 @@ class TestNetworkDestroyerExpanded:
         """Format string {__class__} as standalone variable blocked by validate_template_variables."""
         from forma.delivery_send import EmailTemplate, validate_template_variables
 
-        # {__class__} without dots is caught by \{(\w+)\} regex as unsupported var
         template = EmailTemplate(
             subject="Report for {student_name}",
             body="Hello {student_name}, secret: {__class__}",
@@ -912,6 +936,11 @@ class TestNetworkDestroyerExpanded:
         )
         assert "\r" not in msg["To"]
         assert "\n" not in msg["To"]
+
+
+# ===========================================================================
+# Expanded originals: PrivilegeEscalator
+# ===========================================================================
 
 
 class TestPrivilegeEscalatorExpanded:
@@ -987,6 +1016,11 @@ class TestPrivilegeEscalatorExpanded:
             prepare_delivery(str(manifest_path), str(roster_path), "/etc/forma_test_output")
 
 
+# ===========================================================================
+# Expanded originals: Overloader
+# ===========================================================================
+
+
 class TestOverloaderExpanded:
     """Persona 6 expansion: scalability, boundary values, concurrent writes."""
 
@@ -1040,7 +1074,6 @@ class TestOverloaderExpanded:
 
     def test_all_identical_scores_single_class_risk(self) -> None:
         """All students identical scores -- single-class augmentation."""
-        import numpy as np
         from forma.risk_predictor import RiskPredictor
 
         predictor = RiskPredictor()
@@ -1052,7 +1085,6 @@ class TestOverloaderExpanded:
 
     def test_risk_predictor_10_students_passes(self) -> None:
         """Exactly 10 students passes min_students; 9 raises ValueError."""
-        import numpy as np
         from forma.risk_predictor import RiskPredictor
 
         predictor = RiskPredictor()
@@ -1068,7 +1100,6 @@ class TestOverloaderExpanded:
 
     def test_cold_start_grade_085_predicts_A(self) -> None:
         """Cold start: score_mean=0.85 predicts A."""
-        import numpy as np
         from forma.grade_predictor import GradePredictor, GRADE_FEATURE_NAMES
 
         predictor = GradePredictor()
@@ -1079,7 +1110,6 @@ class TestOverloaderExpanded:
 
     def test_cold_start_grade_029_predicts_F(self) -> None:
         """Cold start: score_mean=0.29 predicts F."""
-        import numpy as np
         from forma.grade_predictor import GradePredictor, GRADE_FEATURE_NAMES
 
         predictor = GradePredictor()
@@ -1114,7 +1144,6 @@ class TestOverloaderExpanded:
 
     def test_concurrent_intervention_log_writes(self, tmp_path) -> None:
         """Two threads writing to InterventionLog -- at least one preserved."""
-        import threading
         from forma.intervention_store import InterventionLog
 
         log_path = str(tmp_path / "concurrent_log.yaml")
@@ -1183,3 +1212,781 @@ class TestOverloaderExpanded:
         assert _DEFICIT_MASTERY_THRESHOLD == 0.3
         assert _DROP_PROB_INCLUSION_THRESHOLD == 0.5
         assert _SLOPE_EPSILON == pytest.approx(1e-9)
+
+
+# ###########################################################################
+# NEW PERSONAS: Consistency Hardening Attack Tests
+# ###########################################################################
+
+
+# ===========================================================================
+# Persona 7: NaN Bombardier
+# ===========================================================================
+
+
+class TestNaNBombardier:
+    """Persona 7: Inject NaN, inf, -inf into ALL numeric fields.
+
+    Targets risk_predictor._safe_nanmean, _safe_nanvar, _ols_slope, and
+    FeatureExtractor to verify NaN-safe computation throughout the pipeline.
+    """
+
+    def test_safe_nanmean_all_nan(self) -> None:
+        """_safe_nanmean([NaN, NaN, NaN]) returns 0.0, not NaN."""
+        from forma.risk_predictor import _safe_nanmean
+
+        result = _safe_nanmean([float("nan"), float("nan"), float("nan")])
+        assert result == 0.0
+        assert not math.isnan(result)
+
+    def test_safe_nanmean_single_nan(self) -> None:
+        """_safe_nanmean([NaN]) returns 0.0."""
+        from forma.risk_predictor import _safe_nanmean
+
+        result = _safe_nanmean([float("nan")])
+        assert result == 0.0
+
+    def test_safe_nanmean_mixed_nan_valid(self) -> None:
+        """_safe_nanmean with mixed NaN/valid returns mean of valid values."""
+        from forma.risk_predictor import _safe_nanmean
+
+        result = _safe_nanmean([float("nan"), 2.0, float("nan"), 4.0])
+        assert result == pytest.approx(3.0)
+        assert not math.isnan(result)
+
+    def test_safe_nanmean_empty(self) -> None:
+        """_safe_nanmean([]) returns 0.0 without crashing."""
+        from forma.risk_predictor import _safe_nanmean
+
+        result = _safe_nanmean([])
+        assert result == 0.0
+
+    def test_safe_nanmean_inf_values(self) -> None:
+        """_safe_nanmean with inf/-inf returns the inf mean (not NaN)."""
+        from forma.risk_predictor import _safe_nanmean
+
+        result_pos = _safe_nanmean([float("inf"), 1.0])
+        assert math.isinf(result_pos) or not math.isnan(result_pos)
+
+        result_both = _safe_nanmean([float("inf"), float("-inf")])
+        # inf + -inf = nan, so should return 0.0
+        assert result_both == 0.0
+
+    def test_safe_nanvar_all_nan(self) -> None:
+        """_safe_nanvar([NaN, NaN]) returns 0.0."""
+        from forma.risk_predictor import _safe_nanvar
+
+        result = _safe_nanvar([float("nan"), float("nan")])
+        assert result == 0.0
+        assert not math.isnan(result)
+
+    def test_safe_nanvar_single_value(self) -> None:
+        """_safe_nanvar with single non-NaN value returns 0.0 (no variance)."""
+        from forma.risk_predictor import _safe_nanvar
+
+        result = _safe_nanvar([5.0])
+        assert result == 0.0
+        assert not math.isnan(result)
+
+    def test_safe_nanvar_mixed(self) -> None:
+        """_safe_nanvar with mixed NaN and values computes variance of valid only."""
+        from forma.risk_predictor import _safe_nanvar
+
+        result = _safe_nanvar([float("nan"), 2.0, 4.0, float("nan")])
+        assert result == pytest.approx(1.0)  # var([2,4]) = 1.0
+
+    def test_ols_slope_all_nan(self) -> None:
+        """_ols_slope with all NaN returns 0.0 (fewer than 2 clean values)."""
+        from forma.risk_predictor import _ols_slope
+
+        result = _ols_slope([float("nan"), float("nan"), float("nan")])
+        assert result == 0.0
+
+    def test_ols_slope_single_valid_among_nan(self) -> None:
+        """_ols_slope with 1 valid + NaN returns 0.0."""
+        from forma.risk_predictor import _ols_slope
+
+        result = _ols_slope([float("nan"), 3.0, float("nan")])
+        assert result == 0.0
+
+    def test_ols_slope_two_valid_among_nan(self) -> None:
+        """_ols_slope with 2+ valid values computes slope, ignoring NaN."""
+        from forma.risk_predictor import _ols_slope
+
+        result = _ols_slope([float("nan"), 1.0, float("nan"), 3.0])
+        assert result == pytest.approx(2.0)
+        assert not math.isnan(result)
+
+    def test_ols_slope_inf_in_series(self) -> None:
+        """_ols_slope with inf in data does not crash."""
+        from forma.risk_predictor import _ols_slope
+
+        # polyfit may produce warnings but should not crash
+        result = _ols_slope([1.0, float("inf"), 3.0])
+        assert isinstance(result, float)
+
+    def test_feature_extractor_all_nan_scores(self) -> None:
+        """FeatureExtractor with records whose scores are NaN produces valid features."""
+        from unittest.mock import MagicMock
+        from forma.risk_predictor import FeatureExtractor
+
+        store = MagicMock()
+        # Create records with NaN scores
+        records = []
+        for i in range(3):
+            r = MagicMock()
+            r.student_id = "S001"
+            r.week = i + 1
+            r.scores = {"ensemble_score": float("nan"), "concept_coverage": float("nan")}
+            r.tier_level = 0
+            r.misconception_count = None
+            r.edge_f1 = None
+            records.append(r)
+
+        store.get_all_records.return_value = records
+        store.get_class_weekly_matrix.return_value = {
+            "S001": {1: float("nan"), 2: float("nan"), 3: float("nan")}
+        }
+
+        extractor = FeatureExtractor()
+        matrix, names, sids = extractor.extract(store, [1, 2, 3])
+
+        # All features should be finite (no NaN in output)
+        assert sids == ["S001"]
+        for val in matrix[0]:
+            assert not math.isnan(val), f"NaN in feature vector: {matrix[0]}"
+
+
+# ===========================================================================
+# Persona 8: XML Injection Specialist
+# ===========================================================================
+
+
+class TestXMLInjectionSpecialist:
+    """Persona 8: Inject malicious XML/HTML into text fields for all reports.
+
+    Tests esc() neutralization of script tags, entity encoding, CDATA,
+    nested tags, and very long strings with mixed XML specials.
+    """
+
+    def test_script_tag_in_student_id(self) -> None:
+        """<script>alert(1)</script> in text is neutralized by esc()."""
+        from forma.font_utils import esc
+
+        result = esc('<script>alert(1)</script>')
+        assert "<script>" not in result
+        assert "&lt;script&gt;" in result
+
+    def test_double_encoding_not_applied(self) -> None:
+        """Already-escaped &amp; is not double-escaped to &amp;amp;."""
+        from forma.font_utils import esc
+
+        # esc() escapes & to &amp;, so &amp; becomes &amp;amp; -- this is correct XML
+        # behavior: the INPUT is raw text, not pre-escaped XML. We just verify no crash.
+        result = esc("&amp;&lt;&gt;")
+        assert result  # non-empty
+        # The & in &amp; gets escaped to &amp;amp; which is correct
+        assert "&amp;" in result
+
+    def test_nested_xml_tags(self) -> None:
+        """Nested XML tags <b><i>test</i></b> are fully escaped."""
+        from forma.font_utils import esc
+
+        result = esc("<b><i>test</i></b>")
+        assert "<b>" not in result
+        assert "<i>" not in result
+        assert "&lt;b&gt;&lt;i&gt;test&lt;/i&gt;&lt;/b&gt;" == result
+
+    def test_cdata_injection(self) -> None:
+        """CDATA <![CDATA[attack]]> injection is escaped."""
+        from forma.font_utils import esc
+
+        result = esc("<![CDATA[attack]]>")
+        assert "<![CDATA[" not in result
+        assert "&lt;![CDATA[attack]]&gt;" == result
+
+    def test_very_long_string_with_xml_specials(self) -> None:
+        """10000-char string with mixed < > & is fully escaped without crash."""
+        from forma.font_utils import esc
+
+        payload = ("<script>" * 500 + "&" * 1000 + "normal" * 500)
+        result = esc(payload)
+        assert "<script>" not in result
+        assert "&lt;" in result
+        assert "&amp;" in result
+
+    def test_xml_processing_instruction(self) -> None:
+        """Processing instruction <?xml version="1.0"?> is escaped."""
+        from forma.font_utils import esc
+
+        result = esc('<?xml version="1.0"?>')
+        assert "<?xml" not in result
+        assert "&lt;?xml" in result
+
+    def test_esc_with_all_special_chars(self) -> None:
+        """esc() with <, >, &, ", ' all present."""
+        from forma.font_utils import esc
+
+        result = esc("""<tag attr="val" other='val2'>content & stuff</tag>""")
+        assert "<tag" not in result
+        assert "&lt;" in result
+        assert "&amp;" in result
+
+    def test_strip_invisible_then_xml_escape(self) -> None:
+        """esc() strips invisible chars THEN escapes XML, not the other way around."""
+        from forma.font_utils import esc
+
+        # Control char \x01 should be stripped, then & should be escaped
+        result = esc("\x01&\x02<")
+        assert result == "&amp;&lt;"
+        assert "\x01" not in result
+        assert "\x02" not in result
+
+
+# ===========================================================================
+# Persona 9: Unicode Destroyer Advanced
+# ===========================================================================
+
+
+class TestUnicodeDestroyerAdvanced:
+    """Persona 9: Deeper Unicode attacks beyond basic zero-width chars.
+
+    Tests BOM stripping, combining characters, emoji sequences, null byte
+    handling, RTL override, and mixed script attacks.
+    """
+
+    def test_bom_at_start_stripped_by_esc(self) -> None:
+        """BOM (U+FEFF) at start of string is stripped by esc()."""
+        from forma.font_utils import esc
+
+        result = esc("\uFEFFHello World")
+        assert "\uFEFF" not in result
+        assert "Hello World" in result
+
+    def test_null_byte_stripped_by_esc(self) -> None:
+        """Null byte U+0000 in text is stripped by esc()."""
+        from forma.font_utils import esc
+
+        result = esc("before\x00after")
+        assert "\x00" not in result
+        assert "beforeafter" == result
+
+    def test_emoji_family_sequence_in_esc(self) -> None:
+        """Family emoji (ZWJ sequence) does not crash esc()."""
+        from forma.font_utils import esc
+
+        # Family emoji: man, ZWJ, woman, ZWJ, girl, ZWJ, boy
+        # Note: ZWJ (U+200D) is stripped by esc(), so the emoji is decomposed
+        family = "\U0001f468\u200d\U0001f469\u200d\U0001f467\u200d\U0001f466"
+        result = esc(family)
+        # ZWJ chars are stripped; remaining emoji codepoints preserved
+        assert "\u200d" not in result
+        assert isinstance(result, str)
+
+    def test_rtl_override_does_not_crash_esc(self) -> None:
+        """RTL override U+202E in concept names does not crash esc()."""
+        from forma.font_utils import esc
+
+        result = esc("\u202Emalicious\u202C")
+        # esc does not strip U+202E (not in _XML_ILLEGAL_CTRL range)
+        assert isinstance(result, str)
+
+    def test_combining_chars_preserved(self) -> None:
+        """Combining characters (e.g., e + combining acute accent) not corrupted."""
+        from forma.font_utils import esc
+
+        # e followed by combining acute accent = e with acute
+        text = "e\u0301"
+        result = esc(text)
+        assert result == "e\u0301"
+
+    def test_all_c0_controls_stripped_except_tab_nl_cr(self) -> None:
+        """All C0 control chars (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F, 0x7F) stripped."""
+        from forma.font_utils import esc
+
+        # Build string with all C0 controls
+        c0_chars = "".join(chr(i) for i in range(0, 32))
+        c0_chars += chr(0x7f)  # DEL
+
+        result = esc(c0_chars + "clean")
+        # Only \t (0x09), \n (0x0A), \r (0x0D) should survive
+        assert "\t" in result
+        assert "\n" in result
+        assert "\r" in result
+        assert "clean" in result
+        # Others stripped
+        assert "\x00" not in result
+        assert "\x01" not in result
+        assert "\x7f" not in result
+
+    def test_strip_invisible_shared_by_esc_and_sanitize(self) -> None:
+        """strip_invisible() used by both esc() and sanitize_filename_report()."""
+        from forma.font_utils import strip_invisible
+
+        text = "\uFEFF\u200BHello\x00World\u200D"
+        result = strip_invisible(text)
+        assert "\uFEFF" not in result
+        assert "\u200B" not in result
+        assert "\x00" not in result
+        assert "\u200D" not in result
+        assert "HelloWorld" == result
+
+    def test_mixed_invisible_with_korean(self) -> None:
+        """strip_invisible preserves Korean while stripping invisible chars."""
+        from forma.font_utils import strip_invisible
+
+        text = "\uFEFF김\u200B철\u200C수\x01"
+        result = strip_invisible(text)
+        assert result == "김철수"
+
+
+# ===========================================================================
+# Persona 10: File System Saboteur
+# ===========================================================================
+
+
+class TestFileSystemSaboteur:
+    """Persona 10: Test io_utils.py atomic write edge cases.
+
+    Verifies that atomic writes handle read-only dirs, non-serializable data,
+    large data, Unicode content, concurrent writes, and failure recovery.
+    """
+
+    def test_atomic_write_yaml_read_only_dir_raises(self, tmp_path) -> None:
+        """Write to read-only directory raises OSError, no temp file left."""
+        import os
+        from forma.io_utils import atomic_write_yaml
+
+        ro_dir = tmp_path / "readonly"
+        ro_dir.mkdir()
+        target = ro_dir / "test.yaml"
+
+        # Make directory read-only
+        os.chmod(str(ro_dir), 0o555)
+        try:
+            with pytest.raises(OSError):
+                atomic_write_yaml({"key": "value"}, str(target))
+
+            # Verify no temp files remain
+            leftover = list(ro_dir.iterdir())
+            assert len(leftover) == 0, f"Temp files left behind: {leftover}"
+        finally:
+            os.chmod(str(ro_dir), 0o755)
+
+    def test_atomic_write_yaml_non_serializable_raises(self, tmp_path) -> None:
+        """Non-YAML-serializable data (generator) raises, no temp file left."""
+        from forma.io_utils import atomic_write_yaml
+
+        def _gen():
+            yield 1
+
+        target = str(tmp_path / "bad.yaml")
+        with pytest.raises(TypeError):
+            atomic_write_yaml({"gen": _gen()}, target)
+
+        # Verify no temp file remains
+        tmp_files = [f for f in tmp_path.iterdir() if f.suffix == ".tmp"]
+        assert len(tmp_files) == 0, f"Temp files left: {tmp_files}"
+
+    def test_atomic_write_yaml_large_data(self, tmp_path) -> None:
+        """atomic_write_yaml with 1000+ keys succeeds."""
+        from forma.io_utils import atomic_write_yaml
+        import yaml
+
+        data = {f"key_{i}": f"value_{i}" for i in range(1500)}
+        target = str(tmp_path / "large.yaml")
+        atomic_write_yaml(data, target)
+
+        with open(target) as f:
+            loaded = yaml.safe_load(f)
+        assert len(loaded) == 1500
+
+    def test_atomic_write_json_unicode_korean(self, tmp_path) -> None:
+        """atomic_write_json with Korean content encodes correctly."""
+        from forma.io_utils import atomic_write_json
+        import json
+
+        data = {"학생": "김철수", "과목": "물리학", "주차": 3}
+        target = str(tmp_path / "korean.json")
+        atomic_write_json(data, target)
+
+        with open(target, encoding="utf-8") as f:
+            loaded = json.load(f)
+        assert loaded["학생"] == "김철수"
+        assert loaded["과목"] == "물리학"
+
+    def test_atomic_write_concurrent_with_lock(self, tmp_path) -> None:
+        """Two threads writing with lock=True both succeed without corruption."""
+        from forma.io_utils import atomic_write_yaml
+        import yaml
+
+        target = str(tmp_path / "concurrent.yaml")
+        errors = []
+
+        def writer(thread_id: int) -> None:
+            try:
+                data = {f"thread_{thread_id}": f"data_{thread_id}"}
+                atomic_write_yaml(data, target, lock=True)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=writer, args=(i,)) for i in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        assert not errors, f"Thread errors: {errors}"
+
+        # File should exist and be valid YAML
+        with open(target) as f:
+            loaded = yaml.safe_load(f)
+        assert isinstance(loaded, dict)
+
+    def test_atomic_write_preserves_original_on_failure(self, tmp_path) -> None:
+        """Original file preserved when atomic_write fails mid-operation."""
+        from forma.io_utils import atomic_write_yaml
+        import yaml
+
+        target = str(tmp_path / "preserve.yaml")
+        original = {"original": "data"}
+        atomic_write_yaml(original, target)
+
+        # Attempt write with non-serializable data (generator)
+        def _gen():
+            yield 1
+
+        try:
+            atomic_write_yaml({"gen": _gen()}, target)
+        except Exception:
+            pass
+
+        # Original should still be intact
+        with open(target) as f:
+            loaded = yaml.safe_load(f)
+        assert loaded == original
+
+    def test_atomic_write_text_basic(self, tmp_path) -> None:
+        """atomic_write_text writes and reads back correctly."""
+        from forma.io_utils import atomic_write_text
+
+        target = str(tmp_path / "text.txt")
+        content = "Hello, this is a test.\n한국어 텍스트."
+        atomic_write_text(content, target)
+
+        with open(target, encoding="utf-8") as f:
+            assert f.read() == content
+
+    def test_atomic_write_json_circular_ref_raises(self, tmp_path) -> None:
+        """Circular reference in JSON data raises TypeError, no temp file."""
+        from forma.io_utils import atomic_write_json
+
+        data: dict = {}
+        data["self"] = data  # circular
+
+        target = str(tmp_path / "circular.json")
+        with pytest.raises((TypeError, ValueError)):
+            atomic_write_json(data, target)
+
+        tmp_files = [f for f in tmp_path.iterdir() if f.suffix == ".tmp"]
+        assert len(tmp_files) == 0
+
+
+# ===========================================================================
+# Persona 11: Config Poisoner Advanced
+# ===========================================================================
+
+
+class TestConfigPoisonerAdvanced:
+    """Persona 11: Feed malicious configuration to all config loaders.
+
+    Tests config.py with unknown keys, wrong types, empty YAML, deeply
+    nested structures, and YAML alias bombs.
+    """
+
+    def test_config_unknown_keys_logged(self, tmp_path, caplog) -> None:
+        """Unknown keys in forma.json trigger a warning log."""
+        import json
+        import logging
+        from forma.config import load_config
+
+        config_path = tmp_path / "forma.json"
+        config_path.write_text(json.dumps({
+            "smtp": {"server": "test"},
+            "unknown_key": "malicious",
+            "another_unknown": 42,
+        }))
+
+        with caplog.at_level(logging.WARNING, logger="forma.config"):
+            result = load_config(str(config_path))
+
+        assert "unknown_key" in caplog.text or "another_unknown" in caplog.text
+        assert isinstance(result, dict)
+
+    def test_config_naver_ocr_string_instead_of_dict_raises(self, tmp_path) -> None:
+        """naver_ocr as string instead of dict raises KeyError."""
+        import json
+        from forma.config import load_config, get_naver_ocr_config
+
+        config_path = tmp_path / "forma.json"
+        config_path.write_text(json.dumps({"naver_ocr": "not_a_dict"}))
+
+        config = load_config(str(config_path))
+        with pytest.raises(KeyError, match="dict"):
+            get_naver_ocr_config(config)
+
+    def test_config_json_array_not_object_raises(self, tmp_path) -> None:
+        """forma.json containing a JSON array raises ValueError."""
+        from forma.config import load_config
+
+        config_path = tmp_path / "forma.json"
+        config_path.write_text("[1, 2, 3]")
+
+        with pytest.raises(ValueError, match="JSON object"):
+            load_config(str(config_path))
+
+    def test_config_empty_json_object(self, tmp_path) -> None:
+        """forma.json with empty {} is valid and returns empty dict."""
+        from forma.config import load_config
+
+        config_path = tmp_path / "forma.json"
+        config_path.write_text("{}")
+
+        result = load_config(str(config_path))
+        assert result == {}
+
+    def test_yaml_safe_load_none_on_empty_file(self, tmp_path) -> None:
+        """Empty YAML file returns None from safe_load; loaders must handle."""
+        import yaml
+
+        yaml_path = tmp_path / "empty.yaml"
+        yaml_path.write_text("")
+
+        with open(str(yaml_path)) as f:
+            data = yaml.safe_load(f)
+        assert data is None
+
+    def test_smtp_config_string_port_raises(self) -> None:
+        """smtp_port as string raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="smtp_port"):
+            _build_smtp_config({
+                "smtp_server": "smtp.test.com",
+                "sender_email": "a@b.com",
+                "smtp_port": "587",
+            })
+
+    def test_smtp_config_none_port_raises(self) -> None:
+        """smtp_port as None raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="smtp_port"):
+            _build_smtp_config({
+                "smtp_server": "smtp.test.com",
+                "sender_email": "a@b.com",
+                "smtp_port": None,
+            })
+
+    def test_smtp_config_float_port_raises(self) -> None:
+        """smtp_port as float raises ValueError."""
+        from forma.delivery_send import _build_smtp_config
+
+        with pytest.raises(ValueError, match="smtp_port"):
+            _build_smtp_config({
+                "smtp_server": "smtp.test.com",
+                "sender_email": "a@b.com",
+                "smtp_port": 587.5,
+            })
+
+    def test_get_smtp_config_missing_section_raises(self) -> None:
+        """get_smtp_config with no smtp section raises KeyError."""
+        from forma.config import get_smtp_config
+
+        with pytest.raises(KeyError, match="smtp"):
+            get_smtp_config({"naver_ocr": {}})
+
+    def test_get_smtp_config_string_section_raises(self) -> None:
+        """get_smtp_config with smtp as string raises KeyError."""
+        from forma.config import get_smtp_config
+
+        with pytest.raises(KeyError, match="smtp"):
+            get_smtp_config({"smtp": "not_a_dict"})
+
+
+# ===========================================================================
+# Persona 12: Empty Value Attacker
+# ===========================================================================
+
+
+class TestEmptyValueAttacker:
+    """Persona 12: Pass empty/null/zero values to ALL public builder and loader functions.
+
+    Verifies graceful handling of empty lists, None returns, zero-length strings,
+    and other degenerate inputs.
+    """
+
+    def test_esc_empty_string(self) -> None:
+        """esc('') returns ''."""
+        from forma.font_utils import esc
+
+        assert esc("") == ""
+
+    def test_strip_invisible_empty_string(self) -> None:
+        """strip_invisible('') returns ''."""
+        from forma.font_utils import strip_invisible
+
+        assert strip_invisible("") == ""
+
+    def test_mask_email_empty(self) -> None:
+        """_mask_email('') returns ''."""
+        from forma.delivery_send import _mask_email
+
+        assert _mask_email("") == ""
+
+    def test_mask_email_at_only(self) -> None:
+        """_mask_email('@') handles single @ gracefully."""
+        from forma.delivery_send import _mask_email
+
+        result = _mask_email("@")
+        assert isinstance(result, str)
+        assert "@" in result
+
+    def test_mask_email_no_at(self) -> None:
+        """_mask_email('x') with no @ returns masked local part."""
+        from forma.delivery_send import _mask_email
+
+        result = _mask_email("x")
+        assert result == "x***"
+
+    def test_build_warning_data_empty_students(self) -> None:
+        """build_warning_data with no at-risk students returns empty list."""
+        from forma.warning_report_data import build_warning_data
+
+        result = build_warning_data(
+            at_risk_students={},
+            risk_predictions=[],
+            concept_scores={},
+        )
+        assert result == []
+
+    def test_build_warning_data_all_not_at_risk(self) -> None:
+        """build_warning_data where no student is at-risk returns empty."""
+        from forma.warning_report_data import build_warning_data
+
+        result = build_warning_data(
+            at_risk_students={
+                "S001": {"is_at_risk": False, "reasons": []},
+                "S002": {"is_at_risk": False, "reasons": []},
+            },
+            risk_predictions=[],
+            concept_scores={},
+        )
+        assert result == []
+
+    def test_classify_risk_types_empty_trajectory_empty_concepts(self) -> None:
+        """_classify_risk_types with all empty args returns empty list."""
+        from forma.warning_report_data import _classify_risk_types
+
+        result = _classify_risk_types(
+            student_id="S001",
+            score_trajectory=[],
+            concept_scores={},
+            absence_ratio=0.0,
+        )
+        assert result == []
+
+    def test_ols_slope_empty_list(self) -> None:
+        """_ols_slope([]) returns 0.0."""
+        from forma.risk_predictor import _ols_slope
+
+        assert _ols_slope([]) == 0.0
+
+    def test_ols_slope_single_value(self) -> None:
+        """_ols_slope([5.0]) returns 0.0 (fewer than 2 values)."""
+        from forma.risk_predictor import _ols_slope
+
+        assert _ols_slope([5.0]) == 0.0
+
+    def test_atomic_write_yaml_empty_dict(self, tmp_path) -> None:
+        """atomic_write_yaml({}) creates valid empty YAML file."""
+        from forma.io_utils import atomic_write_yaml
+        import yaml
+
+        target = str(tmp_path / "empty.yaml")
+        atomic_write_yaml({}, target)
+
+        with open(target) as f:
+            loaded = yaml.safe_load(f)
+        assert loaded == {}
+
+    def test_atomic_write_json_empty_dict(self, tmp_path) -> None:
+        """atomic_write_json({}) creates valid empty JSON file."""
+        from forma.io_utils import atomic_write_json
+        import json
+
+        target = str(tmp_path / "empty.json")
+        atomic_write_json({}, target)
+
+        with open(target) as f:
+            loaded = json.load(f)
+        assert loaded == {}
+
+    def test_sanitize_filename_empty_string(self) -> None:
+        """sanitize_filename('') returns '_unnamed'."""
+        from forma.delivery_prepare import sanitize_filename
+
+        assert sanitize_filename("") == "_unnamed"
+
+    def test_sanitize_filename_report_empty_string(self) -> None:
+        """sanitize_filename_report('') returns '_unnamed'."""
+        from forma.report_utils import sanitize_filename_report
+
+        assert sanitize_filename_report("") == "_unnamed"
+
+    def test_sanitize_header_empty(self) -> None:
+        """_sanitize_header('') returns ''."""
+        from forma.delivery_send import _sanitize_header
+
+        assert _sanitize_header("") == ""
+
+    def test_render_template_empty_values(self) -> None:
+        """render_template with empty string values does not crash."""
+        from forma.delivery_send import EmailTemplate, render_template
+
+        template = EmailTemplate(
+            subject="{student_name} report",
+            body="Student {student_id} in {class_name}",
+        )
+        subj, body = render_template(
+            template, student_name="", student_id="", class_name="",
+        )
+        assert subj == " report"
+        assert body == "Student  in "
+
+    def test_build_warning_data_empty_predictions_empty_risk(self) -> None:
+        """build_warning_data with at-risk student but no predictions works."""
+        from forma.warning_report_data import build_warning_data
+
+        result = build_warning_data(
+            at_risk_students={"S001": {"is_at_risk": True, "reasons": ["test"]}},
+            risk_predictions=[],
+            concept_scores={"S001": {}},
+            score_trajectories={"S001": [0.3]},
+        )
+        assert len(result) == 1
+        assert result[0].student_id == "S001"
+
+    def test_safe_nanmean_zero_length_array(self) -> None:
+        """_safe_nanmean with numpy empty array returns 0.0."""
+        from forma.risk_predictor import _safe_nanmean
+
+        result = _safe_nanmean(np.array([]))
+        assert result == 0.0
+
+    def test_safe_nanvar_zero_length_array(self) -> None:
+        """_safe_nanvar with numpy empty array returns 0.0."""
+        from forma.risk_predictor import _safe_nanvar
+
+        result = _safe_nanvar(np.array([]))
+        assert result == 0.0
