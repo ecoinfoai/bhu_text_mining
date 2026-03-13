@@ -1,6 +1,6 @@
 [project]
 name = "formative-analysis"
-version = "0.12.1"
+version = "0.12.2"
 description = "Formative assessment analysis tool for evaluating student understanding via knowledge graph matching"
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},
@@ -79,6 +79,11 @@ filterwarnings = [
     "ignore:scipy.optimize.*L-BFGS-B.*deprecated:DeprecationWarning",
     "ignore:FigureCanvasAgg is non-interactive:UserWarning",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+select = ["E", "F", "W"]
 
 [build-system]
 requires = ["hatchling"]
