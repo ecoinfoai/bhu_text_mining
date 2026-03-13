@@ -19,6 +19,8 @@ import logging
 import os
 import sys
 
+import yaml
+
 from forma.report_data_loader import load_all_student_data
 from forma.student_report import StudentPDFReportGenerator
 
@@ -185,6 +187,9 @@ def main() -> None:
             args.config,
             args.eval_dir,
         )
+    except yaml.YAMLError as exc:
+        print(f"오류: YAML 파일을 파싱할 수 없습니다: {exc}", file=sys.stderr)
+        sys.exit(1)
     except Exception as exc:
         print(f"Error: 데이터 로딩 실패: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -217,8 +222,6 @@ def main() -> None:
     concept_dag = None
     if args.concept_deps:
         try:
-            import yaml
-
             from forma.concept_dependency import (
                 build_and_validate_dag,
                 parse_concept_dependencies,

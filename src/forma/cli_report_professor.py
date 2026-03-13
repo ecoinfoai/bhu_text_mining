@@ -12,7 +12,7 @@ from forma.professor_report_data import build_professor_report_data
 from forma.professor_report_llm import generate_professor_analysis
 from forma.report_data_loader import load_all_student_data
 
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -66,32 +66,37 @@ def main() -> int | None:
 
     # Validate required input files/dirs exist
     if not os.path.isfile(args.final):
-        _LOG.error("최종 결과 파일이 존재하지 않습니다: %s", args.final)
+        logger.error("최종 결과 파일이 존재하지 않습니다: %s", args.final)
         sys.exit(1)
     if not os.path.isfile(args.config):
-        _LOG.error("시험 설정 파일이 존재하지 않습니다: %s", args.config)
+        logger.error("시험 설정 파일이 존재하지 않습니다: %s", args.config)
         sys.exit(1)
     if not os.path.isdir(args.eval_dir):
-        _LOG.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
+        logger.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
         sys.exit(1)
 
     # Validate longitudinal args
     if args.longitudinal_store and not os.path.isfile(args.longitudinal_store):
-        _LOG.error("종단 저장소 파일이 존재하지 않습니다: %s", args.longitudinal_store)
+        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.longitudinal_store)
         sys.exit(1)
     if args.week is not None and args.longitudinal_store is None:
-        _LOG.error("--week 옵션은 --longitudinal-store와 함께 사용해야 합니다.")
+        logger.error("--week 옵션은 --longitudinal-store와 함께 사용해야 합니다.")
         sys.exit(1)
 
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Load student data
-    students, distributions = load_all_student_data(args.final, args.config, args.eval_dir)
+    import yaml
+    try:
+        students, distributions = load_all_student_data(args.final, args.config, args.eval_dir)
+    except yaml.YAMLError:
+        logger.error("오류: YAML 파일을 읽을 수 없습니다: %s", args.config)
+        sys.exit(2)
 
     # Validate minimum student count
     if len(students) < 3:
-        _LOG.error("학생 수가 너무 적습니다 (%d명). 최소 3명 이상 필요합니다.", len(students))
+        logger.error("학생 수가 너무 적습니다 (%d명). 최소 3명 이상 필요합니다.", len(students))
         sys.exit(2)
 
     # Build professor report data
@@ -103,6 +108,17 @@ def main() -> int | None:
         subject="과목",
         exam_title="형성평가",
     )
+
+    # Load longitudinal store ONCE if available (shared by risk movement,
+    # risk prediction, grade prediction, and intervention effect analysis)
+    long_store = None
+    if args.longitudinal_store:
+        try:
+            from forma.longitudinal_store import LongitudinalStore
+            long_store = LongitudinalStore(args.longitudinal_store)
+            long_store.load()
+        except Exception as exc:
+            logger.warning("종단 저장소 로드 실패 (계속 진행): %s", exc)
 
     # v0.10.0: Parse concept dependencies from exam YAML → class deficit map (FR-021)
     concept_dag = None
@@ -122,7 +138,7 @@ def main() -> int | None:
         deps = parse_concept_dependencies(exam_yaml)
         if deps:
             concept_dag = build_and_validate_dag(deps)
-            _LOG.info("개념 의존성 DAG 구축 완료: %d개 노드", len(concept_dag.nodes))
+            logger.info("개념 의존성 DAG 구축 완료: %d개 노드", len(concept_dag.nodes))
 
             # Build per-student concept scores from question concepts
             from forma.learning_path import build_class_deficit_map
@@ -137,7 +153,7 @@ def main() -> int | None:
                 all_students_scores[student.student_id] = scores
 
             deficit_map = build_class_deficit_map(all_students_scores, concept_dag)
-            _LOG.info("학급 개념 결손 맵 구축 완료: %d개 개념", len(deficit_map.concept_counts))
+            logger.info("학급 개념 결손 맵 구축 완료: %d개 개념", len(deficit_map.concept_counts))
 
             # Generate deficit map chart
             try:
@@ -145,9 +161,9 @@ def main() -> int | None:
 
                 deficit_map_chart = build_deficit_map_chart(deficit_map)
             except Exception as chart_exc:
-                _LOG.warning("결손 맵 차트 생성 실패 (계속 진행): %s", chart_exc)
+                logger.warning("결손 맵 차트 생성 실패 (계속 진행): %s", chart_exc)
     except Exception as exc:
-        _LOG.warning("개념 의존성 처리 실패 (계속 진행): %s", exc)
+        logger.warning("개념 의존성 처리 실패 (계속 진행): %s", exc)
 
     # v0.7.3 T013a: Compute class knowledge aggregates from graph comparison data
     try:
@@ -192,7 +208,7 @@ def main() -> int | None:
                 report_data.class_knowledge_aggregates.append(agg)
                 qstat.class_knowledge_aggregate = agg
     except Exception as exc:
-        _LOG.warning("학급 집합 그래프 계산 실패 (계속 진행): %s", exc)
+        logger.warning("학급 집합 그래프 계산 실패 (계속 진행): %s", exc)
 
     # v0.7.3 T017a: Compute misconception clusters per question
     try:
@@ -203,12 +219,12 @@ def main() -> int | None:
             if classified:
                 clusters = cluster_misconceptions(classified)
                 qstat.misconception_clusters = clusters
-                _LOG.info(
+                logger.info(
                     "문항 %d 오개념 클러스터링: %d개 입력 -> %d개 클러스터",
                     qstat.question_sn, len(classified), len(clusters),
                 )
     except Exception as exc:
-        _LOG.warning("오개념 클러스터링 실패 (계속 진행): %s", exc)
+        logger.warning("오개념 클러스터링 실패 (계속 진행): %s", exc)
 
     # T042: transcript loading + emphasis/gap computation (FR-019a)
     if args.transcript_dir and os.path.isdir(args.transcript_dir):
@@ -224,7 +240,7 @@ def main() -> int | None:
                     with open(fpath, encoding="utf-8") as fh:
                         transcript_lines.extend(fh.read().splitlines())
                 except OSError as exc:
-                    _LOG.warning("트랜스크립트 파일 읽기 실패: %s — %s", fpath, exc)
+                    logger.warning("트랜스크립트 파일 읽기 실패: %s — %s", fpath, exc)
 
         if transcript_lines:
             # Gather master concepts from all question concept mastery rates
@@ -238,7 +254,7 @@ def main() -> int | None:
                 try:
                     emphasis_map = compute_emphasis_map(sentences, concept_list)
                     report_data.emphasis_map = emphasis_map
-                    _LOG.info(
+                    logger.info(
                         "강조도 맵 생성 완료: %d개 개념, %d개 문장",
                         emphasis_map.n_concepts, emphasis_map.n_sentences,
                     )
@@ -263,17 +279,17 @@ def main() -> int | None:
                         student_missing_rates=student_missing_rates,
                     )
                     report_data.lecture_gap_report = gap_report
-                    _LOG.info(
+                    logger.info(
                         "강의 갭 분석 완료: 커버리지 %.1f%%, 누락 %d개",
                         gap_report.coverage_ratio * 100,
                         len(gap_report.missed_concepts),
                     )
                 except Exception as exc:
-                    _LOG.warning("강조도/갭 분석 실패 (계속 진행): %s", exc)
+                    logger.warning("강조도/갭 분석 실패 (계속 진행): %s", exc)
         else:
-            _LOG.warning("트랜스크립트 디렉토리에 .txt 파일이 없습니다: %s", args.transcript_dir)
+            logger.warning("트랜스크립트 디렉토리에 .txt 파일이 없습니다: %s", args.transcript_dir)
     elif args.transcript_dir:
-        _LOG.warning("트랜스크립트 디렉토리가 존재하지 않습니다: %s", args.transcript_dir)
+        logger.warning("트랜스크립트 디렉토리가 존재하지 않습니다: %s", args.transcript_dir)
 
     # Conditional LLM analysis
     if not args.skip_llm:
@@ -282,11 +298,11 @@ def main() -> int | None:
             import anthropic  # noqa: PLC0415
             provider = anthropic.Anthropic()
         except Exception as exc:
-            _LOG.warning("LLM client creation failed: %s", exc)
+            logger.warning("LLM client creation failed: %s", exc)
         try:
             generate_professor_analysis(provider, report_data)
         except Exception as exc:
-            _LOG.warning("LLM analysis skipped: %s", exc)
+            logger.warning("LLM analysis skipped: %s", exc)
 
         # v0.7.3 T021a: Generate LLM correction points for misconception clusters
         if provider is not None:
@@ -301,17 +317,13 @@ def main() -> int | None:
                             )
                             cluster.correction_point = correction
             except Exception as exc:
-                _LOG.warning("오개념 클러스터 교정 포인트 생성 실패 (계속 진행): %s", exc)
+                logger.warning("오개념 클러스터 교정 포인트 생성 실패 (계속 진행): %s", exc)
 
     # Compute risk movement from longitudinal store
     risk_movement = None
-    if args.longitudinal_store and args.week is not None:
+    if long_store is not None and args.week is not None:
         try:
-            from forma.longitudinal_store import LongitudinalStore
             from forma.professor_report_data import compute_risk_movement
-
-            long_store = LongitudinalStore(args.longitudinal_store)
-            long_store.load()
 
             # Current at-risk students from report_data
             current_risk = {
@@ -334,19 +346,19 @@ def main() -> int | None:
 
             risk_movement = compute_risk_movement(current_risk, previous_risk)
             report_data.risk_movement = risk_movement
-            _LOG.info(
+            logger.info(
                 "위험군 변동: 신규 %d, 탈출 %d, 지속 %d",
                 len(risk_movement.newly_at_risk),
                 len(risk_movement.exited_risk),
                 len(risk_movement.persistent_risk),
             )
         except Exception as exc:
-            _LOG.warning("위험군 변동 계산 실패 (계속 진행): %s", exc)
+            logger.warning("위험군 변동 계산 실패 (계속 진행): %s", exc)
 
     # v0.9.0: Risk prediction from pre-trained model (FR-014, FR-015)
     if args.model_path:
         if not os.path.isfile(args.model_path):
-            _LOG.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+            logger.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
             sys.exit(1)
         try:
             from forma.risk_predictor import (
@@ -356,16 +368,13 @@ def main() -> int | None:
             trained_model = load_model(args.model_path)
             predictor = RiskPredictor()
 
-            if args.longitudinal_store:
-                from forma.longitudinal_store import LongitudinalStore as LS
-                ls = LS(args.longitudinal_store)
-                ls.load()
+            if long_store is not None:
                 weeks_list = sorted({
-                    r.week for r in ls.get_all_records()
+                    r.week for r in long_store.get_all_records()
                 })
                 extractor = FeatureExtractor()
                 matrix, feat_names, student_ids = extractor.extract(
-                    ls, weeks_list,
+                    long_store, weeks_list,
                 )
                 if matrix.shape[0] > 0:
                     if feat_names == trained_model.feature_names:
@@ -373,24 +382,24 @@ def main() -> int | None:
                             trained_model, matrix, student_ids,
                         )
                     else:
-                        _LOG.warning(
+                        logger.warning(
                             "모델 피처 불일치 — cold start 예측 사용",
                         )
                         preds = predictor.predict_cold_start(
                             matrix, student_ids, feat_names,
                         )
                     report_data.risk_predictions = preds
-                    _LOG.info("드롭 리스크 예측 완료: %d명", len(preds))
+                    logger.info("드롭 리스크 예측 완료: %d명", len(preds))
             else:
-                _LOG.info("종단 저장소 없음 — 리스크 예측 건너뜀")
+                logger.info("종단 저장소 없음 — 리스크 예측 건너뜀")
         except Exception as exc:
-            _LOG.warning("리스크 예측 실패 (계속 진행): %s", exc)
+            logger.warning("리스크 예측 실패 (계속 진행): %s", exc)
 
     # v0.10.0: Grade prediction from pre-trained grade model (FR-029, FR-030)
     grade_predictions = None
     if args.grade_model_path:
         if not os.path.isfile(args.grade_model_path):
-            _LOG.error("성적 예측 모델 파일이 존재하지 않습니다: %s", args.grade_model_path)
+            logger.error("성적 예측 모델 파일이 존재하지 않습니다: %s", args.grade_model_path)
             sys.exit(1)
         try:
             from forma.grade_predictor import (
@@ -400,14 +409,11 @@ def main() -> int | None:
             trained_grade_model = load_grade_model(args.grade_model_path)
             grade_predictor = GradePredictor()
 
-            if args.longitudinal_store:
-                from forma.longitudinal_store import LongitudinalStore as GLS
-                gls = GLS(args.longitudinal_store)
-                gls.load()
-                g_weeks = sorted({r.week for r in gls.get_all_records()})
+            if long_store is not None:
+                g_weeks = sorted({r.week for r in long_store.get_all_records()})
                 g_extractor = GradeFeatureExtractor()
                 g_matrix, g_feat_names, g_student_ids = g_extractor.extract(
-                    gls, g_weeks,
+                    long_store, g_weeks,
                 )
                 if g_matrix.shape[0] > 0:
                     if g_feat_names == trained_grade_model.feature_names:
@@ -415,25 +421,25 @@ def main() -> int | None:
                             trained_grade_model, g_matrix, g_student_ids,
                         )
                     else:
-                        _LOG.warning(
+                        logger.warning(
                             "성적 모델 피처 불일치 — cold start 예측 사용",
                         )
                         grade_predictions = grade_predictor.predict_cold_start(
                             g_matrix, g_student_ids, g_feat_names,
                         )
                     report_data.grade_predictions = grade_predictions
-                    _LOG.info("성적 예측 완료: %d명", len(grade_predictions))
+                    logger.info("성적 예측 완료: %d명", len(grade_predictions))
             else:
-                _LOG.info("종단 저장소 없음 — 성적 예측 건너뜀")
+                logger.info("종단 저장소 없음 — 성적 예측 건너뜀")
         except Exception as exc:
-            _LOG.warning("성적 예측 실패 (계속 진행): %s", exc)
+            logger.warning("성적 예측 실패 (계속 진행): %s", exc)
 
     # v0.10.0: Intervention effect analysis (FR-008, FR-010, FR-013)
     intervention_effects = None
     intervention_type_summaries = None
     if args.intervention_log:
         if not os.path.isfile(args.intervention_log):
-            _LOG.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
+            logger.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
             sys.exit(1)
         try:
             from forma.intervention_effect import (
@@ -445,25 +451,22 @@ def main() -> int | None:
             ilog = InterventionLog(args.intervention_log)
             ilog.load()
 
-            if args.longitudinal_store:
-                from forma.longitudinal_store import LongitudinalStore as ILS
-                ils = ILS(args.longitudinal_store)
-                ils.load()
-                intervention_effects = compute_intervention_effects(ilog, ils)
+            if long_store is not None:
+                intervention_effects = compute_intervention_effects(ilog, long_store)
                 intervention_type_summaries = compute_type_summary(intervention_effects)
-                _LOG.info(
+                logger.info(
                     "개입 효과 분석 완료: %d건 (유효 %d건)",
                     len(intervention_effects),
                     sum(1 for e in intervention_effects if e.sufficient_data),
                 )
             else:
-                _LOG.info("종단 저장소 없음 — 개입 효과 분석 건너뜀")
+                logger.info("종단 저장소 없음 — 개입 효과 분석 건너뜀")
         except Exception as exc:
-            _LOG.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
+            logger.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
 
     # Validate font path if provided
     if args.font_path is not None and not os.path.isfile(args.font_path):
-        _LOG.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
         sys.exit(3)
 
     # Generate PDF report
@@ -477,8 +480,8 @@ def main() -> int | None:
             intervention_type_summaries=intervention_type_summaries,
         )
     except FileNotFoundError as exc:
-        _LOG.error("PDF 생성 중 파일을 찾을 수 없습니다: %s", exc)
+        logger.error("PDF 생성 중 파일을 찾을 수 없습니다: %s", exc)
         sys.exit(3)
 
-    _LOG.info("교수 리포트 PDF 생성이 완료되었습니다: %s", args.output_dir)
+    logger.info("교수 리포트 PDF 생성이 완료되었습니다: %s", args.output_dir)
     return None

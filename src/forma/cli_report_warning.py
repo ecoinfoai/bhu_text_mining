@@ -19,7 +19,7 @@ import logging
 import os
 import sys
 
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -101,21 +101,21 @@ def main(argv=None) -> int | None:
 
     # Validate required input files
     if not os.path.isfile(args.final):
-        _LOG.error("최종 결과 파일이 존재하지 않습니다: %s", args.final)
+        logger.error("최종 결과 파일이 존재하지 않습니다: %s", args.final)
         sys.exit(1)
     if not os.path.isfile(args.config):
-        _LOG.error("시험 설정 파일이 존재하지 않습니다: %s", args.config)
+        logger.error("시험 설정 파일이 존재하지 않습니다: %s", args.config)
         sys.exit(1)
     if not os.path.isdir(args.eval_dir):
-        _LOG.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
+        logger.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
         sys.exit(1)
 
     # Validate optional file args
     if args.model_path and not os.path.isfile(args.model_path):
-        _LOG.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+        logger.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
         sys.exit(1)
     if args.font_path and not os.path.isfile(args.font_path):
-        _LOG.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
         sys.exit(1)
 
     # Load student data
@@ -180,9 +180,9 @@ def main(argv=None) -> int | None:
                 risk_predictions = predictor.predict(
                     trained_model, feature_matrix, student_ids,
                 )
-                _LOG.info("모델 예측 완료: %d명", len(risk_predictions))
+                logger.info("모델 예측 완료: %d명", len(risk_predictions))
         except Exception as exc:
-            _LOG.warning("모델 예측 실패 (계속 진행): %s", exc)
+            logger.warning("모델 예측 실패 (계속 진행): %s", exc)
 
     # Build warning cards
     from forma.warning_report_data import build_warning_data
@@ -195,20 +195,20 @@ def main(argv=None) -> int | None:
         absence_ratios=absence_ratios,
     )
 
-    _LOG.info("경고 카드 생성: %d장", len(warning_cards))
+    logger.info("경고 카드 생성: %d장", len(warning_cards))
 
     # Generate PDF
     from forma.warning_report import WarningPDFReportGenerator
 
     try:
         gen = WarningPDFReportGenerator(font_path=args.font_path, dpi=args.dpi)
-        gen.generate(
+        gen.generate_pdf(
             warning_cards, args.output,
             class_name=report_data.class_name or "",
         )
     except FileNotFoundError as exc:
-        _LOG.error("PDF 생성 실패: %s", exc)
+        logger.error("PDF 생성 실패: %s", exc)
         sys.exit(2)
 
-    _LOG.info("조기 경고 보고서 생성 완료: %s", args.output)
+    logger.info("조기 경고 보고서 생성 완료: %s", args.output)
     return None

@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -66,17 +66,17 @@ def main() -> int | None:
 
     # Validate store file exists
     if not os.path.isfile(args.store):
-        _LOG.error("종단 저장소 파일이 존재하지 않습니다: %s", args.store)
+        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.store)
         sys.exit(1)
 
     # Validate exam file if specified
     if args.exam_file and not os.path.isfile(args.exam_file):
-        _LOG.error("시험 파일이 존재하지 않습니다: %s", args.exam_file)
+        logger.error("시험 파일이 존재하지 않습니다: %s", args.exam_file)
         sys.exit(1)
 
     # Validate font path if specified
     if args.font_path and not os.path.isfile(args.font_path):
-        _LOG.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
         sys.exit(1)
 
     # Load store
@@ -91,9 +91,9 @@ def main() -> int | None:
         all_records = store.get_all_records()
         weeks = sorted({r.week for r in all_records})
         if not weeks:
-            _LOG.error("저장소에 레코드가 없습니다.")
+            logger.error("저장소에 레코드가 없습니다.")
             sys.exit(1)
-        _LOG.info("자동 감지된 주차: %s", weeks)
+        logger.info("자동 감지된 주차: %s", weeks)
 
     # Build summary data
     from forma.longitudinal_report_data import build_longitudinal_summary
@@ -102,7 +102,7 @@ def main() -> int | None:
     # v0.9.0: Risk prediction from pre-trained model (FR-014, FR-015)
     if args.model_path:
         if not os.path.isfile(args.model_path):
-            _LOG.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+            logger.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
             sys.exit(1)
         try:
             from forma.risk_predictor import (
@@ -119,20 +119,20 @@ def main() -> int | None:
                         trained_model, matrix, student_ids,
                     )
                 else:
-                    _LOG.warning("모델 피처 불일치 — cold start 예측 사용")
+                    logger.warning("모델 피처 불일치 — cold start 예측 사용")
                     preds = predictor.predict_cold_start(
                         matrix, student_ids, feat_names,
                     )
                 summary.risk_predictions = preds
-                _LOG.info("드롭 리스크 예측 완료: %d명", len(preds))
+                logger.info("드롭 리스크 예측 완료: %d명", len(preds))
         except Exception as exc:
-            _LOG.warning("리스크 예측 실패 (계속 진행): %s", exc)
+            logger.warning("리스크 예측 실패 (계속 진행): %s", exc)
 
     # v0.10.0: Intervention effect analysis (FR-008, FR-011)
     intervention_effects = None
     if args.intervention_log:
         if not os.path.isfile(args.intervention_log):
-            _LOG.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
+            logger.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
             sys.exit(1)
         try:
             from forma.intervention_effect import compute_intervention_effects
@@ -141,21 +141,21 @@ def main() -> int | None:
             ilog = InterventionLog(args.intervention_log)
             ilog.load()
             intervention_effects = compute_intervention_effects(ilog, store)
-            _LOG.info(
+            logger.info(
                 "개입 효과 분석 완료: %d건 (유효 %d건)",
                 len(intervention_effects),
                 sum(1 for e in intervention_effects if e.sufficient_data),
             )
         except Exception as exc:
-            _LOG.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
+            logger.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
 
     # Generate PDF
     from forma.longitudinal_report import LongitudinalPDFReportGenerator
     gen = LongitudinalPDFReportGenerator(font_path=args.font_path)
-    output_path = gen.generate(
+    output_path = gen.generate_pdf(
         summary, args.output,
         intervention_effects=intervention_effects,
     )
 
-    _LOG.info("종단 분석 보고서 생성 완료: %s", output_path)
+    logger.info("종단 분석 보고서 생성 완료: %s", output_path)
     return None
