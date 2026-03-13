@@ -92,7 +92,7 @@ class LongitudinalPDFReportGenerator:
             alignment=1,
         ))
 
-    def generate(
+    def generate_pdf(
         self,
         summary_data: LongitudinalSummaryData,
         output_path: str,

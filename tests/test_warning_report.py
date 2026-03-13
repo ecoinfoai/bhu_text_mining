@@ -43,7 +43,7 @@ class TestWarningPDFReportGenerator:
         cards = [_make_warning_card()]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A")
+        gen.generate_pdf(cards, output, class_name="1A")
         assert os.path.isfile(output)
         assert os.path.getsize(output) > 0
 
@@ -58,7 +58,7 @@ class TestWarningPDFReportGenerator:
         ]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A")
+        gen.generate_pdf(cards, output, class_name="1A")
         assert os.path.isfile(output)
 
     def test_generate_empty_cards(self, tmp_path):
@@ -67,7 +67,7 @@ class TestWarningPDFReportGenerator:
 
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate([], output, class_name="1A")
+        gen.generate_pdf([], output, class_name="1A")
         assert os.path.isfile(output)
 
     def test_generate_all_risk_types(self, tmp_path):
@@ -83,7 +83,7 @@ class TestWarningPDFReportGenerator:
         )]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A")
+        gen.generate_pdf(cards, output, class_name="1A")
         assert os.path.isfile(output)
 
     def test_generate_no_drop_probability(self, tmp_path):
@@ -93,7 +93,7 @@ class TestWarningPDFReportGenerator:
         cards = [_make_warning_card(drop_probability=None)]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A")
+        gen.generate_pdf(cards, output, class_name="1A")
         assert os.path.isfile(output)
 
     def test_pdf_is_valid(self, tmp_path):
@@ -103,7 +103,7 @@ class TestWarningPDFReportGenerator:
         cards = [_make_warning_card()]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A")
+        gen.generate_pdf(cards, output, class_name="1A")
         with open(output, "rb") as f:
             assert f.read(5) == b"%PDF-"
 
@@ -117,7 +117,7 @@ class TestWarningPDFReportGenerator:
         )]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A반")
+        gen.generate_pdf(cards, output, class_name="1A반")
         assert os.path.isfile(output)
 
     def test_custom_font_and_dpi(self, tmp_path):
@@ -127,5 +127,5 @@ class TestWarningPDFReportGenerator:
         gen = WarningPDFReportGenerator(dpi=100)
         cards = [_make_warning_card()]
         output = str(tmp_path / "warning.pdf")
-        gen.generate(cards, output, class_name="1A")
+        gen.generate_pdf(cards, output, class_name="1A")
         assert os.path.isfile(output)

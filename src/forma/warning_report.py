@@ -108,7 +108,7 @@ class WarningPDFReportGenerator:
             spaceAfter=8,
         ))
 
-    def generate(
+    def generate_pdf(
         self,
         warning_cards: list[WarningCard],
         output_path: str,

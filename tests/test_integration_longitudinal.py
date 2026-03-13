@@ -198,7 +198,7 @@ class TestLongitudinalIntegration:
 
         output_path = str(tmp_path / "integration_report.pdf")
         gen = LongitudinalPDFReportGenerator()
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         assert os.path.exists(output_path)
 
@@ -212,7 +212,7 @@ class TestLongitudinalIntegration:
 
         output_path = str(tmp_path / "integration_report.pdf")
         gen = LongitudinalPDFReportGenerator()
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         file_size = os.path.getsize(output_path)
         assert file_size > 10 * 1024, f"PDF too small: {file_size} bytes"
@@ -227,7 +227,7 @@ class TestLongitudinalIntegration:
 
         output_path = str(tmp_path / "integration_report.pdf")
         gen = LongitudinalPDFReportGenerator()
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         with open(output_path, "rb") as f:
             header = f.read(5)

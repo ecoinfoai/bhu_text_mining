@@ -175,7 +175,7 @@ class TestLongitudinalPDFReportGeneratorFull:
         gen = LongitudinalPDFReportGenerator()
         summary = _make_summary()
         output_path = str(tmp_path / "test_report.pdf")
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         assert os.path.exists(output_path)
 
@@ -186,7 +186,7 @@ class TestLongitudinalPDFReportGeneratorFull:
         gen = LongitudinalPDFReportGenerator()
         summary = _make_summary()
         output_path = str(tmp_path / "test_report.pdf")
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         file_size = os.path.getsize(output_path)
         assert file_size > 10 * 1024, f"PDF too small: {file_size} bytes"
@@ -198,7 +198,7 @@ class TestLongitudinalPDFReportGeneratorFull:
         gen = LongitudinalPDFReportGenerator()
         summary = _make_summary()
         output_path = str(tmp_path / "test_report.pdf")
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         with open(output_path, "rb") as f:
             header = f.read(5)
@@ -220,7 +220,7 @@ class TestLongitudinalPDFReportGeneratorFull:
             total_students=0,
         )
         output_path = str(tmp_path / "empty_report.pdf")
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         assert os.path.exists(output_path)
         with open(output_path, "rb") as f:
@@ -247,7 +247,7 @@ class TestLongitudinalPDFReportGeneratorFull:
             total_students=1,
         )
         output_path = str(tmp_path / "single_week.pdf")
-        gen.generate(summary, output_path)
+        gen.generate_pdf(summary, output_path)
 
         assert os.path.exists(output_path)
 
