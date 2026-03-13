@@ -7,9 +7,13 @@ back to legacy paths.
 from __future__ import annotations
 
 import json
+import logging
 import os
-from typing import Optional
 
+logger = logging.getLogger(__name__)
+
+# Known top-level sections in forma.json
+_EXPECTED_SECTIONS = {"naver_ocr", "smtp", "llm", "secret_key", "api_url"}
 
 AGENIX_CONFIG_PATH = "/run/agenix/forma-config"
 DEFAULT_CONFIG_PATH = "~/.config/formative-analysis/forma.json"
@@ -20,7 +24,7 @@ LEGACY_CONFIG_PATHS = [
 ]
 
 
-def load_config(config_path: Optional[str] = None) -> dict:
+def load_config(config_path: str | None = None) -> dict:
     """Load configuration from JSON file.
 
     Resolution order:
@@ -57,6 +61,9 @@ def load_config(config_path: Optional[str] = None) -> dict:
                 raise ValueError(
                     f"forma.json must be a JSON object ({{...}}), got {type(data).__name__}"
                 )
+            for key in data:
+                if key not in _EXPECTED_SECTIONS:
+                    logger.warning("Unknown key in forma.json: '%s'", key)
             return data
 
     searched = [os.path.expanduser(p) for p in candidates]
