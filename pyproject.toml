@@ -1,6 +1,6 @@
 [project]
 name = "formative-analysis"
-version = "0.12.0"
+version = "0.12.1"
 description = "Formative assessment analysis tool for evaluating student understanding via knowledge graph matching"
 authors = [
     {name = "Kwang-Seuk", email = "kjeong@bhug.ac.kr"},

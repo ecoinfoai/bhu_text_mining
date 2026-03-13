@@ -23,6 +23,7 @@ dist/
 # idea documents
 new_functions_specs/
 specs/
+improve/
 
 # direnv
 .direnv/
