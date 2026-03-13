@@ -503,3 +503,102 @@ class TestClassValueValidation:
         with caplog.at_level(logging.WARNING):
             warn_if_class_unknown("A", ["A", "B", "C", "D"])
         assert not caplog.records
+
+
+# -------------------------------------------------------------------
+# T005: Lecture section tests
+# -------------------------------------------------------------------
+
+class TestLectureSection:
+    """Test lecture section in week.yaml loading and validation."""
+
+    def _write_yaml(self, path: Path, data: dict) -> Path:
+        """Helper to write a week.yaml file."""
+        yaml_path = path / "week.yaml"
+        with open(yaml_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(
+                data, f,
+                default_flow_style=False,
+                allow_unicode=True,
+            )
+        return yaml_path
+
+    def test_load_week_config_lecture_section(
+        self, tmp_path: Path,
+    ) -> None:
+        """week.yaml with lecture section populates lecture_* fields."""
+        from forma.week_config import load_week_config
+
+        data = {
+            "week": 1,
+            "lecture": {
+                "transcript_pattern": "trans_{class}.txt",
+                "concept_source": "concepts.yaml",
+                "output_dir": "output/lecture",
+                "extra_stopwords": ["커스텀"],
+                "extra_abbreviations": ["PCR"],
+            },
+        }
+        yaml_path = self._write_yaml(tmp_path, data)
+        config = load_week_config(yaml_path)
+        assert config.lecture_transcript_pattern == (
+            "trans_{class}.txt"
+        )
+        assert config.lecture_concept_source == "concepts.yaml"
+        assert config.lecture_output_dir == "output/lecture"
+        assert config.lecture_extra_stopwords == ["커스텀"]
+        assert config.lecture_extra_abbreviations == ["PCR"]
+
+    def test_load_week_config_no_lecture_section(
+        self, tmp_path: Path,
+    ) -> None:
+        """Missing lecture section uses defaults (empty strings)."""
+        from forma.week_config import load_week_config
+
+        data = {"week": 1}
+        yaml_path = self._write_yaml(tmp_path, data)
+        config = load_week_config(yaml_path)
+        assert config.lecture_transcript_pattern == ""
+        assert config.lecture_concept_source == ""
+        assert config.lecture_output_dir == ""
+        assert config.lecture_extra_stopwords == []
+        assert config.lecture_extra_abbreviations == []
+
+    def test_lecture_transcript_pattern_class_resolution(
+        self, tmp_path: Path,
+    ) -> None:
+        """{class} in lecture_transcript_pattern gets resolved."""
+        from forma.week_config import (
+            WeekConfiguration,
+            resolve_class_patterns,
+        )
+
+        config = WeekConfiguration(
+            week=1,
+            lecture_transcript_pattern="trans_{class}.txt",
+        )
+        resolved = resolve_class_patterns(config, "B")
+        assert resolved.lecture_transcript_pattern == (
+            "trans_B.txt"
+        )
+
+    def test_validate_week_config_lecture_section(self) -> None:
+        """Validation checks for lecture section."""
+        from forma.week_config import validate_week_config
+
+        # Missing transcript_pattern should fail
+        with pytest.raises(ValueError, match="transcript_pattern"):
+            validate_week_config(
+                {
+                    "week": 1,
+                    "lecture": {"concept_source": "c.yaml"},
+                },
+                required_section="lecture",
+            )
+
+        # Non-mapping lecture section should fail
+        with pytest.raises(ValueError, match="lecture"):
+            validate_week_config(
+                {"week": 1, "lecture": "not_a_dict"},
+                required_section="lecture",
+            )
