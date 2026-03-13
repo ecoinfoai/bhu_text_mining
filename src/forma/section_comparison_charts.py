@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.font_manager import FontProperties  # noqa: E402
 
+from forma.chart_utils import save_fig as _save_fig  # noqa: E402
 from forma.font_utils import find_korean_font  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -78,13 +79,7 @@ def build_section_box_plot(
 
     fig.tight_layout()
 
-    buf = io.BytesIO()
-    try:
-        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    finally:
-        plt.close(fig)
-    buf.seek(0)
-    return buf
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_concept_mastery_heatmap(
@@ -146,13 +141,7 @@ def build_concept_mastery_heatmap(
 
     fig.tight_layout()
 
-    buf = io.BytesIO()
-    try:
-        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    finally:
-        plt.close(fig)
-    buf.seek(0)
-    return buf
+    return _save_fig(fig, dpi=dpi)
 
 
 def build_weekly_interaction_chart(
@@ -193,10 +182,4 @@ def build_weekly_interaction_chart(
 
     fig.tight_layout()
 
-    buf = io.BytesIO()
-    try:
-        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    finally:
-        plt.close(fig)
-    buf.seek(0)
-    return buf
+    return _save_fig(fig, dpi=dpi)
