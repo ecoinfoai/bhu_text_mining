@@ -20,6 +20,8 @@ from typing import Any
 
 import yaml
 
+from forma.io_utils import atomic_write_yaml
+
 from forma.exam_generator import ExamPDFGenerator
 from forma.week_config import (
     find_week_config,
@@ -118,8 +120,7 @@ def _write_questions_yaml(
     output["questions"] = questions
 
     output_path = Path(output_path)
-    with open(output_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(output, f, default_flow_style=False, allow_unicode=True)
+    atomic_write_yaml(output, output_path)
 
     logger.info("questions.yaml 생성: %s", output_path)
 
@@ -159,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
     # Validate select section
     try:
         with open(week_yaml_path, encoding="utf-8") as f:
-            raw_dict = yaml.safe_load(f)
+            raw_dict = yaml.safe_load(f) or {}
         validate_week_config(raw_dict, required_section="select")
     except ValueError as exc:
         logger.error("week.yaml select 섹션 검증 실패: %s", exc)

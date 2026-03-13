@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import copy
 import logging
-import shutil
+import os
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -369,7 +369,7 @@ def save_crop_coords(
         )
         with open(fd, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
-        shutil.move(tmp_path, week_yaml_path)
+        os.replace(tmp_path, str(week_yaml_path))
         logger.info("Crop coordinates saved to %s", week_yaml_path)
     except OSError:
         # Clean up temp file if it exists
