@@ -1,9 +1,9 @@
 # formative-analysis (FormA)
 
 [![CI](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ecoinfoai/formative-analysis/graph/badge.svg?token=f04853f2-aaa2-4d32-b934-8a9542fc8bf0)](https://codecov.io/gh/ecoinfoai/formative-analysis)
+[![codecov](https://codecov.io/gh/ecoinfoai/formative-analysis/branch/master/graph/badge.svg?token=f04853f2-aaa2-4d32-b934-8a9542fc8bf0)](https://codecov.io/gh/ecoinfoai/formative-analysis)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-0.11.1-green.svg)](https://github.com/ecoinfoai/formative-analysis/releases)
+[![Version](https://img.shields.io/badge/version-0.12.2-green.svg)](https://github.com/ecoinfoai/formative-analysis/releases)
 
 An AI-powered formative assessment CLI toolkit for university professors. FormA automates the full assessment cycle — from exam generation and OCR scanning through knowledge-graph evaluation, personalized feedback, longitudinal tracking, and report delivery — enabling data-driven instructional decisions without manual grading overhead.
 
@@ -29,7 +29,7 @@ forma
 ├── intervention      Intervention activity tracking (add / list / update)
 ├── deliver           Report email delivery (prepare / send)
 ├── init              Interactive project configuration initialization
-└── select            Student answer selection
+└── select            Question selection and exam PDF generation from source test bank
 ```
 
 Legacy `forma-*` commands (e.g., `forma-report`, `forma-train`) remain functional but emit a `DeprecationWarning`. See [docs/cli-reference.md](docs/cli-reference.md) for full usage details.
@@ -80,7 +80,7 @@ uv tool install .
 
 ## Quick Start
 
-Below is a minimal example using sample data included in the repository. See [docs/quickstart.md](docs/quickstart.md) for a complete walkthrough and [docs/weekly-workflow.md](docs/weekly-workflow.md) for the recommended weekly assessment routine.
+Below is a minimal example using sample data included in the repository. See [docs/quickstart.md](docs/quickstart.md) for a complete walkthrough, [docs/weekly-workflow.md](docs/weekly-workflow.md) for the recommended weekly assessment routine, and [docs/for_new_teachers.md](docs/for_new_teachers.md) for scenario-based guidance.
 
 ```bash
 # 1. Run evaluation on a single class

@@ -6,8 +6,9 @@ Formative-analysis uses two configuration files: `forma.json` for credentials an
 
 - [forma.json](#formajson)
 - [forma.yaml](#formayaml)
+- [week.yaml](#weekyaml)
 - [Credential Security](#credential-security)
-- [Generating forma.yaml with forma-init](#generating-formayaml-with-forma-init)
+- [Generating forma.yaml with forma init](#generating-formayaml-with-forma-init)
 
 ---
 
@@ -26,7 +27,7 @@ Stores credentials and system-level settings that apply across all projects. Thi
 
 ### smtp section
 
-SMTP server settings for email delivery (`forma-deliver send`).
+SMTP server settings for email delivery (`forma deliver send`).
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
@@ -221,16 +222,70 @@ current_week: 1
 
 ---
 
+## week.yaml
+
+**Location:** One `week.yaml` per assessment week directory (e.g., `week_01/week.yaml`).
+
+**Discovery:** `forma ocr`, `forma eval`, and `forma select` walk upward from the current working directory to find `week.yaml`, stopping at `.git` or the filesystem root. Override with `--week-config <path>` or disable with `--no-config`.
+
+**Priority:** `week.yaml` takes precedence over `forma.yaml` for week-specific settings.
+
+**Config merge precedence** (highest → lowest):
+
+| Priority | Source | Scope |
+|----------|--------|-------|
+| 1 | CLI flags | Overrides everything |
+| 2 | `week.yaml` | Per-week settings |
+| 3 | `forma.yaml` | Per-semester settings |
+| 4 | Argparse defaults | Fallback |
+
+### Complete week.yaml example
+
+```yaml
+week: 1                                  # required — week number (>= 1)
+
+select:
+  source: "../exams/Ch01_FormativeTest.yaml"  # path to FormativeTest YAML source file
+  questions: [1, 3]                      # sn numbers to extract
+  num_papers: 50                         # number of exam paper copies to print
+  form_url: ""                           # Google Forms pre-filled URL template
+  exam_output: "week_01_exam.pdf"        # PDF output filename (triggers PDF generation)
+
+ocr:
+  num_questions: 2                       # answer areas per sheet
+  image_dir_pattern: "scans_1{class}_w1" # image directory with {class} placeholder
+  ocr_output_pattern: "scans_1{class}_w1/ocr_results.yaml"
+  join_output_pattern: "scans_1{class}_w1/final.yaml"
+  join_forms_csv: "forms_responses_w1.csv"  # CSV fallback for Google Forms data
+  student_id_column: "student_id"        # column name for student ID
+  crop_coords: []                        # auto-populated on first interactive scan
+
+eval:
+  config: "../exams/Ch01_FormativeTest.yaml"
+  questions_used: [1, 3]                 # sn numbers used in evaluation
+  responses_pattern: "scans_1{class}_w1/final.yaml"
+  output_pattern: "scans_1{class}_w1/eval/"
+  skip_feedback: false
+  skip_graph: false
+  generate_reports: false                # auto-generate student PDF reports
+```
+
+### week.yaml field reference
+
+For the complete schema with all 21 fields, types, and descriptions, see [Data Formats — Week Configuration YAML](data-formats.md#week-configuration-yaml-weekyaml).
+
+---
+
 ## Credential Security
 
 The SMTP password is **never** stored in `forma.json` or any configuration file. It must be supplied at runtime through one of two methods:
 
 ### 1. Standard input (`--password-from-stdin`)
 
-Pipe the password into the `forma-deliver send` command:
+Pipe the password into the `forma deliver send` command:
 
 ```bash
-echo "mypassword" | forma-deliver send --password-from-stdin --staged ./staging --template template.yaml
+echo "mypassword" | forma deliver send --password-from-stdin --staged ./staging --template template.yaml
 ```
 
 ### 2. Environment variable (`FORMA_SMTP_PASSWORD`)
@@ -239,10 +294,10 @@ Export the password as an environment variable before running the command:
 
 ```bash
 export FORMA_SMTP_PASSWORD="mypassword"
-forma-deliver send --staged ./staging --template template.yaml
+forma deliver send --staged ./staging --template template.yaml
 ```
 
-If neither method is used, `forma-deliver send` will exit with an error (unless `--dry-run` is specified).
+If neither method is used, `forma deliver send` will exit with an error (unless `--dry-run` is specified).
 
 ### API keys
 
@@ -250,14 +305,14 @@ For LLM and OCR API keys, it is recommended to use environment variables rather 
 
 ---
 
-## Generating forma.yaml with forma-init
+## Generating forma.yaml with forma init
 
-The `forma-init` command creates a `forma.yaml` template in the current directory through an interactive wizard.
+The `forma init` command creates a `forma.yaml` template in the current directory through an interactive wizard.
 
 ### Usage
 
 ```bash
-forma-init [--output PATH] [--force]
+forma init [--output PATH] [--force]
 ```
 
 | Flag | Description |
@@ -267,7 +322,7 @@ forma-init [--output PATH] [--force]
 
 ### Interactive prompts
 
-When you run `forma-init`, you will be asked for:
+When you run `forma init`, you will be asked for:
 
 1. **Course name** -- e.g., "Human Anatomy"
 2. **Academic year** -- e.g., 2026
@@ -279,7 +334,7 @@ The generated file includes all sections with default values and inline comments
 ### Example
 
 ```bash
-$ forma-init
+$ forma init
 Course name: Human Anatomy
 Academic year: 2026
 Semester: 1

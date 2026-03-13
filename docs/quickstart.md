@@ -32,7 +32,7 @@ Before starting, ensure you have:
 - **forma.json** configured with your API credentials at `~/.config/formative-analysis/forma.json` (see [Configuration](configuration.md))
 - **forma.yaml** initialized in your project directory (optional but recommended):
   ```bash
-  forma-init
+  forma init
   ```
 
 ---
@@ -44,7 +44,7 @@ Generate a formative exam PDF with QR codes for each student.
 **Command:**
 
 ```bash
-forma-exam --config exams/Ch01_FormativeTest.yaml --output exam_output.pdf
+forma exam --config exams/Ch01_FormativeTest.yaml --output exam_output.pdf
 ```
 
 **Input:** An exam configuration YAML file defining questions, model answers, rubrics, and support guidance. See [Data Formats](data-formats.md#exam-configuration-yaml) for the full schema.
@@ -63,10 +63,10 @@ After students complete the exam on paper, scan their answer sheets and extract 
 
 ```bash
 # Scan answer sheet images and run OCR
-forma-ocr scan --config ocr_config.yaml
+forma ocr scan --config ocr_config.yaml
 
 # Join OCR results with Google Sheets/Forms responses
-forma-ocr join --ocr-results results.yaml --output anp_1A_final.yaml \
+forma ocr join --ocr-results results.yaml --output anp_1A_final.yaml \
                --spreadsheet-url "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID"
 ```
 
@@ -92,7 +92,7 @@ Run the 4-layer evaluation pipeline on student responses:
 **Command:**
 
 ```bash
-forma-eval \
+forma eval \
   --config exams/Ch01_FormativeTest.yaml \
   --responses results/anp_w1/anp_1A_final.yaml \
   --output results/anp_w1/eval_1A/ \
@@ -119,7 +119,7 @@ Generate individual PDF reports for each student with their evaluation results, 
 **Command:**
 
 ```bash
-forma-report \
+forma report student \
   --final results/anp_w1/anp_1A_final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir results/anp_w1/eval_1A/ \
@@ -148,7 +148,7 @@ Generate a class-level summary report with statistics, concept analysis, and opt
 **Command:**
 
 ```bash
-forma-report-professor \
+forma report professor \
   --final results/anp_w1/anp_1A_final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir results/anp_w1/eval_1A/ \
@@ -164,7 +164,7 @@ forma-report-professor \
 - Knowledge graph aggregate view
 - Misconception clustering analysis
 
-> **Tip:** Add `--skip-llm` to skip AI analysis generation. Use `--model risk.pkl` for ML-based risk predictions (requires a trained model from `forma-train`).
+> **Tip:** Add `--skip-llm` to skip AI analysis generation. Use `--model risk.pkl` for ML-based risk predictions (requires a trained model from `forma train risk`).
 
 ---
 
@@ -175,7 +175,7 @@ Package student reports and deliver them via email.
 ### 6a. Prepare delivery packages
 
 ```bash
-forma-deliver prepare \
+forma deliver prepare \
   --manifest delivery/manifest.yaml \
   --roster delivery/roster.yaml \
   --output-dir delivery/staging/
@@ -190,7 +190,7 @@ forma-deliver prepare \
 ### 6b. Send emails
 
 ```bash
-echo "$FORMA_SMTP_PASSWORD" | forma-deliver send \
+echo "$FORMA_SMTP_PASSWORD" | forma deliver send \
   --staged delivery/staging/ \
   --template delivery/template.yaml \
   --password-from-stdin
@@ -209,7 +209,7 @@ echo "$FORMA_SMTP_PASSWORD" | forma-deliver send \
 
 ## See Also
 
-- [CLI Reference](cli-reference.md) -- Complete flag reference for all 14 commands
-- [Configuration](configuration.md) -- `forma.json` and `forma.yaml` setup guide
-- [Data Formats](data-formats.md) -- YAML and JSON schema reference for all file types
-- [Weekly Workflow](weekly-workflow.md) -- Recommended ongoing assessment routine for professors
+- [docs/for_new_teachers.md](for_new_teachers.md) — Scenario-based guide: choose the right workflow for your situation
+- [docs/weekly-workflow.md](weekly-workflow.md) — Step-by-step reference for the complete weekly assessment routine
+- [docs/cli-reference.md](cli-reference.md) — Complete flag reference for all 15 commands
+- [docs/configuration.md](configuration.md) — Full configuration reference (`forma.json`, `forma.yaml`, `week.yaml`)

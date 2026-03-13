@@ -1,23 +1,26 @@
 # CLI Reference
 
-Complete reference for all 14 formative-analysis CLI commands. Each command is installed as a console script via `pip install` and can be invoked directly from the terminal.
+Complete reference for all 15 FormA CLI commands, accessible through the unified `forma` entry point.
+
+> **Note:** The deprecated `forma-*` command names (e.g., `forma-exam`, `forma-train`) remain functional but emit a `DeprecationWarning`. Migrate to the `forma <subcommand>` format shown in this reference.
 
 ## Table of Contents
 
-- [forma-exam](#forma-exam)
-- [forma-ocr](#forma-ocr)
-- [forma-eval](#forma-eval)
-- [forma-eval-batch](#forma-eval-batch)
-- [forma-report](#forma-report)
-- [forma-report-professor](#forma-report-professor)
-- [forma-report-batch](#forma-report-batch)
-- [forma-report-longitudinal](#forma-report-longitudinal)
-- [forma-report-warning](#forma-report-warning)
-- [forma-train](#forma-train)
-- [forma-train-grade](#forma-train-grade)
-- [forma-init](#forma-init)
-- [forma-deliver](#forma-deliver)
-- [forma-intervention](#forma-intervention)
+- [forma exam](#forma-exam)
+- [forma ocr](#forma-ocr)
+- [forma eval](#forma-eval)
+- [forma eval batch](#forma-eval-batch)
+- [forma report student](#forma-report-student)
+- [forma report professor](#forma-report-professor)
+- [forma report batch](#forma-report-batch)
+- [forma report longitudinal](#forma-report-longitudinal)
+- [forma report warning](#forma-report-warning)
+- [forma train risk](#forma-train-risk)
+- [forma train grade](#forma-train-grade)
+- [forma init](#forma-init)
+- [forma deliver](#forma-deliver)
+- [forma intervention](#forma-intervention)
+- [forma select](#forma-select)
 
 ---
 
@@ -30,18 +33,18 @@ Complete reference for all 14 formative-analysis CLI commands. Each command is i
 | 2 | File error (file not found, permission denied, write error) |
 | 3 | Rendering error (font missing) or partial failure (some emails failed) |
 
-> Accurate as of v0.11.1
+> Accurate as of v0.12.2
 
 ---
 
-## forma-exam
+## forma exam
 
 Generate formative exam paper PDFs with randomized student IDs and QR codes.
 
 **Synopsis:**
 
 ```bash
-forma-exam (--config <path> | --questions <path> | --questions-json <json>) --output <path> [options]
+forma exam (--config <path> | --questions <path> | --questions-json <json>) --output <path> [options]
 ```
 
 **Arguments:**
@@ -68,30 +71,30 @@ Exactly one of `--config`, `--questions`, or `--questions-json` must be provided
 
 ```bash
 # Generate from unified config YAML
-forma-exam --config exam.yaml --output exam.pdf
+forma exam --config exam.yaml --output exam.pdf
 
 # Generate with explicit question file and paper count
-forma-exam --questions questions.yaml --num-papers 50 --output exam.pdf
+forma exam --questions questions.yaml --num-papers 50 --output exam.pdf
 
 # Generate with inline JSON questions
-forma-exam --questions-json '[{"topic":"T","text":"Q","limit":"50"}]' \
+forma exam --questions-json '[{"topic":"T","text":"Q","limit":"50"}]' \
            --num-papers 30 --output exam.pdf
 ```
 
 ---
 
-## forma-ocr
+## forma ocr
 
 OCR pipeline for scanned exam answer sheets. Has two subcommands: `scan` and `join`.
 
 **Synopsis:**
 
 ```bash
-forma-ocr [--no-config] scan --config <path> [options]
-forma-ocr [--no-config] join --ocr-results <path> --output <path> [options]
+forma ocr [--no-config] scan --config <path> [options]
+forma ocr [--no-config] join --ocr-results <path> --output <path> [options]
 ```
 
-### forma-ocr scan
+### forma ocr scan
 
 Scan images, decode QR codes, run OCR, and produce a YAML result file.
 
@@ -101,15 +104,16 @@ Scan images, decode QR codes, run OCR, and produce a YAML result file.
 |------|------|----------|---------|-------------|
 | `--config` | path | yes | -- | OCR configuration YAML file path |
 | `--num-questions` | integer | no | None | Number of questions (can be specified in config YAML; defaults to 2 if unset) |
+| `--class` | string | no | None | Class identifier; substitutes `{class}` in `week.yaml` path patterns |
 
 **Examples:**
 
 ```bash
-forma-ocr scan --config ocr_config.yaml
-forma-ocr scan --config ocr_config.yaml --num-questions 3
+forma ocr scan --config ocr_config.yaml
+forma ocr scan --config ocr_config.yaml --num-questions 3
 ```
 
-### forma-ocr join
+### forma ocr join
 
 Join OCR results with Google Forms/Sheets responses to produce a unified output YAML.
 
@@ -124,16 +128,17 @@ Join OCR results with Google Forms/Sheets responses to produce a unified output 
 | `--credentials` | path | no | `credentials.json` | OAuth2 credentials JSON file path |
 | `--manual-mapping` | path | no | None | Manual mapping YAML for unmatched students |
 | `--student-id-column` | string | no | `student_id` | Student ID column name in the spreadsheet |
+| `--class` | string | no | None | Class identifier; substitutes `{class}` in `week.yaml` path patterns |
 
 At least one of `--spreadsheet-url` or `--forms-csv` must be provided.
 
 **Examples:**
 
 ```bash
-forma-ocr join --ocr-results results.yaml --output final.yaml \
+forma ocr join --ocr-results results.yaml --output final.yaml \
                --spreadsheet-url "https://docs.google.com/spreadsheets/d/XXX"
 
-forma-ocr join --ocr-results results.yaml --output final.yaml \
+forma ocr join --ocr-results results.yaml --output final.yaml \
                --forms-csv fallback.csv --manual-mapping mapping.yaml
 ```
 
@@ -145,14 +150,14 @@ forma-ocr join --ocr-results results.yaml --output final.yaml \
 
 ---
 
-## forma-eval
+## forma eval
 
 Multi-layer concept evaluation pipeline. Supports both direct CLI flags and a single eval-config YAML file for all options.
 
 **Synopsis:**
 
 ```bash
-forma-eval [--eval-config <path>] [--config <path>] [--responses <path>] [--output <path>] [options]
+forma eval [--eval-config <path>] [--config <path>] [--responses <path>] [--output <path>] [options]
 ```
 
 **Arguments:**
@@ -182,27 +187,27 @@ Either `--eval-config` or all three of `--config`, `--responses`, `--output` mus
 
 ```bash
 # Using eval-config YAML
-forma-eval --eval-config eval_w1_A.yaml
+forma eval --eval-config eval_w1_A.yaml
 
 # Using explicit flags
-forma-eval --config exam.yaml --responses responses.yaml --output results/ \
+forma eval --config exam.yaml --responses responses.yaml --output results/ \
            --provider gemini --skip-stats
 
 # With question mapping from OCR join output
-forma-eval --config exam.yaml --responses final.yaml --output results/ \
+forma eval --config exam.yaml --responses final.yaml --output results/ \
            --questions-used 1 3
 ```
 
 ---
 
-## forma-eval-batch
+## forma eval batch
 
 Batch evaluation pipeline for multiple class sections. Runs the full evaluation pipeline for each specified class.
 
 **Synopsis:**
 
 ```bash
-forma-eval-batch --config <path> --join-dir <path> --join-pattern <pattern> \
+forma eval batch --config <path> --join-dir <path> --join-pattern <pattern> \
                  --output <path> --classes <ids...> [options]
 ```
 
@@ -230,7 +235,7 @@ forma-eval-batch --config <path> --join-dir <path> --join-pattern <pattern> \
 **Examples:**
 
 ```bash
-forma-eval-batch --config exam.yaml \
+forma eval batch --config exam.yaml \
                  --join-dir results/anp_w1/ \
                  --join-pattern "anp_1{class}_final.yaml" \
                  --output results/anp_w1_eval/ \
@@ -240,14 +245,14 @@ forma-eval-batch --config exam.yaml \
 
 ---
 
-## forma-report
+## forma report student
 
 Generate individual student PDF reports with evaluation results, feedback, and optional longitudinal comparisons.
 
 **Synopsis:**
 
 ```bash
-forma-report --final <path> --config <path> --eval-dir <path> --output-dir <path> [options]
+forma report student --final <path> --config <path> --eval-dir <path> --output-dir <path> [options]
 ```
 
 **Arguments:**
@@ -273,16 +278,16 @@ forma-report --final <path> --config <path> --eval-dir <path> --output-dir <path
 
 ```bash
 # Generate reports for all students
-forma-report --final anp_1A_final.yaml --config exam.yaml \
+forma report student --final anp_1A_final.yaml --config exam.yaml \
              --eval-dir eval_1A/ --output-dir reports/
 
 # Generate for a single student with longitudinal data
-forma-report --final anp_1A_final.yaml --config exam.yaml \
+forma report student --final anp_1A_final.yaml --config exam.yaml \
              --eval-dir eval_1A/ --output-dir reports/ \
              --student S015 --longitudinal-store store.yaml --week 4
 
 # With grade prediction and learning path
-forma-report --final anp_1A_final.yaml --config exam.yaml \
+forma report student --final anp_1A_final.yaml --config exam.yaml \
              --eval-dir eval_1A/ --output-dir reports/ \
              --grade-model grade.pkl --concept-deps \
              --longitudinal-store store.yaml --week 4
@@ -290,14 +295,14 @@ forma-report --final anp_1A_final.yaml --config exam.yaml \
 
 ---
 
-## forma-report-professor
+## forma report professor
 
 Generate a professor-facing class summary PDF report with analytics, LLM-powered analysis, and optional risk prediction.
 
 **Synopsis:**
 
 ```bash
-forma-report-professor --final <path> --config <path> --eval-dir <path> --output-dir <path> [options]
+forma report professor --final <path> --config <path> --eval-dir <path> --output-dir <path> [options]
 ```
 
 **Arguments:**
@@ -319,18 +324,18 @@ forma-report-professor --final <path> --config <path> --eval-dir <path> --output
 | `--transcript-dir` | path | no | None | Lecture transcript text files directory |
 | `--longitudinal-store` | path | no | None | Longitudinal store YAML path (enables risk movement tracking) |
 | `--week` | integer | no | None | Current week number (requires `--longitudinal-store`) |
-| `--grade-model` | path | no | None | Grade prediction model file path (.pkl, from forma-train-grade) |
+| `--grade-model` | path | no | None | Grade prediction model file path (.pkl, from `forma train grade`) |
 | `--intervention-log` | path | no | None | Intervention log YAML path (enables intervention effect analysis) |
 
 **Examples:**
 
 ```bash
 # Basic professor report
-forma-report-professor --final anp_1A_final.yaml --config exam.yaml \
+forma report professor --final anp_1A_final.yaml --config exam.yaml \
                        --eval-dir eval_1A/ --output-dir reports/
 
 # Full-featured report with all optional data sources
-forma-report-professor --final anp_1A_final.yaml --config exam.yaml \
+forma report professor --final anp_1A_final.yaml --config exam.yaml \
                        --eval-dir eval_1A/ --output-dir reports/ \
                        --class-name "1A" --model risk.pkl --grade-model grade.pkl \
                        --longitudinal-store store.yaml --week 4 \
@@ -340,14 +345,14 @@ forma-report-professor --final anp_1A_final.yaml --config exam.yaml \
 
 ---
 
-## forma-report-batch
+## forma report batch
 
 Generate PDF reports for multiple class sections at once, with optional aggregate cross-section analysis.
 
 **Synopsis:**
 
 ```bash
-forma-report-batch --config <path> --join-dir <path> --join-pattern <pattern> \
+forma report batch --config <path> --join-dir <path> --join-pattern <pattern> \
                    --eval-pattern <pattern> --output-dir <path> --classes <ids...> [options]
 ```
 
@@ -374,13 +379,13 @@ forma-report-batch --config <path> --join-dir <path> --join-pattern <pattern> \
 
 ```bash
 # Generate per-class student + professor reports
-forma-report-batch --config exam.yaml --join-dir results/anp_w1/ \
+forma report batch --config exam.yaml --join-dir results/anp_w1/ \
                    --join-pattern "anp_1{class}_final.yaml" \
                    --eval-pattern "eval_{class}/" \
                    --output-dir reports/ --classes A B C D
 
 # Generate aggregate cross-section report only (no student PDFs)
-forma-report-batch --config exam.yaml --join-dir results/anp_w1/ \
+forma report batch --config exam.yaml --join-dir results/anp_w1/ \
                    --join-pattern "anp_1{class}_final.yaml" \
                    --eval-pattern "eval_{class}/" \
                    --output-dir reports/ --classes A B C D \
@@ -389,14 +394,14 @@ forma-report-batch --config exam.yaml --join-dir results/anp_w1/ \
 
 ---
 
-## forma-report-longitudinal
+## forma report longitudinal
 
 Generate a longitudinal summary PDF report showing student trajectories, heatmaps, and concept mastery changes over multiple weeks.
 
 **Synopsis:**
 
 ```bash
-forma-report-longitudinal --store <path> --class-name <name> --output <path> [options]
+forma report longitudinal --store <path> --class-name <name> --output <path> [options]
 ```
 
 **Arguments:**
@@ -417,30 +422,30 @@ forma-report-longitudinal --store <path> --class-name <name> --output <path> [op
 
 ```bash
 # Basic longitudinal report with all weeks
-forma-report-longitudinal --store longitudinal.yaml --class-name "1A" \
+forma report longitudinal --store longitudinal.yaml --class-name "1A" \
                           --output longitudinal_report.pdf
 
 # With specific weeks and risk model
-forma-report-longitudinal --store longitudinal.yaml --class-name "1A" \
+forma report longitudinal --store longitudinal.yaml --class-name "1A" \
                           --output longitudinal_report.pdf \
                           --weeks 1 2 3 4 --model risk.pkl
 
 # With intervention effect chart
-forma-report-longitudinal --store longitudinal.yaml --class-name "1A" \
+forma report longitudinal --store longitudinal.yaml --class-name "1A" \
                           --output longitudinal_report.pdf \
                           --intervention-log interventions.yaml
 ```
 
 ---
 
-## forma-report-warning
+## forma report warning
 
 Generate an early warning PDF report identifying at-risk students with risk types, deficit concepts, and recommended interventions.
 
 **Synopsis:**
 
 ```bash
-forma-report-warning --final <path> --config <path> --eval-dir <path> --output <path> [options]
+forma report warning --final <path> --config <path> --eval-dir <path> --output <path> [options]
 ```
 
 **Arguments:**
@@ -463,25 +468,25 @@ forma-report-warning --final <path> --config <path> --eval-dir <path> --output <
 
 ```bash
 # Basic warning report using rule-based detection only
-forma-report-warning --final anp_1A_final.yaml --config exam.yaml \
+forma report warning --final anp_1A_final.yaml --config exam.yaml \
                      --eval-dir eval_1A/ --output warning.pdf
 
 # With model-based prediction
-forma-report-warning --final anp_1A_final.yaml --config exam.yaml \
+forma report warning --final anp_1A_final.yaml --config exam.yaml \
                      --eval-dir eval_1A/ --output warning.pdf \
                      --longitudinal-store store.yaml --week 4 --model risk.pkl
 ```
 
 ---
 
-## forma-train
+## forma train risk
 
 Train a drop risk prediction model from longitudinal data using logistic regression.
 
 **Synopsis:**
 
 ```bash
-forma-train --store <path> --output <path> [options]
+forma train risk --store <path> --output <path> [options]
 ```
 
 **Arguments:**
@@ -499,23 +504,23 @@ forma-train --store <path> --output <path> [options]
 
 ```bash
 # Train with default settings
-forma-train --store longitudinal.yaml --output risk_model.pkl
+forma train risk --store longitudinal.yaml --output risk_model.pkl
 
 # Train with custom threshold and minimums
-forma-train --store longitudinal.yaml --output risk_model.pkl \
+forma train risk --store longitudinal.yaml --output risk_model.pkl \
             --threshold 0.40 --min-weeks 4 --min-students 20
 ```
 
 ---
 
-## forma-train-grade
+## forma train grade
 
 Train a semester grade prediction model from longitudinal data and historical grade mappings.
 
 **Synopsis:**
 
 ```bash
-forma-train-grade --store <path> --grades <path> --output <path> [options]
+forma train grade --store <path> --grades <path> --output <path> [options]
 ```
 
 **Arguments:**
@@ -534,24 +539,24 @@ forma-train-grade --store <path> --grades <path> --output <path> [options]
 
 ```bash
 # Train using the last semester's grades
-forma-train-grade --store longitudinal.yaml --grades grade_mapping.yaml \
+forma train grade --store longitudinal.yaml --grades grade_mapping.yaml \
                   --output grade_model.pkl
 
 # Train for a specific semester
-forma-train-grade --store longitudinal.yaml --grades grade_mapping.yaml \
+forma train grade --store longitudinal.yaml --grades grade_mapping.yaml \
                   --output grade_model.pkl --semester "2025-2"
 ```
 
 ---
 
-## forma-init
+## forma init
 
 Interactively generate a `forma.yaml` project configuration template file.
 
 **Synopsis:**
 
 ```bash
-forma-init [--output <path>] [--force]
+forma init [--output <path>] [--force]
 ```
 
 **Arguments:**
@@ -567,23 +572,23 @@ The command prompts interactively for course name, academic year, semester, and 
 
 ```bash
 # Generate default forma.yaml in current directory
-forma-init
+forma init
 
 # Generate at a custom path, overwriting if exists
-forma-init --output config/forma.yaml --force
+forma init --output config/forma.yaml --force
 ```
 
 ---
 
-## forma-deliver
+## forma deliver
 
 Report email delivery automation. Has two subcommands: `prepare` and `send`.
 
 **Synopsis:**
 
 ```bash
-forma-deliver [--no-config] [--verbose] prepare --manifest <path> --roster <path> --output-dir <path> [options]
-forma-deliver [--no-config] [--verbose] send --staged <path> --template <path> [options]
+forma deliver [--no-config] [--verbose] prepare --manifest <path> --roster <path> --output-dir <path> [options]
+forma deliver [--no-config] [--verbose] send --staged <path> --template <path> [options]
 ```
 
 ### Common Options
@@ -593,7 +598,7 @@ forma-deliver [--no-config] [--verbose] send --staged <path> --template <path> [
 | `--no-config` | flag | no | false | Skip loading forma.yaml project configuration |
 | `--verbose` | flag | no | false | Enable detailed logging |
 
-### forma-deliver prepare
+### forma deliver prepare
 
 Collect student report files and create zip archives for each student.
 
@@ -609,11 +614,11 @@ Collect student report files and create zip archives for each student.
 **Examples:**
 
 ```bash
-forma-deliver prepare --manifest manifest.yaml --roster roster.yaml \
+forma deliver prepare --manifest manifest.yaml --roster roster.yaml \
                       --output-dir staging/
 ```
 
-### forma-deliver send
+### forma deliver send
 
 Send emails with zip attachments via SMTP.
 
@@ -636,33 +641,33 @@ Send emails with zip attachments via SMTP.
 
 ```bash
 # Dry-run preview
-forma-deliver send --staged staging/ --template template.yaml --dry-run
+forma deliver send --staged staging/ --template template.yaml --dry-run
 
 # Send emails using forma.json SMTP configuration
-echo "$SMTP_PASSWORD" | forma-deliver send --staged staging/ --template template.yaml \
+echo "$SMTP_PASSWORD" | forma deliver send --staged staging/ --template template.yaml \
                                            --password-from-stdin
 
 # Retry failed emails with explicit SMTP config (deprecated path)
-forma-deliver send --staged staging/ --template template.yaml \
+forma deliver send --staged staging/ --template template.yaml \
                    --smtp-config smtp.yaml --retry-failed
 
 # Send with professor summary notification
-forma-deliver send --staged staging/ --template template.yaml \
+forma deliver send --staged staging/ --template template.yaml \
                    --notify-sender --password-from-stdin
 ```
 
 ---
 
-## forma-intervention
+## forma intervention
 
 Manage intervention activity records (counseling, supplementary learning, assignments, mentoring). Has three subcommands: `add`, `list`, and `update`.
 
 **Synopsis:**
 
 ```bash
-forma-intervention [--no-config] [--verbose] add --store <path> --student <id> --week <n> --type <type> [options]
-forma-intervention [--no-config] [--verbose] list --store <path> [options]
-forma-intervention [--no-config] [--verbose] update --store <path> --id <n> --outcome <outcome>
+forma intervention [--no-config] [--verbose] add --store <path> --student <id> --week <n> --type <type> [options]
+forma intervention [--no-config] [--verbose] list --store <path> [options]
+forma intervention [--no-config] [--verbose] update --store <path> --id <n> --outcome <outcome>
 ```
 
 ### Common Options
@@ -672,7 +677,7 @@ forma-intervention [--no-config] [--verbose] update --store <path> --id <n> --ou
 | `--no-config` | flag | no | false | Skip loading forma.yaml project configuration |
 | `--verbose` | flag | no | false | Enable detailed logging |
 
-### forma-intervention add
+### forma intervention add
 
 Add a new intervention record.
 
@@ -691,12 +696,12 @@ Add a new intervention record.
 **Examples:**
 
 ```bash
-forma-intervention add --store interventions.yaml --student S015 \
+forma intervention add --store interventions.yaml --student S015 \
                        --week 3 --type "면담" \
                        --description "Discussed study habits" --recorded-by "Prof. Kim"
 ```
 
-### forma-intervention list
+### forma intervention list
 
 List intervention records with optional filters.
 
@@ -712,16 +717,16 @@ List intervention records with optional filters.
 
 ```bash
 # List all records
-forma-intervention list --store interventions.yaml
+forma intervention list --store interventions.yaml
 
 # Filter by student
-forma-intervention list --store interventions.yaml --student S015
+forma intervention list --store interventions.yaml --student S015
 
 # Filter by week
-forma-intervention list --store interventions.yaml --week 3
+forma intervention list --store interventions.yaml --week 3
 ```
 
-### forma-intervention update
+### forma intervention update
 
 Update the outcome of an existing intervention record.
 
@@ -736,5 +741,43 @@ Update the outcome of an existing intervention record.
 **Examples:**
 
 ```bash
-forma-intervention update --store interventions.yaml --id 1 --outcome "개선"
+forma intervention update --store interventions.yaml --id 1 --outcome "개선"
 ```
+
+---
+
+## forma select
+
+Select questions from a source test bank and generate an exam PDF, driven by `week.yaml`.
+
+**Synopsis:**
+
+```bash
+forma select [--week-config <path>] [--no-config]
+```
+
+**Behavior:**
+
+1. Locates `week.yaml` (via `--week-config` or auto-discovery by walking upward from CWD, stopping at `.git`).
+2. Reads `select.source` and `select.questions` to extract questions by `sn` number.
+3. Writes `questions.yaml` with provenance metadata (source path, selected `sn` list, week number).
+4. If `select.exam_output` is set in `week.yaml`, generates an exam PDF automatically.
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--week-config` | path | no | auto-discover | Path to `week.yaml`; discovered by walking upward from CWD if omitted |
+| `--no-config` | flag | no | false | Disable `week.yaml` auto-discovery |
+
+**Examples:**
+
+```bash
+# Auto-discover week.yaml and generate questions.yaml + exam PDF
+forma select
+
+# Specify week.yaml path explicitly
+forma select --week-config path/to/week/week.yaml
+```
+
+**Prerequisite**: A valid `week.yaml` with `select.source` and `select.questions` set. See [Configuration](configuration.md#weekyaml) for the full `week.yaml` field reference.
