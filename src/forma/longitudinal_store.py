@@ -27,6 +27,20 @@ class LongitudinalStore:
         self.store_path = store_path
         self._lock_path = str(self.store_path) + ".lock"
         self._records: dict[str, dict] = {}
+        self._by_student: dict[str, list[str]] = {}
+        self._by_week: dict[int, list[str]] = {}
+
+    def _rebuild_index(self) -> None:
+        """Rebuild _by_student and _by_week indexes from _records."""
+        by_student: dict[str, list[str]] = {}
+        by_week: dict[int, list[str]] = {}
+        for key, d in self._records.items():
+            sid = d["student_id"]
+            wk = d["week"]
+            by_student.setdefault(sid, []).append(key)
+            by_week.setdefault(wk, []).append(key)
+        self._by_student = by_student
+        self._by_week = by_week
 
     def _to_dict(self, record: LongitudinalRecord, manual_override: bool = False) -> dict:
         d = {
@@ -78,15 +92,16 @@ class LongitudinalStore:
         existing = self._records.get(key)
         if existing and existing.get("manual_override", False):
             return
+        is_new = key not in self._records
         self._records[key] = self._to_dict(record)
+        if is_new:
+            self._by_student.setdefault(record.student_id, []).append(key)
+            self._by_week.setdefault(record.week, []).append(key)
 
     def get_student_history(self, student_id: str) -> list[LongitudinalRecord]:
         """Return all records for a given student."""
-        return [
-            self._to_record(d)
-            for d in self._records.values()
-            if d["student_id"] == student_id
-        ]
+        keys = self._by_student.get(student_id, [])
+        return [self._to_record(self._records[k]) for k in keys if k in self._records]
 
     def get_all_records(self) -> list[LongitudinalRecord]:
         """Return all records in the store."""
@@ -119,6 +134,7 @@ class LongitudinalStore:
         """Load records from YAML file. Initializes empty if file doesn't exist."""
         if not os.path.exists(self.store_path):
             self._records = {}
+            self._rebuild_index()
             return
         lock_file = open(self._lock_path, "a")
         try:
@@ -129,14 +145,12 @@ class LongitudinalStore:
         finally:
             fcntl.flock(lock_file, fcntl.LOCK_UN)
             lock_file.close()
+        self._rebuild_index()
 
     def get_class_snapshot(self, week: int) -> list[LongitudinalRecord]:
         """Return all records for a given week, sorted by student_id."""
-        records = [
-            self._to_record(d)
-            for d in self._records.values()
-            if d["week"] == week
-        ]
+        keys = self._by_week.get(week, [])
+        records = [self._to_record(self._records[k]) for k in keys if k in self._records]
         records.sort(key=lambda r: r.student_id)
         return records
 
@@ -149,8 +163,9 @@ class LongitudinalStore:
         values are averaged across questions for that week.
         """
         week_values: dict[int, list[float]] = defaultdict(list)
-        for d in self._records.values():
-            if d["student_id"] != student_id:
+        for key in self._by_student.get(student_id, []):
+            d = self._records.get(key)
+            if d is None:
                 continue
             val = d["scores"].get(metric)
             if val is not None:

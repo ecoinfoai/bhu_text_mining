@@ -91,27 +91,27 @@ def build_class_knowledge_aggregate(
     total_students = len(comparison_results)
     aggregate_edges: list[AggregateEdge] = []
 
+    # Pre-compute set-based lookups per student for O(1) edge matching
+    matched_sets: list[set[tuple[str, str, str]]] = []
+    wrong_sets: list[set[tuple[str, str]]] = []
+    for result in comparison_results:
+        matched_sets.append({
+            (e.subject, e.relation, e.object) for e in result.matched_edges
+        })
+        wrong_sets.append({
+            (e.subject, e.object) for e in result.wrong_direction_edges
+        })
+
     for master_edge in master_edges:
         key = (master_edge.subject, master_edge.relation, master_edge.object)
+        rev_key = (master_edge.object, master_edge.subject)
         correct_count = 0
         error_count = 0
 
-        for result in comparison_results:
-            matched = any(
-                (e.subject, e.relation, e.object) == key
-                for e in result.matched_edges
-            )
-            if matched:
+        for i in range(total_students):
+            if key in matched_sets[i]:
                 correct_count += 1
-                continue
-
-            # wrong_direction_edges stores the student's reversed edge (B, rel, A)
-            # when master is (A, rel, B) — match by reversed subject/object
-            wrong = any(
-                e.subject == master_edge.object and e.object == master_edge.subject
-                for e in result.wrong_direction_edges
-            )
-            if wrong:
+            elif rev_key in wrong_sets[i]:
                 error_count += 1
 
         missing_count = total_students - correct_count - error_count

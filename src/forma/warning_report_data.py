@@ -26,6 +26,7 @@ _PERSISTENT_LOW_THRESHOLD = 0.45
 _CONCEPT_DEFICIT_MIN_COUNT = 3
 _ABSENCE_HIGH_THRESHOLD = 0.3
 _DROP_PROB_INCLUSION_THRESHOLD = 0.5
+_SLOPE_EPSILON = 1e-9  # FR-032: guard against float-noise false positives
 
 
 class RiskType(enum.Enum):
@@ -122,7 +123,7 @@ def _classify_risk_types(
     if len(score_trajectory) >= 2:
         x = np.arange(len(score_trajectory), dtype=float)
         coeffs = np.polyfit(x, score_trajectory, deg=1)
-        if coeffs[0] < 0:
+        if coeffs[0] < -_SLOPE_EPSILON:
             risk_types.append(RiskType.SCORE_DECLINE)
 
     # PERSISTENT_LOW: all weekly scores below threshold

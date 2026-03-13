@@ -359,6 +359,7 @@ class LongitudinalRecord:
         tier_level: Rubric tier level (0-3).
         tier_label: Rubric tier label.
         node_recall: Graph node recall (0.0-1.0). v2 field.
+            미구현 -- v0.8.0 이후 항상 None (GraphMetricResult 미계산).
         edge_f1: Graph edge F1 score. v2 field.
         misconception_count: Number of wrong-direction edges. v2 field.
         concept_scores: Per-concept correctness ratio. v2 field.
