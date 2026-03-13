@@ -160,15 +160,18 @@ def _cmd_prepare(args: argparse.Namespace) -> None:
         f"error={summary.errors})"
     )
 
+    verbose = getattr(args, "verbose", False)
     if summary.errors > 0:
         error_students = [d for d in summary.details if d.status == "error"]
         for d in error_students:
-            print(f"  [ERROR] {d.student_id} ({d.name}): {d.message}")
+            label = f"{d.student_id} ({d.name})" if verbose else d.student_id
+            print(f"  [ERROR] {label}: {d.message}")
 
     if summary.warnings > 0:
         warning_students = [d for d in summary.details if d.status == "warning"]
         for d in warning_students:
-            print(f"  [WARNING] {d.student_id} ({d.name}): {d.message}")
+            label = f"{d.student_id} ({d.name})" if verbose else d.student_id
+            print(f"  [WARNING] {label}: {d.message}")
 
 
 def _cmd_send(args: argparse.Namespace) -> None:

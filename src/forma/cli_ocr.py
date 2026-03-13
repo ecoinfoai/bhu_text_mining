@@ -19,11 +19,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 
 import yaml
 
 from forma.ocr_pipeline import run_join_pipeline, run_scan_pipeline
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -191,8 +194,8 @@ def main(argv: list[str] | None = None) -> None:
                     if proj_path:
                         proj = load_project_config(proj_path)
                         naver_ocr_config = proj.get("ocr", {}).get("naver_config", "")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("프로젝트 설정 로드 실패: %s", exc)
 
             results = run_scan_pipeline(
                 image_dir=image_dir,
@@ -279,8 +282,8 @@ def main(argv: list[str] | None = None) -> None:
                         cred = proj.get("ocr", {}).get("credentials", "")
                         if cred:
                             credentials_path = cred
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("프로젝트 설정 로드 실패: %s", exc)
 
             if not spreadsheet_url and not forms_csv:
                 print(
