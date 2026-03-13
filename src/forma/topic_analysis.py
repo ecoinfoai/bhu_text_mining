@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import warnings
 
 import yaml
-from typing import Dict, List, Tuple
 from bertopic import BERTopic
 from umap import UMAP
 from hdbscan import HDBSCAN
@@ -13,7 +14,7 @@ import pandas as pd
 
 
 # Prepare your data
-def load_yaml_data(yaml_path: str) -> Dict[str, str]:
+def load_yaml_data(yaml_path: str) -> dict[str, str]:
     """
     Load data from a YAML file into a dictionary.
 
@@ -24,7 +25,7 @@ def load_yaml_data(yaml_path: str) -> Dict[str, str]:
         yaml_path (str): The path to the YAML file.
 
     Returns:
-        Dict[str, str]: A dictionary containing the YAML file's key-value pairs.
+        dict[str, str]: A dictionary containing the YAML file's key-value pairs.
 
     Examples:
         >>> yaml_data = load_yaml_data("data.yaml")
@@ -35,7 +36,7 @@ def load_yaml_data(yaml_path: str) -> Dict[str, str]:
         return yaml.safe_load(f)
 
 
-def split_sentences(yaml_data: Dict[str, str]) -> List[str]:
+def split_sentences(yaml_data: dict[str, str]) -> list[str]:
     """
     Split the text data in a YAML dictionary into individual sentences.
 
@@ -44,11 +45,11 @@ def split_sentences(yaml_data: Dict[str, str]) -> List[str]:
     of sentences and their corresponding keys.
 
     Args:
-        yaml_data (Dict[str, str]): A dictionary where keys are identifiers
+        yaml_data (dict[str, str]): A dictionary where keys are identifiers
             and values are text data.
 
     Returns:
-        Tuple[List[str], List[str]]: A tuple containing a list of all
+        tuple[list[str], list[str]]: A tuple containing a list of all
         sentences and a list of corresponding keys.
 
     Examples:
@@ -69,7 +70,7 @@ def split_sentences(yaml_data: Dict[str, str]) -> List[str]:
 
 
 # BERTopic model
-def configure_bertopic(env_config: Dict) -> BERTopic:
+def configure_bertopic(env_config: dict) -> BERTopic:
     """
     Configure a BERTopic model using environment settings.
 
@@ -104,8 +105,8 @@ def configure_bertopic(env_config: Dict) -> BERTopic:
 
 
 def analyze_topics_with_bertopic(
-    topic_model: BERTopic, sentences: List[str]
-) -> Tuple[List[int], List[float]]:
+    topic_model: BERTopic, sentences: list[str]
+) -> tuple[list[int], list[float]]:
     """
     Analyze topics in a set of sentences using BERTopic.
 
@@ -114,10 +115,10 @@ def analyze_topics_with_bertopic(
 
     Args:
         topic_model (BERTopic): The BERTopic model instance to use.
-        sentences (List[str]): A list of sentences to analyze.
+        sentences (list[str]): A list of sentences to analyze.
 
     Returns:
-        Tuple[List[int], List[float]]: A tuple containing a list of topic
+        tuple[list[int], list[float]]: A tuple containing a list of topic
         assignments and a list of topic probabilities.
 
     Examples:
@@ -130,7 +131,7 @@ def analyze_topics_with_bertopic(
 
 # Examine topics from BERTopic model
 def generate_topic_dataframe(
-    sentences: List[str], topics: List[int], keys: List[str]
+    sentences: list[str], topics: list[int], keys: list[str]
 ) -> pd.DataFrame:
     """
     Generate a DataFrame summarizing topic assignments for sentences.
@@ -139,9 +140,9 @@ def generate_topic_dataframe(
     assignment, and associated metadata (key and sentence number).
 
     Args:
-        sentences (List[str]): A list of sentences.
-        topics (List[int]): A list of topic assignments for the sentences.
-        keys (List[str]): A list of keys corresponding to each sentence.
+        sentences (list[str]): A list of sentences.
+        topics (list[int]): A list of topic assignments for the sentences.
+        keys (list[str]): A list of keys corresponding to each sentence.
 
     Returns:
         pd.DataFrame: A DataFrame with columns for keys, topic numbers,
@@ -173,7 +174,7 @@ def generate_topic_dataframe(
 
 
 def generate_topic_keywords_table(
-    topic_model: BERTopic, sentences: List[str], topics: List[int]
+    topic_model: BERTopic, sentences: list[str], topics: list[int]
 ) -> pd.DataFrame:
     """
     Generate a table of topic keywords from the BERTopic model.
@@ -183,8 +184,8 @@ def generate_topic_keywords_table(
 
     Args:
         topic_model (BERTopic): The BERTopic model instance.
-        sentences (List[str]): A list of sentences (used for reference).
-        topics (List[int]): A list of topic assignments for the sentences.
+        sentences (list[str]): A list of sentences (used for reference).
+        topics (list[int]): A list of topic assignments for the sentences.
 
     Returns:
         pd.DataFrame: A DataFrame with columns for topic numbers and their

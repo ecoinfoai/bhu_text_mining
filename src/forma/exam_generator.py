@@ -4,10 +4,12 @@
 Generates A4 exam papers with student ID QR codes for
 privacy-preserving OCR workflows.
 """
+
+from __future__ import annotations
+
 import glob
 import os
 import platform
-from typing import Dict, List, Optional
 from urllib.parse import quote
 
 from reportlab.lib.pagesizes import A4
@@ -36,7 +38,7 @@ class ExamPDFGenerator:
     ANSWER_NUM_LINES: int = 7
     _REQUIRED_KEYS = {"topic", "text", "limit"}
 
-    def __init__(self, font_path: Optional[str] = None) -> None:
+    def __init__(self, font_path: str | None = None) -> None:
         if font_path is None:
             font_path = self._find_font()
         if not os.path.exists(font_path):
@@ -65,7 +67,7 @@ class ExamPDFGenerator:
     def _find_font(self) -> str:
         """OS별 폰트 자동 탐색."""
         system = platform.system()
-        search_paths: List[str] = []
+        search_paths: list[str] = []
         if system == "Windows":
             search_paths = [
                 "C:/Windows/Fonts/malgun.ttf",
@@ -93,7 +95,7 @@ class ExamPDFGenerator:
 
     @staticmethod
     def _validate_questions(
-        questions: List[Dict[str, str]],
+        questions: list[dict[str, str]],
     ) -> None:
         """Validate questions list.
 
@@ -123,8 +125,8 @@ class ExamPDFGenerator:
     @staticmethod
     def _generate_student_ids(
         num_papers: int,
-        student_ids: Optional[List[str]] = None,
-    ) -> List[str]:
+        student_ids: list[str] | None = None,
+    ) -> list[str]:
         """Generate or validate student ID list.
 
         Args:
@@ -154,8 +156,8 @@ class ExamPDFGenerator:
         student_id: str,
         course_name: str,
         week_num: int,
-        form_url_template: Optional[str] = None,
-        q_num: Optional[int] = None,
+        form_url_template: str | None = None,
+        q_num: int | None = None,
     ) -> str:
         """Format QR code content string.
 
@@ -316,8 +318,8 @@ class ExamPDFGenerator:
         c: canvas.Canvas,
         y_pos: float,
         q_num: int,
-        question: Dict[str, str],
-        qr_image: Optional["PILImage.Image"] = None,
+        question: dict[str, str],
+        qr_image: PILImage.Image | None = None,
     ) -> float:
         """Draw a single question with answer area.
 
@@ -445,15 +447,15 @@ class ExamPDFGenerator:
     def _draw_page(
         self,
         c: canvas.Canvas,
-        questions: List[Dict[str, str]],
+        questions: list[dict[str, str]],
         paper_num: int,
         year: int,
         grade: int,
         semester: int,
         course_name: str,
         week_num: int,
-        student_id: Optional[str] = None,
-        form_url_template: Optional[str] = None,
+        student_id: str | None = None,
+        form_url_template: str | None = None,
     ) -> None:
         """Draw a single exam page with per-question QR codes."""
         y = self._draw_header(
@@ -479,7 +481,7 @@ class ExamPDFGenerator:
     @staticmethod
     def _validate_inputs(
         num_papers: int,
-        form_url_template: Optional[str],
+        form_url_template: str | None,
     ) -> None:
         """Validate scalar inputs at entry point.
 
@@ -505,7 +507,7 @@ class ExamPDFGenerator:
 
     def create_exam_papers(
         self,
-        questions: List[Dict[str, str]],
+        questions: list[dict[str, str]],
         num_papers: int,
         output_path: str,
         year: int = 2025,
@@ -513,8 +515,8 @@ class ExamPDFGenerator:
         semester: int = 2,
         course_name: str = "감염미생물학",
         week_num: int = 3,
-        form_url_template: Optional[str] = None,
-        student_ids: Optional[List[str]] = None,
+        form_url_template: str | None = None,
+        student_ids: list[str] | None = None,
     ) -> None:
         """Generate exam paper PDF.
 
@@ -545,15 +547,15 @@ class ExamPDFGenerator:
 
     def _render_pdf(
         self,
-        questions: List[Dict[str, str]],
-        ids: List[str],
+        questions: list[dict[str, str]],
+        ids: list[str],
         output_path: str,
         year: int,
         grade: int,
         semester: int,
         course_name: str,
         week_num: int,
-        form_url_template: Optional[str],
+        form_url_template: str | None,
     ) -> None:
         """Render all pages to a PDF file."""
         c = canvas.Canvas(output_path, pagesize=A4)

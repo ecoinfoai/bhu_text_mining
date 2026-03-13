@@ -11,8 +11,6 @@ import os
 import platform
 import re
 import xml.sax.saxutils
-from typing import List
-
 from reportlab.lib.fonts import addMapping
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -37,7 +35,7 @@ def find_korean_font() -> str:
         FileNotFoundError: If no Korean font is found.
     """
     system = platform.system()
-    search_paths: List[str] = []
+    search_paths: list[str] = []
 
     if system == "Windows":
         search_paths = [

@@ -1,14 +1,16 @@
 """Naver CLOVA OCR API client for scanned answer sheet text extraction."""
+
+from __future__ import annotations
+
 import os
 import requests
 import uuid
 import time
 import json
-from typing import Dict, List, Tuple
 import base64
 
 
-def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
+def load_naver_ocr_env(config_path: str = "") -> tuple[str, str]:
     """
     Settings for Naver OCR API. Load the secret key and API URL from the
     configuration file.
@@ -21,7 +23,7 @@ def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
         config_path (str): Path to the configuration file (optional).
 
     Returns:
-        Tuple[str, str]:
+        tuple[str, str]:
             - secret_key (str): Secret key for Naver OCR API.
             - api_url (str): API URL for Naver OCR API.
 
@@ -45,7 +47,7 @@ def load_naver_ocr_env(config_path: str = "") -> Tuple[str, str]:
     return get_naver_ocr_config(config)
 
 
-def create_request_json(image_files: List[str]) -> Dict:
+def create_request_json(image_files: list[str]) -> dict:
     """
     Create a JSON payload for an OCR API request. This function generates
     a JSON object required for an OCR API request. It processes a list of
@@ -53,7 +55,7 @@ def create_request_json(image_files: List[str]) -> Dict:
     a unique request ID, and a timestamp.
 
     Args:
-        image_files (List[str]): A list of file paths to the images.
+        image_files (list[str]): A list of file paths to the images.
 
     Returns:
         Dict: A JSON object containing the API request details, including:
@@ -94,7 +96,7 @@ def create_request_json(image_files: List[str]) -> Dict:
     }
 
 
-def prepare_image_files_list(image_path: str, prefix: str) -> List[str]:
+def prepare_image_files_list(image_path: str, prefix: str) -> list[str]:
     """
     Get a list of image files with a specific prefix in the given directory.
 
@@ -125,8 +127,8 @@ def prepare_image_files_list(image_path: str, prefix: str) -> List[str]:
 
 
 def send_images_receive_ocr(
-    api_url: str, secret_key: str, image_files: List[str]
-) -> List[Dict]:
+    api_url: str, secret_key: str, image_files: list[str]
+) -> list[dict]:
     """
     Send images to the OCR API and receive OCR results.
 
@@ -137,10 +139,10 @@ def send_images_receive_ocr(
     Args:
         api_url (str): The URL of the OCR API.
         secret_key (str): The secret key for authenticating with the OCR API.
-        image_files (List[str]): A list of file paths to the images to be processed.
+        image_files (list[str]): A list of file paths to the images to be processed.
 
     Returns:
-        List[Dict]: A list of dictionaries containing the OCR results for
+        list[Dict]: A list of dictionaries containing the OCR results for
         each image. Each dictionary corresponds to the API's response for
         a single image.
 
@@ -208,7 +210,7 @@ def send_images_receive_ocr(
     return results
 
 
-def extract_text(responses: List[Dict]) -> Dict[str, str]:
+def extract_text(responses: list[dict]) -> dict[str, str]:
     """
     Extract and aggregate text from OCR API responses.
 
@@ -217,12 +219,12 @@ def extract_text(responses: List[Dict]) -> Dict[str, str]:
     string for each image.
 
     Args:
-        responses (List[Dict]): A list of dictionaries containing OCR API responses.
+        responses (list[Dict]): A list of dictionaries containing OCR API responses.
             Each dictionary should include a "images" key, where each image entry
             contains "name" (image name) and "fields" (recognized text fields).
 
     Returns:
-        Dict[str, str]: A dictionary where keys are image file names and values
+        dict[str, str]: A dictionary where keys are image file names and values
         are aggregated text recognized from the respective images.
 
     Examples:

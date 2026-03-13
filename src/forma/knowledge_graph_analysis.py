@@ -1,7 +1,9 @@
 """Knowledge graph comparison and metrics (student vs reference graph overlay)."""
+
+from __future__ import annotations
+
 import networkx as nx
 import pandas as pd
-from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -81,7 +83,7 @@ def create_reference_knowledge_graph(
     return build_knowledge_graph(reference_df, stopwords, window_size)
 
 
-def compare_graphs(graph1: nx.Graph, graph2: nx.Graph) -> Dict[str, List]:
+def compare_graphs(graph1: nx.Graph, graph2: nx.Graph) -> dict[str, list]:
     """
     Compare two knowledge graphs and identify differences.
 
@@ -92,7 +94,7 @@ def compare_graphs(graph1: nx.Graph, graph2: nx.Graph) -> Dict[str, List]:
         graph2 (nx.Graph): Second graph to compare (reference).
 
     Returns:
-        Dict[str, List]: Dictionary containing:
+        dict[str, list]: Dictionary containing:
             - missing_nodes: Nodes in graph2 but not in graph1
             - extra_nodes: Nodes in graph1 but not in graph2
             - missing_edges: Edges in graph2 but not in graph1
@@ -109,7 +111,7 @@ def compare_graphs(graph1: nx.Graph, graph2: nx.Graph) -> Dict[str, List]:
 
 # Tabulation of comparison results
 def display_comparison_results(
-    comparison_results: Dict[str, Dict[str, List]]
+    comparison_results: dict[str, dict[str, list]]
 ) -> pd.DataFrame:
     """
     Create a summary DataFrame of knowledge graph comparisons.
@@ -120,7 +122,7 @@ def display_comparison_results(
     identifying key structural differences in students' knowledge representation.
 
     Args:
-        comparison_results (Dict[str, Dict[str, List]]): Dictionary containing
+        comparison_results (dict[str, dict[str, list]]): Dictionary containing
             comparison results for each student, with missing/extra nodes and edges.
 
     Returns:
@@ -284,9 +286,9 @@ def visualize_superimposed_graph(
 def align_graph_nodes(
     G_ref: nx.Graph,
     G_student: nx.Graph,
-    embeddings: Optional[Dict[str, np.ndarray]] = None,
+    embeddings: dict[str, np.ndarray] | None = None,
     threshold: float = 0.75,
-) -> Dict[str, Optional[str]]:
+) -> dict[str, str | None]:
     """Align student graph nodes to reference graph nodes via Hungarian algorithm.
 
     If ``embeddings`` are provided, similarity is cosine similarity between
@@ -333,7 +335,7 @@ def align_graph_nodes(
     cost = -sim_matrix
     row_ind, col_ind = linear_sum_assignment(cost)
 
-    mapping: Dict[str, Optional[str]] = {n: None for n in stu_nodes}
+    mapping: dict[str, str | None] = {n: None for n in stu_nodes}
     for r, c in zip(row_ind, col_ind):
         if sim_matrix[r, c] >= threshold:
             mapping[stu_nodes[r]] = ref_nodes[c]
@@ -343,7 +345,7 @@ def align_graph_nodes(
 def compute_node_recall(
     G_ref: nx.Graph,
     G_student: nx.Graph,
-    aligned_nodes: Optional[Dict[str, Optional[str]]] = None,
+    aligned_nodes: dict[str, str | None] | None = None,
 ) -> float:
     """Compute the fraction of reference nodes recalled by the student graph.
 
@@ -444,7 +446,7 @@ def compute_normalized_ged(
     G_ref: nx.Graph,
     G_student: nx.Graph,
     timeout: int = 30,
-) -> Optional[float]:
+) -> float | None:
     """Compute normalised Graph Edit Distance with timeout and fallback.
 
     Uses NetworkX ``optimize_graph_edit_distance`` (approximate) with a
@@ -478,7 +480,7 @@ def compute_normalized_ged(
     def _handler(signum: int, frame: object) -> None:
         raise TimeoutError("GED timeout")
 
-    ged_value: Optional[float] = None
+    ged_value: float | None = None
     try:
         if n_ref <= 8 and n_stu <= 8:
             signal.signal(signal.SIGALRM, _handler)

@@ -1,4 +1,7 @@
 """Image preprocessing for scanned answer sheets (crop, split, rename)."""
+
+from __future__ import annotations
+
 from PIL import Image
 import os
 import re

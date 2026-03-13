@@ -1,10 +1,12 @@
 """Keyword co-occurrence network analysis using KoNLPy noun extraction."""
+
+from __future__ import annotations
+
 from konlpy.tag import Okt
 from collections import Counter
 import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
-from typing import List, Dict
 
 
 def load_stopwords(file_path: str) -> set:
@@ -31,7 +33,7 @@ def load_stopwords(file_path: str) -> set:
     return set(stopwords)
 
 
-def extract_keywords(text: str, stopwords: set) -> List[str]:
+def extract_keywords(text: str, stopwords: set) -> list[str]:
     """
     Extract keywords from text, excluding stopwords.
 
@@ -43,7 +45,7 @@ def extract_keywords(text: str, stopwords: set) -> List[str]:
         stopwords (set): A set of words to exclude from the results.
 
     Returns:
-        List[str]: A list of extracted keywords.
+        list[str]: A list of extracted keywords.
 
     Examples:
         >>> text = "Python은 데이터 분석에 매우 유용한 언어입니다."
@@ -62,7 +64,7 @@ def extract_keywords(text: str, stopwords: set) -> List[str]:
     return extracted_keywords
 
 
-def create_network(keywords: List[str], window_size=2):
+def create_network(keywords: list[str], window_size=2):
     """
     Create a keyword co-occurrence network.
 
@@ -72,7 +74,7 @@ def create_network(keywords: List[str], window_size=2):
     co-occurrence counts.
 
     Args:
-        keywords (List[str]): A list of keywords to process.
+        keywords (list[str]): A list of keywords to process.
         window_size (int): The size of the sliding window for co-occurrence
             calculations (default is 2).
 
@@ -106,7 +108,7 @@ def create_network(keywords: List[str], window_size=2):
 
 
 def build_network_from_keywords(
-    keywords_dict: Dict[str, List], target_filename: str, window_size=2
+    keywords_dict: dict[str, list], target_filename: str, window_size=2
 ) -> nx.Graph:
     """
     Build a network graph from preprocessed keywords for a specific target.
@@ -115,7 +117,7 @@ def build_network_from_keywords(
     constructs a co-occurrence network using the given window size.
 
     Args:
-        keywords_dict (Dict[str, List]): A dictionary where keys are filenames
+        keywords_dict (dict[str, List]): A dictionary where keys are filenames
             and values are lists of keywords.
         target_filename (str): The filename whose keywords are used to build the network.
         window_size (int): The size of the sliding window for co-occurrence
