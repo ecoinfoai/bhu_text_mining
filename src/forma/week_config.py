@@ -33,6 +33,8 @@ _CLASS_PATTERN_FIELDS = (
     "ocr_join_output_pattern",
     "eval_responses_pattern",
     "eval_output_pattern",
+    "lecture_transcript_pattern",
+    "lecture_output_dir",
 )
 
 
@@ -86,6 +88,16 @@ class WeekConfiguration:
     eval_skip_feedback: bool = False
     eval_skip_graph: bool = False
     eval_generate_reports: bool = False
+    # lecture section
+    lecture_transcript_pattern: str = ""
+    lecture_concept_source: str = ""
+    lecture_output_dir: str = ""
+    lecture_extra_stopwords: list[str] = field(
+        default_factory=list,
+    )
+    lecture_extra_abbreviations: list[str] = field(
+        default_factory=list,
+    )
 
 
 def find_week_config(start_dir: Path | None = None) -> Path | None:
@@ -177,6 +189,24 @@ def load_week_config(path: Path) -> WeekConfiguration:
         config.eval_skip_graph = eval_sec.get("skip_graph", False)
         config.eval_generate_reports = eval_sec.get("generate_reports", False)
 
+    lecture = data.get("lecture", {})
+    if isinstance(lecture, dict):
+        config.lecture_transcript_pattern = lecture.get(
+            "transcript_pattern", "",
+        )
+        config.lecture_concept_source = lecture.get(
+            "concept_source", "",
+        )
+        config.lecture_output_dir = lecture.get(
+            "output_dir", "",
+        )
+        config.lecture_extra_stopwords = lecture.get(
+            "extra_stopwords", [],
+        )
+        config.lecture_extra_abbreviations = lecture.get(
+            "extra_abbreviations", [],
+        )
+
     return config
 
 
@@ -191,7 +221,8 @@ def validate_week_config(
 
     Args:
         config_dict: Parsed configuration dict.
-        required_section: Section to validate ("select", "ocr", or "eval").
+        required_section: Section to validate
+            ("select", "ocr", "eval", or "lecture").
 
     Raises:
         ValueError: If validation fails.
@@ -254,9 +285,20 @@ def validate_week_config(
             if not eval_sec.get("responses_pattern"):
                 errors.append("eval.responses_pattern is required")
 
+    elif required_section == "lecture":
+        lecture = config_dict.get("lecture", {})
+        if not isinstance(lecture, dict):
+            errors.append("'lecture' section must be a mapping")
+        else:
+            if not lecture.get("transcript_pattern"):
+                errors.append(
+                    "lecture.transcript_pattern is required"
+                )
+
     if errors:
         raise ValueError(
-            "week.yaml validation errors:\n" + "\n".join(f"  - {e}" for e in errors),
+            "week.yaml validation errors:\n"
+            + "\n".join(f"  - {e}" for e in errors),
         )
 
 
