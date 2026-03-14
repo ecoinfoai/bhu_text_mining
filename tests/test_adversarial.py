@@ -5,9 +5,7 @@ and lecture_report modules under hostile, broken, and edge-case inputs.
 """
 
 import os
-import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 import yaml
@@ -337,7 +335,7 @@ class TestPersona4EncodingTroublemaker:
             fp.write("세포 분열에 대해 설명합니다.")
         # Should fail with UnicodeDecodeError on both attempts
         try:
-            result = preprocess_transcript(str(f), "A", 1)
+            preprocess_transcript(str(f), "A", 1)
             # If it somehow decodes, check it didn't produce garbage
         except (UnicodeDecodeError, ValueError):
             pass

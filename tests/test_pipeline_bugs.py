@@ -6,12 +6,10 @@ BUG-003: Join output format tolerance (evaluation_io.py, pipeline_evaluation.py)
 """
 from __future__ import annotations
 
-import argparse
-import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -388,7 +386,7 @@ class TestBareListPipeline:
 
         # The non-'--class' path (questions_used=None) should accept bare list
         # We test by directly loading and extracting, mimicking the pipeline path
-        from forma.evaluation_io import load_evaluation_yaml, extract_student_responses
+        from forma.evaluation_io import extract_student_responses
         from forma.response_converter import convert_join_to_responses
 
         raw_data = yaml.safe_load(responses_path.read_text(encoding="utf-8"))
@@ -497,7 +495,7 @@ class TestAdversarialPersonas:
         week_path = self._make_week_yaml(tmp_path, week_data)
         # Should either load (with string coerced) or raise — but NOT crash with unhelpful error
         try:
-            week_cfg = load_week_config(week_path)
+            load_week_config(week_path)
             # If loaded, the value might be stored as-is or coerced
         except (ValueError, TypeError):
             pass  # Acceptable: clear type error
@@ -928,7 +926,6 @@ class TestAdversarialPersonas:
                 "join_output_pattern": "final_{class}.yaml",
             },
         }
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             week_path = self._make_week_yaml(tmp_path, week_data)

@@ -5,9 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 
 def _register_fake_fonts() -> None:
@@ -16,7 +14,6 @@ def _register_fake_fonts() -> None:
         pdfmetrics.getFont("NanumGothic")
     except KeyError:
         # Use a built-in font as stand-in — register via addMapping only
-        from reportlab.lib.fonts import addMapping
         # We can't easily create a TTFont without a real file,
         # so we'll skip font registration and use Helvetica in styles.
         pass
