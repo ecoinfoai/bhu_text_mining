@@ -97,6 +97,7 @@ class LongitudinalPDFReportGenerator:
         summary_data: LongitudinalSummaryData,
         output_path: str,
         intervention_effects: list | None = None,
+        ocr_confidence_trajectories: dict | None = None,
     ) -> str:
         """Generate the longitudinal summary report PDF.
 
@@ -104,6 +105,8 @@ class LongitudinalPDFReportGenerator:
             summary_data: Complete summary data.
             output_path: Output path for the PDF file.
             intervention_effects: Optional list of InterventionEffect (v0.10.0 US2, FR-011).
+            ocr_confidence_trajectories: {student_id: [(week, mean_confidence), ...]}
+                for OCR confidence trend chart (v0.12.5 US3).
 
         Returns:
             Absolute path to generated PDF file.
@@ -123,6 +126,10 @@ class LongitudinalPDFReportGenerator:
         # Intervention effect chart section (v0.10.0 US2, FR-011)
         if intervention_effects:
             story.extend(self._build_intervention_chart_section(intervention_effects))
+
+        # OCR confidence trend section (v0.12.5 US3)
+        if ocr_confidence_trajectories:
+            story.extend(self._build_ocr_confidence_trend_section(ocr_confidence_trajectories))
 
         doc = SimpleDocTemplate(
             output_path,
@@ -438,6 +445,45 @@ class LongitudinalPDFReportGenerator:
         story.append(Paragraph(
             "파랑 = 개입 전 평균, 초록 = 개입 후 평균. "
             "데이터 부족 건은 제외.",
+            self._styles["LongBody"],
+        ))
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_ocr_confidence_trend_section(
+        self, trajectories: dict[str, list[tuple[int, float]]],
+    ) -> list:
+        """Build OCR confidence trend chart section.
+
+        Args:
+            trajectories: {student_id: [(week, mean_confidence), ...]}.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph("OCR 인식률 추이", self._styles["LongSection"]))
+        story.append(Spacer(1, 3 * mm))
+
+        from forma.longitudinal_report_charts import build_ocr_confidence_trend_chart
+        try:
+            chart_buf = build_ocr_confidence_trend_chart(
+                trajectories,
+                font_path=self._font_path,
+                dpi=self._dpi,
+            )
+            story.append(Image(
+                chart_buf, width=160 * mm, height=100 * mm,
+            ))
+        except Exception as exc:
+            logger.warning("OCR 인식률 추이 차트 생성 실패: %s", exc)
+            story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
+
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            "3주 이상 연속 기준값(0.75) 미만 학생은 빨간색으로 표시. "
+            "인식률 데이터가 없는 주차는 건너뜁니다.",
             self._styles["LongBody"],
         ))
         story.append(Spacer(1, 5 * mm))

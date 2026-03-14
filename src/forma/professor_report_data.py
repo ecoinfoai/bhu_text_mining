@@ -114,6 +114,7 @@ class StudentSummaryRow:
     z_score: float = 0.0
     section: str = ""
     misconception_counts: dict = field(default_factory=dict)
+    ocr_confidence_mean: float | None = None
 
 
 @dataclass

@@ -67,6 +67,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--week-config", default=None, dest="week_config",
         help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
     )
+    scan_p.add_argument(
+        "--ocr-review-threshold", type=float, default=None,
+        dest="ocr_review_threshold",
+        help="OCR 인식률 검토 기준값 (기본값: 0.75)",
+    )
 
     # ── join subcommand ───────────────────────────
     join_p = subparsers.add_parser(
@@ -108,6 +113,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     join_p.add_argument(
         "--week-config", default=None, dest="week_config",
         help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
+    )
+    join_p.add_argument(
+        "--ocr-review-threshold", type=float, default=None,
+        dest="ocr_review_threshold",
+        help="OCR 인식률 검토 기준값 (기본값: 0.75)",
     )
 
     args = parser.parse_args(argv)
@@ -212,12 +222,19 @@ def main(argv: list[str] | None = None) -> None:
                 except Exception as exc:
                     logger.debug("프로젝트 설정 로드 실패: %s", exc)
 
+            # Resolve OCR review threshold: CLI > week.yaml > default
+            ocr_review_threshold = (
+                args.ocr_review_threshold if "ocr_review_threshold" in _explicit
+                else resolved.ocr_review_threshold
+            )
+
             results = run_scan_pipeline(
                 image_dir=image_dir,
                 naver_ocr_config=naver_ocr_config,
                 output_path=output_path,
                 num_questions=num_questions,
                 crop_coords=crop_coords,
+                ocr_review_threshold=ocr_review_threshold,
             )
 
             # Auto-save crop coords back to week.yaml if newly selected
@@ -243,12 +260,14 @@ def main(argv: list[str] | None = None) -> None:
             if raw_coords is not None:
                 crop_coords = [tuple(c) for c in raw_coords]
 
+            ocr_review_threshold = args.ocr_review_threshold or 0.75
             run_scan_pipeline(
                 image_dir=cfg["image-dir"],
                 naver_ocr_config=cfg["naver-ocr-config"],
                 output_path=cfg["output"],
                 num_questions=num_questions,
                 crop_coords=crop_coords,
+                ocr_review_threshold=ocr_review_threshold,
             )
 
     elif args.command == "join":
@@ -306,6 +325,12 @@ def main(argv: list[str] | None = None) -> None:
                 )
                 sys.exit(1)
 
+            # Resolve OCR review threshold: CLI > week.yaml > default
+            join_threshold = (
+                args.ocr_review_threshold if "ocr_review_threshold" in _explicit
+                else resolved.ocr_review_threshold
+            )
+
             run_join_pipeline(
                 ocr_results_path=ocr_results_path,
                 output_path=output_path,
@@ -314,6 +339,7 @@ def main(argv: list[str] | None = None) -> None:
                 credentials_path=credentials_path,
                 manual_mapping_path=args.manual_mapping,
                 student_id_column=student_id_column,
+                ocr_review_threshold=join_threshold,
             )
         else:
             # Legacy mode
@@ -323,6 +349,7 @@ def main(argv: list[str] | None = None) -> None:
                     "하나 이상 필요합니다."
                 )
                 sys.exit(1)
+            join_threshold = args.ocr_review_threshold or 0.75
             run_join_pipeline(
                 ocr_results_path=args.ocr_results,
                 output_path=args.output,
@@ -331,6 +358,7 @@ def main(argv: list[str] | None = None) -> None:
                 credentials_path=args.credentials,
                 manual_mapping_path=args.manual_mapping,
                 student_id_column=args.student_id_column,
+                ocr_review_threshold=join_threshold,
             )
 
 

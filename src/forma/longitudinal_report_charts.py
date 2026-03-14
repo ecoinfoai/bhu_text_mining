@@ -366,3 +366,69 @@ def build_risk_trend_chart(
 
     fig.tight_layout()
     return _save_fig(fig, dpi=dpi)
+
+
+def build_ocr_confidence_trend_chart(
+    trajectories: dict[str, list[tuple[int, float]]],
+    *,
+    threshold: float = 0.75,
+    font_path: str | None = None,
+    dpi: int = 150,
+) -> io.BytesIO:
+    """Build OCR confidence trend line chart across weeks.
+
+    Students with 3+ consecutive weeks below *threshold* are drawn in
+    red; others in gray.
+
+    Args:
+        trajectories: ``{student_id: [(week, confidence_mean), ...]}``
+        threshold: Low-confidence threshold (default 0.75).
+        font_path: Korean font path.
+        dpi: Image resolution.
+
+    Returns:
+        PNG image as BytesIO buffer.
+    """
+    font_prop = _get_font_prop(font_path)
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    if not trajectories:
+        ax.text(
+            0.5, 0.5, "데이터 없음",
+            ha="center", va="center",
+            fontproperties=font_prop, fontsize=14,
+        )
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        fig.tight_layout()
+        return _save_fig(fig, dpi=dpi)
+
+    for sid, traj in trajectories.items():
+        if not traj:
+            continue
+        weeks = [t[0] for t in traj]
+        vals = [t[1] for t in traj]
+
+        # Check for 3+ consecutive weeks below threshold
+        consecutive = 0
+        max_consecutive = 0
+        for v in vals:
+            if v < threshold:
+                consecutive += 1
+                max_consecutive = max(max_consecutive, consecutive)
+            else:
+                consecutive = 0
+
+        if max_consecutive >= 3:
+            ax.plot(weeks, vals, color="red", alpha=0.8, linewidth=1.5)
+        else:
+            ax.plot(weeks, vals, color="gray", alpha=0.3, linewidth=0.8)
+
+    ax.axhline(y=threshold, color="red", linestyle="--", linewidth=0.8, alpha=0.5)
+    ax.set_ylim(0, 1.05)
+    ax.set_xlabel("주차", fontproperties=font_prop)
+    ax.set_ylabel("OCR 인식률", fontproperties=font_prop)
+    ax.set_title("OCR 인식률 추이", fontproperties=font_prop, fontsize=12)
+
+    fig.tight_layout()
+    return _save_fig(fig, dpi=dpi)

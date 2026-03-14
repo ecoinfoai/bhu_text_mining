@@ -80,6 +80,7 @@ class WeekConfiguration:
     ocr_join_forms_csv: str = ""
     ocr_student_id_column: str = ""
     ocr_crop_coords: list[list[int]] = field(default_factory=list)
+    ocr_review_threshold: float = 0.75
     # eval section
     eval_config: str = ""
     eval_questions_used: list[int] = field(default_factory=list)
@@ -178,6 +179,7 @@ def load_week_config(path: Path) -> WeekConfiguration:
         config.ocr_join_forms_csv = ocr.get("join_forms_csv", "")
         config.ocr_student_id_column = ocr.get("student_id_column", "")
         config.ocr_crop_coords = ocr.get("crop_coords", [])
+        config.ocr_review_threshold = ocr.get("review_threshold", 0.75)
 
     eval_sec = data.get("eval", {})
     if isinstance(eval_sec, dict):

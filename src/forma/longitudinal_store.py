@@ -65,6 +65,10 @@ class LongitudinalStore:
             d["exam_file"] = record.exam_file
         if record.recorded_at is not None:
             d["recorded_at"] = record.recorded_at
+        if record.ocr_confidence_mean is not None:
+            d["ocr_confidence_mean"] = record.ocr_confidence_mean
+        if record.ocr_confidence_min is not None:
+            d["ocr_confidence_min"] = record.ocr_confidence_min
         return d
 
     def _to_record(self, data: dict) -> LongitudinalRecord:
@@ -81,6 +85,8 @@ class LongitudinalStore:
             concept_scores=data.get("concept_scores", None),
             exam_file=data.get("exam_file", None),
             recorded_at=data.get("recorded_at", None),
+            ocr_confidence_mean=data.get("ocr_confidence_mean", None),
+            ocr_confidence_min=data.get("ocr_confidence_min", None),
         )
 
     def add_record(self, record: LongitudinalRecord) -> None:
@@ -161,13 +167,19 @@ class LongitudinalStore:
 
         When a student has multiple questions in a single week, the metric
         values are averaged across questions for that week.
+
+        Looks up *metric* first in the ``scores`` sub-dict, then as a
+        top-level record field (e.g. ``ocr_confidence_mean``).
         """
         week_values: dict[int, list[float]] = defaultdict(list)
         for key in self._by_student.get(student_id, []):
             d = self._records.get(key)
             if d is None:
                 continue
+            # Try scores sub-dict first, then top-level field
             val = d["scores"].get(metric)
+            if val is None:
+                val = d.get(metric)
             if val is not None:
                 week_values[d["week"]].append(val)
         result = [
@@ -224,6 +236,7 @@ def snapshot_from_evaluation(
     layer1_results: list,
     week: int,
     exam_file: str,
+    ocr_confidence: dict | None = None,
 ) -> None:
     """Upsert evaluation results into the store with v2 fields.
 
@@ -235,6 +248,7 @@ def snapshot_from_evaluation(
         layer1_results: List of ConceptMatchResult.
         week: Current week number.
         exam_file: Exam file basename.
+        ocr_confidence: {student_id: {qsn: {"mean": float, "min": float}}}.
     """
     recorded_at = datetime.now(timezone.utc).isoformat()
 
@@ -256,6 +270,15 @@ def snapshot_from_evaluation(
                 layer1_results, student_id, qsn
             )
 
+            # OCR confidence from scan/join pipeline
+            ocr_conf = (
+                (ocr_confidence.get(student_id) or {}).get(qsn)
+                if ocr_confidence
+                else None
+            )
+            ocr_mean = ocr_conf["mean"] if ocr_conf else None
+            ocr_min = ocr_conf["min"] if ocr_conf else None
+
             record = LongitudinalRecord(
                 student_id=student_id,
                 week=week,
@@ -269,5 +292,7 @@ def snapshot_from_evaluation(
                 concept_scores=concept_scores,
                 exam_file=os.path.basename(exam_file),
                 recorded_at=recorded_at,
+                ocr_confidence_mean=ocr_mean,
+                ocr_confidence_min=ocr_min,
             )
             store.add_record(record)

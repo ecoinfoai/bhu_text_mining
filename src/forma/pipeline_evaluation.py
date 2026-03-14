@@ -755,6 +755,7 @@ def run_evaluation_pipeline(
 
         with open(responses_path, "r", encoding="utf-8") as f:
             join_data = yaml.safe_load(f)
+        raw_responses = join_data if isinstance(join_data, list) else None
         if isinstance(join_data, list):
             responses_data = convert_join_to_responses(
                 join_data, questions_used
@@ -764,6 +765,7 @@ def run_evaluation_pipeline(
         student_responses = extract_student_responses(responses_data)
     else:
         responses_data = load_evaluation_yaml(responses_path)
+        raw_responses = responses_data if isinstance(responses_data, list) else None
         if isinstance(responses_data, list):
             responses_data = convert_join_to_responses(responses_data)
         student_responses = extract_student_responses(responses_data)
@@ -1071,7 +1073,7 @@ def run_evaluation_pipeline(
     if longitudinal_store:
         _save_longitudinal(
             longitudinal_store, ensemble_results, graph_results, config_data,
-            layer1_results,
+            layer1_results, responses_data=raw_responses,
         )
 
     # PDF reports
@@ -1119,12 +1121,32 @@ def _generate_graph_visualizations(
         print(f"[pipeline] Graph visualization failed: {exc}")
 
 
+def _extract_ocr_confidence(
+    responses: list[dict],
+) -> dict[str, dict[int, dict[str, float | None]]]:
+    """Extract OCR confidence from join output list.
+
+    Returns:
+        {student_id: {q_num: {"mean": float|None, "min": float|None}}}
+    """
+    result: dict[str, dict[int, dict[str, float | None]]] = {}
+    for entry in responses:
+        sid = entry.get("student_id")
+        qn = entry.get("q_num")
+        mean = entry.get("ocr_confidence_mean")
+        _min = entry.get("ocr_confidence_min")
+        if sid is not None and qn is not None and mean is not None:
+            result.setdefault(sid, {})[qn] = {"mean": mean, "min": _min}
+    return result
+
+
 def _save_longitudinal(
     store_path: str,
     ensemble_results: dict,
     graph_results: Optional[dict],
     config_data: dict,
     layer1_results: dict | None = None,
+    responses_data: dict | list | None = None,
 ) -> None:
     """Save results to longitudinal store with v2 fields."""
     try:
@@ -1143,6 +1165,11 @@ def _save_longitudinal(
                 for q_list in sid_map.values():
                     flat_layer1.extend(q_list)
 
+        # Extract OCR confidence from responses data
+        ocr_confidence: dict | None = None
+        if isinstance(responses_data, list):
+            ocr_confidence = _extract_ocr_confidence(responses_data)
+
         snapshot_from_evaluation(
             store=store,
             ensemble_results=ensemble_results,
@@ -1151,6 +1178,7 @@ def _save_longitudinal(
             layer1_results=flat_layer1,
             week=week,
             exam_file=exam_file,
+            ocr_confidence=ocr_confidence,
         )
 
         store.save()

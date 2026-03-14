@@ -210,22 +210,81 @@ def send_images_receive_ocr(
     return results
 
 
-def extract_text(responses: list[dict]) -> dict[str, str]:
-    """
-    Extract and aggregate text from OCR API responses.
+def extract_text_with_confidence(responses: list[dict]) -> dict[str, dict]:
+    """Extract text and confidence statistics from OCR API responses.
 
-    This function processes the responses from an OCR API, extracting
-    recognized text for each image and aggregating the text into a single
-    string for each image.
+    Processes OCR API responses, extracting recognized text and
+    ``inferConfidence`` values for each image.  When confidence data is
+    available, mean and minimum confidence are computed; otherwise they
+    are returned as ``None``.
 
     Args:
-        responses (list[Dict]): A list of dictionaries containing OCR API responses.
-            Each dictionary should include a "images" key, where each image entry
-            contains "name" (image name) and "fields" (recognized text fields).
+        responses: A list of dictionaries containing OCR API responses.
+            Each dictionary should include an ``"images"`` key, where each
+            image entry contains ``"name"`` (image name) and ``"fields"``
+            (recognized text fields with optional ``"inferConfidence"``).
 
     Returns:
-        dict[str, str]: A dictionary where keys are image file names and values
-        are aggregated text recognized from the respective images.
+        A dictionary keyed by image name.  Each value is a dict with:
+            - ``text`` (str): Aggregated recognized text.
+            - ``confidence_mean`` (float | None): Mean of available
+              ``inferConfidence`` values, or ``None`` if none present.
+            - ``confidence_min`` (float | None): Minimum ``inferConfidence``,
+              or ``None`` if none present.
+            - ``field_count`` (int): Number of text fields in the image.
+    """
+    extracted_data: dict[str, dict] = {}
+
+    for response_data in responses:
+        for image_result in response_data.get("images", []):
+            image_name = image_result["name"]
+            fields = image_result.get("fields", [])
+
+            extracted_texts = [
+                field.get("inferText", "").replace("\n", " ").strip()
+                for field in fields
+            ]
+            aggregated_text = " ".join(extracted_texts).strip()
+
+            confidences = [
+                field.get("inferConfidence")
+                for field in fields
+                if field.get("inferConfidence") is not None
+            ]
+
+            if confidences:
+                confidence_mean = sum(confidences) / len(confidences)
+                confidence_min = min(confidences)
+            else:
+                confidence_mean = None
+                confidence_min = None
+
+            extracted_data[image_name] = {
+                "text": aggregated_text,
+                "confidence_mean": confidence_mean,
+                "confidence_min": confidence_min,
+                "field_count": len(fields),
+            }
+
+    return extracted_data
+
+
+def extract_text(responses: list[dict]) -> dict[str, str]:
+    """Extract and aggregate text from OCR API responses.
+
+    Convenience wrapper around :func:`extract_text_with_confidence` that
+    returns only the recognized text strings, preserving the original
+    return type for backward compatibility.
+
+    Args:
+        responses: A list of dictionaries containing OCR API responses.
+            Each dictionary should include a ``"images"`` key, where each
+            image entry contains ``"name"`` (image name) and ``"fields"``
+            (recognized text fields).
+
+    Returns:
+        A dictionary where keys are image file names and values are
+        aggregated text recognized from the respective images.
 
     Examples:
         >>> result = extract_text(responses)
@@ -235,16 +294,5 @@ def extract_text(responses: list[dict]) -> dict[str, str]:
             "image2.jpg": "Python OCR"
         }
     """
-    extracted_data = {}
-
-    for response_data in responses:
-        for image_result in response_data.get("images", []):
-            image_name = image_result["name"]
-            extracted_texts = [
-                field.get("inferText", "").replace("\n", " ").strip()
-                for field in image_result.get("fields", [])
-            ]
-            aggregated_text = " ".join(extracted_texts).strip()
-            extracted_data[image_name] = aggregated_text
-
-    return extracted_data
+    full_data = extract_text_with_confidence(responses)
+    return {name: entry["text"] for name, entry in full_data.items()}

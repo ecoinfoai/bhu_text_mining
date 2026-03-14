@@ -153,6 +153,7 @@ class ProfessorPDFReportGenerator:
         grade_predictions=None,
         intervention_effects=None,
         intervention_type_summaries=None,
+        ocr_confidence_data=None,
     ) -> str:
         """Generate the professor report PDF.
 
@@ -165,6 +166,8 @@ class ProfessorPDFReportGenerator:
             grade_predictions: Optional list of GradePrediction for grade section (v0.10.0 US6).
             intervention_effects: Optional list of InterventionEffect (v0.10.0 US2, FR-010).
             intervention_type_summaries: Optional list of InterventionTypeSummary (v0.10.0 US2).
+            ocr_confidence_data: Optional list of dicts with student_id and
+                confidence_mean for OCR confidence section (v0.12.5 US2).
 
         Returns:
             Absolute path to generated PDF file.
@@ -232,6 +235,11 @@ class ProfessorPDFReportGenerator:
                 intervention_effects,
                 intervention_type_summaries or [],
             ))
+
+        # OCR confidence section (v0.12.5 US2)
+        if ocr_confidence_data:
+            ocr_section = self._build_ocr_confidence_section(ocr_confidence_data)
+            story.extend(ocr_section)
 
         story.extend(self._build_llm_analysis_page(report_data))
 
@@ -1786,6 +1794,105 @@ class ProfessorPDFReportGenerator:
                 _esc("개념 의존성이 정의되지 않았습니다."),
                 self._styles["ProfBody"],
             ))
+
+        return story
+
+    def _build_ocr_confidence_section(
+        self, ocr_confidence_data: list[dict],
+    ) -> list:
+        """Build OCR confidence summary section for professor report.
+
+        Includes a histogram of confidence distribution and a table of
+        low-confidence students (< 0.75).  Section is skipped (returns
+        empty list) if there are no low-confidence entries (INV-R01).
+
+        Args:
+            ocr_confidence_data: List of dicts with ``student_id`` and
+                ``confidence_mean`` keys.
+
+        Returns:
+            List of Platypus flowables, or empty list if no low-confidence.
+        """
+        if not ocr_confidence_data:
+            return []
+
+        scores = [
+            d["confidence_mean"]
+            for d in ocr_confidence_data
+            if d.get("confidence_mean") is not None
+        ]
+        if not scores:
+            return []
+
+        low = [d for d in ocr_confidence_data
+               if d.get("confidence_mean") is not None
+               and d["confidence_mean"] < 0.75]
+
+        # INV-R01: no low-confidence students → skip section
+        if not low:
+            return []
+
+        story: list = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            _esc("OCR 인식률 현황"),
+            self._styles["ProfSection"],
+        ))
+
+        # Summary paragraph
+        mean_all = sum(scores) / len(scores)
+        story.append(Paragraph(
+            _esc(f"반 전체 평균 인식률: {mean_all:.2f} "
+                 f"(전체 {len(scores)}건, 저인식률 {len(low)}건)"),
+            self._styles["ProfBody"],
+        ))
+        story.append(Spacer(1, 6))
+
+        # Histogram chart
+        try:
+            chart_buf = self._chart_gen.confidence_histogram(scores)
+            chart_buf.seek(0)
+            story.append(Image(chart_buf, width=120 * mm, height=80 * mm))
+            story.append(Spacer(1, 8))
+        except Exception as exc:
+            logger.warning("OCR 인식률 히스토그램 생성 실패: %s", exc)
+
+        # Low-confidence student table
+        low_sorted = sorted(low, key=lambda d: d["confidence_mean"])
+        header = [
+            Paragraph(_esc("학번"), self._styles["ProfBody"]),
+            Paragraph(_esc("인식률"), self._styles["ProfBody"]),
+        ]
+        table_data = [header]
+        for d in low_sorted:
+            table_data.append([
+                Paragraph(
+                    _esc(str(d.get("student_id", ""))),
+                    self._styles["ProfBody"],
+                ),
+                Paragraph(
+                    _esc(f"{d['confidence_mean']:.2f}"),
+                    self._styles["ProfBody"],
+                ),
+            ])
+
+        t = Table(table_data, colWidths=[60 * mm, 40 * mm])
+        t.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+            ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 8))
+
+        # Guidance paragraph
+        story.append(Paragraph(
+            _esc("※ 인식률이 낮은 답안은 OCR 오인식 가능성이 있습니다. "
+                 "원본 이미지를 확인하여 텍스트를 보정해 주세요."),
+            self._styles["ProfBody"],
+        ))
 
         return story
 

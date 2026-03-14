@@ -379,6 +379,8 @@ class LongitudinalRecord:
     concept_scores: Optional[dict[str, float]] = None
     exam_file: Optional[str] = None
     recorded_at: Optional[str] = None
+    ocr_confidence_mean: Optional[float] = None
+    ocr_confidence_min: Optional[float] = None
 
 
 @dataclass

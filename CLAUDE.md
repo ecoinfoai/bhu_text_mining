@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - YAML files (analysis results, comparison results), PNG (network charts), PDF (reports) (001-stt-lecture-analysis)
 - Python >=3.11, <4 + PyYAML >=6.0, argparse (stdlib) (015-fix-pipeline-bugs)
 - YAML files (pipeline I/O), no database (015-fix-pipeline-bugs)
+- Python >=3.11, <4 + PyYAML >=6.0, ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend) — 전부 기존 deps, 신규 런타임 의존성 없음 (016-ocr-confidence)
+- YAML files (OCR results, longitudinal store, week config) (016-ocr-confidence)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -155,9 +157,9 @@ Python >=3.11, <4: Follow standard conventions
 - `week_config.py` — `+lecture_*` fields in `WeekConfiguration`, `+"lecture_transcript_pattern"` in `_CLASS_PATTERN_FIELDS`, lecture section parsing in `load_week_config()`
 
 ## Recent Changes
+- 016-ocr-confidence: Added Python >=3.11, <4 + PyYAML >=6.0, ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend) — 전부 기존 deps, 신규 런타임 의존성 없음
 - 015-fix-pipeline-bugs: Added Python >=3.11, <4 + PyYAML >=6.0, argparse (stdlib)
 - 001-stt-lecture-analysis: Added KoNLPy, kss, BERTopic, UMAP, HDBSCAN, sentence-transformers (all existing deps)
-- 001-update-docs: Added N/A (Markdown documentation only)
 
 
 <!-- MANUAL ADDITIONS START -->

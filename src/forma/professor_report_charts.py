@@ -97,6 +97,54 @@ class ProfessorReportChartGenerator:
         fig.tight_layout()
         return _save_fig(fig, dpi=self._dpi)
 
+    def confidence_histogram(
+        self, scores: list[float], bins: int = 10,
+    ) -> io.BytesIO:
+        """Histogram of OCR confidence scores with mean line and threshold marker.
+
+        Args:
+            scores: List of OCR confidence_mean values (0.0~1.0).
+            bins: Number of histogram bins (default 10).
+
+        Returns:
+            PNG image as BytesIO.
+        """
+        fig, ax = plt.subplots(figsize=(120 / 25.4, 80 / 25.4))
+
+        if not scores:
+            ax.text(
+                0.5, 0.5, "데이터 없음",
+                ha="center", va="center",
+                fontproperties=self._font_prop, fontsize=12,
+            )
+            ax.set_xlim(0, 1.0)
+            return _save_fig(fig, dpi=self._dpi)
+
+        scores_arr = np.array(scores, dtype=float)
+        mean_val = float(np.mean(scores_arr))
+
+        if len(scores_arr) == 1 or np.std(scores_arr) == 0:
+            ax.bar(
+                [scores_arr[0]], [len(scores_arr)],
+                width=0.05, color="#1565C0", alpha=0.7,
+            )
+        else:
+            ax.hist(
+                scores_arr, bins=bins,
+                color="#1565C0", alpha=0.7, edgecolor="white",
+            )
+
+        ax.axvline(mean_val, color="orange", linestyle="--", label="평균")
+        ax.axvline(0.75, color="red", linestyle=":", alpha=0.5, label="기준선 (0.75)")
+        ax.set_xlim(0, 1.0)
+        ax.set_xlabel("인식률", fontproperties=self._font_prop, fontsize=9)
+        ax.set_ylabel("답안 수", fontproperties=self._font_prop, fontsize=9)
+        ax.set_title("OCR 인식률 분포", fontproperties=self._font_prop, fontsize=11)
+        ax.legend(prop=self._font_prop, fontsize=8)
+
+        fig.tight_layout()
+        return _save_fig(fig, dpi=self._dpi)
+
     def level_donut(self, level_dist: dict[str, int]) -> io.BytesIO:
         """Proportional donut chart of understanding level distribution.
 

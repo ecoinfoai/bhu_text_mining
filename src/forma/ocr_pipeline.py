@@ -18,7 +18,7 @@ from typing import Any, Optional
 import yaml
 
 from forma.naver_ocr import (
-    extract_text,
+    extract_text_with_confidence,
     load_naver_ocr_env,
     prepare_image_files_list,
     send_images_receive_ocr,
@@ -35,6 +35,7 @@ def run_scan_pipeline(
     output_path: str,
     num_questions: int = 2,
     crop_coords: Optional[list[tuple[int, int, int, int]]] = None,
+    ocr_review_threshold: float = 0.75,
 ) -> list[dict[str, Any]]:
     """Run the full scan pipeline on a directory of scanned sheets.
 
@@ -47,10 +48,14 @@ def run_scan_pipeline(
         crop_coords: pre-defined crop coordinates list
             (one tuple per question).  Pass ``None`` for
             interactive click-to-crop mode.
+        ocr_review_threshold: confidence threshold for low-confidence
+            summary message (default 0.75).
 
     Returns:
         List of result dicts, each with keys:
-        ``student_id``, ``q_num``, ``text``, ``source_file``.
+        ``student_id``, ``q_num``, ``text``, ``source_file``,
+        ``ocr_confidence_mean``, ``ocr_confidence_min``,
+        ``ocr_field_count``.
 
     Raises:
         FileNotFoundError: if no images are found in *image_dir*.
@@ -130,12 +135,20 @@ def run_scan_pipeline(
 
         # Naver OCR
         text = ""
+        confidence_mean = None
+        confidence_min = None
+        field_count = None
         try:
             ocr_responses = send_images_receive_ocr(
                 api_url, secret_key, [img_path],
             )
-            text_map = extract_text(ocr_responses)
-            text = next(iter(text_map.values()), "")
+            conf_map = extract_text_with_confidence(ocr_responses)
+            if conf_map:
+                entry = next(iter(conf_map.values()))
+                text = entry["text"]
+                confidence_mean = entry["confidence_mean"]
+                confidence_min = entry["confidence_min"]
+                field_count = entry["field_count"]
         except Exception as exc:
             logger.warning("OCR failed for %s: %s", img_path, exc)
 
@@ -144,6 +157,9 @@ def run_scan_pipeline(
             "q_num": q_num,
             "text": text,
             "source_file": source_file,
+            "ocr_confidence_mean": confidence_mean,
+            "ocr_confidence_min": confidence_min,
+            "ocr_field_count": field_count,
         })
 
     total = qr_decoded + qr_failed
@@ -151,6 +167,19 @@ def run_scan_pipeline(
         f"\n✓ {qr_decoded}/{total} QR decoded, "
         f"⚠ {qr_failed} failures"
     )
+
+    # Low-confidence summary
+    low_conf = [
+        r for r in results
+        if r.get("ocr_confidence_mean") is not None
+        and r["ocr_confidence_mean"] < ocr_review_threshold
+    ]
+    if low_conf:
+        print(
+            f"⚠ 저인식률 {len(low_conf)}건 감지 "
+            f"(confidence < {ocr_review_threshold}). "
+            f"`forma ocr join`으로 상세 확인하세요."
+        )
 
     _save_yaml(results, output_path)
     return results
@@ -164,6 +193,7 @@ def run_join_pipeline(
     credentials_path: str = "credentials.json",
     manual_mapping_path: str | None = None,
     student_id_column: str = "student_id",
+    ocr_review_threshold: float = 0.75,
 ) -> list[dict[str, Any]]:
     """Join OCR results YAML with Google Forms data.
 
@@ -183,6 +213,8 @@ def run_join_pipeline(
             form fields for students missing from Forms/CSV.
         student_id_column: column name for the student ID
             in the CSV / sheet (default: ``"student_id"``).
+        ocr_review_threshold: confidence threshold for the
+            low-confidence review table (default 0.75).
 
     Returns:
         List of joined result dicts.  Each entry includes all
@@ -268,6 +300,9 @@ def run_join_pipeline(
     if unmatched:
         print(f"⚠ {len(unmatched)}명 미매칭: {', '.join(unmatched)}")
 
+    # OCR confidence review table
+    _print_confidence_review_table(joined, threshold=ocr_review_threshold)
+
     _save_yaml(joined, output_path)
     return joined
 
@@ -285,6 +320,88 @@ def _load_forms_csv(
             if sid:
                 forms_data[sid] = dict(row)
     return forms_data
+
+
+def _print_confidence_review_table(
+    joined: list[dict[str, Any]],
+    threshold: float = 0.75,
+) -> None:
+    """Print a review table for low-confidence OCR entries.
+
+    Args:
+        joined: List of joined result dicts (with optional confidence fields).
+        threshold: Confidence threshold below which entries are flagged.
+    """
+    # Check if any entry has confidence data
+    has_confidence = any(
+        entry.get("ocr_confidence_mean") is not None for entry in joined
+    )
+    if not has_confidence:
+        return
+
+    # Filter entries with confidence below threshold
+    total_with_confidence = sum(
+        1 for e in joined if e.get("ocr_confidence_mean") is not None
+    )
+    low_entries = [
+        e for e in joined
+        if e.get("ocr_confidence_mean") is not None
+        and e["ocr_confidence_mean"] < threshold
+    ]
+
+    if not low_entries:
+        print(f"✓ OCR 인식률 검토 대상 없음 (전체 confidence ≥ {threshold})")
+        return
+
+    # Sort by confidence_mean ascending (INV-J01)
+    low_entries.sort(key=lambda e: e["ocr_confidence_mean"])
+
+    # Build table rows
+    rows: list[tuple[str, str, str, str, str, str]] = []
+    for e in low_entries:
+        sid = e.get("student_id", "")
+        forms = e.get("forms_data", {})
+        name = forms.get("이름", "-")
+        q_num = str(e.get("q_num", ""))
+        conf_mean = f"{e['ocr_confidence_mean']:.2f}"
+        conf_min = (
+            f"{e['ocr_confidence_min']:.2f}"
+            if e.get("ocr_confidence_min") is not None
+            else "-"
+        )
+        text = e.get("text", "")
+        preview = text[:30] + "..." if len(text) > 30 else text
+        rows.append((sid, name, q_num, conf_mean, conf_min, preview))
+
+    # Print table
+    headers = ("학번", "이름", "문항", "인식률", "최저블록", "인식된 텍스트 (앞 30자)")
+    col_widths = [
+        max(len(h), max(len(r[i]) for r in rows))
+        for i, h in enumerate(headers)
+    ]
+
+    def _row_str(vals: tuple) -> str:
+        cells = " │ ".join(v.ljust(w) for v, w in zip(vals, col_widths))
+        return f"│ {cells} │"
+
+    sep = "├─" + "─┼─".join("─" * w for w in col_widths) + "─┤"
+    bot = "└─" + "─┴─".join("─" * w for w in col_widths) + "─┘"
+
+    title = f"  OCR 인식률 검토 대상 (confidence < {threshold})"
+    title_row = f"│{title.ljust(sum(col_widths) + 3 * (len(col_widths) - 1) + 2)}│"
+    title_top = "┌" + "─" * (sum(col_widths) + 3 * (len(col_widths) - 1) + 2) + "┐"
+
+    print(title_top)
+    print(title_row)
+    print(sep)
+    print(_row_str(headers))
+    print(sep)
+    for r in rows:
+        print(_row_str(r))
+    print(bot)
+
+    pct = len(low_entries) * 100 / total_with_confidence if total_with_confidence else 0
+    print(f"  {len(low_entries)}건 / 전체 {total_with_confidence}건 ({pct:.1f}%)")
 
 
 # ── internal helpers ─────────────────────────────
