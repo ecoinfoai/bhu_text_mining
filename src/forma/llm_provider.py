@@ -9,6 +9,7 @@ Includes exponential backoff retry for transient errors (429, connection).
 from __future__ import annotations
 
 import abc
+import base64
 import logging
 import os
 import time
@@ -19,6 +20,32 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES: int = 3
 INITIAL_BACKOFF: float = 2.0
 DEFAULT_TIMEOUT: float = 60.0
+
+_IMAGE_MIME_TYPES: dict[str, str] = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+}
+
+
+def _read_image(image_path: str) -> tuple[bytes, str]:
+    """Read image file and return (bytes, mime_type).
+
+    Raises:
+        FileNotFoundError: If image_path does not exist.
+        ValueError: If extension is not jpg/jpeg/png.
+    """
+    if not os.path.isfile(image_path):
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+    ext = os.path.splitext(image_path)[1].lower()
+    mime_type = _IMAGE_MIME_TYPES.get(ext)
+    if mime_type is None:
+        raise ValueError(
+            f"Unsupported image format: {ext!r}. "
+            f"Supported: {', '.join(sorted(_IMAGE_MIME_TYPES))}"
+        )
+    with open(image_path, "rb") as f:
+        return f.read(), mime_type
 
 
 def _is_retryable(exc: Exception) -> bool:
@@ -99,6 +126,60 @@ class LLMProvider(abc.ABC):
                 time.sleep(wait)
         raise last_exc  # type: ignore[misc]
 
+    @abc.abstractmethod
+    def _generate_with_image_impl(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        system_instruction: Optional[str] = None,
+    ) -> str:
+        """Provider-specific image generation (no retry logic)."""
+
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_path: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        timeout: float = DEFAULT_TIMEOUT,
+        system_instruction: Optional[str] = None,
+    ) -> str:
+        """Generate a text response from prompt + image with retry.
+
+        Args:
+            prompt: The input prompt (user message).
+            image_path: Path to JPG/JPEG/PNG image file.
+            max_tokens: Maximum tokens in the response.
+            temperature: Sampling temperature.
+            timeout: Request timeout in seconds.
+            system_instruction: Optional system-level instruction.
+
+        Returns:
+            Generated text string.
+        """
+        image_data, mime_type = _read_image(image_path)
+        last_exc: Exception | None = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                return self._generate_with_image_impl(
+                    prompt, image_data, mime_type,
+                    max_tokens, temperature, system_instruction,
+                )
+            except Exception as exc:
+                last_exc = exc
+                if not _is_retryable(exc):
+                    raise
+                wait = INITIAL_BACKOFF * (2 ** attempt)
+                logger.warning(
+                    "LLM vision call failed (attempt %d/%d): %s. Retrying in %.1fs",
+                    attempt + 1, MAX_RETRIES, exc, wait,
+                )
+                time.sleep(wait)
+        raise last_exc  # type: ignore[misc]
+
     @property
     @abc.abstractmethod
     def model_name(self) -> str:
@@ -152,6 +233,34 @@ class GeminiProvider(LLMProvider):
         )
         return response.text
 
+    def _generate_with_image_impl(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        system_instruction: Optional[str] = None,
+    ) -> str:
+        from google.genai import types
+
+        config_kwargs: dict = {
+            "max_output_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if system_instruction:
+            config_kwargs["system_instruction"] = system_instruction
+
+        image_part = types.Part.from_bytes(data=image_data, mime_type=mime_type)
+        contents = [prompt, image_part]
+
+        response = self._client.models.generate_content(
+            model=self._model,
+            contents=contents,
+            config=types.GenerateContentConfig(**config_kwargs),
+        )
+        return response.text
+
 
 class AnthropicProvider(LLMProvider):
     """Anthropic Claude LLM provider.
@@ -189,6 +298,38 @@ class AnthropicProvider(LLMProvider):
             "max_tokens": max_tokens,
             "temperature": temperature,
             "messages": [{"role": "user", "content": prompt}],
+        }
+        if system_instruction:
+            kwargs["system"] = system_instruction
+        message = self._client.messages.create(**kwargs)
+        return message.content[0].text
+
+    def _generate_with_image_impl(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str,
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        system_instruction: Optional[str] = None,
+    ) -> str:
+        image_b64 = base64.b64encode(image_data).decode("utf-8")
+        content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": mime_type,
+                    "data": image_b64,
+                },
+            },
+            {"type": "text", "text": prompt},
+        ]
+        kwargs: dict = {
+            "model": self._model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": content}],
         }
         if system_instruction:
             kwargs["system"] = system_instruction

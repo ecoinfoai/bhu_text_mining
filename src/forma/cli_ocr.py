@@ -15,6 +15,8 @@ Usage:
                    [--student-id-column "sid"]
 
     forma-ocr join --class A
+
+    forma-ocr compare --image scan.jpg --provider gemini
 """
 from __future__ import annotations
 
@@ -118,6 +120,44 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--ocr-review-threshold", type=float, default=None,
         dest="ocr_review_threshold",
         help="OCR 인식률 검토 기준값 (기본값: 0.75)",
+    )
+
+    # ── compare subcommand ─────────────────────────
+    cmp_p = subparsers.add_parser(
+        "compare",
+        help="Naver OCR vs LLM Vision 인식 비교 (연구용)",
+    )
+    cmp_p.add_argument(
+        "--image", required=True,
+        help="비교할 이미지 파일 경로",
+    )
+    cmp_p.add_argument(
+        "--provider", default="gemini",
+        help="LLM 프로바이더 (gemini 또는 anthropic, 기본값: gemini)",
+    )
+    cmp_p.add_argument(
+        "--model", default=None,
+        help="LLM 모델 ID (기본값: 프로바이더 기본 모델)",
+    )
+    cmp_p.add_argument(
+        "--naver-config", default="", dest="naver_config",
+        help="Naver OCR 설정 JSON 파일 경로",
+    )
+    cmp_p.add_argument(
+        "--subject", default=None,
+        help="과목명 (LLM 프롬프트 참고 정보)",
+    )
+    cmp_p.add_argument(
+        "--question", default=None,
+        help="문제 내용 (LLM 프롬프트 참고 정보)",
+    )
+    cmp_p.add_argument(
+        "--answer-keywords", default=None, dest="answer_keywords",
+        help="핵심 키워드 (LLM 프롬프트 참고 정보)",
+    )
+    cmp_p.add_argument(
+        "--output", default=None,
+        help="비교 결과 YAML 저장 경로 (선택)",
     )
 
     args = parser.parse_args(argv)
@@ -360,6 +400,156 @@ def main(argv: list[str] | None = None) -> None:
                 student_id_column=args.student_id_column,
                 ocr_review_threshold=join_threshold,
             )
+
+    elif args.command == "compare":
+        main_compare(
+            image=args.image,
+            provider=args.provider,
+            model=args.model,
+            subject=getattr(args, "subject", None),
+            question=getattr(args, "question", None),
+            answer_keywords=getattr(args, "answer_keywords", None),
+            output=getattr(args, "output", None),
+            no_config=args.no_config,
+        )
+
+
+def main_compare(
+    *,
+    image: str,
+    provider: str,
+    model: str | None,
+    subject: str | None,
+    question: str | None,
+    answer_keywords: str | None,
+    output: str | None,
+    no_config: bool,
+) -> None:
+    """Run OCR vs LLM Vision comparison for a single image."""
+    import os
+
+    from forma.llm_provider import create_provider
+    from forma.naver_ocr import (
+        extract_raw_ocr_data,
+        load_naver_ocr_env,
+        send_images_receive_ocr,
+    )
+    from forma.ocr_compare import compare_single_image
+
+    if not os.path.isfile(image):
+        print(f"오류: 이미지 파일을 찾을 수 없습니다: {image}")
+        sys.exit(1)
+
+    # Load Naver OCR config
+    try:
+        secret_key, api_url = load_naver_ocr_env()
+    except Exception as exc:
+        print(f"오류: Naver OCR 설정 로드 실패: {exc}")
+        sys.exit(1)
+
+    # Run Naver OCR
+    try:
+        ocr_responses = send_images_receive_ocr(api_url, secret_key, [image])
+    except Exception as exc:
+        print(f"오류: Naver OCR API 호출 실패: {exc}")
+        sys.exit(1)
+
+    # Extract raw data
+    raw_data = extract_raw_ocr_data(ocr_responses)
+    if not raw_data:
+        print("오류: OCR 결과가 없습니다.")
+        sys.exit(1)
+
+    # Get first image's data
+    image_key = next(iter(raw_data))
+    naver_raw = raw_data[image_key]
+
+    # Create LLM provider
+    try:
+        llm = create_provider(provider=provider, model=model)
+    except Exception as exc:
+        print(f"오류: LLM 프로바이더 생성 실패: {exc}")
+        sys.exit(1)
+
+    # Build context
+    context: dict[str, str] | None = None
+    if subject or question or answer_keywords:
+        context = {}
+        if subject:
+            context["subject"] = subject
+        if question:
+            context["question"] = question
+        if answer_keywords:
+            context["answer_keywords"] = answer_keywords
+
+    # Run comparison
+    result = compare_single_image(
+        image_path=image,
+        naver_raw=naver_raw,
+        llm_provider=llm,
+        context=context,
+    )
+
+    # Print comparison table
+    _print_comparison_table(result)
+
+    # Save to YAML if requested
+    if output:
+        result_dict = {
+            "image_path": result.image_path,
+            "ocr_text": result.ocr_text,
+            "llm_text": result.llm_text,
+            "summary": result.summary,
+            "field_comparisons": [
+                {
+                    "field_index": fc.field_index,
+                    "ocr_text": fc.ocr_text,
+                    "llm_text": fc.llm_text,
+                    "ocr_confidence": fc.ocr_confidence,
+                    "match": fc.match,
+                }
+                for fc in result.field_comparisons
+            ],
+        }
+        with open(output, "w", encoding="utf-8") as f:
+            yaml.dump(result_dict, f, allow_unicode=True, default_flow_style=False)
+        print(f"\n결과 저장: {output}")
+
+
+def _print_comparison_table(result) -> None:
+    """Print a comparison table with box-drawing characters."""
+    print(f"\n이미지: {result.image_path}")
+    print(f"OCR 텍스트: {result.ocr_text}")
+    print(f"LLM 텍스트: {result.llm_text}")
+    print()
+
+    idx_w = 4
+    ocr_w = 16
+    llm_w = 16
+    conf_w = 8
+    match_w = 6
+
+    print(f"┌{'─' * idx_w}┬{'─' * ocr_w}┬{'─' * llm_w}┬{'─' * conf_w}┬{'─' * match_w}┐")
+    print(f"│{'#':^{idx_w}}│{'OCR':^{ocr_w}}│{'LLM':^{llm_w}}│{'신뢰도':^{conf_w}}│{'일치':^{match_w}}│")
+    print(f"├{'─' * idx_w}┼{'─' * ocr_w}┼{'─' * llm_w}┼{'─' * conf_w}┼{'─' * match_w}┤")
+
+    for fc in result.field_comparisons:
+        conf_str = f"{fc.ocr_confidence:.2f}" if fc.ocr_confidence is not None else "N/A"
+        match_str = "O" if fc.match else "X"
+        ocr_text = fc.ocr_text[:ocr_w - 2]
+        llm_text = fc.llm_text[:llm_w - 2]
+        print(
+            f"│{fc.field_index:>{idx_w}}│"
+            f"{ocr_text:<{ocr_w}}│"
+            f"{llm_text:<{llm_w}}│"
+            f"{conf_str:^{conf_w}}│"
+            f"{match_str:^{match_w}}│"
+        )
+
+    print(f"└{'─' * idx_w}┴{'─' * ocr_w}┴{'─' * llm_w}┴{'─' * conf_w}┴{'─' * match_w}┘")
+
+    s = result.summary
+    print(f"\n합계: {s['total']}개 필드, 일치 {s['match_count']}개, 불일치 {s['mismatch_count']}개")
 
 
 if __name__ == "__main__":

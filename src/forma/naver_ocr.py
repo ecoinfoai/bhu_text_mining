@@ -210,6 +210,64 @@ def send_images_receive_ocr(
     return results
 
 
+def extract_raw_ocr_data(responses: list[dict]) -> dict[str, dict]:
+    """Extract ALL field data from Naver OCR API responses.
+
+    For each image, returns every field's data: infer_text, infer_confidence,
+    bounding_poly, type, line_break.  Also includes summary statistics.
+
+    Args:
+        responses: List of Naver OCR API response dicts.
+
+    Returns:
+        Dict keyed by image name. Each value contains:
+            - ``infer_result``: str (SUCCESS/ERROR)
+            - ``fields``: list of dicts with all field data
+            - ``field_count``: int
+            - ``confidence_mean``: float | None
+            - ``confidence_min``: float | None
+    """
+    extracted: dict[str, dict] = {}
+
+    for response_data in responses:
+        for image_result in response_data.get("images", []):
+            image_name = image_result["name"]
+            infer_result = image_result.get("inferResult", "")
+            raw_fields = image_result.get("fields") or []
+
+            fields: list[dict] = []
+            confidences: list[float] = []
+
+            for field in raw_fields:
+                conf = field.get("inferConfidence")
+                if conf is not None:
+                    confidences.append(float(conf))
+
+                bp = field.get("boundingPoly")
+                bounding_poly = bp.get("vertices") if bp else None
+
+                fields.append({
+                    "infer_text": field.get("inferText", ""),
+                    "infer_confidence": conf,
+                    "bounding_poly": bounding_poly,
+                    "type": field.get("type", ""),
+                    "line_break": bool(field.get("lineBreak", False)),
+                })
+
+            extracted[image_name] = {
+                "infer_result": infer_result,
+                "fields": fields,
+                "field_count": len(fields),
+                "confidence_mean": (
+                    sum(confidences) / len(confidences)
+                    if confidences else None
+                ),
+                "confidence_min": min(confidences) if confidences else None,
+            }
+
+    return extracted
+
+
 def extract_text_with_confidence(responses: list[dict]) -> dict[str, dict]:
     """Extract text and confidence statistics from OCR API responses.
 
