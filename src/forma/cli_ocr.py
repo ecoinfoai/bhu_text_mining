@@ -158,6 +158,13 @@ def main(argv: list[str] | None = None) -> None:
     raw_argv = argv if argv is not None else sys.argv[1:]
     apply_project_config(args, argv=raw_argv)
 
+    # BUG-001 fix: reconstruct explicit_keys to distinguish CLI vs forma.yaml
+    _explicit = {
+        token.lstrip("-").split("=")[0].replace("-", "_")
+        for token in (raw_argv or [])
+        if token.startswith("--")
+    }
+
     if args.command == "scan":
         if getattr(args, "class_id", None):
             # --class mode: load week.yaml and resolve patterns
@@ -183,9 +190,9 @@ def main(argv: list[str] | None = None) -> None:
             image_dir = str(base_dir / resolved.ocr_image_dir_pattern)
             output_path = str(base_dir / resolved.ocr_ocr_output_pattern)
             num_questions = (
-                args.num_questions
-                if args.num_questions is not None
-                else resolved.ocr_num_questions
+                args.num_questions if "num_questions" in _explicit
+                else resolved.ocr_num_questions if resolved.ocr_num_questions
+                else args.num_questions
             )
 
             # Use saved crop coords unless --recrop
@@ -228,8 +235,7 @@ def main(argv: list[str] | None = None) -> None:
             # Legacy --config mode
             cfg = _load_ocr_config(args.config)
             num_questions = (
-                args.num_questions
-                if args.num_questions is not None
+                args.num_questions if "num_questions" in _explicit
                 else int(cfg.get("num-questions", 2))
             )
             crop_coords = None
@@ -276,9 +282,9 @@ def main(argv: list[str] | None = None) -> None:
             if forms_csv and not Path(forms_csv).is_absolute():
                 forms_csv = str(base_dir / forms_csv)
             student_id_column = (
-                args.student_id_column
-                if args.student_id_column != "student_id"
-                else resolved.ocr_student_id_column or args.student_id_column
+                args.student_id_column if "student_id_column" in _explicit
+                else resolved.ocr_student_id_column if resolved.ocr_student_id_column
+                else args.student_id_column
             )
             if spreadsheet_url is None and not args.no_config:
                 try:

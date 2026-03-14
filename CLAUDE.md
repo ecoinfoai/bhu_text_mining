@@ -25,6 +25,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - Filesystem — 6 existing `.md` files + 1 new `.md` file (001-update-docs)
 - Python >=3.11, <4 + KoNLPy (Okt), kss, BERTopic, UMAP, HDBSCAN, sentence-transformers, networkx >=3.4.2, matplotlib >=3.10.0 (Agg backend), ReportLab >=4.4.4 (Platypus API), PyYAML >=6.0, numpy <2.1.0 — all existing deps, no new runtime deps (001-stt-lecture-analysis)
 - YAML files (analysis results, comparison results), PNG (network charts), PDF (reports) (001-stt-lecture-analysis)
+- Python >=3.11, <4 + PyYAML >=6.0, argparse (stdlib) (015-fix-pipeline-bugs)
+- YAML files (pipeline I/O), no database (015-fix-pipeline-bugs)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -153,9 +155,9 @@ Python >=3.11, <4: Follow standard conventions
 - `week_config.py` — `+lecture_*` fields in `WeekConfiguration`, `+"lecture_transcript_pattern"` in `_CLASS_PATTERN_FIELDS`, lecture section parsing in `load_week_config()`
 
 ## Recent Changes
+- 015-fix-pipeline-bugs: Added Python >=3.11, <4 + PyYAML >=6.0, argparse (stdlib)
 - 001-stt-lecture-analysis: Added KoNLPy, kss, BERTopic, UMAP, HDBSCAN, sentence-transformers (all existing deps)
 - 001-update-docs: Added N/A (Markdown documentation only)
-- 014-consistency-hardening: Added Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, numpy <2.1.0, scikit-learn >=1.4.0, joblib (via scikit-learn)
 
 
 <!-- MANUAL ADDITIONS START -->

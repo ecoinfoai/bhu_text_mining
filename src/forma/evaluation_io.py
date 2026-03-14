@@ -129,21 +129,23 @@ def save_evaluation_yaml(
 
 
 def extract_student_responses(
-    evaluation_data: dict[str, Any],
+    evaluation_data: dict[str, Any] | list[dict[str, Any]],
 ) -> dict[str, dict[int, str]]:
     """Extract student responses keyed by student_id and question_sn.
 
-    Expects the top-level dict to contain a ``"responses"`` key whose
-    value maps student IDs → {question_sn (int) → response text}.
+    Accepts either a dict with a ``"responses"`` key (wrapped format)
+    or a bare list of dicts from OCR join output (FR-005/FR-006).
 
     Args:
-        evaluation_data: Parsed YAML dict with a ``"responses"`` key.
+        evaluation_data: Parsed YAML data — dict with ``"responses"``
+            key or bare list of ``{student_id, q_num, text}`` dicts.
 
     Returns:
         Mapping of student_id → {question_sn → response_text}.
 
     Raises:
-        KeyError: If ``"responses"`` key is absent from evaluation_data.
+        ValueError: If input is not a list or dict, or is None.
+        KeyError: If dict input lacks ``"responses"`` key.
 
     Examples:
         >>> data = {"responses": {"s001": {1: "세포막은 인지질 이중층."}}}
@@ -151,6 +153,24 @@ def extract_student_responses(
         >>> result["s001"][1]
         '세포막은 인지질 이중층.'
     """
+    if evaluation_data is None:
+        raise ValueError(
+            "Invalid response format: received None. "
+            "The YAML file must contain a list or a dict with 'responses' key."
+        )
+    if isinstance(evaluation_data, list):
+        result: dict[str, dict[int, str]] = {}
+        for entry in evaluation_data:
+            sid = str(entry["student_id"])
+            qsn = int(entry["q_num"])
+            text = str(entry.get("text", ""))
+            result.setdefault(sid, {})[qsn] = text
+        return result
+    if not isinstance(evaluation_data, dict):
+        raise ValueError(
+            f"Invalid response format: expected list or dict, got {type(evaluation_data).__name__}. "
+            "The YAML file must contain a list or a dict with 'responses' key."
+        )
     if "responses" not in evaluation_data:
         raise KeyError(
             "Key 'responses' not found in evaluation data. "

@@ -193,10 +193,9 @@ def _build_parser() -> _FormaParser:
     subparsers.add_parser("init", help="프로젝트 설정 초기화")
     subparsers.add_parser("select", help="학생 답안 선별")
 
-    # --- eval (with optional 'batch' subcommand) ---
-    eval_parser = subparsers.add_parser("eval", help="평가 파이프라인 실행")
-    eval_sub = eval_parser.add_subparsers(dest="eval_sub")
-    eval_sub.add_parser("batch", help="배치 평가 실행")
+    # --- eval (optional 'batch' subcommand — parsed manually to avoid
+    #     argparse consuming --class values as subcommand names) ---
+    subparsers.add_parser("eval", help="평가 파이프라인 실행")
 
     # --- report (nested subcommands) ---
     report_parser = subparsers.add_parser("report", help="리포트 생성")
@@ -252,11 +251,19 @@ def main(argv: list[str] | None = None) -> None:
     if command in _NESTED_GROUPS:
         sub_attr = f"{command}_sub"
         sub_cmd = getattr(args, sub_attr, None)
-        if sub_cmd:
+        registered_subs = {k[1] for k in _COMMANDS if k[0] == command and k[1] is not None}
+        # For commands without argparse subparsers (e.g., eval), check remaining
+        if sub_cmd is None and remaining:
+            candidate = remaining[0]
+            if candidate in registered_subs:
+                sub_cmd = candidate
+                remaining = remaining[1:]
+        if sub_cmd and sub_cmd in registered_subs:
             key = (command, sub_cmd)
         else:
-            # Nested group without subcommand: e.g., "forma eval" (no "batch")
             key = (command, None)
+            if sub_cmd:
+                remaining = [sub_cmd] + remaining
     else:
         key = (command, None)
 

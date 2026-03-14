@@ -764,6 +764,8 @@ def run_evaluation_pipeline(
         student_responses = extract_student_responses(responses_data)
     else:
         responses_data = load_evaluation_yaml(responses_path)
+        if isinstance(responses_data, list):
+            responses_data = convert_join_to_responses(responses_data)
         student_responses = extract_student_responses(responses_data)
 
     # Validate config
