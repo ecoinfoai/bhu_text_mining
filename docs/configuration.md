@@ -130,7 +130,7 @@ OCR scanning settings for answer sheet digitization.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `ocr_model` | string/null | no | `null` | OCR model ID (e.g., `gemini-2.0-flash`; `null` uses provider default) |
+| `ocr_model` | string/null | no | `null` | OCR model ID (`null` uses `gemini-2.5-flash`) |
 | `naver_config` | string | no | `""` | Path to Naver OCR configuration (deprecated) |
 | `credentials` | string | no | `""` | Credentials reference (resolved from environment variable) |
 | `spreadsheet_url` | string | no | `""` | Google Sheets URL for OCR data |

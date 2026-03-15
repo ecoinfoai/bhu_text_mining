@@ -40,7 +40,7 @@ paths:
 
 ocr:
   naver_config: ""                 # (deprecated) Naver OCR 설정 — LLM Vision 사용 권장
-  ocr_model: null                  # OCR 모델 ID (예: gemini-2.0-flash, null = 기본값)
+  ocr_model: null                  # OCR 모델 ID (null = gemini-2.5-flash)
   credentials: ""                  # 인증 정보 (환경변수에서 로드)
   spreadsheet_url: ""              # Google Sheets URL
 
