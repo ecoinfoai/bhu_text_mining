@@ -36,7 +36,7 @@ _KNOWN_KEYS: dict[str, set[str]] = {
         "exam_config", "join_dir", "output_dir", "longitudinal_store",
         "font_path",
     },
-    "ocr": {"naver_config", "credentials", "spreadsheet_url", "num_questions"},
+    "ocr": {"naver_config", "credentials", "spreadsheet_url", "num_questions", "ocr_model"},
     "evaluation": {
         "provider", "model", "skip_feedback", "skip_graph",
         "skip_statistical", "n_calls",
@@ -70,6 +70,7 @@ _SECTION_KEY_MAP: dict[str, dict[str, str]] = {
         "credentials": "credentials",
         "spreadsheet_url": "spreadsheet_url",
         "num_questions": "num_questions",
+        "ocr_model": "ocr_model",
     },
     "evaluation": {
         "provider": "provider",
@@ -110,10 +111,12 @@ class ProjectConfiguration:
         output_dir: Path to output directory.
         longitudinal_store: Path to longitudinal store YAML file.
         font_path: Path to Korean font file, or None for auto-detect.
-        naver_config: Path to Naver OCR configuration.
+        naver_config: Path to Naver OCR configuration.  **Deprecated** —
+            use ``--provider gemini`` (LLM Vision OCR) instead.
         credentials: Credentials reference (resolved from env var).
         spreadsheet_url: Google Sheets URL.
         num_questions: Number of questions per exam (>= 1).
+        ocr_model: LLM model ID for OCR (e.g. "gemini-2.0-flash"), or None for provider default.
         provider: LLM provider ("gemini" or "anthropic").
         model: LLM model name, or None for provider default.
         skip_feedback: Skip feedback generation.
@@ -153,6 +156,7 @@ class ProjectConfiguration:
     skip_llm: bool = False
     aggregate: bool = True
     current_week: int = 1
+    ocr_model: str | None = None
     model_path: str | None = None
 
 
@@ -294,6 +298,7 @@ def validate_project_config(config_dict: dict) -> None:
     # ocr section
     ocr = config_dict.get("ocr", {})
     if isinstance(ocr, dict):
+        _check_str_or_none(ocr, "ocr_model", errors)
         _check_int(ocr, "num_questions", errors)
         nq = ocr.get("num_questions")
         if nq is not None and isinstance(nq, int) and not isinstance(nq, bool):
@@ -498,6 +503,12 @@ def _check_str(section: dict, key: str, errors: list[str]) -> None:
     """Check that a key, if present, is a str."""
     if key in section and not isinstance(section[key], str):
         errors.append(f"{key} must be a string")
+
+
+def _check_str_or_none(section: dict, key: str, errors: list[str]) -> None:
+    """Check that a key, if present, is a str or None."""
+    if key in section and section[key] is not None and not isinstance(section[key], str):
+        errors.append(f"{key} must be a string or null")
 
 
 def _check_bool(section: dict, key: str, errors: list[str]) -> None:

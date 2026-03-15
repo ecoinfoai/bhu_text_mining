@@ -48,14 +48,34 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "scan",
         help="이미지 스캔 → QR 디코딩 → OCR → YAML",
     )
-    scan_source = scan_p.add_mutually_exclusive_group(required=True)
+    scan_source = scan_p.add_mutually_exclusive_group(required=False)
     scan_source.add_argument(
         "--config",
-        help="OCR 설정 YAML 파일 경로 (레거시)",
+        help="OCR 설정 YAML 파일 경로 (레거시, deprecated)",
     )
     scan_source.add_argument(
         "--class", dest="class_id",
         help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
+    )
+    scan_p.add_argument(
+        "--provider", dest="provider", default="gemini",
+        help="LLM 프로바이더 (gemini 또는 anthropic, 기본값: gemini)",
+    )
+    scan_p.add_argument(
+        "--model", default=None,
+        help="LLM 모델 ID 오버라이드",
+    )
+    scan_p.add_argument(
+        "--subject", default=None,
+        help="과목명 (LLM 프롬프트 문맥 정보)",
+    )
+    scan_p.add_argument(
+        "--question", default=None,
+        help="문항 텍스트 (LLM 프롬프트 문맥 정보)",
+    )
+    scan_p.add_argument(
+        "--answer-keywords", default=None, dest="answer_keywords",
+        help="핵심 키워드 (쉼표 구분, LLM 프롬프트 문맥 정보)",
     )
     scan_p.add_argument(
         "--num-questions", type=int, default=None,
@@ -127,9 +147,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "compare",
         help="Naver OCR vs LLM Vision 인식 비교 (연구용)",
     )
-    cmp_p.add_argument(
-        "--image", required=True,
-        help="비교할 이미지 파일 경로",
+    cmp_source = cmp_p.add_mutually_exclusive_group(required=True)
+    cmp_source.add_argument(
+        "--image",
+        help="비교할 이미지 파일 경로 (단일 이미지)",
+    )
+    cmp_source.add_argument(
+        "--image-dir", dest="image_dir",
+        help="비교할 이미지 디렉토리 (배치 모드)",
     )
     cmp_p.add_argument(
         "--provider", default="gemini",
@@ -142,6 +167,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     cmp_p.add_argument(
         "--naver-config", default="", dest="naver_config",
         help="Naver OCR 설정 JSON 파일 경로",
+    )
+    cmp_p.add_argument(
+        "--prefix", default="q",
+        help="배치 모드: 이미지 파일명 접두사 (기본값: q)",
     )
     cmp_p.add_argument(
         "--subject", default=None,
@@ -157,10 +186,24 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     cmp_p.add_argument(
         "--output", default=None,
-        help="비교 결과 YAML 저장 경로 (선택)",
+        help="비교 결과 YAML 저장 경로 (선택/배치 모드 필수)",
+    )
+    cmp_p.add_argument(
+        "--no-resume", action="store_true", default=False, dest="no_resume",
+        help="배치 모드: 기존 결과 무시, 처음부터 재실행",
     )
 
     args = parser.parse_args(argv)
+    if getattr(args, "command", None) == "scan":
+        has_source = (
+            getattr(args, "config", None)
+            or getattr(args, "class_id", None)
+            or getattr(args, "provider", None)
+        )
+        if not has_source:
+            scan_p.error(
+                "하나 이상의 소스를 지정해야 합니다: --config, --class, 또는 --provider"
+            )
     if (
         getattr(args, "command", None) == "join"
         and not getattr(args, "class_id", None)
@@ -216,7 +259,88 @@ def main(argv: list[str] | None = None) -> None:
     }
 
     if args.command == "scan":
-        if getattr(args, "class_id", None):
+        if getattr(args, "config", None):
+            # Legacy --config mode (takes precedence)
+            cfg = _load_ocr_config(args.config)
+            num_questions = (
+                args.num_questions if "num_questions" in _explicit
+                else int(cfg.get("num-questions", 2))
+            )
+            crop_coords = None
+            raw_coords = cfg.get("crop-coords")
+            if raw_coords is not None:
+                crop_coords = [tuple(c) for c in raw_coords]
+
+            ocr_review_threshold = args.ocr_review_threshold or 0.75
+            run_scan_pipeline(
+                image_dir=cfg["image-dir"],
+                naver_ocr_config=cfg["naver-ocr-config"],
+                output_path=cfg["output"],
+                num_questions=num_questions,
+                crop_coords=crop_coords,
+                ocr_review_threshold=ocr_review_threshold,
+            )
+        elif getattr(args, "provider", None) and not getattr(args, "class_id", None):
+            # LLM Vision mode (--provider without --class)
+            # Minimal mode: scan current directory or week.yaml dir
+            from forma.week_config import find_week_config, load_week_config
+            from pathlib import Path
+
+            image_dir = "."
+            output_path = "scan_results.yaml"
+            num_questions = args.num_questions or 2
+            crop_coords = None
+            ocr_review_threshold = args.ocr_review_threshold or 0.75
+
+            # Try week.yaml for paths
+            if args.week_config:
+                week_yaml_path = Path(args.week_config)
+                week_cfg = load_week_config(week_yaml_path)
+                # Use defaults from week.yaml if available
+                image_dir = str(week_yaml_path.parent)
+                output_path = str(week_yaml_path.parent / "scan_results.yaml")
+
+            # Resolve OCR model: CLI --model > forma.yaml ocr.ocr_model > provider default
+            ocr_model_from_config = None
+            if not args.no_config:
+                try:
+                    from forma.project_config import find_project_config, load_project_config
+                    proj_path = find_project_config()
+                    if proj_path:
+                        proj = load_project_config(proj_path)
+                        ocr_model_from_config = proj.get("ocr", {}).get("ocr_model")
+                except Exception:
+                    pass
+            resolved_model = (
+                getattr(args, "model", None) if "model" in _explicit
+                else ocr_model_from_config
+            )
+
+            # Build LLM context from CLI args
+            llm_context = None
+            subject = getattr(args, "subject", None)
+            question = getattr(args, "question", None)
+            answer_keywords = getattr(args, "answer_keywords", None)
+            if subject or question or answer_keywords:
+                llm_context = {}
+                if subject:
+                    llm_context["subject"] = subject
+                if question:
+                    llm_context["question"] = question
+                if answer_keywords:
+                    llm_context["answer_keywords"] = answer_keywords
+
+            run_scan_pipeline(
+                image_dir=image_dir,
+                output_path=output_path,
+                num_questions=num_questions,
+                crop_coords=crop_coords,
+                ocr_review_threshold=ocr_review_threshold,
+                llm_provider=args.provider,
+                llm_model=resolved_model,
+                llm_context=llm_context,
+            )
+        elif getattr(args, "class_id", None):
             # --class mode: load week.yaml and resolve patterns
             from forma.week_config import (
                 find_week_config,
@@ -250,15 +374,18 @@ def main(argv: list[str] | None = None) -> None:
             if not args.recrop and resolved.ocr_crop_coords:
                 crop_coords = [tuple(c) for c in resolved.ocr_crop_coords]
 
-            # Load naver_ocr_config from forma.yaml
+            # Load OCR settings from forma.yaml
             naver_ocr_config = ""
+            ocr_model_from_config = None
             if not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
                     proj_path = find_project_config()
                     if proj_path:
                         proj = load_project_config(proj_path)
-                        naver_ocr_config = proj.get("ocr", {}).get("naver_config", "")
+                        ocr_section = proj.get("ocr", {})
+                        naver_ocr_config = ocr_section.get("naver_config", "")
+                        ocr_model_from_config = ocr_section.get("ocr_model")
                 except Exception as exc:
                     logger.debug("프로젝트 설정 로드 실패: %s", exc)
 
@@ -268,6 +395,30 @@ def main(argv: list[str] | None = None) -> None:
                 else resolved.ocr_review_threshold
             )
 
+            # Build LLM Vision kwargs when --provider is given
+            llm_kwargs: dict = {}
+            provider = getattr(args, "provider", None)
+            if provider:
+                llm_kwargs["llm_provider"] = provider
+                # CLI --model > forma.yaml ocr.ocr_model > provider default
+                llm_kwargs["llm_model"] = (
+                    getattr(args, "model", None) if "model" in _explicit
+                    else ocr_model_from_config
+                )
+                # Build context from CLI args
+                subject = getattr(args, "subject", None)
+                question = getattr(args, "question", None)
+                answer_keywords = getattr(args, "answer_keywords", None)
+                if subject or question or answer_keywords:
+                    llm_context: dict = {}
+                    if subject:
+                        llm_context["subject"] = subject
+                    if question:
+                        llm_context["question"] = question
+                    if answer_keywords:
+                        llm_context["answer_keywords"] = answer_keywords
+                    llm_kwargs["llm_context"] = llm_context
+
             results = run_scan_pipeline(
                 image_dir=image_dir,
                 naver_ocr_config=naver_ocr_config,
@@ -275,6 +426,7 @@ def main(argv: list[str] | None = None) -> None:
                 num_questions=num_questions,
                 crop_coords=crop_coords,
                 ocr_review_threshold=ocr_review_threshold,
+                **llm_kwargs,
             )
 
             # Auto-save crop coords back to week.yaml if newly selected
@@ -288,27 +440,6 @@ def main(argv: list[str] | None = None) -> None:
                         save_crop_coords(week_yaml_path, _last_crop_coords)
                 except (ImportError, AttributeError):
                     pass
-        else:
-            # Legacy --config mode
-            cfg = _load_ocr_config(args.config)
-            num_questions = (
-                args.num_questions if "num_questions" in _explicit
-                else int(cfg.get("num-questions", 2))
-            )
-            crop_coords = None
-            raw_coords = cfg.get("crop-coords")
-            if raw_coords is not None:
-                crop_coords = [tuple(c) for c in raw_coords]
-
-            ocr_review_threshold = args.ocr_review_threshold or 0.75
-            run_scan_pipeline(
-                image_dir=cfg["image-dir"],
-                naver_ocr_config=cfg["naver-ocr-config"],
-                output_path=cfg["output"],
-                num_questions=num_questions,
-                crop_coords=crop_coords,
-                ocr_review_threshold=ocr_review_threshold,
-            )
 
     elif args.command == "join":
         if getattr(args, "class_id", None):
@@ -402,16 +533,34 @@ def main(argv: list[str] | None = None) -> None:
             )
 
     elif args.command == "compare":
-        main_compare(
-            image=args.image,
-            provider=args.provider,
-            model=args.model,
-            subject=getattr(args, "subject", None),
-            question=getattr(args, "question", None),
-            answer_keywords=getattr(args, "answer_keywords", None),
-            output=getattr(args, "output", None),
-            no_config=args.no_config,
-        )
+        if getattr(args, "image_dir", None):
+            # Batch mode
+            if not args.output:
+                print("오류: 배치 모드에서는 --output이 필수입니다.")
+                sys.exit(1)
+            main_compare_batch(
+                image_dir=args.image_dir,
+                output=args.output,
+                provider=args.provider,
+                model=args.model,
+                prefix=getattr(args, "prefix", "q"),
+                subject=getattr(args, "subject", None),
+                question=getattr(args, "question", None),
+                answer_keywords=getattr(args, "answer_keywords", None),
+                no_resume=getattr(args, "no_resume", False),
+                no_config=args.no_config,
+            )
+        else:
+            main_compare(
+                image=args.image,
+                provider=args.provider,
+                model=args.model,
+                subject=getattr(args, "subject", None),
+                question=getattr(args, "question", None),
+                answer_keywords=getattr(args, "answer_keywords", None),
+                output=getattr(args, "output", None),
+                no_config=args.no_config,
+            )
 
 
 def main_compare(
@@ -550,6 +699,66 @@ def _print_comparison_table(result) -> None:
 
     s = result.summary
     print(f"\n합계: {s['total']}개 필드, 일치 {s['match_count']}개, 불일치 {s['mismatch_count']}개")
+
+
+def main_compare_batch(
+    *,
+    image_dir: str,
+    output: str,
+    provider: str,
+    model: str | None,
+    prefix: str,
+    subject: str | None,
+    question: str | None,
+    answer_keywords: str | None,
+    no_resume: bool,
+    no_config: bool,
+) -> None:
+    """Run batch OCR vs LLM Vision comparison for a directory."""
+    import os
+
+    from forma.ocr_compare import run_batch_comparison
+
+    if not os.path.isdir(image_dir):
+        print(f"오류: 디렉토리를 찾을 수 없습니다: {image_dir}")
+        sys.exit(1)
+
+    # Load naver_config from forma.yaml
+    naver_config = ""
+    if not no_config:
+        try:
+            from forma.project_config import (
+                find_project_config,
+                load_project_config,
+            )
+            proj_path = find_project_config()
+            if proj_path:
+                proj = load_project_config(proj_path)
+                naver_config = proj.get("ocr", {}).get("naver_config", "")
+        except Exception:
+            pass
+
+    # Build context
+    context: dict[str, str] | None = None
+    if subject or question or answer_keywords:
+        context = {}
+        if subject:
+            context["subject"] = subject
+        if question:
+            context["question"] = question
+        if answer_keywords:
+            context["answer_keywords"] = answer_keywords
+
+    run_batch_comparison(
+        image_dir=image_dir,
+        output_path=output,
+        naver_config=naver_config,
+        llm_provider_name=provider,
+        llm_model=model,
+        context=context,
+        prefix=prefix,
+        resume=not no_resume,
+    )
 
 
 if __name__ == "__main__":

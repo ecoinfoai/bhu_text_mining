@@ -39,7 +39,8 @@ paths:
   font_path: null                  # 한국어 폰트 경로 (null = 자동 탐색)
 
 ocr:
-  naver_config: ""                 # Naver OCR 설정 경로
+  naver_config: ""                 # (deprecated) Naver OCR 설정 — LLM Vision 사용 권장
+  ocr_model: null                  # OCR 모델 ID (예: gemini-2.0-flash, null = 기본값)
   credentials: ""                  # 인증 정보 (환경변수에서 로드)
   spreadsheet_url: ""              # Google Sheets URL
 

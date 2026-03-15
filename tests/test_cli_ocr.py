@@ -171,9 +171,12 @@ class TestParseArgs:
         with pytest.raises(SystemExit):
             _parse_args([])
 
-    def test_scan_missing_config_raises(self):
-        with pytest.raises(SystemExit):
-            _parse_args(["scan"])
+    def test_scan_no_args_defaults_to_gemini(self):
+        """v0.13.0: scan without --config/--class uses default gemini provider."""
+        args = _parse_args(["scan"])
+        assert args.command == "scan"
+        assert args.provider == "gemini"
+        assert args.class_id is None
 
     def test_join_missing_output_raises(self):
         with pytest.raises(SystemExit):
@@ -364,3 +367,125 @@ class TestMainJoin:
         assert (
             mock_join.call_args.kwargs["manual_mapping_path"] == mapping
         )
+
+
+# ──────────────────────────────────────────────────
+# Group 5: scan --provider / --model args (LLM Vision)
+# ──────────────────────────────────────────────────
+
+
+class TestScanLLMArgs:
+    """Tests for scan subcommand --provider and --model args."""
+
+    def test_parse_scan_with_provider(self):
+        """--provider arg is parsed for scan subcommand."""
+        args = _parse_args(["scan", "--provider", "gemini"])
+        assert args.provider == "gemini"
+        assert args.command == "scan"
+
+    def test_parse_scan_with_model(self):
+        """--model arg is parsed for scan subcommand."""
+        args = _parse_args(["scan", "--provider", "gemini", "--model", "gemini-2.5-flash"])
+        assert args.model == "gemini-2.5-flash"
+
+    def test_parse_scan_provider_default(self):
+        """--provider defaults to 'gemini'."""
+        args = _parse_args(["scan", "--provider", "gemini"])
+        assert args.provider == "gemini"
+
+    def test_scan_provider_defaults_gemini(self):
+        """v0.13.0: --provider defaults to 'gemini' when not specified."""
+        args = _parse_args(["scan", "--class", "A"])
+        assert args.provider == "gemini"
+
+    def test_main_scan_llm_passes_provider_to_pipeline(self, tmp_path):
+        """main() passes llm_provider to run_scan_pipeline."""
+        (tmp_path / "img.jpg").write_bytes(b"\xff\xd8\xff" + b"\x00" * 10)
+        with patch(
+            "forma.cli_ocr.run_scan_pipeline",
+            return_value=[],
+        ) as mock_scan:
+            main(["--no-config", "scan", "--provider", "gemini"])
+
+        call_kwargs = mock_scan.call_args.kwargs
+        assert call_kwargs.get("llm_provider") == "gemini"
+
+    def test_main_scan_llm_passes_model(self, tmp_path):
+        """main() passes llm_model to run_scan_pipeline."""
+        with patch(
+            "forma.cli_ocr.run_scan_pipeline",
+            return_value=[],
+        ) as mock_scan:
+            main(["--no-config", "scan", "--provider", "anthropic", "--model", "claude-sonnet-4-6"])
+
+        call_kwargs = mock_scan.call_args.kwargs
+        assert call_kwargs.get("llm_provider") == "anthropic"
+        assert call_kwargs.get("llm_model") == "claude-sonnet-4-6"
+
+    def test_parse_scan_context_args(self):
+        """--subject, --question, --answer-keywords are parsed."""
+        args = _parse_args([
+            "scan", "--provider", "gemini",
+            "--subject", "생물학",
+            "--question", "세포막을 설명하시오",
+            "--answer-keywords", "인지질,이중층",
+        ])
+        assert args.subject == "생물학"
+        assert args.question == "세포막을 설명하시오"
+        assert args.answer_keywords == "인지질,이중층"
+
+    def test_parse_scan_class_with_provider(self):
+        """--class and --provider can coexist (LLM Vision via week.yaml)."""
+        args = _parse_args([
+            "scan", "--class", "A", "--provider", "anthropic",
+        ])
+        assert args.class_id == "A"
+        assert args.provider == "anthropic"
+
+    def test_main_scan_class_with_provider_passes_llm(self, tmp_path):
+        """main() passes llm_provider when both --class and --provider given."""
+        from types import SimpleNamespace
+        mock_resolved = SimpleNamespace(
+            ocr_image_dir_pattern="images_A",
+            ocr_ocr_output_pattern="scan_A.yaml",
+            ocr_num_questions=2,
+            ocr_crop_coords=None,
+            ocr_review_threshold=0.75,
+        )
+        (tmp_path / "images_A").mkdir()
+        with patch(
+            "forma.cli_ocr.run_scan_pipeline",
+            return_value=[],
+        ) as mock_scan, patch(
+            "forma.week_config.find_week_config",
+            return_value=tmp_path / "week.yaml",
+        ), patch(
+            "forma.week_config.load_week_config",
+        ), patch(
+            "forma.week_config.resolve_class_patterns",
+            return_value=mock_resolved,
+        ):
+            main(["--no-config", "scan", "--class", "A", "--provider", "anthropic"])
+
+        call_kwargs = mock_scan.call_args.kwargs
+        assert call_kwargs.get("llm_provider") == "anthropic"
+
+    def test_main_scan_llm_passes_context(self):
+        """main() passes context dict to run_scan_pipeline."""
+        with patch(
+            "forma.cli_ocr.run_scan_pipeline",
+            return_value=[],
+        ) as mock_scan:
+            main([
+                "--no-config", "scan", "--provider", "gemini",
+                "--subject", "생물학",
+                "--question", "세포막을 설명하시오",
+                "--answer-keywords", "인지질,이중층",
+            ])
+
+        call_kwargs = mock_scan.call_args.kwargs
+        ctx = call_kwargs.get("llm_context")
+        assert ctx is not None
+        assert ctx["subject"] == "생물학"
+        assert ctx["question"] == "세포막을 설명하시오"
+        assert ctx["answer_keywords"] == "인지질,이중층"
