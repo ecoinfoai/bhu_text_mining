@@ -299,6 +299,9 @@ def extract_text_via_llm(
 
     llm = create_provider(provider=provider, api_key=api_key, model=model)
     prompt = build_recognition_prompt(context=context)
+    # 한국어 손글씨 답안은 토크나이저에 따라 토큰 효율이 낮을 수 있으므로
+    # 기본 1024보다 넉넉하게 설정
+    max_tokens = 2048
     use_logprobs = provider.lower() == "gemini"
 
     results: dict[str, LLMVisionResponse] = {}
@@ -322,6 +325,7 @@ def extract_text_via_llm(
                 full_resp = llm.generate_with_image_full(
                     prompt=prompt,
                     image_path=image_path,
+                    max_tokens=max_tokens,
                     response_logprobs=use_logprobs,
                 )
             except Exception as logprob_exc:
@@ -334,6 +338,7 @@ def extract_text_via_llm(
                     full_resp = llm.generate_with_image_full(
                         prompt=prompt,
                         image_path=image_path,
+                        max_tokens=max_tokens,
                         response_logprobs=False,
                     )
                 else:
@@ -351,6 +356,7 @@ def extract_text_via_llm(
                 full_resp = llm.generate_with_image_full(
                     prompt=prompt,
                     image_path=image_path,
+                    max_tokens=max_tokens,
                     response_logprobs=use_logprobs,
                     temperature=0.1,
                 )
