@@ -486,7 +486,7 @@ class TestCliDeprecationPath:
             dep_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
             expected = (
                 "--smtp-config는 향후 버전에서 제거됩니다. "
-                "forma.json의 smtp 섹션으로 마이그레이션하세요."
+                "config.json의 smtp 섹션으로 마이그레이션하세요."
             )
             assert str(dep_warnings[0].message) == expected
 
@@ -649,7 +649,7 @@ class TestMissingSmtpBothSources:
         captured = capsys.readouterr()
         assert "SMTP 설정을 찾을 수 없습니다" in captured.err
         assert "--smtp-config" in captured.err
-        assert "forma.json" in captured.err
+        assert "config.json" in captured.err
 
     def test_forma_json_no_smtp_section_exit_2(self, tmp_path, monkeypatch):
         """forma.json without 'smtp' section -> exit 2."""
@@ -962,7 +962,7 @@ class TestConfigResolutionOrder:
 
         monkeypatch.setattr("forma.config.AGENIX_CONFIG_PATH", str(tmp_path / "nope1"))
         monkeypatch.setattr("forma.config.DEFAULT_CONFIG_PATH", str(tmp_path / "nope2"))
-        monkeypatch.setattr("forma.config.LEGACY_CONFIG_PATHS", [str(tmp_path / "nope3")])
+        monkeypatch.setattr("forma.config.DEPRECATED_CONFIG_PATH", str(tmp_path / "nope3"))
 
         with pytest.raises(FileNotFoundError):
             load_config()
@@ -976,7 +976,6 @@ class TestConfigResolutionOrder:
 
         monkeypatch.setattr("forma.config.AGENIX_CONFIG_PATH", str(tmp_path / "no_agenix"))
         monkeypatch.setattr("forma.config.DEFAULT_CONFIG_PATH", str(default_path))
-        monkeypatch.setattr("forma.config.LEGACY_CONFIG_PATHS", [])
 
         result = load_config()
         assert result == {"from": "default"}
@@ -993,21 +992,6 @@ class TestConfigResolutionOrder:
 
         monkeypatch.setattr("forma.config.AGENIX_CONFIG_PATH", str(agenix_path))
         monkeypatch.setattr("forma.config.DEFAULT_CONFIG_PATH", str(default_path))
-        monkeypatch.setattr("forma.config.LEGACY_CONFIG_PATHS", [])
 
         result = load_config()
         assert result == {"from": "agenix"}
-
-    def test_legacy_path_used_as_fallback(self, tmp_path, monkeypatch):
-        """Legacy config path (#4) used when agenix and default don't exist."""
-        from forma.config import load_config
-
-        legacy_path = tmp_path / "legacy.json"
-        legacy_path.write_text(json.dumps({"from": "legacy"}), encoding="utf-8")
-
-        monkeypatch.setattr("forma.config.AGENIX_CONFIG_PATH", str(tmp_path / "nope1"))
-        monkeypatch.setattr("forma.config.DEFAULT_CONFIG_PATH", str(tmp_path / "nope2"))
-        monkeypatch.setattr("forma.config.LEGACY_CONFIG_PATHS", [str(legacy_path)])
-
-        result = load_config()
-        assert result == {"from": "legacy"}

@@ -1,7 +1,7 @@
 """Unified configuration management for formative-analysis.
 
-Searches ``~/.config/formative-analysis/forma.json`` first, then falls
-back to legacy paths.
+Searches ``~/.config/formative-analysis/config.json`` first, then falls
+back to the deprecated ``forma.json`` path.
 """
 
 from __future__ import annotations
@@ -9,19 +9,16 @@ from __future__ import annotations
 import json
 import logging
 import os
+import warnings
 
 logger = logging.getLogger(__name__)
 
-# Known top-level sections in forma.json
-_EXPECTED_SECTIONS = {"naver_ocr", "smtp", "llm", "secret_key", "api_url"}
+# Known top-level sections in config.json
+_EXPECTED_SECTIONS = {"naver_ocr", "smtp", "llm"}
 
 AGENIX_CONFIG_PATH = "/run/agenix/forma-config"
-DEFAULT_CONFIG_PATH = "~/.config/formative-analysis/forma.json"
-LEGACY_CONFIG_PATHS = [
-    "~/.config/forma/config.json",
-    "~/.config/bhu_text_mining/config.json",
-    "~/.config/naver_ocr/naver_ocr_config.json",
-]
+DEFAULT_CONFIG_PATH = "~/.config/formative-analysis/config.json"
+DEPRECATED_CONFIG_PATH = "~/.config/formative-analysis/forma.json"
 
 
 def load_config(config_path: str | None = None) -> dict:
@@ -30,10 +27,8 @@ def load_config(config_path: str | None = None) -> dict:
     Resolution order:
     1. Explicit ``config_path`` argument.
     2. ``/run/agenix/forma-config`` (NixOS agenix).
-    3. ``~/.config/formative-analysis/forma.json``
-    4. ``~/.config/forma/config.json`` (legacy).
-    5. ``~/.config/bhu_text_mining/config.json`` (legacy).
-    6. ``~/.config/naver_ocr/naver_ocr_config.json`` (legacy).
+    3. ``~/.config/formative-analysis/config.json``
+    4. ``~/.config/formative-analysis/forma.json`` (deprecated).
 
     Args:
         config_path: Explicit path to config file (optional).
@@ -50,7 +45,6 @@ def load_config(config_path: str | None = None) -> dict:
     else:
         candidates.append(AGENIX_CONFIG_PATH)
         candidates.append(DEFAULT_CONFIG_PATH)
-        candidates.extend(LEGACY_CONFIG_PATHS)
 
     for path in candidates:
         expanded = os.path.expanduser(path)
@@ -59,11 +53,33 @@ def load_config(config_path: str | None = None) -> dict:
                 data = json.load(f)
             if not isinstance(data, dict):
                 raise ValueError(
-                    f"forma.json must be a JSON object ({{...}}), got {type(data).__name__}"
+                    f"config.json must be a JSON object ({{...}}), got {type(data).__name__}"
                 )
             for key in data:
                 if key not in _EXPECTED_SECTIONS:
-                    logger.warning("Unknown key in forma.json: '%s'", key)
+                    logger.warning("Unknown key in config.json: '%s'", key)
+            return data
+
+    # Deprecated fallback: forma.json
+    if not config_path:
+        dep_expanded = os.path.expanduser(DEPRECATED_CONFIG_PATH)
+        if os.path.isfile(dep_expanded):
+            warnings.warn(
+                "forma.json은 향후 버전에서 제거됩니다. "
+                "config.json으로 이름을 변경하세요: "
+                f"{dep_expanded}",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            with open(dep_expanded, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError(
+                    f"config.json must be a JSON object ({{...}}), got {type(data).__name__}"
+                )
+            for key in data:
+                if key not in _EXPECTED_SECTIONS:
+                    logger.warning("Unknown key in config.json: '%s'", key)
             return data
 
     searched = [os.path.expanduser(p) for p in candidates]
@@ -75,8 +91,7 @@ def load_config(config_path: str | None = None) -> dict:
 def get_naver_ocr_config(config: dict) -> tuple[str, str]:
     """Extract Naver OCR credentials from config dict.
 
-    Supports both new nested format (``config["naver_ocr"]``) and
-    legacy flat format (``config["secret_key"]``).
+    Requires nested format (``config["naver_ocr"]``).
 
     Args:
         config: Parsed config dict.
@@ -92,7 +107,7 @@ def get_naver_ocr_config(config: dict) -> tuple[str, str]:
         if not isinstance(ocr, dict):
             raise KeyError("naver_ocr 섹션이 dict 형식이 아닙니다")
         return ocr["secret_key"], ocr["api_url"]
-    return config["secret_key"], config["api_url"]
+    raise KeyError("naver_ocr 섹션이 없습니다")
 
 
 JSON_FIELD_MAP = {
@@ -106,13 +121,13 @@ JSON_FIELD_MAP = {
 
 
 def get_smtp_config(config: dict):
-    """Extract SMTP settings from forma.json config dict.
+    """Extract SMTP settings from config.json config dict.
 
     Maps JSON-style field names (``server``, ``port``, etc.) to
     ``SmtpConfig`` fields via ``_build_smtp_config()``.
 
     Args:
-        config: Parsed forma.json config dict.
+        config: Parsed config.json config dict.
 
     Returns:
         ``SmtpConfig`` instance.
@@ -125,7 +140,7 @@ def get_smtp_config(config: dict):
 
     smtp_data = config.get("smtp")
     if not isinstance(smtp_data, dict):
-        raise KeyError("forma.json에 'smtp' 섹션이 없습니다")
+        raise KeyError("config.json에 'smtp' 섹션이 없습니다")
 
     return _build_smtp_config(smtp_data, field_map=JSON_FIELD_MAP)
 
@@ -137,7 +152,7 @@ def get_smtp_password(config: dict) -> str | None:
     Does not raise if the ``smtp`` section is missing.
 
     Args:
-        config: Parsed forma.json config dict.
+        config: Parsed config.json config dict.
 
     Returns:
         SMTP password string, or ``None`` if not set.

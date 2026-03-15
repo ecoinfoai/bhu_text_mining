@@ -1,4 +1,11 @@
-"""Naver CLOVA OCR API client for scanned answer sheet text extraction."""
+"""Naver CLOVA OCR API client for scanned answer sheet text extraction.
+
+.. deprecated:: 0.13.0
+    This module is deprecated in favor of LLM Vision OCR
+    (``forma.llm_ocr.extract_text_via_llm``).  It will be removed in a future
+    release.  New pipelines should use ``--provider gemini`` or
+    ``--provider anthropic`` instead of ``--config`` with a Naver config file.
+"""
 
 from __future__ import annotations
 
@@ -17,7 +24,7 @@ def load_naver_ocr_env(config_path: str = "") -> tuple[str, str]:
 
     If ``config_path`` is provided and exists, it is used directly
     (legacy behaviour).  Otherwise falls back to the unified config
-    system (``~/.config/formative-analysis/forma.json`` → legacy paths).
+    system (``~/.config/formative-analysis/config.json``).
 
     Args:
         config_path (str): Path to the configuration file (optional).

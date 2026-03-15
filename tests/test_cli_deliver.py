@@ -1636,7 +1636,7 @@ class TestCliDeliverSendDeprecation:
                 x for x in w if issubclass(x.category, DeprecationWarning)
             ]
             msg = str(deprecation_warnings[0].message)
-            assert "forma.json" in msg
+            assert "config.json" in msg
             assert "마이그레이션" in msg
 
     def test_no_deprecation_without_smtp_config_flag(self, tmp_path, monkeypatch):

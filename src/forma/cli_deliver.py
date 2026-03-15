@@ -89,7 +89,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     send_parser.add_argument(
         "--smtp-config", required=False, default=None, dest="smtp_config",
-        help="SMTP 설정 YAML 파일 경로 (미지정 시 forma.json smtp 섹션 사용)",
+        help="SMTP 설정 YAML 파일 경로 (미지정 시 config.json smtp 섹션 사용)",
     )
     send_parser.add_argument(
         "--dry-run", action="store_true", default=False, dest="dry_run",
@@ -191,7 +191,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
         print(f"Error: 템플릿 파일을 찾을 수 없습니다: {args.template}", file=sys.stderr)
         sys.exit(2)
 
-    # Resolve SMTP configuration: --smtp-config path or forma.json fallback
+    # Resolve SMTP configuration: --smtp-config path or config.json fallback
     smtp_config_obj = None
     smtp_config_path = getattr(args, "smtp_config", None) or ""
     _config_password: str | None = None
@@ -202,7 +202,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
 
         warnings.warn(
             "--smtp-config는 향후 버전에서 제거됩니다. "
-            "forma.json의 smtp 섹션으로 마이그레이션하세요.",
+            "config.json의 smtp 섹션으로 마이그레이션하세요.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -213,7 +213,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
             )
             sys.exit(2)
     else:
-        # Fallback to forma.json smtp section
+        # Fallback to config.json smtp section
         try:
             from forma.config import get_smtp_config, get_smtp_password, load_config
 
@@ -223,7 +223,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
         except (FileNotFoundError, KeyError, ValueError):
             print(
                 "Error: SMTP 설정을 찾을 수 없습니다. "
-                "--smtp-config 또는 forma.json smtp 섹션을 설정하세요.",
+                "--smtp-config 또는 config.json smtp 섹션을 설정하세요.",
                 file=sys.stderr,
             )
             sys.exit(2)
@@ -233,7 +233,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
         print("Error: --retry-failed와 --force는 함께 사용할 수 없습니다.", file=sys.stderr)
         sys.exit(1)
 
-    # Resolve password: stdin > forma.json smtp.password > env var (in send_emails)
+    # Resolve password: stdin > config.json smtp.password > env var (in send_emails)
     password: str | None = None
     if getattr(args, "password_from_stdin", False):
         password = sys.stdin.readline().rstrip("\n")
