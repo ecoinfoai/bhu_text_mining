@@ -61,6 +61,39 @@ class TestCompareParseArgs:
         args = _parse_args(["compare", "--image", "x.jpg"])
         assert args.model is None
 
+    def test_batch_mode_args(self):
+        """--image-dir activates batch mode."""
+        args = _parse_args([
+            "compare", "--image-dir", "/tmp/images",
+            "--output", "result.yaml",
+        ])
+        assert args.image_dir == "/tmp/images"
+        assert args.image is None
+        assert args.output == "result.yaml"
+
+    def test_image_and_image_dir_mutually_exclusive(self):
+        """--image and --image-dir cannot both be specified."""
+        with pytest.raises(SystemExit):
+            _parse_args([
+                "compare", "--image", "x.jpg", "--image-dir", "/tmp",
+            ])
+
+    def test_batch_default_prefix(self):
+        """Default prefix is 'q'."""
+        args = _parse_args([
+            "compare", "--image-dir", "/tmp/images",
+            "--output", "r.yaml",
+        ])
+        assert args.prefix == "q"
+
+    def test_batch_no_resume(self):
+        """--no-resume flag."""
+        args = _parse_args([
+            "compare", "--image-dir", "/tmp/images",
+            "--output", "r.yaml", "--no-resume",
+        ])
+        assert args.no_resume is True
+
 
 # ---------------------------------------------------------------------------
 # main_compare tests

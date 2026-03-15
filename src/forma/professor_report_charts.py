@@ -139,7 +139,7 @@ class ProfessorReportChartGenerator:
         ax.set_xlim(0, 1.0)
         ax.set_xlabel("인식률", fontproperties=self._font_prop, fontsize=9)
         ax.set_ylabel("답안 수", fontproperties=self._font_prop, fontsize=9)
-        ax.set_title("OCR 인식률 분포", fontproperties=self._font_prop, fontsize=11)
+        ax.set_title("텍스트 인식 신뢰도 분포", fontproperties=self._font_prop, fontsize=11)
         ax.legend(prop=self._font_prop, fontsize=8)
 
         fig.tight_layout()

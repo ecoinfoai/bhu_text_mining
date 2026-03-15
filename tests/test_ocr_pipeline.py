@@ -235,6 +235,206 @@ class TestRunScanPipeline:
 
 
 # ──────────────────────────────────────────────────
+# Group 3b: run_scan_pipeline with LLM Vision
+# ──────────────────────────────────────────────────
+
+
+class TestRunScanPipelineLLM:
+    """Tests for run_scan_pipeline with llm_provider (LLM Vision mode)."""
+
+    def test_llm_mode_output_fields(self, image_dir, tmp_path):
+        """LLM mode produces all required output fields."""
+        out = str(tmp_path / "results.yaml")
+        fake_img = str(tmp_path / "fake.jpg")
+        open(fake_img, "wb").close()
+
+        from forma.llm_ocr import LLMVisionResponse, TokenUsage, WordConfidence
+
+        mock_llm_result = {
+            fake_img: LLMVisionResponse(
+                text="세포막은 선택적 투과성을 가진다",
+                word_confidences=[
+                    WordConfidence(word="세포막은", confidence=0.92, token_count=3),
+                    WordConfidence(word="선택적", confidence=0.88, token_count=2),
+                    WordConfidence(word="투과성을", confidence=0.85, token_count=2),
+                    WordConfidence(word="가진다", confidence=0.95, token_count=1),
+                ],
+                confidence_mean=0.90,
+                confidence_min=0.85,
+                usage=TokenUsage(input_tokens=200, output_tokens=15),
+                finish_reason="STOP",
+                logprobs_raw=[{"token": "세포", "log_probability": -0.08}],
+                safety_ratings=None,
+            ),
+        }
+
+        with (
+            patch("forma.ocr_pipeline.crop_and_save_images"),
+            patch(
+                "forma.ocr_pipeline.prepare_image_files_list",
+                return_value=[fake_img],
+            ),
+            patch(
+                "forma.ocr_pipeline.decode_qr_from_image",
+                return_value="S001_1",
+            ),
+            patch(
+                "forma.ocr_pipeline.parse_qr_content",
+                return_value={"student_id": "S001", "q_num": 1},
+            ),
+            patch(
+                "forma.llm_ocr.extract_text_via_llm",
+                return_value=mock_llm_result,
+            ),
+        ):
+            results = run_scan_pipeline(
+                image_dir=image_dir,
+                output_path=out,
+                num_questions=1,
+                crop_coords=[(0, 0, 5, 5)],
+                llm_provider="gemini",
+            )
+
+        assert len(results) == 1
+        r = results[0]
+        # Existing fields
+        assert r["student_id"] == "S001"
+        assert r["q_num"] == 1
+        assert r["text"] == "세포막은 선택적 투과성을 가진다"
+        assert r["ocr_confidence_mean"] == 0.90
+        assert r["ocr_confidence_min"] == 0.85
+        assert r["ocr_field_count"] == 4
+        # New LLM fields
+        assert r["recognition_engine"] == "llm"
+        assert r["recognition_model"] is not None
+        assert isinstance(r["llm_word_confidences"], list)
+        assert isinstance(r["llm_usage"], dict)
+        assert r["llm_usage"]["input_tokens"] == 200
+        assert r["llm_finish_reason"] == "STOP"
+
+    def test_llm_mode_no_naver_config_required(self, image_dir, tmp_path):
+        """LLM mode does not require naver_ocr_config."""
+        out = str(tmp_path / "results.yaml")
+
+        with (
+            patch("forma.ocr_pipeline.crop_and_save_images"),
+            patch(
+                "forma.ocr_pipeline.prepare_image_files_list",
+                return_value=[],
+            ),
+        ):
+            # Should NOT raise — naver_ocr_config not needed in LLM mode
+            results = run_scan_pipeline(
+                image_dir=image_dir,
+                output_path=out,
+                num_questions=1,
+                crop_coords=[(0, 0, 5, 5)],
+                llm_provider="gemini",
+            )
+
+        assert isinstance(results, list)
+
+
+# ──────────────────────────────────────────────────
+# Group 3c: review_needed.yaml generation
+# ──────────────────────────────────────────────────
+
+
+class TestReviewNeeded:
+    """Tests for review_needed.yaml generation in LLM scan pipeline."""
+
+    def test_low_confidence_creates_review_needed(self, image_dir, tmp_path):
+        """Images below review_threshold produce review_needed.yaml."""
+        out = str(tmp_path / "results.yaml")
+        review_path = str(tmp_path / "review_needed.yaml")
+        fake_img = str(tmp_path / "fake.jpg")
+        open(fake_img, "wb").close()
+
+        from forma.llm_ocr import LLMVisionResponse, TokenUsage, WordConfidence
+
+        mock_llm_result = {
+            fake_img: LLMVisionResponse(
+                text="blurry",
+                word_confidences=[WordConfidence("blurry", 0.5, 1)],
+                confidence_mean=0.5,
+                confidence_min=0.5,
+                usage=TokenUsage(input_tokens=50, output_tokens=5),
+                finish_reason="STOP",
+                logprobs_raw=None,
+                safety_ratings=None,
+            ),
+        }
+
+        with (
+            patch("forma.ocr_pipeline.crop_and_save_images"),
+            patch("forma.ocr_pipeline.prepare_image_files_list", return_value=[fake_img]),
+            patch("forma.ocr_pipeline.decode_qr_from_image", return_value="S001_1"),
+            patch("forma.ocr_pipeline.parse_qr_content", return_value={"student_id": "S001", "q_num": 1}),
+            patch("forma.llm_ocr.extract_text_via_llm", return_value=mock_llm_result),
+        ):
+            results = run_scan_pipeline(
+                image_dir=image_dir,
+                output_path=out,
+                num_questions=1,
+                crop_coords=[(0, 0, 5, 5)],
+                llm_provider="gemini",
+                ocr_review_threshold=0.75,
+            )
+
+        # review_needed.yaml should exist
+        import os
+        review_path = os.path.join(os.path.dirname(out), "review_needed.yaml")
+        assert os.path.exists(review_path)
+        with open(review_path, encoding="utf-8") as f:
+            review_data = yaml.safe_load(f)
+        assert isinstance(review_data, list)
+        assert len(review_data) == 1
+        assert review_data[0]["student_id"] == "S001"
+        assert "confidence" in review_data[0]["reason"].lower() or "0.75" in review_data[0]["reason"]
+
+    def test_high_confidence_no_review_needed(self, image_dir, tmp_path):
+        """All images above threshold → no review_needed.yaml."""
+        out = str(tmp_path / "results.yaml")
+        fake_img = str(tmp_path / "fake.jpg")
+        open(fake_img, "wb").close()
+
+        from forma.llm_ocr import LLMVisionResponse, TokenUsage, WordConfidence
+
+        mock_llm_result = {
+            fake_img: LLMVisionResponse(
+                text="clear text",
+                word_confidences=[WordConfidence("clear", 0.95, 1)],
+                confidence_mean=0.95,
+                confidence_min=0.95,
+                usage=TokenUsage(input_tokens=50, output_tokens=5),
+                finish_reason="STOP",
+                logprobs_raw=None,
+                safety_ratings=None,
+            ),
+        }
+
+        with (
+            patch("forma.ocr_pipeline.crop_and_save_images"),
+            patch("forma.ocr_pipeline.prepare_image_files_list", return_value=[fake_img]),
+            patch("forma.ocr_pipeline.decode_qr_from_image", return_value="S001_1"),
+            patch("forma.ocr_pipeline.parse_qr_content", return_value={"student_id": "S001", "q_num": 1}),
+            patch("forma.llm_ocr.extract_text_via_llm", return_value=mock_llm_result),
+        ):
+            results = run_scan_pipeline(
+                image_dir=image_dir,
+                output_path=out,
+                num_questions=1,
+                crop_coords=[(0, 0, 5, 5)],
+                llm_provider="gemini",
+                ocr_review_threshold=0.75,
+            )
+
+        import os
+        review_path = os.path.join(os.path.dirname(out), "review_needed.yaml")
+        assert not os.path.exists(review_path)
+
+
+# ──────────────────────────────────────────────────
 # Group 4: run_join_pipeline
 # ──────────────────────────────────────────────────
 

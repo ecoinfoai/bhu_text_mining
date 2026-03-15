@@ -130,6 +130,7 @@ def compare_single_image(
     llm_text = llm_provider.generate_with_image(
         prompt=prompt,
         image_path=image_path,
+        max_tokens=4096,
     )
     llm_text = llm_text.strip()
 
@@ -248,3 +249,201 @@ def format_comparison_report(result: ComparisonResult) -> str:
         )
 
     return "\n".join(lines)
+
+
+def run_batch_comparison(
+    image_dir: str,
+    output_path: str,
+    naver_config: str = "",
+    llm_provider_name: str = "gemini",
+    llm_model: str | None = None,
+    llm_api_key: str | None = None,
+    context: dict[str, str] | None = None,
+    prefix: str = "q",
+    resume: bool = True,
+) -> list[dict]:
+    """Batch-compare Naver OCR vs LLM Vision for all images in a directory.
+
+    Processes images one at a time (rate-limit safe).  Saves results
+    incrementally to ``output_path`` after each image, so interrupted
+    runs can be resumed.
+
+    Args:
+        image_dir: Directory containing cropped answer images.
+        output_path: YAML file path for comparison results.
+        naver_config: Naver OCR config path.
+        llm_provider_name: "gemini" or "anthropic".
+        llm_model: LLM model override.
+        llm_api_key: LLM API key.
+        context: Optional exam context for prompt building.
+        prefix: Image filename prefix to filter (default "q").
+        resume: If True and output_path exists, skip already-processed images.
+
+    Returns:
+        List of comparison result dicts.
+    """
+    import yaml
+
+    from forma.llm_provider import create_provider
+    from forma.naver_ocr import (
+        extract_raw_ocr_data,
+        load_naver_ocr_env,
+        send_images_receive_ocr,
+    )
+
+    # Collect target images
+    image_files = sorted(
+        os.path.join(image_dir, f)
+        for f in os.listdir(image_dir)
+        if f.startswith(prefix) and f.lower().endswith((".jpg", ".jpeg", ".png"))
+    )
+    if not image_files:
+        raise FileNotFoundError(
+            f"No images with prefix {prefix!r} in {image_dir}"
+        )
+
+    # Load existing results for resume
+    done: dict[str, dict] = {}
+    if resume and os.path.isfile(output_path):
+        with open(output_path, encoding="utf-8") as f:
+            existing = yaml.safe_load(f) or []
+        for entry in existing:
+            done[entry["image_name"]] = entry
+        logger.info("기존 결과 %d건 로드 (재개 모드)", len(done))
+
+    # Initialize providers
+    secret_key, api_url = load_naver_ocr_env(naver_config)
+
+    # Load LLM API key from config.json if not provided
+    resolved_llm_key = llm_api_key
+    if resolved_llm_key is None:
+        try:
+            from forma.config import load_config
+            cfg = load_config()
+            llm_cfg = cfg.get("llm", {})
+            resolved_llm_key = llm_cfg.get("api_key")
+            if not llm_provider_name or llm_provider_name == "gemini":
+                llm_provider_name = llm_cfg.get("provider", llm_provider_name)
+        except Exception:
+            pass
+
+    provider = create_provider(
+        provider=llm_provider_name, api_key=resolved_llm_key, model=llm_model,
+    )
+
+    total = len(image_files)
+    results = list(done.values())
+
+    for idx, img_path in enumerate(image_files, 1):
+        image_name = os.path.basename(img_path)
+
+        if image_name in done:
+            print(f"  [{idx:3d}/{total}] {image_name} — 건너뜀 (이미 처리)")
+            continue
+
+        print(f"  [{idx:3d}/{total}] {image_name} — 처리 중...", end="", flush=True)
+
+        # 1) Naver OCR
+        try:
+            ocr_responses = send_images_receive_ocr(
+                api_url, secret_key, [img_path],
+            )
+            raw_map = extract_raw_ocr_data(ocr_responses)
+            naver_raw = raw_map.get(image_name, {"fields": []})
+        except Exception as exc:
+            logger.warning("Naver OCR 실패 %s: %s", image_name, exc)
+            naver_raw = {"fields": []}
+
+        # 2) LLM Vision
+        try:
+            llm_result = compare_single_image(
+                image_path=img_path,
+                naver_raw=naver_raw,
+                llm_provider=provider,
+                context=context,
+            )
+        except Exception as exc:
+            logger.warning("LLM 비교 실패 %s: %s", image_name, exc)
+            print(f" 실패: {exc}")
+            continue
+
+        # 3) Build result entry
+        entry = {
+            "image_name": image_name,
+            "image_path": img_path,
+            "naver_text": llm_result.ocr_text,
+            "llm_text": llm_result.llm_text,
+            "summary": llm_result.summary,
+            "field_comparisons": [
+                {
+                    "field_index": fc.field_index,
+                    "ocr_text": fc.ocr_text,
+                    "llm_text": fc.llm_text,
+                    "ocr_confidence": fc.ocr_confidence,
+                    "match": fc.match,
+                }
+                for fc in llm_result.field_comparisons
+            ],
+            "naver_raw_fields": naver_raw.get("fields", []),
+        }
+        results.append(entry)
+        done[image_name] = entry
+
+        # 4) Incremental save
+        _save_batch_results(results, output_path)
+
+        match_rate = (
+            llm_result.summary["match_count"] / llm_result.summary["total"]
+            if llm_result.summary["total"] > 0
+            else 0
+        )
+        print(
+            f" 완료 (일치 {llm_result.summary['match_count']}"
+            f"/{llm_result.summary['total']}"
+            f" = {match_rate:.0%})"
+        )
+
+    # Final summary
+    _print_batch_summary(results)
+    return results
+
+
+def _save_batch_results(results: list[dict], output_path: str) -> None:
+    """Save batch results to YAML (atomic overwrite)."""
+    import yaml
+
+    out_dir = os.path.dirname(os.path.abspath(output_path))
+    os.makedirs(out_dir, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        yaml.dump(
+            results, f,
+            allow_unicode=True,
+            default_flow_style=False,
+            sort_keys=False,
+        )
+
+
+def _print_batch_summary(results: list[dict]) -> None:
+    """Print aggregate statistics for batch comparison."""
+    if not results:
+        print("\n결과 없음")
+        return
+
+    total_fields = 0
+    total_match = 0
+    total_mismatch = 0
+
+    for r in results:
+        s = r.get("summary", {})
+        total_fields += s.get("total", 0)
+        total_match += s.get("match_count", 0)
+        total_mismatch += s.get("mismatch_count", 0)
+
+    overall_rate = total_match / total_fields if total_fields > 0 else 0
+
+    print(f"\n{'=' * 50}")
+    print(f"배치 비교 완료: {len(results)}개 이미지")
+    print(f"전체 필드: {total_fields}개")
+    print(f"일치: {total_match}개 ({overall_rate:.1%})")
+    print(f"불일치: {total_mismatch}개")
+    print(f"{'=' * 50}")

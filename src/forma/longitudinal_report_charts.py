@@ -427,8 +427,8 @@ def build_ocr_confidence_trend_chart(
     ax.axhline(y=threshold, color="red", linestyle="--", linewidth=0.8, alpha=0.5)
     ax.set_ylim(0, 1.05)
     ax.set_xlabel("주차", fontproperties=font_prop)
-    ax.set_ylabel("OCR 인식률", fontproperties=font_prop)
-    ax.set_title("OCR 인식률 추이", fontproperties=font_prop, fontsize=12)
+    ax.set_ylabel("텍스트 인식 신뢰도", fontproperties=font_prop)
+    ax.set_title("텍스트 인식 신뢰도 추이", fontproperties=font_prop, fontsize=12)
 
     fig.tight_layout()
     return _save_fig(fig, dpi=dpi)

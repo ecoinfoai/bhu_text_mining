@@ -18,6 +18,7 @@ from typing import Any, Optional
 import yaml
 
 from forma.naver_ocr import (
+    extract_raw_ocr_data,
     extract_text_with_confidence,
     load_naver_ocr_env,
     prepare_image_files_list,
@@ -31,36 +32,46 @@ logger = logging.getLogger(__name__)
 
 def run_scan_pipeline(
     image_dir: str,
-    naver_ocr_config: str,
-    output_path: str,
+    naver_ocr_config: str = "",
+    output_path: str = "",
     num_questions: int = 2,
     crop_coords: Optional[list[tuple[int, int, int, int]]] = None,
     ocr_review_threshold: float = 0.75,
+    llm_provider: Optional[str] = None,
+    llm_model: Optional[str] = None,
+    llm_api_key: Optional[str] = None,
+    llm_context: Optional[dict[str, str]] = None,
+    llm_rate_limit_delay: float = 4.0,
 ) -> list[dict[str, Any]]:
     """Run the full scan pipeline on a directory of scanned sheets.
 
+    Supports two recognition modes:
+    - **LLM Vision mode** (``llm_provider`` set): uses LLM API for recognition
+    - **Naver OCR mode** (legacy): uses Naver CLOVA OCR API
+
     Args:
         image_dir: directory containing raw scanned images.
-        naver_ocr_config: path to Naver OCR config JSON
-            (``{"secret_key": ..., "api_url": ...}``).
+        naver_ocr_config: path to Naver OCR config JSON (legacy mode).
         output_path: YAML file path for results.
         num_questions: number of answer areas per sheet.
-        crop_coords: pre-defined crop coordinates list
-            (one tuple per question).  Pass ``None`` for
-            interactive click-to-crop mode.
-        ocr_review_threshold: confidence threshold for low-confidence
-            summary message (default 0.75).
+        crop_coords: pre-defined crop coordinates list.
+        ocr_review_threshold: confidence threshold for review (default 0.75).
+        llm_provider: LLM provider name (``"gemini"`` or ``"anthropic"``).
+            If set, uses LLM Vision instead of Naver OCR.
+        llm_model: LLM model ID override.
+        llm_api_key: LLM API key (falls back to env var).
+        llm_context: Exam context for LLM prompt enrichment.
+        llm_rate_limit_delay: Seconds between LLM API calls.
 
     Returns:
-        List of result dicts, each with keys:
-        ``student_id``, ``q_num``, ``text``, ``source_file``,
-        ``ocr_confidence_mean``, ``ocr_confidence_min``,
-        ``ocr_field_count``.
+        List of result dicts.
 
     Raises:
         FileNotFoundError: if no images are found in *image_dir*.
     """
-    secret_key, api_url = load_naver_ocr_env(naver_ocr_config)
+    use_llm = llm_provider is not None
+
+    secret_key, api_url = ("", "") if use_llm else load_naver_ocr_env(naver_ocr_config)
 
     raw_images = _list_raw_images(image_dir)
     if not raw_images:
@@ -100,6 +111,31 @@ def run_scan_pipeline(
             all_cropped.append((q_idx, img_path))
 
     total_files = len(all_cropped)
+
+    # ── LLM batch recognition (before per-image loop) ──
+    llm_results: dict[str, Any] = {}
+    llm_model_name: str = ""
+    if use_llm and total_files > 0:
+        from forma.llm_ocr import extract_text_via_llm
+
+        image_paths_only = [p for _, p in all_cropped]
+        llm_results = extract_text_via_llm(
+            image_paths=image_paths_only,
+            provider=llm_provider,  # type: ignore[arg-type]
+            model=llm_model,
+            api_key=llm_api_key,
+            context=llm_context,
+            rate_limit_delay=llm_rate_limit_delay,
+            review_threshold=ocr_review_threshold,
+        )
+        # Resolve model name for output
+        from forma.llm_provider import create_provider as _create_prov
+        try:
+            _tmp = _create_prov(provider=llm_provider, api_key=llm_api_key, model=llm_model)  # type: ignore[arg-type]
+            llm_model_name = _tmp.model_name
+        except Exception:
+            llm_model_name = llm_model or llm_provider or ""
+
     results: list[dict[str, Any]] = []
     qr_decoded = 0
     qr_failed = 0
@@ -133,26 +169,65 @@ def run_scan_pipeline(
             q_num = q_idx
             qr_failed += 1
 
-        # Naver OCR
+        # Text recognition (LLM or Naver OCR)
         text = ""
         confidence_mean = None
         confidence_min = None
         field_count = None
-        try:
-            ocr_responses = send_images_receive_ocr(
-                api_url, secret_key, [img_path],
-            )
-            conf_map = extract_text_with_confidence(ocr_responses)
-            if conf_map:
-                entry = next(iter(conf_map.values()))
-                text = entry["text"]
-                confidence_mean = entry["confidence_mean"]
-                confidence_min = entry["confidence_min"]
-                field_count = entry["field_count"]
-        except Exception as exc:
-            logger.warning("OCR failed for %s: %s", img_path, exc)
+        raw_fields: list[dict] | None = None
+        llm_extra: dict[str, Any] = {}
 
-        results.append({
+        if use_llm:
+            # LLM Vision mode — look up pre-computed result
+            llm_resp = llm_results.get(img_path)
+            if llm_resp is not None:
+                text = llm_resp.text
+                confidence_mean = llm_resp.confidence_mean
+                confidence_min = llm_resp.confidence_min
+                field_count = (
+                    len(llm_resp.word_confidences)
+                    if llm_resp.word_confidences else None
+                )
+                llm_extra["recognition_engine"] = "llm"
+                llm_extra["recognition_model"] = llm_model_name
+                if llm_resp.word_confidences:
+                    llm_extra["llm_word_confidences"] = [
+                        {
+                            "word": wc.word,
+                            "confidence": wc.confidence,
+                            "token_count": wc.token_count,
+                        }
+                        for wc in llm_resp.word_confidences
+                    ]
+                llm_extra["llm_usage"] = {
+                    "input_tokens": llm_resp.usage.input_tokens,
+                    "output_tokens": llm_resp.usage.output_tokens,
+                }
+                llm_extra["llm_finish_reason"] = llm_resp.finish_reason
+                if llm_resp.logprobs_raw:
+                    llm_extra["llm_logprobs"] = llm_resp.logprobs_raw
+        else:
+            # Naver OCR mode (legacy)
+            try:
+                ocr_responses = send_images_receive_ocr(
+                    api_url, secret_key, [img_path],
+                )
+                conf_map = extract_text_with_confidence(ocr_responses)
+                if conf_map:
+                    entry = next(iter(conf_map.values()))
+                    text = entry["text"]
+                    confidence_mean = entry["confidence_mean"]
+                    confidence_min = entry["confidence_min"]
+                    field_count = entry["field_count"]
+
+                raw_map = extract_raw_ocr_data(ocr_responses)
+                if raw_map:
+                    raw_entry = next(iter(raw_map.values()))
+                    raw_fields = raw_entry.get("fields")
+            except Exception as exc:
+                logger.warning("OCR failed for %s: %s", img_path, exc)
+
+        result_entry: dict[str, Any] = {
             "student_id": student_id,
             "q_num": q_num,
             "text": text,
@@ -160,7 +235,11 @@ def run_scan_pipeline(
             "ocr_confidence_mean": confidence_mean,
             "ocr_confidence_min": confidence_min,
             "ocr_field_count": field_count,
-        })
+        }
+        if raw_fields is not None:
+            result_entry["ocr_raw_fields"] = raw_fields
+        result_entry.update(llm_extra)
+        results.append(result_entry)
 
     total = qr_decoded + qr_failed
     print(
@@ -180,6 +259,29 @@ def run_scan_pipeline(
             f"(confidence < {ocr_review_threshold}). "
             f"`forma ocr join`으로 상세 확인하세요."
         )
+
+    # Generate review_needed.yaml for LLM mode
+    if use_llm and low_conf:
+        review_entries = []
+        for r in low_conf:
+            reason_parts = []
+            if r.get("ocr_confidence_mean") is not None:
+                reason_parts.append(
+                    f"confidence {r['ocr_confidence_mean']:.2f} < {ocr_review_threshold}"
+                )
+            review_entries.append({
+                "image_name": r.get("source_file", ""),
+                "student_id": r.get("student_id", ""),
+                "q_num": r.get("q_num", 0),
+                "text": r.get("text", ""),
+                "ocr_confidence_mean": r.get("ocr_confidence_mean"),
+                "reason": "; ".join(reason_parts) if reason_parts else "low_confidence",
+            })
+        review_path = os.path.join(
+            os.path.dirname(os.path.abspath(output_path)),
+            "review_needed.yaml",
+        )
+        _save_yaml(review_entries, review_path)
 
     _save_yaml(results, output_path)
     return results

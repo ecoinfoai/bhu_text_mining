@@ -1835,7 +1835,7 @@ class ProfessorPDFReportGenerator:
         story: list = []
         story.append(PageBreak())
         story.append(Paragraph(
-            _esc("OCR 인식률 현황"),
+            _esc("텍스트 인식 신뢰도 현황"),
             self._styles["ProfSection"],
         ))
 

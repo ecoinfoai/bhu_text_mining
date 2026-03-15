@@ -463,7 +463,7 @@ class LongitudinalPDFReportGenerator:
         """
         story = []
         story.append(PageBreak())
-        story.append(Paragraph("OCR 인식률 추이", self._styles["LongSection"]))
+        story.append(Paragraph("텍스트 인식 신뢰도 추이", self._styles["LongSection"]))
         story.append(Spacer(1, 3 * mm))
 
         from forma.longitudinal_report_charts import build_ocr_confidence_trend_chart
@@ -477,7 +477,7 @@ class LongitudinalPDFReportGenerator:
                 chart_buf, width=160 * mm, height=100 * mm,
             ))
         except Exception as exc:
-            logger.warning("OCR 인식률 추이 차트 생성 실패: %s", exc)
+            logger.warning("텍스트 인식 신뢰도 추이 차트 생성 실패: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
