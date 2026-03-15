@@ -203,12 +203,14 @@ def validate_llm_recognition(
         warnings.append("빈 텍스트 — 인식 실패")
         valid = False
 
-    if finish_reason != "STOP":
+    # Gemini returns "FinishReason.STOP", Anthropic returns "end_turn"
+    stop_reasons = {"STOP", "FinishReason.STOP", "end_turn"}
+    if finish_reason not in stop_reasons:
         warnings.append(f"finish_reason={finish_reason} — 응답이 완료되지 않음")
         valid = False
 
-    if text and len(text) > 200:
-        warnings.append(f"텍스트 길이 {len(text)}자 > 200자 — 환각 가능성")
+    if text and len(text) > 500:
+        warnings.append(f"텍스트 길이 {len(text)}자 > 500자 — 환각 가능성")
 
     if confidence_mean is not None and confidence_mean < 0.3:
         warnings.append(f"평균 confidence {confidence_mean:.2f} < 0.3 — 수동 검토 필요")
@@ -299,11 +301,27 @@ def extract_text_via_llm(
             time.sleep(rate_limit_delay)
 
         try:
-            full_resp = llm.generate_with_image_full(
-                prompt=prompt,
-                image_path=image_path,
-                response_logprobs=use_logprobs,
-            )
+            # Try with logprobs first; fall back without if unsupported
+            try:
+                full_resp = llm.generate_with_image_full(
+                    prompt=prompt,
+                    image_path=image_path,
+                    response_logprobs=use_logprobs,
+                )
+            except Exception as logprob_exc:
+                if use_logprobs and "logprob" in str(logprob_exc).lower():
+                    logger.info(
+                        "logprobs not supported by model, retrying without: %s",
+                        logprob_exc,
+                    )
+                    use_logprobs = False  # disable for all subsequent images
+                    full_resp = llm.generate_with_image_full(
+                        prompt=prompt,
+                        image_path=image_path,
+                        response_logprobs=False,
+                    )
+                else:
+                    raise
 
             # Validate and retry if invalid
             validation = validate_llm_recognition(
