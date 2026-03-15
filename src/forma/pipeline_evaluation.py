@@ -743,23 +743,21 @@ def run_evaluation_pipeline(
     config_data = load_evaluation_yaml(config_path)
 
     if questions_used:
-        # Filter exam config to selected questions
+        # Filter exam config to selected questions and renumber sn → 1, 2, ...
         config_data = filter_exam_config(config_data, questions_used)
         print(
             f"[pipeline] questions_used={questions_used} → "
             f"sn {[q['sn'] for q in config_data['questions']]}"
         )
 
-        # Load OCR join output and remap q_num → sn
+        # Load OCR join output — q_num already matches renumbered sn (1, 2, ...)
         import yaml
 
         with open(responses_path, "r", encoding="utf-8") as f:
             join_data = yaml.safe_load(f)
         raw_responses = join_data if isinstance(join_data, list) else None
         if isinstance(join_data, list):
-            responses_data = convert_join_to_responses(
-                join_data, questions_used
-            )
+            responses_data = convert_join_to_responses(join_data)
         else:
             responses_data = join_data
         student_responses = extract_student_responses(responses_data)

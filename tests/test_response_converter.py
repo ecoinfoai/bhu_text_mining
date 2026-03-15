@@ -160,7 +160,7 @@ class TestFilterExamConfig:
     """Tests for filter_exam_config()."""
 
     def test_filters_to_selected_questions(self):
-        """Only questions with matching sn are kept."""
+        """Selected questions are kept and renumbered to 1, 2, ..."""
         config = {
             "metadata": {"chapter": 1},
             "questions": [
@@ -173,8 +173,11 @@ class TestFilterExamConfig:
         }
         result = filter_exam_config(config, [1, 3])
         assert len(result["questions"]) == 2
+        # Renumbered to 1, 2 (student-facing)
         assert result["questions"][0]["sn"] == 1
-        assert result["questions"][1]["sn"] == 3
+        assert result["questions"][0]["question"] == "Q1"
+        assert result["questions"][1]["sn"] == 2
+        assert result["questions"][1]["question"] == "Q3"
         assert result["metadata"] == {"chapter": 1}
 
     def test_missing_sn_raises(self):

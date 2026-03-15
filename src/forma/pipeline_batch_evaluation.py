@@ -98,7 +98,7 @@ def run_batch_evaluation(
         # Convert join → responses format
         responses_path = os.path.join(class_dir, "responses.yaml")
         print(f"[batch] Converting: {join_path} → {responses_path}")
-        convert_join_file(join_path, responses_path, questions_used)
+        convert_join_file(join_path, responses_path)
 
         # Per-class longitudinal store
         cls_longitudinal = None

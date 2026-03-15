@@ -87,12 +87,18 @@ def filter_exam_config(
 ) -> dict:
     """Filter exam config to only include selected questions.
 
+    Filters the questions list to only those with ``sn`` in
+    *questions_used*, then **renumbers** sn to 1, 2, 3, ... so that
+    downstream pipeline and student reports use simple sequential
+    numbering (students never see the original question bank numbering).
+
     Args:
         config_data: Full exam config dict.
         questions_used: List of ``sn`` numbers to keep.
 
     Returns:
-        Shallow copy of *config_data* with ``questions`` filtered.
+        Shallow copy of *config_data* with ``questions`` filtered and
+        renumbered.
 
     Raises:
         KeyError: If any sn in *questions_used* is not found.
@@ -106,8 +112,13 @@ def filter_exam_config(
         )
 
     filtered = dict(config_data)
-    filtered["questions"] = [
-        q for q in config_data["questions"]
-        if q["sn"] in set(questions_used)
-    ]
+    renumbered = []
+    for new_sn, orig_q in enumerate(
+        [q for q in config_data["questions"] if q["sn"] in set(questions_used)],
+        1,
+    ):
+        q_copy = dict(orig_q)
+        q_copy["sn"] = new_sn
+        renumbered.append(q_copy)
+    filtered["questions"] = renumbered
     return filtered
