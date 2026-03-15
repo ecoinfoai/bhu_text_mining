@@ -300,8 +300,9 @@ def main(argv: list[str] | None = None) -> None:
                 image_dir = str(week_yaml_path.parent)
                 output_path = str(week_yaml_path.parent / "scan_results.yaml")
 
-            # Resolve OCR model: CLI --model > forma.yaml ocr.ocr_model > provider default
+            # Resolve OCR model + API key from config
             ocr_model_from_config = None
+            api_key_from_config = None
             if not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
@@ -309,6 +310,13 @@ def main(argv: list[str] | None = None) -> None:
                     if proj_path:
                         proj = load_project_config(proj_path)
                         ocr_model_from_config = proj.get("ocr", {}).get("ocr_model")
+                except Exception:
+                    pass
+                try:
+                    from forma.config import get_llm_config, load_config
+                    app_config = load_config()
+                    llm_cfg = get_llm_config(app_config)
+                    api_key_from_config = llm_cfg.get("api_key")
                 except Exception:
                     pass
             resolved_model = (
@@ -338,6 +346,7 @@ def main(argv: list[str] | None = None) -> None:
                 ocr_review_threshold=ocr_review_threshold,
                 llm_provider=args.provider,
                 llm_model=resolved_model,
+                llm_api_key=api_key_from_config,
                 llm_context=llm_context,
             )
         elif getattr(args, "class_id", None):
@@ -374,9 +383,10 @@ def main(argv: list[str] | None = None) -> None:
             if not args.recrop and resolved.ocr_crop_coords:
                 crop_coords = [tuple(c) for c in resolved.ocr_crop_coords]
 
-            # Load OCR settings from forma.yaml
+            # Load OCR settings from forma.yaml + config.json
             naver_ocr_config = ""
             ocr_model_from_config = None
+            api_key_from_config = None
             if not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
@@ -388,6 +398,13 @@ def main(argv: list[str] | None = None) -> None:
                         ocr_model_from_config = ocr_section.get("ocr_model")
                 except Exception as exc:
                     logger.debug("프로젝트 설정 로드 실패: %s", exc)
+                try:
+                    from forma.config import get_llm_config, load_config
+                    app_config = load_config()
+                    llm_cfg = get_llm_config(app_config)
+                    api_key_from_config = llm_cfg.get("api_key")
+                except Exception:
+                    pass
 
             # Resolve OCR review threshold: CLI > week.yaml > default
             ocr_review_threshold = (
@@ -405,6 +422,8 @@ def main(argv: list[str] | None = None) -> None:
                     getattr(args, "model", None) if "model" in _explicit
                     else ocr_model_from_config
                 )
+                if api_key_from_config:
+                    llm_kwargs["llm_api_key"] = api_key_from_config
                 # Build context from CLI args
                 subject = getattr(args, "subject", None)
                 question = getattr(args, "question", None)
