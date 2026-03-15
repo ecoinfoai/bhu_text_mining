@@ -47,8 +47,7 @@ NEGATIVE_EXPRESSIONS: dict[str, str] = {
 
 EMPTY_RESPONSE_FEEDBACK: str = (
     "답변이 제출되지 않았습니다. "
-    "해당 주제에 대한 이해를 표현하기 위해 "
-    "핵심 개념과 그 관계를 중심으로 서술해 보시기 바랍니다."
+    "담당 교수님과 학습내용에 대해 꼭 상의하세요."
 )
 
 FALLBACK_TEMPLATES: dict[int, str] = {
