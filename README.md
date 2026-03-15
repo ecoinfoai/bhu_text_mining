@@ -119,9 +119,9 @@ forma deliver send \
 
 FormA uses two configuration files. See [docs/configuration.md](docs/configuration.md) for the full reference and [docs/data-formats.md](docs/data-formats.md) for all YAML schema definitions.
 
-### `forma.json` — Credentials
+### `config.json` — Credentials
 
-Located at `~/.config/formative-analysis/forma.json`. Stores API keys and service credentials:
+Located at `~/.config/formative-analysis/config.json`. Stores API keys and service credentials:
 
 ```json
 {
@@ -143,7 +143,7 @@ Located at `~/.config/formative-analysis/forma.json`. Stores API keys and servic
 }
 ```
 
-> **Note:** SMTP passwords are never stored in `forma.json`. Use `--password-from-stdin` or the `FORMA_SMTP_PASSWORD` environment variable.
+> **Note:** SMTP passwords are never stored in `config.json`. Use `--password-from-stdin` or the `FORMA_SMTP_PASSWORD` environment variable.
 
 ### `forma.yaml` — Project settings
 

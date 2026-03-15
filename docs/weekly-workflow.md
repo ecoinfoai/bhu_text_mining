@@ -32,7 +32,7 @@ forma init --output forma.yaml
 
 This launches an interactive wizard that creates a `forma.yaml` template with your course name, year, semester, and class identifiers. See [Configuration](configuration.md) for details.
 
-**2. Configure SMTP credentials in `forma.json`:**
+**2. Configure SMTP credentials in `config.json`:**
 
 ```json
 {
@@ -369,7 +369,7 @@ nix develop
 
 **SMTP authentication failure**
 
-Verify `forma.json` smtp fields and confirm the password is available:
+Verify `config.json` smtp fields and confirm the password is available:
 
 ```bash
 export FORMA_SMTP_PASSWORD="your-password"
@@ -408,6 +408,6 @@ forma report student --final final.yaml --config exam.yaml --eval-dir eval/ \
 ## See Also
 
 - [CLI Reference](cli-reference.md) -- complete flag lists for all 14 commands
-- [Configuration](configuration.md) -- forma.json and forma.yaml setup guide
+- [Configuration](configuration.md) -- config.json and forma.yaml setup guide
 - [Data Formats](data-formats.md) -- YAML file schemas for all input/output files
 - [Quickstart](quickstart.md) -- first-time setup and minimal working example

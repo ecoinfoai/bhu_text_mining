@@ -1,10 +1,10 @@
 # Configuration Reference
 
-Formative-analysis uses two configuration files: `forma.json` for credentials and system-level settings, and `forma.yaml` for project-level settings. This document describes every field in both files.
+Formative-analysis uses two configuration files: `config.json` for credentials and system-level settings, and `forma.yaml` for project-level settings. This document describes every field in both files.
 
 ## Table of Contents
 
-- [forma.json](#formajson)
+- [config.json](#configjson)
 - [forma.yaml](#formayaml)
 - [week.yaml](#weekyaml)
 - [Credential Security](#credential-security)
@@ -12,18 +12,16 @@ Formative-analysis uses two configuration files: `forma.json` for credentials an
 
 ---
 
-## forma.json
+## config.json
 
-**Location:** `~/.config/formative-analysis/forma.json`
+**Location:** `~/.config/formative-analysis/config.json`
 
 Stores credentials and system-level settings that apply across all projects. This file is searched in the following order:
 
 1. Explicit path argument (if provided)
 2. `/run/agenix/forma-config` (NixOS agenix)
-3. `~/.config/formative-analysis/forma.json`
-4. `~/.config/forma/config.json` (legacy)
-5. `~/.config/bhu_text_mining/config.json` (legacy)
-6. `~/.config/naver_ocr/naver_ocr_config.json` (legacy)
+3. `~/.config/formative-analysis/config.json`
+4. `~/.config/formative-analysis/forma.json` (deprecated — will be removed)
 
 ### smtp section
 
@@ -38,7 +36,7 @@ SMTP server settings for email delivery (`forma deliver send`).
 | `use_tls` | boolean | no | `true` | Use STARTTLS encryption |
 | `send_interval_sec` | number | no | `1.0` | Seconds to wait between emails |
 
-> **Note:** The SMTP password is never stored in forma.json. See [Credential Security](#credential-security) for how to supply it at runtime.
+> **Note:** The SMTP password is never stored in config.json. See [Credential Security](#credential-security) for how to supply it at runtime.
 
 ### llm section
 
@@ -59,7 +57,7 @@ Naver CLOVA OCR credentials for answer sheet scanning.
 | `api_url` | string | no | -- | Naver CLOVA OCR API endpoint URL |
 | `secret_key` | string | no | -- | Naver OCR secret key |
 
-### Complete forma.json example
+### Complete config.json example
 
 ```json
 {
@@ -132,7 +130,8 @@ OCR scanning settings for answer sheet digitization.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `naver_config` | string | no | `""` | Path to Naver OCR configuration |
+| `ocr_model` | string/null | no | `null` | OCR model ID (e.g., `gemini-2.0-flash`; `null` uses provider default) |
+| `naver_config` | string | no | `""` | Path to Naver OCR configuration (deprecated) |
 | `credentials` | string | no | `""` | Credentials reference (resolved from environment variable) |
 | `spreadsheet_url` | string | no | `""` | Google Sheets URL for OCR data |
 | `num_questions` | integer | no | `5` | Number of questions per exam (must be >= 1) |
@@ -196,6 +195,7 @@ paths:
   font_path: null
 
 ocr:
+  ocr_model: null
   naver_config: ""
   credentials: ""
   spreadsheet_url: ""
@@ -278,7 +278,7 @@ For the complete schema with all 21 fields, types, and descriptions, see [Data F
 
 ## Credential Security
 
-The SMTP password is **never** stored in `forma.json` or any configuration file. It must be supplied at runtime through one of two methods:
+The SMTP password is **never** stored in `config.json` or any configuration file. It must be supplied at runtime through one of two methods:
 
 ### 1. Standard input (`--password-from-stdin`)
 
@@ -301,7 +301,7 @@ If neither method is used, `forma deliver send` will exit with an error (unless 
 
 ### API keys
 
-For LLM and OCR API keys, it is recommended to use environment variables rather than storing them directly in `forma.json`. If stored in `forma.json`, ensure the file has restrictive permissions (`chmod 600`).
+For LLM and OCR API keys, it is recommended to use environment variables rather than storing them directly in `config.json`. If stored in `config.json`, ensure the file has restrictive permissions (`chmod 600`).
 
 ---
 

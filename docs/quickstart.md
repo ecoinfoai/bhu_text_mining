@@ -29,7 +29,7 @@ Before starting, ensure you have:
   # General
   uv sync --extra dev
   ```
-- **forma.json** configured with your API credentials at `~/.config/formative-analysis/forma.json` (see [Configuration](configuration.md))
+- **config.json** configured with your API credentials at `~/.config/formative-analysis/config.json` (see [Configuration](configuration.md))
 - **forma.yaml** initialized in your project directory (optional but recommended):
   ```bash
   forma init
@@ -199,7 +199,7 @@ echo "$FORMA_SMTP_PASSWORD" | forma deliver send \
 **Input:**
 - The staging directory from Step 6a (`--staged`)
 - An email template YAML with subject and body (see [Data Formats](data-formats.md#email-template-yaml))
-- SMTP configuration from `forma.json` (see [Configuration](configuration.md#smtp-section))
+- SMTP configuration from `config.json` (see [Configuration](configuration.md#smtp-section))
 
 **Output:** Emails sent to each student with their report zip attached. A `delivery_log.yaml` is saved as an audit trail.
 
@@ -212,4 +212,4 @@ echo "$FORMA_SMTP_PASSWORD" | forma deliver send \
 - [docs/for_new_teachers.md](for_new_teachers.md) — Scenario-based guide: choose the right workflow for your situation
 - [docs/weekly-workflow.md](weekly-workflow.md) — Step-by-step reference for the complete weekly assessment routine
 - [docs/cli-reference.md](cli-reference.md) — Complete flag reference for all 15 commands
-- [docs/configuration.md](configuration.md) — Full configuration reference (`forma.json`, `forma.yaml`, `week.yaml`)
+- [docs/configuration.md](configuration.md) — Full configuration reference (`config.json`, `forma.yaml`, `week.yaml`)

@@ -14,7 +14,7 @@ internal data stores.
 | Delivery Manifest | `delivery/manifest.yaml` | YAML | `forma deliver prepare` | No |
 | Email Template | `delivery/template.yaml` | YAML | `forma deliver send` | No |
 | SMTP Configuration (deprecated) | `smtp.yaml` | YAML | `forma deliver send` | No |
-| Credentials (forma.json) | `~/.config/formative-analysis/forma.json` | JSON | All CLI commands | No |
+| Credentials (config.json) | `~/.config/formative-analysis/config.json` | JSON | All CLI commands | No |
 | Evaluation Results | `results/*/eval_*/res_lvl4/*.yaml` | YAML | `forma report student`, `forma report professor` | Yes |
 | Longitudinal Store | `longitudinal.yaml` | YAML | `forma report longitudinal`, `forma train risk` | Yes |
 | Intervention Log | `intervention_log.yaml` | YAML | `forma intervention`, `forma report professor` | Yes |
@@ -32,7 +32,7 @@ internal data stores.
 - [Delivery Manifest YAML](#delivery-manifest-yaml)
 - [Email Template YAML](#email-template-yaml)
 - [SMTP Configuration YAML](#smtp-configuration-yaml-deprecated)
-- [Credentials JSON (forma.json)](#credentials-json-formajson)
+- [Credentials JSON (config.json)](#credentials-json-configjson)
 - [Evaluation Results YAML](#evaluation-results-yaml)
 - [Longitudinal Store YAML](#longitudinal-store-yaml)
 - [Intervention Log YAML](#intervention-log-yaml)
@@ -278,7 +278,7 @@ body: |
 
 ### SMTP Configuration YAML (Deprecated)
 
-**Purpose**: Defines SMTP server connection settings for email delivery. As of v0.11.1, this file is deprecated in favor of the `smtp` section in `forma.json`.
+**Purpose**: Defines SMTP server connection settings for email delivery. As of v0.11.1, this file is deprecated in favor of the `smtp` section in `config.json`.
 
 **Created by**: Manual (professor)
 
@@ -310,7 +310,7 @@ send_interval_sec: 1.0
 
 ---
 
-### Credentials JSON (forma.json)
+### Credentials JSON (config.json)
 
 **Purpose**: Centralized credentials and service configuration file. Stores API keys, SMTP settings, and OCR configuration.
 
@@ -322,10 +322,7 @@ send_interval_sec: 1.0
 
 1. Explicit path via CLI argument
 2. `/run/agenix/forma-config` (NixOS agenix)
-3. `~/.config/formative-analysis/forma.json`
-4. `~/.config/forma/config.json` (legacy)
-5. `~/.config/bhu_text_mining/config.json` (legacy)
-6. `~/.config/naver_ocr/naver_ocr_config.json` (legacy)
+3. `~/.config/formative-analysis/config.json`
 
 **Fields:**
 
@@ -348,7 +345,7 @@ send_interval_sec: 1.0
 
 \* Required only when the corresponding feature is used.
 
-The SMTP password is never stored in `forma.json`. Use `FORMA_SMTP_PASSWORD` environment variable or `--password-from-stdin`.
+The SMTP password is never stored in `config.json`. Use `FORMA_SMTP_PASSWORD` environment variable or `--password-from-stdin`.
 
 Note: The `smtp` section uses different field names than the YAML format. The JSON field `server` maps to `smtp_server`, and `port` maps to `smtp_port`.
 

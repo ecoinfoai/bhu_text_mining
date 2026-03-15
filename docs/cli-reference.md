@@ -628,14 +628,14 @@ Send emails with zip attachments via SMTP.
 |------|------|----------|---------|-------------|
 | `--staged` | path | yes | -- | Staging folder path (created by `prepare`) |
 | `--template` | path | yes | -- | Email template YAML file path |
-| `--smtp-config` | path | no | None | SMTP config YAML file path (deprecated; use forma.json smtp section instead) |
+| `--smtp-config` | path | no | None | SMTP config YAML file path (deprecated; use config.json smtp section instead) |
 | `--dry-run` | flag | no | false | Preview only, no actual sending |
 | `--retry-failed` | flag | no | false | Resend only previously failed emails |
 | `--force` | flag | no | false | Ignore previous delivery records and resend all |
 | `--notify-sender` | flag | no | false | Send summary email to the professor |
 | `--password-from-stdin` | flag | no | false | Read SMTP password from stdin |
 
-`--retry-failed` and `--force` cannot be used together. SMTP configuration resolution order: explicit `--smtp-config` path > `forma.json` smtp section > error (exit 2). SMTP password is never stored in config files; use `--password-from-stdin` or the `FORMA_SMTP_PASSWORD` environment variable.
+`--retry-failed` and `--force` cannot be used together. SMTP configuration resolution order: explicit `--smtp-config` path > `config.json` smtp section > error (exit 2). SMTP password is never stored in config files; use `--password-from-stdin` or the `FORMA_SMTP_PASSWORD` environment variable.
 
 **Examples:**
 
@@ -643,7 +643,7 @@ Send emails with zip attachments via SMTP.
 # Dry-run preview
 forma deliver send --staged staging/ --template template.yaml --dry-run
 
-# Send emails using forma.json SMTP configuration
+# Send emails using config.json SMTP configuration
 echo "$SMTP_PASSWORD" | forma deliver send --staged staging/ --template template.yaml \
                                            --password-from-stdin
 
