@@ -182,30 +182,8 @@ def run_scan_pipeline(
             llm_resp = llm_results.get(img_path)
             if llm_resp is not None:
                 text = llm_resp.text
-                confidence_mean = llm_resp.confidence_mean
-                confidence_min = llm_resp.confidence_min
-                field_count = (
-                    len(llm_resp.word_confidences)
-                    if llm_resp.word_confidences else None
-                )
                 llm_extra["recognition_engine"] = "llm"
                 llm_extra["recognition_model"] = llm_model_name
-                if llm_resp.word_confidences:
-                    llm_extra["llm_word_confidences"] = [
-                        {
-                            "word": wc.word,
-                            "confidence": wc.confidence,
-                            "token_count": wc.token_count,
-                        }
-                        for wc in llm_resp.word_confidences
-                    ]
-                llm_extra["llm_usage"] = {
-                    "input_tokens": llm_resp.usage.input_tokens,
-                    "output_tokens": llm_resp.usage.output_tokens,
-                }
-                llm_extra["llm_finish_reason"] = llm_resp.finish_reason
-                if llm_resp.logprobs_raw:
-                    llm_extra["llm_logprobs"] = llm_resp.logprobs_raw
         else:
             # Naver OCR mode (legacy)
             try:
@@ -232,10 +210,14 @@ def run_scan_pipeline(
             "q_num": q_num,
             "text": text,
             "source_file": source_file,
-            "ocr_confidence_mean": confidence_mean,
-            "ocr_confidence_min": confidence_min,
-            "ocr_field_count": field_count,
         }
+        # Only include OCR confidence fields when they have actual values
+        if confidence_mean is not None:
+            result_entry["ocr_confidence_mean"] = confidence_mean
+        if confidence_min is not None:
+            result_entry["ocr_confidence_min"] = confidence_min
+        if field_count is not None:
+            result_entry["ocr_field_count"] = field_count
         if raw_fields is not None:
             result_entry["ocr_raw_fields"] = raw_fields
         result_entry.update(llm_extra)

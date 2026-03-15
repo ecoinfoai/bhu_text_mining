@@ -158,10 +158,11 @@ def build_recognition_prompt(
         Formatted prompt string for the LLM vision API.
     """
     lines = [
-        "아래 이미지에서 학생이 손으로 작성한 텍스트를 정확히 읽어 그대로 옮겨 적으시오.",
+        "아래 이미지에서 학생이 손으로 작성한 텍스트를 보이는 그대로 옮겨 적으시오.",
+        "- 오탈자, 틀린 용어, 맞춤법 오류가 있어도 절대 수정하지 말고 그대로 적으시오.",
         "- 이미지에 보이는 손글씨 텍스트만 출력하시오. 추가 설명이나 해석을 붙이지 마시오.",
         "- QR코드, 바코드, 인쇄된 안내문 등은 완전히 무시하시오.",
-        "- 글씨가 불분명한 부분은 가장 가능성 높은 해석으로 작성하시오.",
+        "- 글씨가 판독 불가능한 부분은 [?]로 표시하시오.",
         "- 텍스트가 없으면 빈 문자열을 반환하시오.",
     ]
 
@@ -299,9 +300,7 @@ def extract_text_via_llm(
 
     llm = create_provider(provider=provider, api_key=api_key, model=model)
     prompt = build_recognition_prompt(context=context)
-    # 한국어 손글씨 답안은 토크나이저에 따라 토큰 효율이 낮을 수 있으므로
-    # 기본 1024보다 넉넉하게 설정
-    max_tokens = 2048
+    max_tokens = 1024
     use_logprobs = provider.lower() == "gemini"
 
     results: dict[str, LLMVisionResponse] = {}
@@ -393,4 +392,57 @@ def extract_text_via_llm(
             )
 
     print(f"  완료: {ok_count}/{total} 성공, {err_count} 실패")
+
+    # Collect MAX_TOKENS truncated results for selective retry
+    truncated = [
+        path for path, resp in results.items()
+        if "MAX_TOKENS" in (resp.finish_reason or "")
+    ]
+    if truncated:
+        print(f"\n  ⚠ {len(truncated)}개 이미지가 토큰 부족으로 잘림:")
+        for path in truncated:
+            name = os.path.basename(path)
+            text_preview = results[path].text[:30].replace("\n", " ")
+            print(f"    - {name}: \"{text_preview}...\"")
+
+        try:
+            answer = input(
+                f"\n  토큰을 2048로 늘려서 {len(truncated)}개를 재시도할까요? (y/N): "
+            ).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            answer = "n"
+
+        if answer in ("y", "yes"):
+            retry_max_tokens = 2048
+            print(f"  재시도 중 (max_tokens={retry_max_tokens})...")
+            for retry_idx, path in enumerate(truncated):
+                if retry_idx > 0:
+                    time.sleep(rate_limit_delay)
+                name = os.path.basename(path)
+                print(
+                    f"\r  [{retry_idx + 1}/{len(truncated)}] {name}",
+                    end="", flush=True,
+                )
+                try:
+                    full_resp = llm.generate_with_image_full(
+                        prompt=prompt,
+                        image_path=path,
+                        max_tokens=retry_max_tokens,
+                        response_logprobs=use_logprobs,
+                    )
+                    vision_resp = _build_vision_response(full_resp)
+                    results[path] = vision_resp
+                    preview = full_resp.text[:40].replace("\n", " ")
+                    print(
+                        f"\r  [{retry_idx + 1}/{len(truncated)}] {name}"
+                        f" — OK: {preview}..." + " " * 10,
+                    )
+                except Exception as exc:
+                    print(
+                        f"\r  [{retry_idx + 1}/{len(truncated)}] {name}"
+                        f" — ERROR" + " " * 20,
+                    )
+                    logger.warning("재시도 실패: %s — %s", path, exc)
+            print("  재시도 완료")
+
     return results
