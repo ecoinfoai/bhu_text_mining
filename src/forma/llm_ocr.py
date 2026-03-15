@@ -159,7 +159,8 @@ def build_recognition_prompt(
     """
     lines = [
         "아래 이미지에서 학생이 손으로 작성한 텍스트를 정확히 읽어 그대로 옮겨 적으시오.",
-        "- 이미지에 보이는 텍스트만 출력하시오. 추가 설명이나 해석을 붙이지 마시오.",
+        "- 이미지에 보이는 손글씨 텍스트만 출력하시오. 추가 설명이나 해석을 붙이지 마시오.",
+        "- QR코드, 바코드, 인쇄된 안내문 등은 완전히 무시하시오.",
         "- 글씨가 불분명한 부분은 가장 가능성 높은 해석으로 작성하시오.",
         "- 텍스트가 없으면 빈 문자열을 반환하시오.",
     ]
@@ -206,9 +207,14 @@ def validate_llm_recognition(
 
     # Gemini returns "FinishReason.STOP", Anthropic returns "end_turn"
     stop_reasons = {"STOP", "FinishReason.STOP", "end_turn"}
-    if finish_reason not in stop_reasons:
+    # MAX_TOKENS means truncated but text is still usable
+    truncated_reasons = {"MAX_TOKENS", "FinishReason.MAX_TOKENS"}
+    if finish_reason not in stop_reasons and finish_reason not in truncated_reasons:
         warnings.append(f"finish_reason={finish_reason} — 응답이 완료되지 않음")
         valid = False
+    elif finish_reason in truncated_reasons:
+        warnings.append(f"finish_reason={finish_reason} — 텍스트 잘림 (부분 결과 사용)")
+        # valid remains True — truncated text is better than nothing
 
     if text and len(text) > 500:
         warnings.append(f"텍스트 길이 {len(text)}자 > 500자 — 환각 가능성")
