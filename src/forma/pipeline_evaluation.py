@@ -1078,7 +1078,10 @@ def run_evaluation_pipeline(
 
     # PDF reports
     if generate_reports:
-        _generate_pdf_reports(output_dir, config_data, counseling, graph_results)
+        _generate_pdf_reports(
+            output_dir, config_data, counseling, graph_results,
+            config_path=config_path, responses_path=responses_path,
+        )
 
     print(f"[pipeline] Done. Results written to: {output_dir}")
 
@@ -1192,21 +1195,52 @@ def _generate_pdf_reports(
     config_data: dict,
     counseling: dict,
     graph_results: Optional[dict],
+    config_path: str = "",
+    responses_path: str = "",
 ) -> None:
-    """Generate student PDF reports."""
-    try:
-        from forma.report_generator import StudentReportGenerator
+    """Generate student PDF reports using the full-featured generator.
 
-        generator = StudentReportGenerator()
-        reports_dir = os.path.join(output_dir, "res_lvl4", "reports")
-        paths = generator.generate_all_reports(
-            counseling_data=counseling,
-            config_data=config_data,
-            output_dir=reports_dir,
+    Uses ``StudentPDFReportGenerator`` (charts, feedback, concept analysis)
+    instead of the minimal ``StudentReportGenerator``.
+    Falls back to the minimal generator if data loading fails.
+    """
+    reports_dir = os.path.join(output_dir, "res_lvl4", "reports")
+    try:
+        from forma.report_data_loader import load_all_student_data
+        from forma.student_report import StudentPDFReportGenerator
+
+        students, distributions = load_all_student_data(
+            responses_path, config_path, output_dir,
         )
-        print(f"[pipeline] Generated {len(paths)} PDF reports in {reports_dir}")
+        generator = StudentPDFReportGenerator()
+        os.makedirs(reports_dir, exist_ok=True)
+
+        total = len(students)
+        for idx, student in enumerate(students, 1):
+            print(
+                f"\r[pipeline] Report: {idx}/{total} ({student.student_id}) ...",
+                end="", flush=True,
+            )
+            generator.generate_pdf(
+                student_data=student,
+                distributions=distributions,
+                output_dir=reports_dir,
+            )
+        print(f"\n[pipeline] Generated {total} PDF reports in {reports_dir}")
     except Exception as exc:
-        print(f"[pipeline] Report generation failed: {exc}")
+        print(f"[pipeline] Full report generation failed ({exc}), trying minimal...")
+        try:
+            from forma.report_generator import StudentReportGenerator
+
+            generator_simple = StudentReportGenerator()
+            paths = generator_simple.generate_all_reports(
+                counseling_data=counseling,
+                config_data=config_data,
+                output_dir=reports_dir,
+            )
+            print(f"[pipeline] Generated {len(paths)} minimal PDF reports in {reports_dir}")
+        except Exception as exc2:
+            print(f"[pipeline] Report generation failed: {exc2}")
 
 
 # ---------------------------------------------------------------------------
