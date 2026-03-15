@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -295,10 +296,19 @@ def extract_text_via_llm(
     use_logprobs = provider.lower() == "gemini"
 
     results: dict[str, LLMVisionResponse] = {}
+    total = len(image_paths)
+    ok_count = 0
+    err_count = 0
 
     for idx, image_path in enumerate(image_paths):
         if idx > 0:
             time.sleep(rate_limit_delay)
+
+        image_name = os.path.basename(image_path)
+        print(
+            f"\r  [{idx + 1}/{total}] {image_name}",
+            end="", flush=True,
+        )
 
         try:
             # Try with logprobs first; fall back without if unsupported
@@ -341,8 +351,23 @@ def extract_text_via_llm(
 
             vision_resp = _build_vision_response(full_resp)
             results[image_path] = vision_resp
+            ok_count += 1
+
+            # Show preview of recognized text
+            preview = full_resp.text[:40].replace("\n", " ")
+            print(
+                f"\r  [{idx + 1}/{total}] {image_name} — OK: {preview}..."
+                + " " * 10,
+                end="", flush=True,
+            )
+            print()  # newline after each result
 
         except Exception as exc:
+            err_count += 1
+            print(
+                f"\r  [{idx + 1}/{total}] {image_name} — ERROR"
+                + " " * 20,
+            )
             logger.warning("LLM 인식 실패: %s — %s", image_path, exc)
             results[image_path] = LLMVisionResponse(
                 text="",
@@ -355,4 +380,5 @@ def extract_text_via_llm(
                 safety_ratings=None,
             )
 
+    print(f"  완료: {ok_count}/{total} 성공, {err_count} 실패")
     return results
