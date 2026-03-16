@@ -198,11 +198,11 @@ def main(argv: list[str] | None = None) -> int:
         exam_output_path = resolve_paths_relative_to(exam_output, week_dir)
         try:
             pdf_questions = [
-                {"topic": q.get("topic", ""), "text": q.get("text", ""), "limit": q.get("limit", "")}
+                {"topic": q.get("topic", ""), "text": q.get("question", q.get("text", "")), "limit": q.get("limit", "")}
                 for q in questions
             ]
             gen = ExamPDFGenerator()
-            gen.generate(
+            gen.create_exam_papers(
                 questions=pdf_questions,
                 num_papers=config.select_num_papers,
                 output_path=exam_output_path,
