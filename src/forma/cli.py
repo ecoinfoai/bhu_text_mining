@@ -124,8 +124,8 @@ def main(argv: list[str] | None = None) -> None:
 
     # Final fallbacks for fields not in YAML or CLI
     _FALLBACKS = {
-        "year": 2025, "grade": 1, "semester": 2,
-        "course": "감염미생물학", "week": 3,
+        "year": 0, "grade": 0, "semester": 0,
+        "course": "", "week": 0,
     }
     for attr, default in _FALLBACKS.items():
         if getattr(args, attr) is None:

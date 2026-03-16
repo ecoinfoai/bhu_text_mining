@@ -122,7 +122,7 @@ def main(argv=None):
     metadata = exam_config.get("metadata", {}) if isinstance(exam_config, dict) else {}
     exam_title = metadata.get("chapter_name", "")
     subject = metadata.get("course_name", "")
-    week_num = metadata.get("week_num", 1)
+    week_num = metadata.get("week_num", 0)
 
     per_class_reports = []
 

@@ -214,9 +214,9 @@ def main(argv: list[str] | None = None) -> int:
                 form_url_template=config.select_form_url or None,
                 week_num=config.week,
                 course_name=source_metadata.get("course_name", ""),
-                year=source_metadata.get("year", 2025),
-                grade=source_metadata.get("grade", 1),
-                semester=source_metadata.get("semester", 1),
+                year=source_metadata.get("year", 0),
+                grade=source_metadata.get("grade", 0),
+                semester=source_metadata.get("semester", 0),
             )
             logger.info("시험지 PDF 생성: %s", exam_output_path)
         except Exception as exc:

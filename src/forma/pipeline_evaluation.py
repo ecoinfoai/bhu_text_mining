@@ -1156,7 +1156,7 @@ def _save_longitudinal(
         store = LongitudinalStore(store_path)
         store.load()
 
-        week = config_data.get("longitudinal", {}).get("week", 1)
+        week = config_data.get("longitudinal", {}).get("week", 0)
         exam_file = config_data.get("config_path", "")
 
         # Flatten nested dict {student_id: {qsn: [ConceptMatchResult]}} to flat list

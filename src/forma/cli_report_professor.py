@@ -99,14 +99,19 @@ def main() -> int | None:
         logger.error("학생 수가 너무 적습니다 (%d명). 최소 3명 이상 필요합니다.", len(students))
         sys.exit(2)
 
+    # Load exam config metadata for report
+    with open(args.config, encoding="utf-8") as _f:
+        _exam_cfg = yaml.safe_load(_f) or {}
+    _meta = _exam_cfg.get("metadata", {}) if isinstance(_exam_cfg, dict) else {}
+
     # Build professor report data
     report_data = build_professor_report_data(
         students,
         distributions,
         class_name=args.class_name or "Unknown",
-        week_num=1,
-        subject="과목",
-        exam_title="형성평가",
+        week_num=_meta.get("week_num", args.week or 0),
+        subject=_meta.get("course_name", ""),
+        exam_title=_meta.get("chapter_name", "형성평가"),
     )
 
     # Load longitudinal store ONCE if available (shared by risk movement,
