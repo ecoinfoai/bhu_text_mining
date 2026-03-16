@@ -116,3 +116,8 @@ smtp*.yaml
 # ML model files
 *.pkl
 *.pkl.sig
+
+# Claude Code / multi-agent tooling
+.agent-comm/
+.claude/commands/
+.specify/
