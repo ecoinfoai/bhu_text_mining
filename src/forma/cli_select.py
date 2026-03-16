@@ -171,6 +171,11 @@ def main(argv: list[str] | None = None) -> int:
     # Resolve source path relative to week.yaml directory
     source_path = Path(resolve_paths_relative_to(config.select_source, week_dir))
 
+    # Load source metadata for PDF generation
+    with open(source_path, encoding="utf-8") as f:
+        source_data = yaml.safe_load(f) or {}
+    source_metadata = source_data.get("metadata", {}) if isinstance(source_data, dict) else {}
+
     # Extract questions
     try:
         questions = _extract_questions(source_path, config.select_questions)
@@ -208,6 +213,10 @@ def main(argv: list[str] | None = None) -> int:
                 output_path=exam_output_path,
                 form_url_template=config.select_form_url or None,
                 week_num=config.week,
+                course_name=source_metadata.get("course_name", ""),
+                year=source_metadata.get("year", 2025),
+                grade=source_metadata.get("grade", 1),
+                semester=source_metadata.get("semester", 1),
             )
             logger.info("시험지 PDF 생성: %s", exam_output_path)
         except Exception as exc:
