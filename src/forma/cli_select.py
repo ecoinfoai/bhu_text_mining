@@ -171,11 +171,6 @@ def main(argv: list[str] | None = None) -> int:
     # Resolve source path relative to week.yaml directory
     source_path = Path(resolve_paths_relative_to(config.select_source, week_dir))
 
-    # Load source metadata for PDF generation
-    with open(source_path, encoding="utf-8") as f:
-        source_data = yaml.safe_load(f) or {}
-    source_metadata = source_data.get("metadata", {}) if isinstance(source_data, dict) else {}
-
     # Extract questions
     try:
         questions = _extract_questions(source_path, config.select_questions)
@@ -185,6 +180,11 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         logger.error("%s", exc)
         return 3
+
+    # Load source metadata for PDF generation
+    with open(source_path, encoding="utf-8") as f:
+        source_data = yaml.safe_load(f) or {}
+    source_metadata = source_data.get("metadata", {}) if isinstance(source_data, dict) else {}
 
     # Write questions.yaml
     metadata = {

@@ -141,7 +141,7 @@ class TestGenerateExamPdf:
             result = main(["--week-config", str(tmp_path / "week.yaml")])
 
         assert result == 0
-        mock_gen.generate.assert_called_once()
+        mock_gen.create_exam_papers.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +212,7 @@ class TestPdfGenerationFailure:
         _write_week_yaml(tmp_path, exam_output=pdf_path)
 
         mock_gen = MagicMock()
-        mock_gen.generate.side_effect = RuntimeError("PDF error")
+        mock_gen.create_exam_papers.side_effect = RuntimeError("PDF error")
         mock_gen_cls.return_value = mock_gen
 
         result = main(["--week-config", str(tmp_path / "week.yaml")])
