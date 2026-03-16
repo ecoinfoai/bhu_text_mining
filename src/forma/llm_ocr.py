@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import sys
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -208,17 +209,16 @@ def validate_llm_recognition(
 
     # Gemini returns "FinishReason.STOP", Anthropic returns "end_turn"
     stop_reasons = {"STOP", "FinishReason.STOP", "end_turn"}
-    # MAX_TOKENS means truncated but text is still usable
     truncated_reasons = {"MAX_TOKENS", "FinishReason.MAX_TOKENS"}
     if finish_reason not in stop_reasons and finish_reason not in truncated_reasons:
         warnings.append(f"finish_reason={finish_reason} — 응답이 완료되지 않음")
         valid = False
     elif finish_reason in truncated_reasons:
-        warnings.append(f"finish_reason={finish_reason} — 텍스트 잘림 (부분 결과 사용)")
-        # valid remains True — truncated text is better than nothing
+        warnings.append(f"finish_reason={finish_reason} — 텍스트 잘림")
+        valid = False
 
-    if text and len(text) > 500:
-        warnings.append(f"텍스트 길이 {len(text)}자 > 500자 — 환각 가능성")
+    if text and len(text) > 200:
+        warnings.append(f"텍스트 길이 {len(text)}자 > 200자 — 환각 가능성")
 
     if confidence_mean is not None and confidence_mean < 0.3:
         warnings.append(f"평균 confidence {confidence_mean:.2f} < 0.3 — 수동 검토 필요")
@@ -405,11 +405,14 @@ def extract_text_via_llm(
             text_preview = results[path].text[:30].replace("\n", " ")
             print(f"    - {name}: \"{text_preview}...\"")
 
-        try:
-            answer = input(
-                f"\n  토큰을 2048로 늘려서 {len(truncated)}개를 재시도할까요? (y/N): "
-            ).strip().lower()
-        except (EOFError, KeyboardInterrupt):
+        if sys.stdin.isatty():
+            try:
+                answer = input(
+                    f"\n  토큰을 2048로 늘려서 {len(truncated)}개를 재시도할까요? (y/N): "
+                ).strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                answer = "n"
+        else:
             answer = "n"
 
         if answer in ("y", "yes"):
