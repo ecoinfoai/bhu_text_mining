@@ -122,10 +122,13 @@ _COMMANDS: dict[tuple[str, str | None], tuple[str, str]] = {
     ("lecture", "class-compare"): (
         "forma.cli_lecture", "main_class_compare",
     ),
+    ("backfill", "longitudinal"): (
+        "forma.cli_backfill_longitudinal", "main",
+    ),
 }
 
 # Groups that have nested subcommands
-_NESTED_GROUPS = {"report", "train", "eval", "lecture"}
+_NESTED_GROUPS = {"report", "train", "eval", "lecture", "backfill"}
 
 
 def _import_delegate(module_path: str, func_name: str):
@@ -226,6 +229,11 @@ def _build_parser() -> _FormaParser:
     lecture_sub.add_parser(
         "class-compare", help="전체 세션 반 간 비교",
     )
+
+    # --- backfill (nested subcommands) ---
+    backfill_parser = subparsers.add_parser("backfill", help="기존 결과 역채움")
+    backfill_sub = backfill_parser.add_subparsers(dest="backfill_sub")
+    backfill_sub.add_parser("longitudinal", help="종단 저장소 역채움")
 
     return parser
 
