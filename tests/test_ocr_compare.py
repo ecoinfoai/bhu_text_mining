@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from forma.ocr_compare import (
     ComparisonResult,
@@ -220,7 +219,7 @@ class TestCompareSingleImage:
         mock_provider.generate_with_image.return_value = "세포 분열 과정"
 
         context = {"subject": "생물학"}
-        result = compare_single_image(
+        compare_single_image(
             image_path=str(img_file),
             naver_raw=naver_raw,
             llm_provider=mock_provider,

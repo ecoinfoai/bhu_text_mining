@@ -3,10 +3,9 @@
 All API calls are mocked; no real API keys required.
 """
 
-import os
 import sys
 from dataclasses import fields as dataclass_fields
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,7 +14,6 @@ from forma.llm_provider import (
     GeminiProvider,
     LLMFullResponse,
     LLMProvider,
-    MAX_RETRIES,
 )
 
 

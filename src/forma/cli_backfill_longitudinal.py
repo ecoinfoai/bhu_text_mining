@@ -14,8 +14,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from collections import defaultdict
-from typing import Optional
 
 import yaml
 

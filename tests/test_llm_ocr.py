@@ -9,7 +9,6 @@ import math
 from dataclasses import fields as dataclass_fields
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from forma.llm_ocr import (
     LLMVisionResponse,

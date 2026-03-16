@@ -8,12 +8,8 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import threading
-import time
-from dataclasses import dataclass
-from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -226,7 +222,7 @@ class TestAdversaryCorruptImageUploader:
         zero_img = tmp_path / "empty.jpg"
         zero_img.write_bytes(b"")
 
-        full_resp = _make_full_response(text="")
+        _make_full_response(text="")
         with patch("forma.llm_provider.create_provider") as mock_provider:
             mock_prov_inst = MagicMock()
             mock_prov_inst.generate_with_image_full.side_effect = Exception(

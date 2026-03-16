@@ -372,7 +372,7 @@ class TestReviewNeeded:
             patch("forma.ocr_pipeline.parse_qr_content", return_value={"student_id": "S001", "q_num": 1}),
             patch("forma.llm_ocr.extract_text_via_llm", return_value=mock_llm_result),
         ):
-            results = run_scan_pipeline(
+            run_scan_pipeline(
                 image_dir=image_dir,
                 output_path=out,
                 num_questions=1,
@@ -420,7 +420,7 @@ class TestReviewNeeded:
             patch("forma.ocr_pipeline.parse_qr_content", return_value={"student_id": "S001", "q_num": 1}),
             patch("forma.llm_ocr.extract_text_via_llm", return_value=mock_llm_result),
         ):
-            results = run_scan_pipeline(
+            run_scan_pipeline(
                 image_dir=image_dir,
                 output_path=out,
                 num_questions=1,
