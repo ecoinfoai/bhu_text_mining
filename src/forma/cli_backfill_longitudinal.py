@@ -40,13 +40,15 @@ def _load_ensemble_results(eval_dir: str) -> dict[str, dict[int, object]]:
             qsn = int(q["question_sn"])
 
             class _ER:
-                def __init__(self, component_scores: dict, understanding_level: str):
+                def __init__(self, component_scores: dict, understanding_level: str, ensemble_score: float):
                     self.component_scores = component_scores
                     self.understanding_level = understanding_level
+                    self.ensemble_score = ensemble_score
 
             results[sid][qsn] = _ER(
                 component_scores=dict(q.get("component_scores", {})),
                 understanding_level=q.get("understanding_level", ""),
+                ensemble_score=float(q.get("ensemble_score", 0.0)),
             )
     return results
 
@@ -97,6 +99,26 @@ def _extract_ocr_confidence(
     return result
 
 
+def _extract_id_map(responses: list[dict]) -> dict[str, str]:
+    """Extract anonymous ID → real student ID (학번) mapping from join output.
+
+    Reads ``forms_data`` from each entry in ``final_*.yaml``.
+    The anonymous IDs change each week, so the real student ID (학번)
+    must be used as the longitudinal tracking key.
+
+    Returns:
+        Mapping of anonymous student_id (e.g. "S015") to 학번 (e.g. "2026194126").
+    """
+    id_map: dict[str, str] = {}
+    for entry in responses:
+        sid = entry.get("student_id")
+        forms = entry.get("forms_data") or {}
+        real_id = forms.get("학번을 입력하세요.")
+        if sid and real_id and sid not in id_map:
+            id_map[sid] = str(real_id)
+    return id_map
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Backfill longitudinal store from existing eval results",
@@ -132,6 +154,24 @@ def main() -> None:
     if os.path.exists(args.store):
         store.load()
 
+    # Pre-load all responses to build id_map (anonymous ID → 학번)
+    all_responses: list[dict] = []
+    if args.responses:
+        for resp_path in args.responses:
+            if not os.path.exists(resp_path):
+                print(f"[backfill] WARNING: {resp_path} not found, skipping", file=sys.stderr)
+                continue
+            with open(resp_path) as f:
+                data = yaml.safe_load(f)
+            if isinstance(data, list):
+                all_responses.extend(data)
+
+    id_map = _extract_id_map(all_responses) if all_responses else {}
+    if id_map:
+        print(f"[backfill] ID mapping loaded: {len(id_map)} students (anonymous → 학번)")
+    else:
+        print("[backfill] WARNING: no ID mapping found — using anonymous IDs", file=sys.stderr)
+
     total_students = 0
 
     for eval_dir in args.eval_dir:
@@ -158,35 +198,30 @@ def main() -> None:
             layer1_results=layer1_results,
             week=args.week,
             exam_file=args.exam_file,
+            id_map=id_map or None,
         )
 
-    # OCR confidence — load responses and patch records
-    if args.responses:
-        all_responses: list[dict] = []
-        for resp_path in args.responses:
-            if not os.path.exists(resp_path):
-                print(f"[backfill] WARNING: {resp_path} not found, skipping", file=sys.stderr)
+    # OCR confidence — patch records using already-loaded responses
+    # Note: ocr_conf keys are anonymous IDs, but store records now use 학번.
+    # Build a reverse map (학번 → anonymous ID) for lookup.
+    if all_responses:
+        ocr_conf = _extract_ocr_confidence(all_responses)
+        reverse_map = {v: k for k, v in id_map.items()} if id_map else {}
+        patched = 0
+        for key, record_dict in store._records.items():
+            if record_dict["week"] != args.week:
                 continue
-            with open(resp_path) as f:
-                data = yaml.safe_load(f)
-            if isinstance(data, list):
-                all_responses.extend(data)
-
-        if all_responses:
-            ocr_conf = _extract_ocr_confidence(all_responses)
-            patched = 0
-            for key, record_dict in store._records.items():
-                if record_dict["week"] != args.week:
-                    continue
-                sid = record_dict["student_id"]
-                qsn = record_dict["question_sn"]
-                conf = (ocr_conf.get(sid) or {}).get(qsn)
-                if conf:
-                    record_dict["ocr_confidence_mean"] = conf["mean"]
-                    record_dict["ocr_confidence_min"] = conf["min"]
-                    patched += 1
-            if patched:
-                print(f"[backfill] OCR confidence patched for {patched} records")
+            real_sid = record_dict["student_id"]
+            # Look up OCR confidence using the original anonymous ID
+            anon_sid = reverse_map.get(real_sid, real_sid)
+            qsn = record_dict["question_sn"]
+            conf = (ocr_conf.get(anon_sid) or {}).get(qsn)
+            if conf:
+                record_dict["ocr_confidence_mean"] = conf["mean"]
+                record_dict["ocr_confidence_min"] = conf["min"]
+                patched += 1
+        if patched:
+            print(f"[backfill] OCR confidence patched for {patched} records")
 
     store.save()
     print(f"[backfill] Done. {total_students} students saved to {args.store}")

@@ -202,6 +202,14 @@ class LongitudinalStore:
         )
         for d in self._records.values():
             val = d["scores"].get(metric)
+            # Fallback: if ensemble_score not stored, compute from components
+            if val is None and metric == "ensemble_score":
+                component_vals = [
+                    v for k, v in d["scores"].items()
+                    if isinstance(v, (int, float)) and k != "ensemble_score"
+                ]
+                if component_vals:
+                    val = sum(component_vals) / len(component_vals)
             if val is not None:
                 matrix[d["student_id"]][d["week"]].append(val)
         return {
@@ -237,6 +245,7 @@ def snapshot_from_evaluation(
     week: int,
     exam_file: str,
     ocr_confidence: dict | None = None,
+    id_map: dict[str, str] | None = None,
 ) -> None:
     """Upsert evaluation results into the store with v2 fields.
 
@@ -249,10 +258,14 @@ def snapshot_from_evaluation(
         week: Current week number.
         exam_file: Exam file basename.
         ocr_confidence: {student_id: {qsn: {"mean": float, "min": float}}}.
+        id_map: Optional mapping of anonymous ID to real student ID (학번).
+            When provided, student_id is replaced with the real ID for
+            longitudinal tracking across weeks.
     """
     recorded_at = datetime.now(timezone.utc).isoformat()
 
     for student_id, q_results in ensemble_results.items():
+        real_id = id_map.get(student_id, student_id) if id_map else student_id
         for qsn, er in q_results.items():
             # Graph metric results (node_recall)
             gmr = (graph_metric_results.get(student_id) or {}).get(qsn)
@@ -279,11 +292,17 @@ def snapshot_from_evaluation(
             ocr_mean = ocr_conf["mean"] if ocr_conf else None
             ocr_min = ocr_conf["min"] if ocr_conf else None
 
+            # Include ensemble_score in scores dict so longitudinal
+            # queries like get_class_weekly_matrix("ensemble_score") work.
+            scores_with_ensemble = dict(er.component_scores)
+            if hasattr(er, "ensemble_score") and er.ensemble_score is not None:
+                scores_with_ensemble["ensemble_score"] = er.ensemble_score
+
             record = LongitudinalRecord(
-                student_id=student_id,
+                student_id=real_id,
                 week=week,
                 question_sn=qsn,
-                scores=dict(er.component_scores),
+                scores=scores_with_ensemble,
                 tier_level=0,
                 tier_label=er.understanding_level,
                 node_recall=node_recall,

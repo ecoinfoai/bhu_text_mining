@@ -1141,6 +1141,18 @@ def _extract_ocr_confidence(
     return result
 
 
+def _extract_id_map(responses_data: list[dict]) -> dict[str, str]:
+    """Extract anonymous ID → 학번 mapping from join output responses."""
+    id_map: dict[str, str] = {}
+    for entry in responses_data:
+        sid = entry.get("student_id")
+        forms = entry.get("forms_data") or {}
+        real_id = forms.get("학번을 입력하세요.")
+        if sid and real_id and sid not in id_map:
+            id_map[sid] = str(real_id)
+    return id_map
+
+
 def _save_longitudinal(
     store_path: str,
     ensemble_results: dict,
@@ -1168,8 +1180,10 @@ def _save_longitudinal(
 
         # Extract OCR confidence from responses data
         ocr_confidence: dict | None = None
+        id_map: dict[str, str] | None = None
         if isinstance(responses_data, list):
             ocr_confidence = _extract_ocr_confidence(responses_data)
+            id_map = _extract_id_map(responses_data) or None
 
         snapshot_from_evaluation(
             store=store,
@@ -1180,6 +1194,7 @@ def _save_longitudinal(
             week=week,
             exam_file=exam_file,
             ocr_confidence=ocr_confidence,
+            id_map=id_map,
         )
 
         store.save()

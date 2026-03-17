@@ -724,7 +724,7 @@ class TestSnapshotFromEvaluation:
         assert r.student_id == "s001"
         assert r.week == 3
         assert r.question_sn == 1
-        assert r.scores == {"concept_coverage": 0.65, "graph_f1": 0.78}
+        assert r.scores == {"concept_coverage": 0.65, "graph_f1": 0.78, "ensemble_score": 0.72}
         assert r.tier_label == "Proficient"
         assert r.node_recall == 0.80
         assert r.edge_f1 == 0.75
