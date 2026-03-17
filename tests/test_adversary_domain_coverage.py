@@ -12,7 +12,6 @@ import os
 import stat
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 import yaml
@@ -27,7 +26,6 @@ from forma.domain_coverage_analyzer import (
     ConceptEmphasis,
     ConceptState,
     CoverageResult,
-    ExtraConcept,
     TeachingScope,
     build_coverage_result,
     classify_concepts,

@@ -13,12 +13,9 @@ T009: Tests for concept caching — save/load cache, hash validation,
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 
 from forma.domain_concept_extractor import (
     TextbookConcept,
@@ -256,7 +253,7 @@ class TestConceptCaching:
             file1.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
 
             # First extraction with cache
-            result1 = extract_multi_chapter([str(file1)], use_cache=True)
+            extract_multi_chapter([str(file1)], use_cache=True)
 
             # Modify file
             file1.write_text(

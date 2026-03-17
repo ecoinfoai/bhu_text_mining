@@ -11,7 +11,6 @@ T004: Tests for extract_bilingual_terms() — Korean(English) pattern
 
 from __future__ import annotations
 
-import pytest
 
 from forma.textbook_preprocessor import clean_textbook_text, extract_bilingual_terms
 

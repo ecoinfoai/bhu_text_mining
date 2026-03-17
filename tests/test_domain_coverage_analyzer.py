@@ -18,7 +18,6 @@ from forma.domain_coverage_analyzer import (
     ClassifiedConcept,
     ConceptEmphasis,
     ConceptState,
-    CoverageResult,
     ExtraConcept,
     TeachingScope,
     build_coverage_result,

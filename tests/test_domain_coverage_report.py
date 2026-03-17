@@ -8,13 +8,10 @@ from __future__ import annotations
 import statistics
 from pathlib import Path
 
-import pytest
 
 from forma.domain_concept_extractor import TextbookConcept
 from forma.domain_coverage_analyzer import (
-    ClassifiedConcept,
     ConceptEmphasis,
-    ConceptState,
     CoverageResult,
     ExtraConcept,
     TeachingScope,
