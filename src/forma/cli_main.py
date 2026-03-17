@@ -125,10 +125,19 @@ _COMMANDS: dict[tuple[str, str | None], tuple[str, str]] = {
     ("backfill", "longitudinal"): (
         "forma.cli_backfill_longitudinal", "main",
     ),
+    ("domain", "extract"): (
+        "forma.cli_domain", "extract_main",
+    ),
+    ("domain", "coverage"): (
+        "forma.cli_domain", "coverage_main",
+    ),
+    ("domain", "report"): (
+        "forma.cli_domain", "report_main",
+    ),
 }
 
 # Groups that have nested subcommands
-_NESTED_GROUPS = {"report", "train", "eval", "lecture", "backfill"}
+_NESTED_GROUPS = {"report", "train", "eval", "lecture", "backfill", "domain"}
 
 
 def _import_delegate(module_path: str, func_name: str):
@@ -234,6 +243,15 @@ def _build_parser() -> _FormaParser:
     backfill_parser = subparsers.add_parser("backfill", help="기존 결과 역채움")
     backfill_sub = backfill_parser.add_subparsers(dest="backfill_sub")
     backfill_sub.add_parser("longitudinal", help="종단 저장소 역채움")
+
+    # --- domain (nested subcommands) ---
+    domain_parser = subparsers.add_parser(
+        "domain", help="교과서-강의 도메인 커버리지 분석",
+    )
+    domain_sub = domain_parser.add_subparsers(dest="domain_sub")
+    domain_sub.add_parser("extract", help="교과서 개념 추출")
+    domain_sub.add_parser("coverage", help="강의 커버리지 분석")
+    domain_sub.add_parser("report", help="커버리지 PDF 보고서 생성")
 
     return parser
 
