@@ -73,6 +73,9 @@ forma-train-grade = "forma.cli_train_grade:main"
 forma-deliver = "forma.cli_deliver:main"
 forma-select = "forma.cli_select:main"
 forma-backfill-longitudinal = "forma.cli_backfill_longitudinal:main"
+forma-report-student = "forma.cli_report_student:main"
+forma-report-student-batch = "forma.cli_report_student:batch_main"
+forma-report-student-summary = "forma.cli_report_student:summary_main"
 
 [tool.pytest.ini_options]
 filterwarnings = [

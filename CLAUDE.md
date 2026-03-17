@@ -31,6 +31,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - YAML files (OCR results, longitudinal store, week config) (016-ocr-confidence)
 - Python >=3.11, <4 + google-genai (Gemini API), anthropic (fallback), PyYAML >=6.0 — 모두 기존 deps, 신규 추가 없음 (018-llm-vision-ocr)
 - YAML 파일 (scan 결과, review_needed), JSON (forma.json 설정) (018-llm-vision-ocr)
+- Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0, numpy <2.1.0, existing `llm_provider.py` (Gemini/Anthropic) (019-student-longitudinal-report)
+- YAML files (longitudinal store), CSV (ID mapping), PDF (output) (019-student-longitudinal-report)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -159,9 +161,9 @@ Python >=3.11, <4: Follow standard conventions
 - `week_config.py` — `+lecture_*` fields in `WeekConfiguration`, `+"lecture_transcript_pattern"` in `_CLASS_PATTERN_FIELDS`, lecture section parsing in `load_week_config()`
 
 ## Recent Changes
+- 019-student-longitudinal-report: Added Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0, numpy <2.1.0, existing `llm_provider.py` (Gemini/Anthropic)
 - 018-llm-vision-ocr: Added Python >=3.11, <4 + google-genai (Gemini API), anthropic (fallback), PyYAML >=6.0 — 모두 기존 deps, 신규 추가 없음
 - 016-ocr-confidence: Added Python >=3.11, <4 + PyYAML >=6.0, ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend) — 전부 기존 deps, 신규 런타임 의존성 없음
-- 015-fix-pipeline-bugs: Added Python >=3.11, <4 + PyYAML >=6.0, argparse (stdlib)
 
 
 <!-- MANUAL ADDITIONS START -->
