@@ -6,11 +6,9 @@ every module for edge cases, security issues, and crash scenarios.
 
 from __future__ import annotations
 
-import io
 import math
 import os
 import re
-from collections import defaultdict
 from unittest.mock import MagicMock
 
 import numpy as np

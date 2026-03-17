@@ -6,9 +6,7 @@ TDD RED phase: tests written before implementation.
 from __future__ import annotations
 
 import os
-import tempfile
 
-import pytest
 import yaml
 
 from forma.student_longitudinal_data import AlertLevel
