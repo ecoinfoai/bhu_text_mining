@@ -245,3 +245,129 @@ class TestReportCLIParsing:
         assert args.course_name == "인체구조와기능"
         assert args.font_path == "/path/to/font.ttf"
         assert args.dpi == 200
+
+
+# ----------------------------------------------------------------
+# T012: v2 CLI extract with --summary, --model
+# ----------------------------------------------------------------
+
+
+class TestExtractCLIV2Options:
+    """Tests for v2 CLI extract options (--summary, --model)."""
+
+    def test_summary_flag_accepted(self) -> None:
+        """--summary flag is accepted and repeatable."""
+        from forma.cli_domain import _build_extract_parser
+
+        parser = _build_extract_parser()
+        args = parser.parse_args([
+            "--textbook", "ch3.txt",
+            "--output", "out.yaml",
+            "--summary", "Ch03_Summary.md",
+        ])
+        assert args.summary == ["Ch03_Summary.md"]
+
+    def test_summary_flag_repeatable(self) -> None:
+        """--summary can be specified multiple times."""
+        from forma.cli_domain import _build_extract_parser
+
+        parser = _build_extract_parser()
+        args = parser.parse_args([
+            "--textbook", "ch3.txt",
+            "--textbook", "ch4.txt",
+            "--output", "out.yaml",
+            "--summary", "Ch03_Summary.md",
+            "--summary", "Ch04_Summary.md",
+        ])
+        assert args.summary == ["Ch03_Summary.md", "Ch04_Summary.md"]
+
+    def test_summary_optional(self) -> None:
+        """--summary is optional; defaults to None."""
+        from forma.cli_domain import _build_extract_parser
+
+        parser = _build_extract_parser()
+        args = parser.parse_args([
+            "--textbook", "ch3.txt",
+            "--output", "out.yaml",
+        ])
+        assert args.summary is None
+
+    def test_model_flag_accepted(self) -> None:
+        """--model flag is accepted."""
+        from forma.cli_domain import _build_extract_parser
+
+        parser = _build_extract_parser()
+        args = parser.parse_args([
+            "--textbook", "ch3.txt",
+            "--output", "out.yaml",
+            "--model", "gemini-2.5-pro",
+        ])
+        assert args.model == "gemini-2.5-pro"
+
+    def test_model_optional(self) -> None:
+        """--model is optional; defaults to None."""
+        from forma.cli_domain import _build_extract_parser
+
+        parser = _build_extract_parser()
+        args = parser.parse_args([
+            "--textbook", "ch3.txt",
+            "--output", "out.yaml",
+        ])
+        assert args.model is None
+
+
+class TestCoverageCLIV2Options:
+    """Tests for v2 CLI coverage options (--model, --no-pedagogy, --no-network)."""
+
+    def test_model_flag_accepted(self) -> None:
+        """--model flag is accepted."""
+        from forma.cli_domain import _build_coverage_parser
+
+        parser = _build_coverage_parser()
+        args = parser.parse_args([
+            "--concepts", "c.yaml",
+            "--transcripts", "t.txt",
+            "--output", "out.yaml",
+            "--model", "gemini-2.5-flash",
+        ])
+        assert args.model == "gemini-2.5-flash"
+
+    def test_no_pedagogy_flag_accepted(self) -> None:
+        """--no-pedagogy flag is accepted."""
+        from forma.cli_domain import _build_coverage_parser
+
+        parser = _build_coverage_parser()
+        args = parser.parse_args([
+            "--concepts", "c.yaml",
+            "--transcripts", "t.txt",
+            "--output", "out.yaml",
+            "--no-pedagogy",
+        ])
+        assert args.no_pedagogy is True
+
+    def test_no_network_flag_accepted(self) -> None:
+        """--no-network flag is accepted."""
+        from forma.cli_domain import _build_coverage_parser
+
+        parser = _build_coverage_parser()
+        args = parser.parse_args([
+            "--concepts", "c.yaml",
+            "--transcripts", "t.txt",
+            "--output", "out.yaml",
+            "--no-network",
+        ])
+        assert args.no_network is True
+
+    def test_defaults_false(self) -> None:
+        """--no-pedagogy and --no-network default to False."""
+        from forma.cli_domain import _build_coverage_parser
+
+        parser = _build_coverage_parser()
+        args = parser.parse_args([
+            "--concepts", "c.yaml",
+            "--transcripts", "t.txt",
+            "--output", "out.yaml",
+        ])
+        assert args.no_pedagogy is False
+        assert args.no_network is False
+        assert args.model is None

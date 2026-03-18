@@ -13,6 +13,7 @@ import re
 __all__ = [
     "clean_textbook_text",
     "extract_bilingual_terms",
+    "prepare_textbook_for_llm",
 ]
 
 
@@ -49,10 +50,54 @@ def clean_textbook_text(raw_text: str) -> str:
     # 3. Standalone page numbers: just a number on a line
     text = re.sub(r"^\s*\d{1,3}\s*$", "", text, flags=re.MULTILINE)
 
-    # 4. Collapse multiple blank lines to single blank line
+    # 4. Standalone figure titles: "그림 3-1 발열의 병인론" (not inline refs like "(그림 3-1)")
+    text = re.sub(r"^그림\s*\d+[-–]\d+\s+.*$", "", text, flags=re.MULTILINE)
+
+    # 5. Standalone table titles: "표 3-1 피부의 구조"
+    text = re.sub(r"^표\s*\d+[-–]\d+\s+.*$", "", text, flags=re.MULTILINE)
+
+    # 6. Quiz/exercise sections: remove from marker line to end of text
+    text = re.sub(
+        r"^(?:문제|퀴즈|복습문제|연습문제)\s*\n.*",
+        "",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    # 7. Collapse multiple blank lines to single blank line
     text = re.sub(r"\n{3,}", "\n\n", text)
 
     return text
+
+
+def prepare_textbook_for_llm(
+    raw_text: str,
+    summary_path: str | None = None,
+) -> tuple[str, str | None]:
+    """Prepare textbook text for LLM concept extraction.
+
+    Cleans the raw text (removing figures, tables, quizzes, etc.) and
+    optionally loads a chapter summary Markdown as structural guide.
+
+    Args:
+        raw_text: Raw PDF-extracted textbook text.
+        summary_path: Optional path to chapter summary Markdown file.
+
+    Returns:
+        Tuple of (cleaned_body, structure_guide). structure_guide is
+        None if no summary_path provided or if the file does not exist.
+    """
+    cleaned_body = clean_textbook_text(raw_text)
+
+    structure_guide: str | None = None
+    if summary_path:
+        from pathlib import Path
+
+        p = Path(summary_path)
+        if p.is_file():
+            structure_guide = p.read_text(encoding="utf-8")
+
+    return cleaned_body, structure_guide
 
 
 def extract_bilingual_terms(text: str) -> list[tuple[str, str]]:

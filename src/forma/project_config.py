@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Known top-level sections in forma.yaml
 _KNOWN_SECTIONS = {
     "project", "classes", "paths", "ocr", "evaluation", "reports",
-    "prediction", "current_week",
+    "prediction", "current_week", "domain_analysis",
 }
 
 # Known keys within each section
@@ -43,6 +43,7 @@ _KNOWN_KEYS: dict[str, set[str]] = {
     },
     "reports": {"dpi", "skip_llm", "aggregate"},
     "prediction": {"model_path"},
+    "domain_analysis": {"extract_model", "coverage_model", "feedback_model"},
 }
 
 # Mapping from forma.yaml nested key to flat field name

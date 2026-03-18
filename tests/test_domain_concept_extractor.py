@@ -266,3 +266,375 @@ class TestConceptCaching:
             # Results may differ since content changed
             # At minimum, extraction ran again (not from stale cache)
             assert "3장 피부" in result2
+
+
+# ================================================================
+# v2 Tests: LLM-based concept extraction (T008-T011)
+# ================================================================
+
+from unittest.mock import MagicMock, patch
+
+from forma.domain_concept_extractor import (
+    DomainConcept,
+    build_extraction_prompt,
+    extract_concepts_llm,
+    extract_multi_chapter_llm,
+)
+
+
+# ----------------------------------------------------------------
+# T008: DomainConcept dataclass and prompt construction
+# ----------------------------------------------------------------
+
+
+class TestDomainConceptDataclass:
+    """Tests for DomainConcept dataclass fields."""
+
+    def test_all_fields_present(self) -> None:
+        """DomainConcept has concept, description, key_terms, importance, section, chapter."""
+        dc = DomainConcept(
+            concept="표피의 4층 구조와 각 층의 역할",
+            description="종자층→과립층→투명층→각질층 순서",
+            key_terms=["표피", "종자층", "과립층"],
+            importance="high",
+            section="1. 피부의 구조 > 1) 표피",
+            chapter="3장 피부",
+        )
+        assert dc.concept == "표피의 4층 구조와 각 층의 역할"
+        assert dc.description == "종자층→과립층→투명층→각질층 순서"
+        assert dc.key_terms == ["표피", "종자층", "과립층"]
+        assert dc.importance == "high"
+        assert dc.section == "1. 피부의 구조 > 1) 표피"
+        assert dc.chapter == "3장 피부"
+
+    def test_importance_values(self) -> None:
+        """importance must be one of high/medium/low."""
+        for val in ("high", "medium", "low"):
+            dc = DomainConcept(
+                concept="test",
+                description="desc",
+                key_terms=["t"],
+                importance=val,
+                section="s",
+                chapter="ch",
+            )
+            assert dc.importance == val
+
+
+class TestBuildExtractionPrompt:
+    """Tests for build_extraction_prompt()."""
+
+    def test_prompt_contains_body_text(self) -> None:
+        """Prompt includes the cleaned body text."""
+        prompt = build_extraction_prompt("피부는 표피와 진피로 구성된다.")
+        assert "피부는 표피와 진피로 구성된다." in prompt
+
+    def test_prompt_requests_yaml_output(self) -> None:
+        """Prompt requests YAML format output."""
+        prompt = build_extraction_prompt("본문 텍스트")
+        assert "YAML" in prompt or "yaml" in prompt
+
+    def test_prompt_includes_stopword_exclusion(self) -> None:
+        """Prompt instructs to exclude everyday words."""
+        prompt = build_extraction_prompt("본문 텍스트")
+        assert "일상용어" in prompt or "것" in prompt
+
+    def test_prompt_with_structure_guide(self) -> None:
+        """Prompt includes structure guide when provided."""
+        prompt = build_extraction_prompt("본문", structure_guide="# 3장 피부\n## 1. 표피")
+        assert "3장 피부" in prompt
+
+    def test_prompt_without_structure_guide(self) -> None:
+        """Prompt works without structure guide."""
+        prompt = build_extraction_prompt("본문 텍스트")
+        assert len(prompt) > 0
+
+
+# ----------------------------------------------------------------
+# T009: extract_concepts_llm with mocked LLM
+# ----------------------------------------------------------------
+
+
+MOCK_LLM_RESPONSE_YAML = """\
+concepts:
+  - concept: "표피의 4층 구조와 각 층의 역할"
+    description: "종자층에서 각질층까지 4개 층의 세포 특성과 기능"
+    key_terms: [표피, 종자층, 과립층, 투명층, 각질층]
+    importance: high
+    section: "1. 피부의 구조 > 1) 표피"
+  - concept: "진피의 구성 요소와 기능"
+    description: "콜라겐 섬유, 혈관, 신경으로 구성된 진피층의 역할"
+    key_terms: [진피, 콜라겐, 혈관, 신경]
+    importance: high
+    section: "1. 피부의 구조 > 2) 진피"
+  - concept: "멜라닌 생성과 자외선 방어"
+    description: "멜라닌세포가 멜라닌 색소를 생성하여 자외선 차단"
+    key_terms: [멜라닌세포, 멜라닌, 자외선]
+    importance: medium
+    section: "2. 피부의 기능 > 1) 보호"
+"""
+
+
+class TestExtractConceptsLLM:
+    """Tests for extract_concepts_llm() with mocked LLM."""
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_returns_domain_concepts(self, mock_create: MagicMock) -> None:
+        """Mocked LLM returning valid YAML produces DomainConcept list."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            concepts = extract_concepts_llm(str(textbook))
+
+        assert len(concepts) == 3
+        assert all(isinstance(c, DomainConcept) for c in concepts)
+        assert concepts[0].concept == "표피의 4층 구조와 각 층의 역할"
+        assert concepts[0].importance == "high"
+        assert "표피" in concepts[0].key_terms
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_malformed_yaml_returns_empty(self, mock_create: MagicMock) -> None:
+        """Malformed LLM output returns empty list."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = "this is not valid yaml: [{"
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            concepts = extract_concepts_llm(str(textbook))
+
+        assert concepts == []
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_missing_fields_skipped(self, mock_create: MagicMock) -> None:
+        """Concepts missing required fields are skipped."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = """\
+concepts:
+  - concept: "유효한 개념"
+    description: "설명"
+    key_terms: [용어1]
+    importance: high
+    section: "1절"
+  - concept: "필드 누락"
+    description: "설명만 있음"
+"""
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            concepts = extract_concepts_llm(str(textbook))
+
+        assert len(concepts) == 1
+        assert concepts[0].concept == "유효한 개념"
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_chapter_name_from_filename(self, mock_create: MagicMock) -> None:
+        """Chapter name is derived from filename stem."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            concepts = extract_concepts_llm(str(textbook))
+
+        assert all(c.chapter == "3장 피부" for c in concepts)
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_summary_path_used(self, mock_create: MagicMock) -> None:
+        """When summary_path provided, it's used as structure guide."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+            summary = Path(tmpdir) / "Ch03_Summary.md"
+            summary.write_text("# 3장 피부\n## 1. 표피", encoding="utf-8")
+
+            concepts = extract_concepts_llm(str(textbook), summary_path=str(summary))
+
+        assert len(concepts) == 3
+        # Verify generate was called (prompt includes structure guide)
+        call_args = mock_provider.generate.call_args
+        assert call_args is not None
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_model_override(self, mock_create: MagicMock) -> None:
+        """model parameter is passed to create_provider."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            extract_concepts_llm(str(textbook), model="gemini-2.5-pro")
+
+        mock_create.assert_called_once_with(model="gemini-2.5-pro")
+
+
+# ----------------------------------------------------------------
+# T010: Concept caching (v2)
+# ----------------------------------------------------------------
+
+
+class TestConceptCachingV2:
+    """Tests for v2 concept caching (hash-based, LLM skip on cache hit)."""
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_cache_hit_skips_llm(self, mock_create: MagicMock) -> None:
+        """When cache exists with matching hash, LLM is not called."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            # First call — LLM called, cache written
+            result1 = extract_concepts_llm(str(textbook))
+            assert mock_provider.generate.call_count == 1
+
+            # Second call — cache hit, no LLM call
+            mock_create.reset_mock()
+            mock_provider.generate.reset_mock()
+            result2 = extract_concepts_llm(str(textbook))
+            assert mock_provider.generate.call_count == 0
+            assert len(result1) == len(result2)
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_cache_invalidated_on_change(self, mock_create: MagicMock) -> None:
+        """When file content changes, cache is invalidated and LLM is called."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            # First call
+            extract_concepts_llm(str(textbook))
+            assert mock_provider.generate.call_count == 1
+
+            # Modify file
+            textbook.write_text(SAMPLE_CHAPTER_TEXT + "\n새로운 내용 추가.", encoding="utf-8")
+
+            # Second call — hash differs, LLM called again
+            extract_concepts_llm(str(textbook))
+            assert mock_provider.generate.call_count == 2
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_no_cache_flag_forces_llm(self, mock_create: MagicMock) -> None:
+        """When no_cache=True, LLM is always called."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            # First call
+            extract_concepts_llm(str(textbook), no_cache=True)
+            # Second call — still calls LLM
+            extract_concepts_llm(str(textbook), no_cache=True)
+            assert mock_provider.generate.call_count == 2
+
+
+# ----------------------------------------------------------------
+# T011: Multi-chapter LLM extraction and YAML round-trip
+# ----------------------------------------------------------------
+
+
+class TestMultiChapterLLMAndYAML:
+    """Tests for multi-chapter LLM extraction and v2 YAML format."""
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_multi_chapter_extraction(self, mock_create: MagicMock) -> None:
+        """extract_multi_chapter_llm processes multiple files."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file1 = Path(tmpdir) / "3장 피부.txt"
+            file2 = Path(tmpdir) / "4장 근육.txt"
+            file1.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+            file2.write_text(SAMPLE_CHAPTER_TEXT_2, encoding="utf-8")
+
+            result = extract_multi_chapter_llm(
+                [str(file1), str(file2)], no_cache=True,
+            )
+
+        assert "3장 피부" in result
+        assert "4장 근육" in result
+        assert len(result["3장 피부"]) > 0
+        assert len(result["4장 근육"]) > 0
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_v2_yaml_round_trip(self, mock_create: MagicMock) -> None:
+        """save_concepts_yaml and load_concepts_yaml handle v2 DomainConcept."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            textbook = Path(tmpdir) / "3장 피부.txt"
+            textbook.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+
+            concepts = extract_concepts_llm(str(textbook), no_cache=True)
+            concepts_by_chapter = {"3장 피부": concepts}
+
+            output_path = Path(tmpdir) / "concepts_v2.yaml"
+            save_concepts_yaml(concepts_by_chapter, str(output_path))
+
+            loaded = load_concepts_yaml(str(output_path))
+            assert "3장 피부" in loaded
+            loaded_concepts = loaded["3장 피부"]
+            assert len(loaded_concepts) == len(concepts)
+
+            # Check v2 fields preserved
+            first = loaded_concepts[0]
+            assert isinstance(first, DomainConcept)
+            assert first.concept == concepts[0].concept
+            assert first.description == concepts[0].description
+            assert first.key_terms == concepts[0].key_terms
+            assert first.importance == concepts[0].importance
+
+    @patch("forma.domain_concept_extractor.create_provider")
+    def test_multi_chapter_with_summaries(self, mock_create: MagicMock) -> None:
+        """extract_multi_chapter_llm accepts summary_paths."""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = MOCK_LLM_RESPONSE_YAML
+        mock_create.return_value = mock_provider
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file1 = Path(tmpdir) / "3장 피부.txt"
+            file1.write_text(SAMPLE_CHAPTER_TEXT, encoding="utf-8")
+            summary1 = Path(tmpdir) / "Ch03_Summary.md"
+            summary1.write_text("# 3장 피부", encoding="utf-8")
+
+            result = extract_multi_chapter_llm(
+                [str(file1)],
+                summary_paths=[str(summary1)],
+                no_cache=True,
+            )
+
+        assert "3장 피부" in result

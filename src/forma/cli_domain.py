@@ -60,20 +60,34 @@ def _build_extract_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="개념 캐시 사용 안 함",
     )
+    parser.add_argument(
+        "--summary",
+        type=str,
+        action="append",
+        default=None,
+        help="챕터 요약 Markdown 파일 경로 (반복 지정 가능, 선택적 구조 가이드)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="LLM 모델 ID 오버라이드 (기본: forma.yaml domain_analysis.extract_model)",
+    )
     return parser
 
 
 def extract_main(argv: list[str] | None = None) -> None:
     """Extract domain concepts from textbook text files.
 
-    Parses CLI arguments, validates input files, runs concept
-    extraction, and saves results to YAML.
+    Uses LLM-based extraction (v2) when --model or --summary is
+    provided. Falls back to v1 (KoNLPy word-level) otherwise.
 
     Args:
         argv: Command-line arguments. Uses sys.argv if None.
     """
     from forma.domain_concept_extractor import (
         extract_multi_chapter,
+        extract_multi_chapter_llm,
         save_concepts_yaml,
     )
 
@@ -89,13 +103,31 @@ def extract_main(argv: list[str] | None = None) -> None:
             )
             raise SystemExit(1)
 
-    # Extract concepts
-    use_cache = not args.no_cache
-    concepts_by_chapter = extract_multi_chapter(
-        textbook_paths=args.textbook,
-        min_freq=args.min_freq,
-        use_cache=use_cache,
-    )
+    # Validate summary files if provided
+    if args.summary:
+        for summary_path in args.summary:
+            if not Path(summary_path).exists():
+                logger.warning("요약 파일을 찾을 수 없습니다: %s", summary_path)
+
+    # Use LLM extraction (v2) when model or summary is specified
+    use_llm = args.model is not None or args.summary is not None
+    no_cache = args.no_cache
+
+    if use_llm:
+        concepts_by_chapter = extract_multi_chapter_llm(
+            textbook_paths=args.textbook,
+            summary_paths=args.summary,
+            model=args.model,
+            no_cache=no_cache,
+        )
+    else:
+        # v1 fallback: KoNLPy word-level extraction
+        use_cache = not no_cache
+        concepts_by_chapter = extract_multi_chapter(
+            textbook_paths=args.textbook,
+            min_freq=args.min_freq,
+            use_cache=use_cache,
+        )
 
     # Save to YAML
     save_concepts_yaml(concepts_by_chapter, args.output)
@@ -166,6 +198,22 @@ def _build_coverage_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="종단 데이터 YAML (형성평가 연결 분석용)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="LLM 모델 ID 오버라이드 (기본: flash)",
+    )
+    parser.add_argument(
+        "--no-pedagogy",
+        action="store_true",
+        help="교수법 분석 생략",
+    )
+    parser.add_argument(
+        "--no-network",
+        action="store_true",
+        help="네트워크 그래프 생성 생략",
     )
     return parser
 
@@ -294,13 +342,13 @@ def _build_report_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma domain report",
-        description="도메인 커버리지 분석 결과 PDF 보고서 생성",
+        description="도메인 전달 분석 결과 PDF 보고서 생성",
     )
     parser.add_argument(
         "--coverage",
         type=str,
         required=True,
-        help="커버리지 분석 결과 YAML (coverage 출력)",
+        help="전달 분석 결과 YAML (coverage/delivery 출력)",
     )
     parser.add_argument(
         "--output",
@@ -330,13 +378,16 @@ def _build_report_parser() -> argparse.ArgumentParser:
 
 
 def report_main(argv: list[str] | None = None) -> None:
-    """Generate PDF report from coverage analysis.
+    """Generate PDF report from delivery analysis.
+
+    Supports both v1 (CoverageResult) and v2 (DeliveryResult) YAML.
 
     Args:
         argv: Command-line arguments. Uses sys.argv if None.
     """
-    from forma.domain_coverage_analyzer import load_coverage_yaml
-    from forma.domain_coverage_report import DomainCoveragePDFReportGenerator
+    import yaml
+
+    from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
 
     parser = _build_report_parser()
     args = parser.parse_args(argv)
@@ -349,11 +400,21 @@ def report_main(argv: list[str] | None = None) -> None:
         )
         raise SystemExit(1)
 
-    # Load coverage result
-    result = load_coverage_yaml(args.coverage)
+    # Detect YAML version and load accordingly
+    with open(args.coverage, encoding="utf-8") as f:
+        raw = yaml.safe_load(f)
+
+    is_v2 = isinstance(raw, dict) and raw.get("version") == "v2"
+
+    if is_v2:
+        from forma.domain_coverage_analyzer import load_delivery_yaml
+        result = load_delivery_yaml(args.coverage)
+    else:
+        from forma.domain_coverage_analyzer import load_coverage_yaml
+        result = load_coverage_yaml(args.coverage)
 
     # Generate PDF
-    generator = DomainCoveragePDFReportGenerator(
+    generator = DomainDeliveryPDFReportGenerator(
         font_path=args.font_path,
         dpi=args.dpi,
     )
