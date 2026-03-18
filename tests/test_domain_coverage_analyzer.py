@@ -5,6 +5,10 @@ T017: compute_concept_emphasis (mocked)
 T018: classify_concepts
 T019: CoverageResult
 T020: detect_extra_concepts
+
+v2 tests:
+T020-T024: Delivery analysis (LLM mock)
+T034-T035: Network comparison
 """
 
 from __future__ import annotations
@@ -18,14 +22,24 @@ from forma.domain_coverage_analyzer import (
     ClassifiedConcept,
     ConceptEmphasis,
     ConceptState,
+    DeliveryAnalysis,
+    DeliveryResult,
+    DeliveryState,
     ExtraConcept,
+    KeywordNetwork,
     TeachingScope,
     build_coverage_result,
+    build_delivery_prompt,
+    build_delivery_result_v2,
+    build_domain_network,
     classify_concepts,
+    compare_networks,
     load_coverage_yaml,
+    load_delivery_yaml,
     parse_scope_string,
     parse_teaching_scope,
     save_coverage_yaml,
+    save_delivery_yaml,
 )
 
 
@@ -465,3 +479,521 @@ class TestCoverageYAMLIO:
         )
         assert len(loaded.classified_concepts) == len(original.classified_concepts)
         assert len(loaded.extra_concepts) == len(original.extra_concepts)
+
+
+# ================================================================
+# v2: Delivery Analysis Tests (T020-T024)
+# ================================================================
+
+
+class TestDeliveryDataclasses:
+    """T020: DeliveryAnalysis dataclass and DeliveryState enum."""
+
+    def test_delivery_state_values(self) -> None:
+        """DeliveryState enum has expected values."""
+        assert DeliveryState.FULLY_DELIVERED.value == "충분히 설명"
+        assert DeliveryState.PARTIALLY_DELIVERED.value == "부분 전달"
+        assert DeliveryState.NOT_DELIVERED.value == "미전달"
+        assert DeliveryState.SKIPPED.value == "의도적 생략"
+
+    def test_delivery_analysis_creation(self) -> None:
+        """DeliveryAnalysis can be created with all fields."""
+        da = DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.85,
+            evidence="표피는 4개의 층으로 구성됩니다.",
+            depth="메커니즘과 임상 적용까지 설명",
+            analysis_level="v2",
+        )
+        assert da.concept == "표피의 4층 구조"
+        assert da.section_id == "A"
+        assert da.delivery_quality == 0.85
+        assert da.analysis_level == "v2"
+
+    def test_delivery_analysis_default_level(self) -> None:
+        """DeliveryAnalysis defaults to analysis_level='v2'."""
+        da = DeliveryAnalysis(
+            concept="test",
+            section_id="A",
+            delivery_status="미전달",
+            delivery_quality=0.0,
+            evidence="",
+            depth="",
+        )
+        assert da.analysis_level == "v2"
+
+
+class TestDeliveryLLMAnalysis:
+    """T021: analyze_delivery_llm with mocked LLM."""
+
+    def test_fully_delivered_parsing(self, tmp_path) -> None:
+        """LLM response with '충분히 설명' parsed correctly."""
+        transcript = tmp_path / "1A_2주차_1차시.txt"
+        transcript.write_text("표피는 4개의 층으로 구성됩니다.", encoding="utf-8")
+
+        mock_response = """\
+deliveries:
+  - concept: "표피의 4층 구조"
+    delivery_status: "충분히 설명"
+    delivery_quality: 0.9
+    evidence: "표피는 4개의 층으로 구성됩니다."
+    depth: "상세 설명"
+"""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = mock_response
+
+        with patch(
+            "forma.llm_provider.create_provider",
+            return_value=mock_provider,
+        ):
+            from forma.domain_coverage_analyzer import analyze_delivery_llm
+
+            result = analyze_delivery_llm(
+                concepts=["표피의 4층 구조"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert len(result) == 1
+        assert result[0].delivery_status == "충분히 설명"
+        assert result[0].delivery_quality == pytest.approx(0.9, abs=0.01)
+        assert result[0].analysis_level == "v2"
+
+    def test_partial_delivery_parsing(self, tmp_path) -> None:
+        """LLM response with '부분 전달' parsed correctly."""
+        transcript = tmp_path / "1B_2주차_1차시.txt"
+        transcript.write_text("진피라는 것이 있습니다.", encoding="utf-8")
+
+        mock_response = """\
+deliveries:
+  - concept: "진피의 구조"
+    delivery_status: "부분 전달"
+    delivery_quality: 0.4
+    evidence: "진피라는 것이 있습니다."
+    depth: "용어만 언급, 메커니즘 미설명"
+"""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = mock_response
+
+        with patch(
+            "forma.llm_provider.create_provider",
+            return_value=mock_provider,
+        ):
+            from forma.domain_coverage_analyzer import analyze_delivery_llm
+
+            result = analyze_delivery_llm(
+                concepts=["진피의 구조"],
+                transcript_path=str(transcript),
+                section_id="B",
+            )
+
+        assert len(result) == 1
+        assert result[0].delivery_status == "부분 전달"
+        assert result[0].section_id == "B"
+
+    def test_not_delivered_parsing(self, tmp_path) -> None:
+        """LLM response with '미전달' parsed correctly."""
+        transcript = tmp_path / "1C_2주차_1차시.txt"
+        transcript.write_text("오늘은 근육에 대해 알아봅시다.", encoding="utf-8")
+
+        mock_response = """\
+deliveries:
+  - concept: "표피의 4층 구조"
+    delivery_status: "미전달"
+    delivery_quality: 0.0
+    evidence: ""
+    depth: ""
+"""
+        mock_provider = MagicMock()
+        mock_provider.generate.return_value = mock_response
+
+        with patch(
+            "forma.llm_provider.create_provider",
+            return_value=mock_provider,
+        ):
+            from forma.domain_coverage_analyzer import analyze_delivery_llm
+
+            result = analyze_delivery_llm(
+                concepts=["표피의 4층 구조"],
+                transcript_path=str(transcript),
+                section_id="C",
+            )
+
+        assert len(result) == 1
+        assert result[0].delivery_status == "미전달"
+        assert result[0].delivery_quality == 0.0
+
+
+class TestV1FallbackAnalysis:
+    """T022: v1 fallback when LLM raises exception."""
+
+    def test_fallback_marks_v1_level(self, tmp_path) -> None:
+        """v1 fallback sets analysis_level='v1'."""
+        transcript = tmp_path / "1A_2주차_1차시.txt"
+        transcript.write_text("표피는 중요하다. 세포막도 중요하다.", encoding="utf-8")
+
+        mock_emphasis = MagicMock()
+        mock_emphasis.concept_scores = {"표피": 0.5, "세포막": 0.03}
+
+        with patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis,
+        ):
+            from forma.domain_coverage_analyzer import v1_fallback_analysis
+
+            result = v1_fallback_analysis(
+                concepts=["표피", "세포막"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert len(result) == 2
+        assert all(d.analysis_level == "v1" for d in result)
+
+    def test_fallback_fully_threshold(self, tmp_path) -> None:
+        """Score >= 0.3 maps to FULLY_DELIVERED."""
+        transcript = tmp_path / "test.txt"
+        transcript.write_text("표피는 매우 중요합니다.", encoding="utf-8")
+
+        mock_emphasis = MagicMock()
+        mock_emphasis.concept_scores = {"표피": 0.5}
+
+        with patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis,
+        ):
+            from forma.domain_coverage_analyzer import v1_fallback_analysis
+
+            result = v1_fallback_analysis(
+                concepts=["표피"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert result[0].delivery_status == "충분히 설명"
+
+    def test_fallback_partial_threshold(self, tmp_path) -> None:
+        """Score >= 0.05 and < 0.3 maps to PARTIALLY_DELIVERED."""
+        transcript = tmp_path / "test.txt"
+        transcript.write_text("표피 언급.", encoding="utf-8")
+
+        mock_emphasis = MagicMock()
+        mock_emphasis.concept_scores = {"표피": 0.1}
+
+        with patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis,
+        ):
+            from forma.domain_coverage_analyzer import v1_fallback_analysis
+
+            result = v1_fallback_analysis(
+                concepts=["표피"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert result[0].delivery_status == "부분 전달"
+
+    def test_fallback_not_delivered_threshold(self, tmp_path) -> None:
+        """Score < 0.05 maps to NOT_DELIVERED."""
+        transcript = tmp_path / "test.txt"
+        transcript.write_text("오늘은 다른 주제입니다.", encoding="utf-8")
+
+        mock_emphasis = MagicMock()
+        mock_emphasis.concept_scores = {"표피": 0.01}
+
+        with patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis,
+        ):
+            from forma.domain_coverage_analyzer import v1_fallback_analysis
+
+            result = v1_fallback_analysis(
+                concepts=["표피"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert result[0].delivery_status == "미전달"
+
+
+class TestAnalyzeDeliveryWithFallback:
+    """T023: LLM failure triggers v1 fallback."""
+
+    def test_llm_exception_triggers_fallback(self, tmp_path) -> None:
+        """When LLM raises, fallback returns v1 results."""
+        transcript = tmp_path / "1A_2주차_1차시.txt"
+        transcript.write_text("표피는 중요합니다.", encoding="utf-8")
+
+        mock_emphasis = MagicMock()
+        mock_emphasis.concept_scores = {"표피": 0.5}
+
+        with patch(
+            "forma.domain_coverage_analyzer.analyze_delivery_llm",
+            side_effect=RuntimeError("LLM unavailable"),
+        ), patch(
+            "forma.emphasis_map.compute_emphasis_map",
+            return_value=mock_emphasis,
+        ):
+            from forma.domain_coverage_analyzer import (
+                analyze_delivery_with_fallback,
+            )
+
+            result = analyze_delivery_with_fallback(
+                concepts=["표피"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert len(result) == 1
+        assert result[0].analysis_level == "v1"
+
+    def test_llm_success_returns_v2(self, tmp_path) -> None:
+        """When LLM succeeds, returns v2 results."""
+        transcript = tmp_path / "1A_2주차_1차시.txt"
+        transcript.write_text("표피는 중요합니다.", encoding="utf-8")
+
+        v2_result = [
+            DeliveryAnalysis(
+                concept="표피",
+                section_id="A",
+                delivery_status="충분히 설명",
+                delivery_quality=0.9,
+                evidence="표피는 중요합니다.",
+                depth="상세",
+                analysis_level="v2",
+            ),
+        ]
+
+        with patch(
+            "forma.domain_coverage_analyzer.analyze_delivery_llm",
+            return_value=v2_result,
+        ):
+            from forma.domain_coverage_analyzer import (
+                analyze_delivery_with_fallback,
+            )
+
+            result = analyze_delivery_with_fallback(
+                concepts=["표피"],
+                transcript_path=str(transcript),
+                section_id="A",
+            )
+
+        assert len(result) == 1
+        assert result[0].analysis_level == "v2"
+
+
+class TestTeachingScopeSkipped:
+    """T024: Out-of-scope concepts → SKIPPED delivery status."""
+
+    def test_out_of_scope_concept_is_skipped(self) -> None:
+        """DeliveryState.SKIPPED value matches data model."""
+        assert DeliveryState.SKIPPED.value == "의도적 생략"
+
+    def test_scope_filtering(self) -> None:
+        """Concepts not in scope should be identified as skipped."""
+        scope = TeachingScope(chapters=["1장"], scope_rules={})
+        concept = _make_concept("근육", chapter="5장")
+        assert scope.is_in_scope(concept) is False
+
+
+class TestDeliveryResult:
+    """T025: DeliveryResult effective_delivery_rate."""
+
+    def test_effective_delivery_rate(self) -> None:
+        """(fully + partially) / in_scope."""
+        deliveries = [
+            DeliveryAnalysis("c1", "A", "충분히 설명", 0.9, "", "", "v2"),
+            DeliveryAnalysis("c2", "A", "부분 전달", 0.4, "", "", "v2"),
+            DeliveryAnalysis("c3", "A", "미전달", 0.0, "", "", "v2"),
+        ]
+        scope = TeachingScope(chapters=["3장"])
+        result = build_delivery_result_v2(
+            deliveries, scope, ["c1", "c2", "c3"],
+        )
+        # 2 delivered out of 3
+        assert result.effective_delivery_rate == pytest.approx(2 / 3, abs=0.01)
+
+    def test_per_section_rate(self) -> None:
+        """Per-section rates computed correctly."""
+        deliveries = [
+            DeliveryAnalysis("c1", "A", "충분히 설명", 0.9, "", "", "v2"),
+            DeliveryAnalysis("c2", "A", "미전달", 0.0, "", "", "v2"),
+            DeliveryAnalysis("c1", "B", "부분 전달", 0.4, "", "", "v2"),
+            DeliveryAnalysis("c2", "B", "부분 전달", 0.3, "", "", "v2"),
+        ]
+        scope = TeachingScope(chapters=["3장"])
+        result = build_delivery_result_v2(
+            deliveries, scope, ["c1", "c2"],
+        )
+        assert result.per_section_rate["A"] == pytest.approx(0.5, abs=0.01)
+        assert result.per_section_rate["B"] == pytest.approx(1.0, abs=0.01)
+
+    def test_empty_deliveries(self) -> None:
+        """Empty deliveries gives 0 rate."""
+        scope = TeachingScope(chapters=["3장"])
+        result = build_delivery_result_v2([], scope, [])
+        assert result.effective_delivery_rate == 0.0
+
+
+class TestDeliveryYAMLIO:
+    """T032: Delivery YAML round-trip."""
+
+    def test_save_load_roundtrip(self, tmp_path) -> None:
+        """Save and load produces equivalent DeliveryResult."""
+        deliveries = [
+            DeliveryAnalysis("c1", "A", "충분히 설명", 0.9, "증거", "깊이", "v2"),
+            DeliveryAnalysis("c2", "A", "미전달", 0.0, "", "", "v1"),
+        ]
+        original = DeliveryResult(
+            week=2,
+            chapters=["3장"],
+            deliveries=deliveries,
+            effective_delivery_rate=0.5,
+            per_section_rate={"A": 0.5},
+        )
+
+        path = str(tmp_path / "delivery.yaml")
+        save_delivery_yaml(original, path)
+        loaded = load_delivery_yaml(path)
+
+        assert loaded.week == original.week
+        assert loaded.chapters == original.chapters
+        assert loaded.effective_delivery_rate == pytest.approx(
+            original.effective_delivery_rate, abs=0.001,
+        )
+        assert len(loaded.deliveries) == 2
+        assert loaded.deliveries[0].concept == "c1"
+        assert loaded.deliveries[0].analysis_level == "v2"
+        assert loaded.deliveries[1].analysis_level == "v1"
+
+
+class TestBuildDeliveryPrompt:
+    """T027: build_delivery_prompt."""
+
+    def test_prompt_contains_concepts(self) -> None:
+        """Prompt includes all concept names."""
+        prompt = build_delivery_prompt(
+            concepts=["표피의 4층 구조", "진피의 구조"],
+            transcript_text="강의 내용...",
+        )
+        assert "표피의 4층 구조" in prompt
+        assert "진피의 구조" in prompt
+        assert "강의 내용..." in prompt
+
+    def test_prompt_contains_yaml_format(self) -> None:
+        """Prompt includes YAML output format instructions."""
+        prompt = build_delivery_prompt(["test"], "text")
+        assert "deliveries:" in prompt
+        assert "delivery_status" in prompt
+
+
+# ================================================================
+# v2: Network Comparison Tests (T034-T035)
+# ================================================================
+
+
+class TestBuildDomainNetwork:
+    """T034: build_domain_network filters to domain terms."""
+
+    def test_filters_to_key_terms(self) -> None:
+        """Network only contains nodes from key_terms."""
+        import networkx as nx
+
+        mock_graph = nx.Graph()
+        mock_graph.add_edge("세포막", "인지질", weight=2.0)
+        mock_graph.nodes["세포막"]["frequency"] = 2
+        mock_graph.nodes["인지질"]["frequency"] = 2
+
+        with patch(
+            "forma.network_analysis.extract_keywords",
+            return_value=["세포막", "인지질", "세포막", "인지질"],
+        ), patch(
+            "forma.network_analysis.create_network",
+            return_value=mock_graph,
+        ):
+            net = build_domain_network(
+                text="세포막은 인지질로 구성. 오늘은 세포막을 배운다.",
+                key_terms=["세포막", "인지질"],
+                source="textbook",
+            )
+
+        assert "세포막" in net.nodes
+        assert "인지질" in net.nodes
+        assert net.source == "textbook"
+        assert len(net.edges) == 1
+
+    def test_empty_text_returns_empty_network(self) -> None:
+        """Empty filtered keywords return empty network."""
+        with patch(
+            "forma.network_analysis.extract_keywords",
+            return_value=["오늘", "다른"],
+        ):
+            net = build_domain_network(
+                text="오늘은 다른 주제입니다.",
+                key_terms=["세포막"],
+            )
+
+        assert net.nodes == []
+        assert net.edges == []
+
+
+class TestCompareNetworks:
+    """T035: compare_networks identifies missing edges."""
+
+    def test_missing_edges_detected(self) -> None:
+        """Edges in textbook but not in lecture are detected."""
+        textbook = KeywordNetwork(
+            source="textbook",
+            nodes=["세포막", "인지질", "콜레스테롤"],
+            edges=[
+                ("세포막", "인지질", 3.0),
+                ("세포막", "콜레스테롤", 2.0),
+                ("인지질", "콜레스테롤", 1.0),
+            ],
+        )
+        lecture = KeywordNetwork(
+            source="A",
+            nodes=["세포막", "인지질"],
+            edges=[
+                ("세포막", "인지질", 2.0),
+            ],
+        )
+
+        missing = compare_networks(textbook, lecture)
+
+        # Should find 2 missing edges
+        assert len(missing) == 2
+        missing_sets = [frozenset(e) for e in missing]
+        assert frozenset({"세포막", "콜레스테롤"}) in missing_sets
+        assert frozenset({"인지질", "콜레스테롤"}) in missing_sets
+
+    def test_no_missing_edges(self) -> None:
+        """When lecture has all textbook edges, missing is empty."""
+        textbook = KeywordNetwork(
+            source="textbook",
+            nodes=["A", "B"],
+            edges=[("A", "B", 1.0)],
+        )
+        lecture = KeywordNetwork(
+            source="A",
+            nodes=["A", "B"],
+            edges=[("A", "B", 2.0)],
+        )
+
+        missing = compare_networks(textbook, lecture)
+        assert missing == []
+
+    def test_empty_textbook_returns_empty(self) -> None:
+        """Empty textbook network means no missing edges."""
+        textbook = KeywordNetwork(source="textbook", nodes=[], edges=[])
+        lecture = KeywordNetwork(
+            source="A",
+            nodes=["A"],
+            edges=[("A", "B", 1.0)],
+        )
+
+        missing = compare_networks(textbook, lecture)
+        assert missing == []
