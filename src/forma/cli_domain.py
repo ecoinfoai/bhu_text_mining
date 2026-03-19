@@ -39,9 +39,9 @@ def _build_extract_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--textbook",
         type=str,
-        required=True,
         action="append",
-        help="교과서 챕터 텍스트 파일 경로 (반복 지정 가능)",
+        default=None,
+        help="교과서 챕터 텍스트 파일 경로 (반복 지정 가능, --summary와 택일)",
     )
     parser.add_argument(
         "--output",
@@ -94,29 +94,45 @@ def extract_main(argv: list[str] | None = None) -> None:
     parser = _build_extract_parser()
     args = parser.parse_args(argv)
 
+    # Must have at least one of --textbook or --summary
+    if not args.textbook and not args.summary:
+        print(
+            "오류: --textbook 또는 --summary 중 하나 이상 지정해야 합니다.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    # When only --summary given, use summary files as textbook input for LLM
+    if not args.textbook and args.summary:
+        input_paths = args.summary
+        summary_paths = None  # summary IS the input, no separate guide
+        use_llm = True
+    else:
+        input_paths = args.textbook
+        summary_paths = args.summary
+        use_llm = args.model is not None or args.summary is not None
+
     # Validate input files exist
-    for textbook_path in args.textbook:
-        if not Path(textbook_path).exists():
+    for path in input_paths:
+        if not Path(path).exists():
             print(
-                f"오류: 파일을 찾을 수 없습니다: {textbook_path}",
+                f"오류: 파일을 찾을 수 없습니다: {path}",
                 file=sys.stderr,
             )
             raise SystemExit(1)
 
-    # Validate summary files if provided
-    if args.summary:
-        for summary_path in args.summary:
+    # Validate summary files if provided separately
+    if summary_paths:
+        for summary_path in summary_paths:
             if not Path(summary_path).exists():
                 logger.warning("요약 파일을 찾을 수 없습니다: %s", summary_path)
 
-    # Use LLM extraction (v2) when model or summary is specified
-    use_llm = args.model is not None or args.summary is not None
     no_cache = args.no_cache
 
     if use_llm:
         concepts_by_chapter = extract_multi_chapter_llm(
-            textbook_paths=args.textbook,
-            summary_paths=args.summary,
+            textbook_paths=input_paths,
+            summary_paths=summary_paths,
             model=args.model,
             no_cache=no_cache,
         )
@@ -124,7 +140,7 @@ def extract_main(argv: list[str] | None = None) -> None:
         # v1 fallback: KoNLPy word-level extraction
         use_cache = not no_cache
         concepts_by_chapter = extract_multi_chapter(
-            textbook_paths=args.textbook,
+            textbook_paths=input_paths,
             min_freq=args.min_freq,
             use_cache=use_cache,
         )

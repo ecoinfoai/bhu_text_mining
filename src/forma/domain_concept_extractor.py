@@ -541,20 +541,20 @@ _EXTRACTION_PROMPT_TEMPLATE = """\
 3. 해부생리학 도메인 전문 개념만 추출하세요.
 4. 각 개념에 대해 다음 필드를 포함하세요:
    - concept: 의미 단위 이름 (예: "표피의 4층 구조와 각 층의 역할")
-   - description: 개념 설명
-   - key_terms: 핵심 도메인 용어 리스트 (한국어)
+   - description: 개념을 15자 이내로 간결하게 설명
+   - key_terms: 핵심 도메인 용어 3~5개 (한국어)
    - importance: high / medium / low
    - section: 교과서 내 소속 절
+5. 최대 30개 개념만 추출하세요. importance가 높은 순으로 선별하세요.
+6. description은 반드시 짧게 작성하세요. 긴 문장은 금지합니다.
 
-## 출력 형식 (YAML)
-```yaml
+## 출력 형식 (YAML, 코드 펜스 없이 바로 출력)
 concepts:
   - concept: "개념 이름"
-    description: "설명"
-    key_terms: [용어1, 용어2]
+    description: "15자 이내 간결 설명"
+    key_terms: [용어1, 용어2, 용어3]
     importance: high
     section: "절 이름"
-```
 
 {structure_section}
 
@@ -595,6 +595,39 @@ def build_extraction_prompt(
 # ----------------------------------------------------------------
 
 
+def _recover_truncated_yaml(text: str) -> dict | None:
+    """Try to recover a truncated YAML concept list.
+
+    Strategy: find the last complete ``- concept:`` entry by scanning
+    backwards for a line matching ``  - concept:`` and truncating there,
+    then re-parse.
+
+    Returns:
+        Parsed dict with 'concepts' key, or None on failure.
+    """
+    lines = text.split("\n")
+    # Walk backwards to find the last *complete* concept block start
+    # A concept block is complete if there's another ``- concept:`` after it
+    # (meaning the *previous* block finished). So find the second-to-last marker.
+    markers = [i for i, ln in enumerate(lines) if ln.strip().startswith("- concept:")]
+    if len(markers) < 2:
+        return None
+
+    # Keep everything up to (but not including) the last incomplete block
+    truncated = "\n".join(lines[: markers[-1]])
+    try:
+        data = yaml.safe_load(truncated)
+        if isinstance(data, dict) and "concepts" in data:
+            logger.info(
+                "잘린 응답 구제 성공: %d개 개념 파싱됨",
+                len(data["concepts"]),
+            )
+            return data
+    except yaml.YAMLError:
+        pass
+    return None
+
+
 def _parse_llm_concepts(
     response_text: str,
     chapter_name: str,
@@ -620,9 +653,15 @@ def _parse_llm_concepts(
 
     try:
         data = yaml.safe_load(text)
-    except yaml.YAMLError:
-        logger.warning("LLM 응답 YAML 파싱 실패")
-        return []
+    except yaml.YAMLError as exc:
+        # Truncated response recovery: cut back to last complete concept entry
+        logger.warning("YAML 파싱 실패, 잘린 응답 구제 시도: %s", exc)
+        data = _recover_truncated_yaml(text)
+        if data is None:
+            logger.warning(
+                "구제 실패\n--- 응답 원문 (처음 500자) ---\n%s", text[:500],
+            )
+            return []
 
     if not isinstance(data, dict) or "concepts" not in data:
         logger.warning("LLM 응답에 'concepts' 키가 없음")
@@ -717,15 +756,29 @@ def _load_v2_cache(file_path: str) -> list[DomainConcept] | None:
 def create_provider(model: str | None = None):
     """Create LLM provider for concept extraction.
 
+    Reads API key from config.json / forma.json via ``load_config()``
+    before falling back to environment variables.
+
     Args:
         model: Optional model ID override.
 
     Returns:
         LLMProvider instance.
     """
+    from forma.config import get_llm_config, load_config
     from forma.llm_provider import create_provider as _create
 
-    return _create(model=model)
+    try:
+        cfg = load_config()
+        llm_cfg = get_llm_config(cfg)
+    except FileNotFoundError:
+        llm_cfg = {}
+
+    return _create(
+        provider=llm_cfg.get("provider", "gemini"),
+        api_key=llm_cfg.get("api_key"),
+        model=model or llm_cfg.get("model"),
+    )
 
 
 def extract_concepts_llm(
@@ -784,7 +837,7 @@ def extract_concepts_llm(
     try:
         response = provider.generate(
             prompt=prompt,
-            max_tokens=4096,
+            max_tokens=16384,
             temperature=0.0,
             system_instruction=_SYSTEM_INSTRUCTION,
         )

@@ -1104,7 +1104,14 @@ def analyze_delivery_llm(
     Raises:
         Exception: If LLM call fails (caller should handle fallback).
     """
+    from forma.config import get_llm_config, load_config
     from forma.llm_provider import create_provider
+
+    try:
+        cfg = load_config()
+        llm_cfg = get_llm_config(cfg)
+    except FileNotFoundError:
+        llm_cfg = {}
 
     path = Path(transcript_path)
     try:
@@ -1113,7 +1120,11 @@ def analyze_delivery_llm(
         transcript_text = path.read_text(encoding="euc-kr")
 
     prompt = build_delivery_prompt(concepts, transcript_text)
-    provider = create_provider(model=model)
+    provider = create_provider(
+        provider=llm_cfg.get("provider", "gemini"),
+        api_key=llm_cfg.get("api_key"),
+        model=model or llm_cfg.get("model"),
+    )
 
     response = provider.generate(
         prompt=prompt,
