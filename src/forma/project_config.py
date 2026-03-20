@@ -43,7 +43,7 @@ _KNOWN_KEYS: dict[str, set[str]] = {
     },
     "reports": {"dpi", "skip_llm", "aggregate"},
     "prediction": {"model_path"},
-    "domain_analysis": {"extract_model", "coverage_model", "feedback_model"},
+    "domain_analysis": {"extract_model", "coverage_model", "feedback_model", "quality_weights", "llm_calls"},
 }
 
 # Mapping from forma.yaml nested key to flat field name

@@ -73,6 +73,20 @@ def _build_extract_parser() -> argparse.ArgumentParser:
         default=None,
         help="LLM 모델 ID 오버라이드 (기본: forma.yaml domain_analysis.extract_model)",
     )
+    chunk_group = parser.add_mutually_exclusive_group()
+    chunk_group.add_argument(
+        "--chunk",
+        dest="force_chunk",
+        action="store_true",
+        default=None,
+        help="청크 분할 강제 사용 (작은 파일도 청크 분할)",
+    )
+    chunk_group.add_argument(
+        "--no-chunk",
+        dest="force_chunk",
+        action="store_false",
+        help="청크 분할 사용 안 함 (큰 파일도 단일 호출)",
+    )
     return parser
 
 
@@ -86,6 +100,7 @@ def extract_main(argv: list[str] | None = None) -> None:
         argv: Command-line arguments. Uses sys.argv if None.
     """
     from forma.domain_concept_extractor import (
+        extract_concepts_llm,
         extract_multi_chapter,
         extract_multi_chapter_llm,
         save_concepts_yaml,
@@ -128,14 +143,32 @@ def extract_main(argv: list[str] | None = None) -> None:
                 logger.warning("요약 파일을 찾을 수 없습니다: %s", summary_path)
 
     no_cache = args.no_cache
+    force_chunk = args.force_chunk  # None=auto, True=force, False=disable
 
     if use_llm:
-        concepts_by_chapter = extract_multi_chapter_llm(
-            textbook_paths=input_paths,
-            summary_paths=summary_paths,
-            model=args.model,
-            no_cache=no_cache,
-        )
+        # If force_chunk is specified, use per-file extraction with chunk control
+        if force_chunk is not None:
+            concepts_by_chapter = {}
+            for i, path_str in enumerate(input_paths):
+                chapter_name = Path(path_str).stem
+                sp = None
+                if summary_paths and i < len(summary_paths):
+                    sp = summary_paths[i]
+                concepts_by_chapter[chapter_name] = extract_concepts_llm(
+                    textbook_path=path_str,
+                    summary_path=sp,
+                    model=args.model,
+                    chapter_name=chapter_name,
+                    no_cache=no_cache,
+                    force_chunk=force_chunk,
+                )
+        else:
+            concepts_by_chapter = extract_multi_chapter_llm(
+                textbook_paths=input_paths,
+                summary_paths=summary_paths,
+                model=args.model,
+                no_cache=no_cache,
+            )
     else:
         # v1 fallback: KoNLPy word-level extraction
         use_cache = not no_cache
@@ -231,6 +264,11 @@ def _build_coverage_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="네트워크 그래프 생성 생략",
     )
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="LLM 호출 생략 (임베딩/용어/밀도 신호만 사용)",
+    )
     return parser
 
 
@@ -245,13 +283,12 @@ def coverage_main(argv: list[str] | None = None) -> None:
     from forma.domain_concept_extractor import load_concepts_yaml
     from forma.domain_coverage_analyzer import (
         TeachingScope,
-        build_coverage_result,
-        classify_concepts,
-        compute_concept_emphasis,
-        detect_extra_concepts,
+        _infer_section_from_filename,
+        analyze_delivery_llm,
+        build_delivery_result_v2,
         parse_scope_string,
         parse_teaching_scope,
-        save_coverage_yaml,
+        save_delivery_yaml,
     )
 
     parser = _build_coverage_parser()
@@ -283,6 +320,11 @@ def coverage_main(argv: list[str] | None = None) -> None:
         print("오류: 개념 목록이 비어 있습니다.", file=sys.stderr)
         raise SystemExit(1)
 
+    concept_names = [
+        getattr(c, "concept", None) or getattr(c, "name_ko", "")
+        for c in all_concepts
+    ]
+
     # Build teaching scope
     week = 0
     if args.week_config:
@@ -297,7 +339,6 @@ def coverage_main(argv: list[str] | None = None) -> None:
         scope = parse_teaching_scope(week_data)
         week = week_data.get("week", 0)
     else:
-        # Default: all chapters in scope, no restrictions
         all_chapters = sorted(concepts_by_chapter.keys())
         scope = TeachingScope(chapters=all_chapters, scope_rules={})
 
@@ -305,42 +346,64 @@ def coverage_main(argv: list[str] | None = None) -> None:
     if args.scope:
         scope_rules = parse_scope_string(args.scope)
         scope.scope_rules.update(scope_rules)
-        # Add any chapters from scope override
         for ch in scope_rules:
             if ch not in scope.chapters:
                 scope.chapters.append(ch)
 
-    # Compute emphasis
-    emphasis_list = compute_concept_emphasis(
-        transcript_paths=args.transcripts,
-        concepts=all_concepts,
-        threshold=args.threshold,
-    )
+    # T029: Load quality_weights from config
+    quality_weights = None
+    try:
+        from forma.config import get_quality_weights, load_config as _load_cfg
+        _cfg = _load_cfg()
+        quality_weights = get_quality_weights(_cfg)
+    except (FileNotFoundError, ImportError):
+        pass
 
-    # Classify concepts
-    classified = classify_concepts(all_concepts, emphasis_list, scope)
+    no_llm = args.no_llm
 
-    # Detect extra concepts
-    extras = detect_extra_concepts(
-        transcript_paths=args.transcripts,
-        concepts=all_concepts,
-    )
+    # LLM delivery analysis per transcript
+    all_deliveries = []
+    for transcript_path in args.transcripts:
+        section_id = _infer_section_from_filename(Path(transcript_path).name)
+        try:
+            deliveries = analyze_delivery_llm(
+                concepts=concept_names,
+                transcript_path=transcript_path,
+                section_id=section_id,
+                model=args.model,
+                no_llm=no_llm,
+                quality_weights=quality_weights,
+            )
+            all_deliveries.extend(deliveries)
+            logger.info(
+                "전달 분석 완료: %s (분반 %s, %d개 개념)",
+                transcript_path, section_id, len(deliveries),
+            )
+        except Exception:
+            logger.warning(
+                "LLM 전달 분석 실패: %s", transcript_path, exc_info=True,
+            )
 
-    # Build result
-    result = build_coverage_result(
-        classified=classified,
-        extras=extras,
+    if not all_deliveries:
+        print("오류: 모든 녹취록에서 전달 분석에 실패했습니다.", file=sys.stderr)
+        raise SystemExit(1)
+
+    # Build v2 result
+    result = build_delivery_result_v2(
+        deliveries=all_deliveries,
+        scope=scope,
+        concepts=concept_names,
         week=week,
         chapters=scope.chapters,
     )
 
     # Save
-    save_coverage_yaml(result, args.output)
+    save_delivery_yaml(result, args.output)
 
     logger.info(
-        "커버리지 분석 완료: %d개 개념, 커버리지 %.1f%% → %s",
-        result.total_textbook_concepts,
-        result.effective_coverage_rate * 100,
+        "전달 분석 완료: %d개 개념, 전달률 %.1f%% → %s",
+        len(concept_names),
+        result.effective_delivery_rate * 100,
         args.output,
     )
 

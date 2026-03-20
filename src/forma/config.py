@@ -179,3 +179,52 @@ def get_llm_config(config: dict) -> dict:
         "api_key": llm.get("api_key"),
         "model": llm.get("model"),
     }
+
+
+_DEFAULT_QUALITY_WEIGHTS: dict[str, float] = {
+    "embedding": 0.25,
+    "term_coverage": 0.25,
+    "density": 0.15,
+    "llm": 0.35,
+}
+
+
+def get_quality_weights(config: dict) -> dict[str, float]:
+    """Extract quality ensemble weights from config dict.
+
+    Reads ``domain_analysis.quality_weights`` from the project
+    configuration. Missing keys are filled with defaults.
+
+    Default weights::
+
+        embedding: 0.25
+        term_coverage: 0.25
+        density: 0.15
+        llm: 0.35
+
+    Args:
+        config: Parsed project configuration dict (forma.yaml style,
+            may contain a ``domain_analysis`` section).
+
+    Returns:
+        Dict mapping signal name to weight (floats summing to ~1.0).
+    """
+    domain = config.get("domain_analysis", {})
+    if not isinstance(domain, dict):
+        return dict(_DEFAULT_QUALITY_WEIGHTS)
+
+    overrides = domain.get("quality_weights", {})
+    if not isinstance(overrides, dict):
+        return dict(_DEFAULT_QUALITY_WEIGHTS)
+
+    result = dict(_DEFAULT_QUALITY_WEIGHTS)
+    for key in _DEFAULT_QUALITY_WEIGHTS:
+        if key in overrides:
+            try:
+                result[key] = float(overrides[key])
+            except (TypeError, ValueError):
+                logger.warning(
+                    "quality_weights.%s 값이 올바르지 않음, 기본값 사용: %s",
+                    key, overrides[key],
+                )
+    return result

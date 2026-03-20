@@ -638,3 +638,459 @@ class TestMultiChapterLLMAndYAML:
             )
 
         assert "3장 피부" in result
+
+
+# ================================================================
+# v3 Tests: Phase 2 — TopicHierarchy (T008)
+# ================================================================
+
+try:
+    from forma.domain_concept_extractor import (
+        TopicHierarchy,
+        MajorTopic,
+        SubTopic,
+        parse_summary_hierarchy,
+    )
+
+    _HAS_HIERARCHY = True
+except ImportError:
+    _HAS_HIERARCHY = False
+
+import pytest
+
+_skip_hierarchy = pytest.mark.skipif(
+    not _HAS_HIERARCHY,
+    reason="TopicHierarchy/parse_summary_hierarchy not yet implemented (RED phase)",
+)
+
+
+SAMPLE_SUMMARY_KR = """\
+## 피부의 구조
+### 표피(epidermis)
+#### 각질층
+#### 투명층
+#### 과립층
+#### 유극층
+#### 기저층
+### 진피(dermis)
+#### 유두층
+#### 망상층
+## 피부의 기능
+### 보호 기능
+### 체온 조절
+### 감각 수용
+## 피부 부속기
+### 한선(땀샘)
+### 피지선
+### 모발
+### 손발톱
+"""
+
+SAMPLE_SUMMARY_NO_HEADERS = """\
+피부는 인체의 가장 큰 기관이다.
+표피와 진피로 구성되어 있다.
+각질층이 가장 바깥에 위치한다.
+"""
+
+
+@_skip_hierarchy
+class TestParseSummaryHierarchy:
+    """T008: Tests for parse_summary_hierarchy()."""
+
+    def test_parses_major_topics_from_h2(self, tmp_path) -> None:
+        """## headers become major topics."""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(SAMPLE_SUMMARY_KR, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        assert isinstance(hierarchy, TopicHierarchy)
+        major_names = [m.name for m in hierarchy.major_topics]
+        assert "피부의 구조" in major_names
+        assert "피부의 기능" in major_names
+        assert "피부 부속기" in major_names
+        assert len(hierarchy.major_topics) == 3
+
+    def test_parses_sub_topics_from_h3(self, tmp_path) -> None:
+        """### headers become sub topics under their parent major topic."""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(SAMPLE_SUMMARY_KR, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        # 피부의 구조 has 표피 and 진피
+        structure_topic = [
+            m for m in hierarchy.major_topics if m.name == "피부의 구조"
+        ][0]
+        sub_names = [s.name for s in structure_topic.sub_topics]
+        assert "표피(epidermis)" in sub_names
+        assert "진피(dermis)" in sub_names
+        assert len(structure_topic.sub_topics) == 2
+
+    def test_parses_sections_from_h4(self, tmp_path) -> None:
+        """#### headers become sections under their parent sub topic."""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(SAMPLE_SUMMARY_KR, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        structure_topic = [
+            m for m in hierarchy.major_topics if m.name == "피부의 구조"
+        ][0]
+        epidermis_sub = [
+            s for s in structure_topic.sub_topics if s.name == "표피(epidermis)"
+        ][0]
+        assert "각질층" in epidermis_sub.sections
+        assert "기저층" in epidermis_sub.sections
+        assert len(epidermis_sub.sections) == 5
+
+    def test_section_to_major_mapping(self, tmp_path) -> None:
+        """section_to_major maps section/sub names to major topic."""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(SAMPLE_SUMMARY_KR, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        # Sub topic should map to its parent major topic
+        assert hierarchy.section_to_major["표피(epidermis)"] == "피부의 구조"
+        assert hierarchy.section_to_major["진피(dermis)"] == "피부의 구조"
+        assert hierarchy.section_to_major["보호 기능"] == "피부의 기능"
+        assert hierarchy.section_to_major["한선(땀샘)"] == "피부 부속기"
+        # Section (####) should also map to major topic
+        assert hierarchy.section_to_major["각질층"] == "피부의 구조"
+
+    def test_section_to_sub_mapping(self, tmp_path) -> None:
+        """section_to_sub maps section names to sub topic."""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(SAMPLE_SUMMARY_KR, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        # #### sections should map to their ### parent
+        assert hierarchy.section_to_sub["각질층"] == "표피(epidermis)"
+        assert hierarchy.section_to_sub["유두층"] == "진피(dermis)"
+
+    def test_empty_file_returns_empty_hierarchy(self, tmp_path) -> None:
+        """Empty file returns hierarchy with no major topics."""
+        summary = tmp_path / "empty.md"
+        summary.write_text("", encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        assert isinstance(hierarchy, TopicHierarchy)
+        assert hierarchy.major_topics == []
+        assert hierarchy.section_to_major == {}
+        assert hierarchy.section_to_sub == {}
+
+    def test_no_headers_returns_empty_hierarchy(self, tmp_path) -> None:
+        """File with no markdown headers returns empty hierarchy."""
+        summary = tmp_path / "no_headers.md"
+        summary.write_text(SAMPLE_SUMMARY_NO_HEADERS, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        assert hierarchy.major_topics == []
+        assert hierarchy.section_to_major == {}
+        assert hierarchy.section_to_sub == {}
+
+    def test_real_world_structure(self, tmp_path) -> None:
+        """Real-world Summary_KR.md with mixed content between headers."""
+        content = """\
+## 피부의 구조
+피부는 표피, 진피, 피하조직으로 구성된다.
+
+### 표피
+표피는 중층편평상피로 이루어진 외배엽 유래 조직이다.
+
+#### 각질층
+각질층은 표피의 가장 바깥층이다.
+
+#### 과립층
+과립층에는 케라토히알린 과립이 있다.
+
+### 진피
+진피는 중배엽 유래 결합조직이다.
+
+## 피부 부속기
+### 한선
+"""
+        summary = tmp_path / "real_world.md"
+        summary.write_text(content, encoding="utf-8")
+
+        hierarchy = parse_summary_hierarchy(str(summary))
+
+        assert len(hierarchy.major_topics) == 2
+        structure = [m for m in hierarchy.major_topics if m.name == "피부의 구조"][0]
+        assert len(structure.sub_topics) == 2
+        epidermis = [s for s in structure.sub_topics if s.name == "표피"][0]
+        assert "각질층" in epidermis.sections
+        assert "과립층" in epidermis.sections
+
+
+# ================================================================
+# v3 Tests: Phase 3 — Chunked Extraction (T015-T016)
+# ================================================================
+
+try:
+    from forma.domain_concept_extractor import (
+        TextbookChunk,
+        chunk_textbook_by_sections,
+        _merge_chunk_concepts,
+    )
+
+    _HAS_CHUNKING = True
+except ImportError:
+    _HAS_CHUNKING = False
+
+_skip_chunking = pytest.mark.skipif(
+    not _HAS_CHUNKING,
+    reason="TextbookChunk/chunk_textbook_by_sections not yet implemented (RED phase)",
+)
+
+
+@_skip_chunking
+class TestChunkTextbookBySections:
+    """T015: Tests for chunk_textbook_by_sections()."""
+
+    def test_splits_at_h3_headers(self, tmp_path) -> None:
+        """### headers split into separate chunks."""
+        text = """\
+### 표피
+표피는 외배엽 유래 조직이다. 각질세포가 주를 이룬다.
+
+### 진피
+진피는 중배엽 유래 결합조직이다. 콜라겐 섬유가 풍부하다.
+
+### 피하조직
+피하조직은 지방층으로 구성된다.
+"""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(
+            "## 피부의 구조\n### 표피\n### 진피\n### 피하조직\n",
+            encoding="utf-8",
+        )
+
+        chunks = chunk_textbook_by_sections(
+            text, summary_path=str(summary), max_chars=12000,
+        )
+
+        assert len(chunks) == 3
+        assert all(isinstance(c, TextbookChunk) for c in chunks)
+        # Each chunk has the section text
+        assert "표피는 외배엽" in chunks[0].text
+        assert "진피는 중배엽" in chunks[1].text
+        assert "피하조직은 지방층" in chunks[2].text
+
+    def test_oversized_section_split_at_paragraph(self) -> None:
+        """Section > MAX_CHUNK_CHARS is split at paragraph boundary."""
+        # Create a section with > 12K chars (using paragraphs)
+        para = "이것은 긴 문단입니다. " * 200  # ~2400 chars per paragraph
+        text = "### 긴 섹션\n\n" + "\n\n".join([para] * 6)  # ~14400 chars total
+
+        chunks = chunk_textbook_by_sections(text, max_chars=12000)
+
+        assert len(chunks) >= 2
+        for chunk in chunks:
+            assert chunk.char_count <= 12000
+
+    def test_body_within_limit_single_chunk(self) -> None:
+        """Body <= 12K produces single chunk (no splitting)."""
+        text = "### 짧은 섹션\n표피는 중요하다. " * 10  # well under 12K
+
+        chunks = chunk_textbook_by_sections(text, max_chars=12000)
+
+        assert len(chunks) == 1
+        assert chunks[0].char_count <= 12000
+
+    def test_fallback_paragraph_splitting_no_summary(self) -> None:
+        """When no summary and no ### headers, falls back to paragraph-based splitting."""
+        # Large text with no markdown headers
+        para = "세포막은 인지질 이중층으로 구성된다. " * 300  # ~10800 chars
+        text = "\n\n".join([para] * 2)  # ~21600 chars, no headers
+
+        chunks = chunk_textbook_by_sections(text, max_chars=12000)
+
+        assert len(chunks) >= 2
+        for chunk in chunks:
+            assert chunk.char_count <= 12000
+
+    def test_section_path_and_topics_on_chunks(self, tmp_path) -> None:
+        """Each chunk has section_path, major_topic, and sub_topic."""
+        text = """\
+### 표피
+표피는 4개의 층으로 구성된다.
+
+### 진피
+진피에는 혈관이 있다.
+"""
+        summary = tmp_path / "Summary_KR.md"
+        summary.write_text(
+            "## 피부의 구조\n### 표피\n### 진피\n",
+            encoding="utf-8",
+        )
+
+        chunks = chunk_textbook_by_sections(
+            text, summary_path=str(summary), max_chars=12000,
+        )
+
+        assert len(chunks) == 2
+        # First chunk from 표피 section
+        assert chunks[0].major_topic == "피부의 구조"
+        assert chunks[0].sub_topic == "표피"
+        assert isinstance(chunks[0].section_path, list)
+        assert "피부의 구조" in chunks[0].section_path
+        assert "표피" in chunks[0].section_path
+
+        # Second chunk from 진피 section
+        assert chunks[1].major_topic == "피부의 구조"
+        assert chunks[1].sub_topic == "진피"
+
+
+@_skip_chunking
+class TestMergeChunkConcepts:
+    """T016: Tests for _merge_chunk_concepts()."""
+
+    def test_exact_name_dedup_keeps_richer_description(self) -> None:
+        """Same concept name → keep the one with richer (longer) description."""
+        chunk1_concepts = [
+            DomainConcept(
+                concept="표피의 4층 구조",
+                description="표피의 층",
+                key_terms=["표피", "각질층"],
+                importance="medium",
+                section="1절",
+                chapter="3장",
+            ),
+        ]
+        chunk2_concepts = [
+            DomainConcept(
+                concept="표피의 4층 구조",
+                description="종자층에서 각질층까지 4개 층의 세포 특성과 기능을 상세 설명",
+                key_terms=["표피", "각질층", "종자층"],
+                importance="high",
+                section="1절",
+                chapter="3장",
+            ),
+        ]
+
+        merged = _merge_chunk_concepts([chunk1_concepts, chunk2_concepts])
+
+        assert len(merged) == 1
+        # Should keep the richer description
+        assert "상세" in merged[0].description
+        # Should keep higher importance
+        assert merged[0].importance == "high"
+
+    def test_key_term_overlap_dedup_merges(self) -> None:
+        """Concepts with key_term overlap >= min(2, len(shorter)) are merged."""
+        chunk1_concepts = [
+            DomainConcept(
+                concept="표피의 층 구조",
+                description="표피 구조 설명",
+                key_terms=["표피", "각질층", "종자층"],
+                importance="high",
+                section="1절",
+                chapter="3장",
+            ),
+        ]
+        chunk2_concepts = [
+            DomainConcept(
+                concept="표피의 세포층 배열",
+                description="표피 세포층 상세",
+                key_terms=["표피", "각질층", "과립층"],
+                importance="medium",
+                section="1절",
+                chapter="3장",
+            ),
+        ]
+
+        merged = _merge_chunk_concepts([chunk1_concepts, chunk2_concepts])
+
+        # Overlap is {"표피", "각질층"} = 2 >= min(2, 3) = 2 → merged
+        assert len(merged) == 1
+        assert merged[0].importance == "high"
+
+    def test_importance_merge_keeps_higher(self) -> None:
+        """Merged concept keeps the higher importance."""
+        chunk1 = [
+            DomainConcept(
+                concept="진피의 구조",
+                description="진피 간단 설명",
+                key_terms=["진피", "콜라겐"],
+                importance="low",
+                section="2절",
+                chapter="3장",
+            ),
+        ]
+        chunk2 = [
+            DomainConcept(
+                concept="진피의 구조",
+                description="진피 상세 설명",
+                key_terms=["진피", "콜라겐"],
+                importance="high",
+                section="2절",
+                chapter="3장",
+            ),
+        ]
+
+        merged = _merge_chunk_concepts([chunk1, chunk2])
+
+        assert len(merged) == 1
+        assert merged[0].importance == "high"
+
+    def test_no_merge_when_overlap_below_threshold(self) -> None:
+        """Concepts with insufficient key_term overlap remain separate."""
+        chunk1 = [
+            DomainConcept(
+                concept="표피의 4층 구조",
+                description="표피 설명",
+                key_terms=["표피", "각질층", "종자층"],
+                importance="high",
+                section="1절",
+                chapter="3장",
+            ),
+        ]
+        chunk2 = [
+            DomainConcept(
+                concept="진피의 혈관 분포",
+                description="진피 혈관",
+                key_terms=["진피", "혈관", "신경"],
+                importance="medium",
+                section="2절",
+                chapter="3장",
+            ),
+        ]
+
+        merged = _merge_chunk_concepts([chunk1, chunk2])
+
+        # Overlap is {} = 0 < min(2, 3) = 2 → no merge
+        assert len(merged) == 2
+
+    def test_single_key_term_threshold_is_1(self) -> None:
+        """Concepts with 1 key_term use threshold min(2, 1) = 1."""
+        chunk1 = [
+            DomainConcept(
+                concept="멜라닌의 역할",
+                description="멜라닌 간단",
+                key_terms=["멜라닌"],
+                importance="medium",
+                section="3절",
+                chapter="3장",
+            ),
+        ]
+        chunk2 = [
+            DomainConcept(
+                concept="멜라닌 색소 기능",
+                description="멜라닌 색소의 자외선 방어 기전",
+                key_terms=["멜라닌"],
+                importance="high",
+                section="3절",
+                chapter="3장",
+            ),
+        ]
+
+        merged = _merge_chunk_concepts([chunk1, chunk2])
+
+        # Overlap is {"멜라닌"} = 1 >= min(2, 1) = 1 → merged
+        assert len(merged) == 1
+        assert merged[0].importance == "high"

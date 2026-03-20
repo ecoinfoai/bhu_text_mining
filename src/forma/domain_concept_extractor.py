@@ -23,13 +23,21 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "TextbookConcept",
     "DomainConcept",
+    "TextbookChunk",
     "extract_concepts",
     "extract_multi_chapter",
     "extract_concepts_llm",
+    "extract_concepts_llm_chunked",
     "extract_multi_chapter_llm",
     "build_extraction_prompt",
     "save_concepts_yaml",
     "load_concepts_yaml",
+    "MajorTopic",
+    "SubTopic",
+    "TopicHierarchy",
+    "parse_summary_hierarchy",
+    "chunk_textbook_by_sections",
+    "_merge_chunk_concepts",
 ]
 
 # ----------------------------------------------------------------
@@ -412,6 +420,8 @@ def save_concepts_yaml(
                         "key_terms": c.key_terms,
                         "importance": c.importance,
                         "section": c.section,
+                        "major_topic": c.major_topic,
+                        "sub_topic": c.sub_topic,
                     }
                     for c in concepts
                 ]
@@ -479,6 +489,8 @@ def load_concepts_yaml(
                     importance=c.get("importance", "medium"),
                     section=c.get("section", ""),
                     chapter=chapter_name,
+                    major_topic=c.get("major_topic", ""),
+                    sub_topic=c.get("sub_topic", ""),
                 ))
             result[chapter_name] = concepts
         else:
@@ -524,6 +536,8 @@ class DomainConcept:
     importance: str = "medium"
     section: str = ""
     chapter: str = ""
+    major_topic: str = ""
+    sub_topic: str = ""
 
 
 # ----------------------------------------------------------------
@@ -781,21 +795,50 @@ def create_provider(model: str | None = None):
     )
 
 
-def extract_concepts_llm(
+_CHUNK_EXTRACTION_PROMPT_TEMPLATE = """\
+아래는 교과서 본문의 일부입니다 (섹션: {section_context}).
+이 텍스트에서 핵심 도메인 개념을 추출해주세요.
+
+## 규칙
+1. 각 개념은 의미 단위(구, 절 수준)로 추출하세요. 단일 단어가 아닌 메커니즘이나 구조를 설명하는 구입니다.
+2. 일상용어(것, 수, 때, 대해, 통한, 여러, 또한), 접속어, 일반명사는 절대 포함하지 마세요.
+3. 해부생리학 도메인 전문 개념만 추출하세요.
+4. 각 개념에 대해 다음 필드를 포함하세요:
+   - concept: 의미 단위 이름 (예: "표피의 4층 구조와 각 층의 역할")
+   - description: 개념을 15자 이내로 간결하게 설명
+   - key_terms: 핵심 도메인 용어 3~5개 (한국어)
+   - importance: high / medium / low
+   - section: 교과서 내 소속 절
+5. 최대 10개 개념만 추출하세요. importance가 높은 순으로 선별하세요.
+6. description은 반드시 짧게 작성하세요. 긴 문장은 금지합니다.
+
+## 출력 형식 (YAML, 코드 펜스 없이 바로 출력)
+concepts:
+  - concept: "개념 이름"
+    description: "15자 이내 간결 설명"
+    key_terms: [용어1, 용어2, 용어3]
+    importance: high
+    section: "절 이름"
+
+## 교과서 본문
+{body_text}
+"""
+
+
+def extract_concepts_llm_chunked(
     textbook_path: str,
     summary_path: str | None = None,
     model: str | None = None,
     chapter_name: str | None = None,
     no_cache: bool = False,
 ) -> list[DomainConcept]:
-    """Extract domain concepts from textbook using LLM.
+    """Extract concepts from a large textbook via chunked LLM calls.
 
-    Steps:
-        1. Read and preprocess textbook text (body-only).
-        2. Check v2 cache (skip LLM if hit, unless no_cache).
-        3. Build extraction prompt with optional structure guide.
-        4. Call LLM and parse YAML response.
-        5. Save cache.
+    Splits the textbook text into chunks using
+    ``chunk_textbook_by_sections()``, calls the LLM for each chunk
+    (max 10 concepts per chunk, max_tokens=4096), sets major_topic
+    and sub_topic from chunk metadata, then merges results with
+    ``_merge_chunk_concepts()``.
 
     Args:
         textbook_path: Path to textbook chapter text file.
@@ -803,6 +846,117 @@ def extract_concepts_llm(
         model: Optional LLM model ID override.
         chapter_name: Override chapter name (default: from filename stem).
         no_cache: If True, skip cache lookup and force LLM call.
+
+    Returns:
+        List of DomainConcept. Empty list on failure.
+    """
+    import time
+
+    path = Path(textbook_path)
+    if chapter_name is None:
+        chapter_name = path.stem
+
+    # Check cache first
+    if not no_cache:
+        cached = _load_v2_cache(textbook_path)
+        if cached is not None:
+            logger.info("v2 캐시에서 개념 로드 (chunked): %s", textbook_path)
+            return cached
+
+    raw_text = path.read_text(encoding="utf-8")
+
+    # Get cleaned body for chunking
+    from forma.textbook_preprocessor import prepare_textbook_for_llm
+    cleaned_body, _structure_guide = prepare_textbook_for_llm(
+        raw_text, summary_path=summary_path,
+    )
+
+    if not cleaned_body.strip():
+        logger.warning("본문이 비어 있음: %s", textbook_path)
+        return []
+
+    # Chunk the text
+    chunks = chunk_textbook_by_sections(
+        cleaned_body, summary_path=summary_path,
+    )
+    logger.info("청크 분할: %d개 청크", len(chunks))
+
+    provider = create_provider(model=model)
+    chunk_results: list[list[DomainConcept]] = []
+
+    for idx, chunk in enumerate(chunks):
+        section_context = " > ".join(chunk.section_path) if chunk.section_path else f"청크 {idx + 1}"
+
+        prompt = _CHUNK_EXTRACTION_PROMPT_TEMPLATE.format(
+            section_context=section_context,
+            body_text=chunk.text,
+        )
+
+        # Rate limiting between LLM calls
+        if idx > 0:
+            time.sleep(4.0)
+
+        try:
+            response = provider.generate(
+                prompt=prompt,
+                max_tokens=4096,
+                temperature=0.0,
+                system_instruction=_SYSTEM_INSTRUCTION,
+            )
+            concepts = _parse_llm_concepts(response, chapter_name)
+
+            # Set major_topic and sub_topic from chunk metadata
+            for c in concepts:
+                c.major_topic = chunk.major_topic
+                c.sub_topic = chunk.sub_topic
+
+            chunk_results.append(concepts)
+            logger.info(
+                "청크 %d/%d 완료: %d개 개념 추출",
+                idx + 1, len(chunks), len(concepts),
+            )
+        except Exception:
+            logger.warning(
+                "청크 %d LLM 호출 실패", idx + 1, exc_info=True,
+            )
+            chunk_results.append([])
+
+    # Merge across chunks
+    merged = _merge_chunk_concepts(chunk_results)
+
+    # Save cache
+    if not no_cache:
+        _save_v2_cache(textbook_path, raw_text, merged)
+
+    return merged
+
+
+def extract_concepts_llm(
+    textbook_path: str,
+    summary_path: str | None = None,
+    model: str | None = None,
+    chapter_name: str | None = None,
+    no_cache: bool = False,
+    force_chunk: bool | None = None,
+) -> list[DomainConcept]:
+    """Extract domain concepts from textbook using LLM.
+
+    Steps:
+        1. Read and preprocess textbook text (body-only).
+        2. Check v2 cache (skip LLM if hit, unless no_cache).
+        3. If body > 12000 chars (or force_chunk=True), route to chunked.
+        4. Build extraction prompt with optional structure guide.
+        5. Call LLM and parse YAML response.
+        6. Save cache.
+
+    Args:
+        textbook_path: Path to textbook chapter text file.
+        summary_path: Optional chapter summary Markdown path.
+        model: Optional LLM model ID override.
+        chapter_name: Override chapter name (default: from filename stem).
+        no_cache: If True, skip cache lookup and force LLM call.
+        force_chunk: If True, force chunking. If False, force single call.
+            If None (default), auto-detect based on text length > 12000.
 
     Returns:
         List of DomainConcept. Empty list on LLM/parse failure.
@@ -829,6 +983,18 @@ def extract_concepts_llm(
     if not cleaned_body.strip():
         logger.warning("본문이 비어 있음: %s", textbook_path)
         return []
+
+    # T021: Route to chunked if body > 12000 chars
+    should_chunk = force_chunk if force_chunk is not None else (len(cleaned_body) > 12000)
+    if should_chunk:
+        logger.info("본문 %d자 → 청크 추출 모드", len(cleaned_body))
+        return extract_concepts_llm_chunked(
+            textbook_path=textbook_path,
+            summary_path=summary_path,
+            model=model,
+            chapter_name=chapter_name,
+            no_cache=no_cache,
+        )
 
     # Build prompt and call LLM
     prompt = build_extraction_prompt(cleaned_body, structure_guide)
@@ -893,3 +1059,443 @@ def extract_multi_chapter_llm(
         result[chapter_name] = concepts
 
     return result
+
+
+# ================================================================
+# v3: Topic Hierarchy (T009)
+# ================================================================
+
+
+@dataclass
+class SubTopic:
+    """A sub-topic (### level) within a major topic.
+
+    Attributes:
+        name: Sub-topic name (### header text).
+        sections: Section names (#### headers) under this sub-topic.
+    """
+
+    name: str
+    sections: list[str] = field(default_factory=list)
+
+
+@dataclass
+class MajorTopic:
+    """A major topic (## level) in the textbook hierarchy.
+
+    Attributes:
+        name: Major topic name (## header text).
+        sub_topics: Sub-topics (### level) under this major topic.
+    """
+
+    name: str
+    sub_topics: list[SubTopic] = field(default_factory=list)
+
+
+@dataclass
+class TopicHierarchy:
+    """Parsed hierarchy from Summary_KR.md (## / ### / ####).
+
+    Attributes:
+        major_topics: Ordered list of major topics.
+        section_to_major: Mapping from section name to major topic name.
+        section_to_sub: Mapping from section name to sub-topic name.
+    """
+
+    major_topics: list[MajorTopic] = field(default_factory=list)
+    section_to_major: dict[str, str] = field(default_factory=dict)
+    section_to_sub: dict[str, str] = field(default_factory=dict)
+
+
+def _fuzzy_section_match(section: str, candidates: list[str]) -> str | None:
+    """Find the best fuzzy match for a section name among candidates.
+
+    Uses substring containment in both directions: checks if the section
+    name is contained in a candidate or vice versa.
+
+    Args:
+        section: Section name to match.
+        candidates: List of candidate names.
+
+    Returns:
+        Best matching candidate, or None if no match found.
+    """
+    section_clean = section.strip()
+    if not section_clean:
+        return None
+
+    # Exact match first
+    for c in candidates:
+        if c == section_clean:
+            return c
+
+    # Substring match (section in candidate or candidate in section)
+    for c in candidates:
+        if section_clean in c or c in section_clean:
+            return c
+
+    return None
+
+
+def parse_summary_hierarchy(summary_path: str) -> TopicHierarchy:
+    """Parse Summary_KR.md into a TopicHierarchy.
+
+    Reads the Markdown file and extracts ## (major topic), ### (sub-topic),
+    and #### (section) headers to build a hierarchical structure. Also
+    populates section_to_major and section_to_sub mappings using fuzzy
+    substring matching for section names.
+
+    Args:
+        summary_path: Path to the Summary_KR.md file.
+
+    Returns:
+        TopicHierarchy with parsed major topics, sub-topics, and sections.
+
+    Raises:
+        FileNotFoundError: If the summary file does not exist.
+    """
+    path = Path(summary_path)
+    text = path.read_text(encoding="utf-8")
+
+    major_topics: list[MajorTopic] = []
+    section_to_major: dict[str, str] = {}
+    section_to_sub: dict[str, str] = {}
+
+    current_major: MajorTopic | None = None
+    current_sub: SubTopic | None = None
+
+    for line in text.split("\n"):
+        stripped = line.strip()
+
+        # #### section header (must check before ### and ##)
+        if stripped.startswith("#### "):
+            section_name = stripped[5:].strip()
+            if section_name and current_sub is not None:
+                current_sub.sections.append(section_name)
+                if current_major is not None:
+                    section_to_major[section_name] = current_major.name
+                section_to_sub[section_name] = current_sub.name
+
+        # ### sub-topic header (must check before ##)
+        elif stripped.startswith("### "):
+            sub_name = stripped[4:].strip()
+            if sub_name:
+                current_sub = SubTopic(name=sub_name)
+                if current_major is not None:
+                    current_major.sub_topics.append(current_sub)
+                    section_to_major[sub_name] = current_major.name
+                section_to_sub[sub_name] = sub_name
+
+        # ## major topic header
+        elif stripped.startswith("## "):
+            major_name = stripped[3:].strip()
+            if major_name:
+                current_major = MajorTopic(name=major_name)
+                major_topics.append(current_major)
+                current_sub = None
+                section_to_major[major_name] = major_name
+
+    return TopicHierarchy(
+        major_topics=major_topics,
+        section_to_major=section_to_major,
+        section_to_sub=section_to_sub,
+    )
+
+
+# ================================================================
+# v3: Chunked Extraction (T017-T022)
+# ================================================================
+
+
+@dataclass
+class TextbookChunk:
+    """A chunk of textbook text split by section boundaries.
+
+    Attributes:
+        chapter: Chapter identifier.
+        section_path: Hierarchy path (e.g. ["피부의 구조", "표피"]).
+        major_topic: Major topic name from hierarchy.
+        sub_topic: Sub-topic name from hierarchy.
+        text: Chunk text content.
+        char_count: Character count of text.
+    """
+
+    chapter: str
+    section_path: list[str]
+    major_topic: str
+    sub_topic: str
+    text: str
+    char_count: int
+
+
+def _split_at_paragraphs(text: str, max_chars: int) -> list[str]:
+    """Split text at paragraph boundaries (double newlines).
+
+    Args:
+        text: Text to split.
+        max_chars: Maximum characters per chunk.
+
+    Returns:
+        List of text chunks, each <= max_chars.
+    """
+    if len(text) <= max_chars:
+        return [text]
+
+    paragraphs = re.split(r"\n\n+", text)
+    chunks: list[str] = []
+    current = ""
+
+    for para in paragraphs:
+        candidate = (current + "\n\n" + para).strip() if current else para.strip()
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            # If a single paragraph exceeds max_chars, include it anyway
+            if len(para.strip()) > max_chars:
+                chunks.append(para.strip())
+                current = ""
+            else:
+                current = para.strip()
+
+    if current:
+        chunks.append(current)
+
+    return chunks if chunks else [text]
+
+
+def chunk_textbook_by_sections(
+    text: str,
+    summary_path: str | None = None,
+    max_chars: int = 12000,
+) -> list[TextbookChunk]:
+    """Split textbook text into chunks by section boundaries.
+
+    If summary_path is provided, parses headers with
+    ``parse_summary_hierarchy()`` and splits text at ### boundaries.
+    Each ### section becomes one chunk. If a chunk exceeds max_chars,
+    it is further split at paragraph boundaries (double newline).
+
+    If no summary_path is given, splits at paragraph boundaries
+    with max_chars limit.
+
+    If text <= max_chars, returns a single chunk.
+
+    Args:
+        text: Full textbook text.
+        summary_path: Optional path to Summary_KR.md for hierarchy.
+        max_chars: Maximum characters per chunk. Defaults to 12000.
+
+    Returns:
+        List of TextbookChunk instances.
+    """
+    if not text.strip():
+        return []
+
+    # Parse hierarchy if available
+    hierarchy: TopicHierarchy | None = None
+    if summary_path:
+        hierarchy = parse_summary_hierarchy(summary_path)
+
+    # Check for ### headers
+    h3_pattern = re.compile(r"^###\s+(.+)$", re.MULTILINE)
+    has_h3_headers = bool(h3_pattern.search(text))
+
+    # If text fits in a single chunk AND no header-based splitting needed
+    if len(text) <= max_chars and not has_h3_headers:
+        major_topic = ""
+        sub_topic = ""
+        section_path_ret: list[str] = []
+
+        if hierarchy and hierarchy.major_topics:
+            major_topic = hierarchy.major_topics[0].name
+            section_path_ret.append(major_topic)
+            if hierarchy.major_topics[0].sub_topics:
+                sub_topic = hierarchy.major_topics[0].sub_topics[0].name
+                section_path_ret.append(sub_topic)
+
+        return [TextbookChunk(
+            chapter="",
+            section_path=section_path_ret,
+            major_topic=major_topic,
+            sub_topic=sub_topic,
+            text=text.strip(),
+            char_count=len(text.strip()),
+        )]
+
+    # Split at ### headers
+    h3_matches = list(h3_pattern.finditer(text))
+
+    if h3_matches:
+        sections: list[tuple[str, str]] = []  # (header_name, section_text)
+        for idx, match in enumerate(h3_matches):
+            header_name = match.group(1).strip()
+            start = match.end()
+            end = h3_matches[idx + 1].start() if idx + 1 < len(h3_matches) else len(text)
+            section_text = text[start:end].strip()
+            sections.append((header_name, section_text))
+
+        chunks: list[TextbookChunk] = []
+        for header_name, section_text in sections:
+            # Determine major_topic and sub_topic from hierarchy
+            major_topic = ""
+            sub_topic = header_name
+            section_path_list: list[str] = []
+
+            if hierarchy:
+                # Look up in hierarchy mappings
+                matched_major = hierarchy.section_to_major.get(header_name, "")
+                if matched_major:
+                    major_topic = matched_major
+                    section_path_list.append(major_topic)
+                section_path_list.append(header_name)
+            else:
+                section_path_list = [header_name]
+
+            # If section exceeds max_chars, split at paragraphs
+            if len(section_text) > max_chars:
+                sub_chunks = _split_at_paragraphs(section_text, max_chars)
+                for sc in sub_chunks:
+                    chunks.append(TextbookChunk(
+                        chapter="",
+                        section_path=list(section_path_list),
+                        major_topic=major_topic,
+                        sub_topic=sub_topic,
+                        text=sc,
+                        char_count=len(sc),
+                    ))
+            else:
+                chunks.append(TextbookChunk(
+                    chapter="",
+                    section_path=list(section_path_list),
+                    major_topic=major_topic,
+                    sub_topic=sub_topic,
+                    text=section_text,
+                    char_count=len(section_text),
+                ))
+
+        return chunks
+
+    # No ### headers: split at paragraph boundaries
+    para_chunks = _split_at_paragraphs(text, max_chars)
+    return [
+        TextbookChunk(
+            chapter="",
+            section_path=[],
+            major_topic="",
+            sub_topic="",
+            text=pc,
+            char_count=len(pc),
+        )
+        for pc in para_chunks
+    ]
+
+
+_IMPORTANCE_ORDER = {"high": 3, "medium": 2, "low": 1}
+
+
+def _merge_chunk_concepts(
+    chunk_results: list[list[DomainConcept]],
+) -> list[DomainConcept]:
+    """Merge concepts from multiple chunks with deduplication.
+
+    Dedup rules:
+    1. Exact concept name match: keep longer description, higher importance.
+    2. Key_term overlap >= min(2, len(shorter_list)): merge (union key_terms,
+       keep higher importance, longer description).
+
+    Args:
+        chunk_results: List of concept lists, one per chunk.
+
+    Returns:
+        Deduplicated list of DomainConcept.
+    """
+    # Flatten all concepts
+    all_concepts: list[DomainConcept] = []
+    for chunk in chunk_results:
+        all_concepts.extend(chunk)
+
+    if not all_concepts:
+        return []
+
+    # Rule 1: exact name dedup
+    name_map: dict[str, DomainConcept] = {}
+    for concept in all_concepts:
+        if concept.concept in name_map:
+            existing = name_map[concept.concept]
+            # Keep longer description
+            if len(concept.description) > len(existing.description):
+                merged = DomainConcept(
+                    concept=concept.concept,
+                    description=concept.description,
+                    key_terms=list(set(existing.key_terms) | set(concept.key_terms)),
+                    importance=_higher_importance(existing.importance, concept.importance),
+                    section=existing.section or concept.section,
+                    chapter=existing.chapter or concept.chapter,
+                    major_topic=existing.major_topic or concept.major_topic,
+                    sub_topic=existing.sub_topic or concept.sub_topic,
+                )
+                name_map[concept.concept] = merged
+            else:
+                existing_merged = DomainConcept(
+                    concept=existing.concept,
+                    description=existing.description,
+                    key_terms=list(set(existing.key_terms) | set(concept.key_terms)),
+                    importance=_higher_importance(existing.importance, concept.importance),
+                    section=existing.section or concept.section,
+                    chapter=existing.chapter or concept.chapter,
+                    major_topic=existing.major_topic or concept.major_topic,
+                    sub_topic=existing.sub_topic or concept.sub_topic,
+                )
+                name_map[concept.concept] = existing_merged
+        else:
+            name_map[concept.concept] = concept
+
+    # Rule 2: key_term overlap merge
+    concepts_list = list(name_map.values())
+    merged_indices: set[int] = set()
+    result: list[DomainConcept] = []
+
+    for i in range(len(concepts_list)):
+        if i in merged_indices:
+            continue
+        current = concepts_list[i]
+        for j in range(i + 1, len(concepts_list)):
+            if j in merged_indices:
+                continue
+            other = concepts_list[j]
+            overlap = set(current.key_terms) & set(other.key_terms)
+            shorter_len = min(len(current.key_terms), len(other.key_terms))
+            threshold = min(2, shorter_len) if shorter_len > 0 else 0
+
+            if threshold > 0 and len(overlap) >= threshold:
+                # Merge other into current
+                merged_indices.add(j)
+                current = DomainConcept(
+                    concept=current.concept if len(current.description) >= len(other.description) else other.concept,
+                    description=current.description if len(current.description) >= len(other.description) else other.description,
+                    key_terms=list(set(current.key_terms) | set(other.key_terms)),
+                    importance=_higher_importance(current.importance, other.importance),
+                    section=current.section or other.section,
+                    chapter=current.chapter or other.chapter,
+                    major_topic=current.major_topic or other.major_topic,
+                    sub_topic=current.sub_topic or other.sub_topic,
+                )
+
+        result.append(current)
+
+    return result
+
+
+def _higher_importance(a: str, b: str) -> str:
+    """Return the higher importance level.
+
+    Args:
+        a: First importance level.
+        b: Second importance level.
+
+    Returns:
+        The higher of the two importance levels.
+    """
+    return a if _IMPORTANCE_ORDER.get(a, 0) >= _IMPORTANCE_ORDER.get(b, 0) else b
