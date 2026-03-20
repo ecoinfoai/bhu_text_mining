@@ -397,6 +397,18 @@ def coverage_main(argv: list[str] | None = None) -> None:
         chapters=scope.chapters,
     )
 
+    # T047: Compute pairwise section comparisons
+    try:
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+        comparisons = compute_delivery_pairwise_comparisons(all_deliveries)
+        if comparisons:
+            result._section_comparisons = comparisons
+            logger.info("분반 간 비교: %d개 쌍 계산 완료", len(comparisons))
+    except Exception:
+        logger.warning("분반 간 통계 비교 실패", exc_info=True)
+
     # Save
     save_delivery_yaml(result, args.output)
 
@@ -453,6 +465,12 @@ def _build_report_parser() -> argparse.ArgumentParser:
         default=150,
         help="차트 해상도 (기본값: 150)",
     )
+    parser.add_argument(
+        "--summary",
+        type=str,
+        default=None,
+        help="챕터 요약 Markdown 파일 경로 (계층 분석용, 선택적)",
+    )
     return parser
 
 
@@ -492,6 +510,17 @@ def report_main(argv: list[str] | None = None) -> None:
         from forma.domain_coverage_analyzer import load_coverage_yaml
         result = load_coverage_yaml(args.coverage)
 
+    # Parse hierarchy from summary if provided
+    hierarchy = None
+    if args.summary:
+        summary_path = Path(args.summary)
+        if summary_path.exists():
+            from forma.domain_concept_extractor import parse_summary_hierarchy
+            hierarchy = parse_summary_hierarchy(str(summary_path))
+            logger.info("계층 구조 로드: %s", args.summary)
+        else:
+            logger.warning("요약 파일을 찾을 수 없습니다: %s", args.summary)
+
     # Generate PDF
     generator = DomainDeliveryPDFReportGenerator(
         font_path=args.font_path,
@@ -502,6 +531,7 @@ def report_main(argv: list[str] | None = None) -> None:
         result=result,
         output_path=args.output,
         course_name=args.course_name,
+        hierarchy=hierarchy,
     )
 
     logger.info("PDF 보고서 생성 완료: %s", output_path)

@@ -64,6 +64,9 @@ __all__ = [
     "MAX_TRANSCRIPT_LENGTH",
     "_chunk_transcript_with_overlap",
     "_DELIVERY_RUBRIC",
+    # v3 cross-section statistics
+    "DeliverySectionComparison",
+    "compute_delivery_pairwise_comparisons",
 ]
 
 GAP_THRESHOLD: float = 0.05
@@ -2263,3 +2266,117 @@ def compute_ensemble_quality(
         + weights.get("llm", 0.35) * s_llm
     )
     return max(0.0, min(1.0, score))
+
+
+# ================================================================
+# v3: Cross-Section Statistics (Phase 7)
+# ================================================================
+
+
+@dataclass
+class DeliverySectionComparison:
+    """Pairwise statistical comparison between two sections.
+
+    Attributes:
+        section_a: First section identifier.
+        section_b: Second section identifier.
+        mean_a: Mean delivery quality for section A.
+        mean_b: Mean delivery quality for section B.
+        test_name: Statistical test used ("welch_t" or "mann_whitney_u").
+        statistic: Test statistic value.
+        p_value: Raw p-value.
+        corrected_p_value: Bonferroni-corrected p-value.
+        significant: True if corrected_p < 0.05.
+    """
+
+    section_a: str
+    section_b: str
+    mean_a: float
+    mean_b: float
+    test_name: str
+    statistic: float
+    p_value: float
+    corrected_p_value: float
+    significant: bool
+
+
+def compute_delivery_pairwise_comparisons(
+    deliveries: list[DeliveryAnalysis],
+) -> list[DeliverySectionComparison]:
+    """Compute pairwise statistical comparisons between sections.
+
+    Groups deliveries by section_id, then for each pair of sections:
+    - Collects delivery_quality arrays
+    - Runs Welch's t-test (scipy.stats.ttest_ind) and Mann-Whitney U
+    - Applies Bonferroni correction: corrected_p = p * n_comparisons
+    - significant = corrected_p < 0.05
+
+    If fewer than 2 sections, logs a warning and returns [].
+
+    Args:
+        deliveries: All delivery analyses across sections.
+
+    Returns:
+        List of DeliverySectionComparison, one per pair.
+    """
+    from itertools import combinations
+
+    from scipy.stats import mannwhitneyu, ttest_ind
+
+    # Group by section
+    section_qualities: dict[str, list[float]] = {}
+    for d in deliveries:
+        if d.delivery_status == "의도적 생략":
+            continue
+        if d.section_id not in section_qualities:
+            section_qualities[d.section_id] = []
+        section_qualities[d.section_id].append(d.delivery_quality)
+
+    sections = sorted(section_qualities.keys())
+    if len(sections) < 2:
+        logger.warning(
+            "분반 간 비교: 2개 이상의 분반이 필요합니다 (현재 %d개)", len(sections),
+        )
+        return []
+
+    pairs = list(combinations(sections, 2))
+    n_comparisons = len(pairs)
+    comparisons: list[DeliverySectionComparison] = []
+
+    for sec_a, sec_b in pairs:
+        quals_a = section_qualities[sec_a]
+        quals_b = section_qualities[sec_b]
+        mean_a = statistics.mean(quals_a) if quals_a else 0.0
+        mean_b = statistics.mean(quals_b) if quals_b else 0.0
+
+        # Welch's t-test (unequal variances)
+        try:
+            t_stat, t_p = ttest_ind(quals_a, quals_b, equal_var=False)
+        except Exception:
+            t_stat, t_p = 0.0, 1.0
+
+        # Mann-Whitney U test (for reference)
+        try:
+            _u_stat, _u_p = mannwhitneyu(
+                quals_a, quals_b, alternative="two-sided",
+            )
+        except Exception:
+            pass
+
+        # Use Welch t-test as primary
+        p_value = float(t_p)
+        corrected_p = min(p_value * n_comparisons, 1.0)
+
+        comparisons.append(DeliverySectionComparison(
+            section_a=sec_a,
+            section_b=sec_b,
+            mean_a=mean_a,
+            mean_b=mean_b,
+            test_name="welch_t",
+            statistic=float(t_stat),
+            p_value=p_value,
+            corrected_p_value=corrected_p,
+            significant=corrected_p < 0.05,
+        ))
+
+    return comparisons

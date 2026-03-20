@@ -329,3 +329,34 @@ class TestFeedbackConceptLevel:
         )
 
         assert DomainCoveragePDFReportGenerator is DomainDeliveryPDFReportGenerator
+
+
+# ----------------------------------------------------------------
+# T036: Hierarchy fallback when no TopicHierarchy provided
+# ----------------------------------------------------------------
+
+
+class TestHierarchyFallback:
+    """Tests for hierarchical section fallback behavior."""
+
+    def test_hierarchy_fallback_no_summary(self, tmp_path: Path) -> None:
+        """When no TopicHierarchy provided, hierarchical section skipped, no error."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = _build_sample_delivery_result()
+        output = str(tmp_path / "report_no_hierarchy.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
+        # generate_pdf without hierarchy kwarg should succeed
+        path = gen.generate_pdf(
+            result, output,
+            course_name="인체구조와기능",
+        )
+
+        assert Path(path).exists()
+        assert Path(path).stat().st_size > 0
+
+        # Verify PDF is valid
+        with open(path, "rb") as f:
+            header = f.read(5)
+        assert header == b"%PDF-"

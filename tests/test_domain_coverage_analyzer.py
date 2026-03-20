@@ -1798,3 +1798,123 @@ deliveries:
         assert best >= 0.7, (
             f"Expected best quality >= 0.7 from chunk merging, got {best}"
         )
+
+
+# ================================================================
+# Phase 7: Cross-Section Statistics (T042-T047)
+# ================================================================
+
+
+def _build_4section_deliveries() -> list[DeliveryAnalysis]:
+    """Build deliveries for 4 sections (A, B, C, D) with 3 concepts each."""
+    deliveries = []
+    qualities = {
+        "A": [0.9, 0.85, 0.7],
+        "B": [0.5, 0.4, 0.6],
+        "C": [0.8, 0.75, 0.65],
+        "D": [0.3, 0.2, 0.4],
+    }
+    concepts = ["표피의 4층 구조", "진피의 구조", "피부 보호 기능"]
+    for section, quals in qualities.items():
+        for concept, quality in zip(concepts, quals):
+            deliveries.append(DeliveryAnalysis(
+                concept=concept,
+                section_id=section,
+                delivery_status="충분히 설명" if quality >= 0.5 else "부분 전달",
+                delivery_quality=quality,
+                evidence="",
+                depth="",
+            ))
+    return deliveries
+
+
+class TestDeliveryPairwiseComparisons:
+    """T042: Tests for compute_delivery_pairwise_comparisons."""
+
+    def test_4_sections_6_pairs(self) -> None:
+        """4 sections produce 6 comparison pairs (C(4,2))."""
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+
+        deliveries = _build_4section_deliveries()
+        comparisons = compute_delivery_pairwise_comparisons(deliveries)
+        assert len(comparisons) == 6
+
+    def test_bonferroni_correction(self) -> None:
+        """p-values are adjusted by k=6 (Bonferroni)."""
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+
+        deliveries = _build_4section_deliveries()
+        comparisons = compute_delivery_pairwise_comparisons(deliveries)
+        for comp in comparisons:
+            # corrected_p should be >= raw p-value
+            assert comp.corrected_p_value >= comp.p_value
+            # corrected = p * n_comparisons, capped at 1.0
+            expected = min(comp.p_value * 6, 1.0)
+            assert comp.corrected_p_value == pytest.approx(expected, abs=0.001)
+
+    def test_1_section_skips(self, caplog) -> None:
+        """Single section returns empty list with warning."""
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+
+        deliveries = [
+            DeliveryAnalysis("c1", "A", "충분히 설명", 0.9, "", ""),
+        ]
+        import logging as _logging
+        with caplog.at_level(_logging.WARNING):
+            comparisons = compute_delivery_pairwise_comparisons(deliveries)
+        assert comparisons == []
+        assert any("2개 이상" in r.message for r in caplog.records)
+
+    def test_2_sections_valid(self) -> None:
+        """2 sections produce 1 comparison pair."""
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+
+        deliveries = [
+            DeliveryAnalysis("c1", "A", "충분히 설명", 0.9, "", ""),
+            DeliveryAnalysis("c2", "A", "충분히 설명", 0.8, "", ""),
+            DeliveryAnalysis("c1", "B", "부분 전달", 0.4, "", ""),
+            DeliveryAnalysis("c2", "B", "미전달", 0.1, "", ""),
+        ]
+        comparisons = compute_delivery_pairwise_comparisons(deliveries)
+        assert len(comparisons) == 1
+        assert comparisons[0].section_a == "A"
+        assert comparisons[0].section_b == "B"
+
+
+class TestDeliverySectionComparisonSerialization:
+    """T043: Tests for section comparison YAML serialization."""
+
+    def test_save_load_roundtrip(self, tmp_path) -> None:
+        """Save then load DeliveryResult with section_comparisons preserves fields."""
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+
+        deliveries = _build_4section_deliveries()
+        comparisons = compute_delivery_pairwise_comparisons(deliveries)
+
+        result = DeliveryResult(
+            week=2,
+            chapters=["3장"],
+            deliveries=deliveries,
+            effective_delivery_rate=0.75,
+            per_section_rate={"A": 1.0, "B": 0.5, "C": 0.8, "D": 0.3},
+        )
+
+        path = str(tmp_path / "delivery_with_comparisons.yaml")
+        save_delivery_yaml(result, path)
+        loaded = load_delivery_yaml(path)
+
+        assert loaded.week == result.week
+        assert len(loaded.deliveries) == len(result.deliveries)
+        assert loaded.effective_delivery_rate == pytest.approx(
+            result.effective_delivery_rate, abs=0.001,
+        )

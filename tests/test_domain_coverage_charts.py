@@ -407,3 +407,292 @@ class TestDeliveryHeatmap:
         buf = build_delivery_heatmap(result)
         assert _is_valid_png(buf)
         # "세포막 구조" is skipped, should not appear in heatmap data
+
+
+# ----------------------------------------------------------------
+# T035-T036: Hierarchical coverage visualization charts
+# ----------------------------------------------------------------
+
+
+def _build_sample_hierarchy():
+    """Build a sample TopicHierarchy for hierarchical chart tests."""
+    from forma.domain_concept_extractor import MajorTopic, SubTopic, TopicHierarchy
+
+    return TopicHierarchy(
+        major_topics=[
+            MajorTopic(
+                name="피부의 구조",
+                sub_topics=[
+                    SubTopic(name="표피", sections=["각질층", "과립층"]),
+                    SubTopic(name="진피", sections=["유두층", "망상층"]),
+                ],
+            ),
+            MajorTopic(
+                name="피부의 기능",
+                sub_topics=[
+                    SubTopic(name="보호 기능", sections=[]),
+                    SubTopic(name="체온 조절", sections=[]),
+                ],
+            ),
+        ],
+        section_to_major={
+            "표피": "피부의 구조",
+            "진피": "피부의 구조",
+            "보호 기능": "피부의 기능",
+            "체온 조절": "피부의 기능",
+        },
+        section_to_sub={
+            "표피": "표피",
+            "진피": "진피",
+            "보호 기능": "보호 기능",
+            "체온 조절": "체온 조절",
+        },
+    )
+
+
+def _build_hierarchical_delivery_result() -> DeliveryResult:
+    """Build a DeliveryResult with 4 sections for hierarchical chart tests."""
+    deliveries = [
+        # 피부의 구조 concepts
+        DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.9,
+            evidence="상세 설명",
+            depth="메커니즘",
+        ),
+        DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="B",
+            delivery_status="부분 전달",
+            delivery_quality=0.5,
+            evidence="용어만",
+            depth="용어 수준",
+        ),
+        DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="C",
+            delivery_status="충분히 설명",
+            delivery_quality=0.8,
+            evidence="설명",
+            depth="상세",
+        ),
+        DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="D",
+            delivery_status="미전달",
+            delivery_quality=0.1,
+            evidence="",
+            depth="",
+        ),
+        DeliveryAnalysis(
+            concept="진피의 구조",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.85,
+            evidence="진피 설명",
+            depth="상세",
+        ),
+        DeliveryAnalysis(
+            concept="진피의 구조",
+            section_id="B",
+            delivery_status="미전달",
+            delivery_quality=0.0,
+            evidence="",
+            depth="",
+        ),
+        DeliveryAnalysis(
+            concept="진피의 구조",
+            section_id="C",
+            delivery_status="부분 전달",
+            delivery_quality=0.4,
+            evidence="간단 언급",
+            depth="용어",
+        ),
+        DeliveryAnalysis(
+            concept="진피의 구조",
+            section_id="D",
+            delivery_status="충분히 설명",
+            delivery_quality=0.75,
+            evidence="설명",
+            depth="상세",
+        ),
+        # 피부의 기능 concepts
+        DeliveryAnalysis(
+            concept="피부 보호 기능",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.7,
+            evidence="보호 설명",
+            depth="상세",
+        ),
+        DeliveryAnalysis(
+            concept="피부 보호 기능",
+            section_id="B",
+            delivery_status="충분히 설명",
+            delivery_quality=0.65,
+            evidence="보호 설명",
+            depth="상세",
+        ),
+        DeliveryAnalysis(
+            concept="피부 보호 기능",
+            section_id="C",
+            delivery_status="부분 전달",
+            delivery_quality=0.3,
+            evidence="언급",
+            depth="용어",
+        ),
+        DeliveryAnalysis(
+            concept="피부 보호 기능",
+            section_id="D",
+            delivery_status="충분히 설명",
+            delivery_quality=0.8,
+            evidence="설명",
+            depth="상세",
+        ),
+    ]
+    return DeliveryResult(
+        week=2,
+        chapters=["3장"],
+        deliveries=deliveries,
+        effective_delivery_rate=0.75,
+        per_section_rate={"A": 1.0, "B": 0.5, "C": 0.67, "D": 0.67},
+    )
+
+
+class TestHierarchicalCharts:
+    """Tests for hierarchical coverage visualization charts (T035-T036)."""
+
+    def test_build_topic_delivery_stacked_chart(self) -> None:
+        """Stacked bar chart with mock data returns valid PNG bytes."""
+        from forma.domain_coverage_charts import build_topic_delivery_stacked_chart
+
+        result = _build_hierarchical_delivery_result()
+        hierarchy = _build_sample_hierarchy()
+        buf = build_topic_delivery_stacked_chart(result, hierarchy)
+        assert _is_valid_png(buf)
+        buf.seek(0, 2)
+        assert buf.tell() > 100
+
+    def test_build_hierarchical_coverage_chart(self) -> None:
+        """Grouped bar chart with 4 sections returns valid PNG bytes."""
+        from forma.domain_coverage_charts import build_hierarchical_coverage_chart
+
+        result = _build_hierarchical_delivery_result()
+        hierarchy = _build_sample_hierarchy()
+        buf = build_hierarchical_coverage_chart(result, hierarchy)
+        assert _is_valid_png(buf)
+        buf.seek(0, 2)
+        assert buf.tell() > 100
+
+    def test_build_grouped_quality_heatmap(self) -> None:
+        """Heatmap with row grouping returns valid PNG bytes."""
+        from forma.domain_coverage_charts import build_grouped_quality_heatmap
+
+        result = _build_hierarchical_delivery_result()
+        hierarchy = _build_sample_hierarchy()
+        buf = build_grouped_quality_heatmap(result, hierarchy)
+        assert _is_valid_png(buf)
+        buf.seek(0, 2)
+        assert buf.tell() > 100
+
+
+# ----------------------------------------------------------------
+# T050: Concept network chart tests
+# ----------------------------------------------------------------
+
+
+class TestConceptNetworkChart:
+    """Tests for concept network chart generation."""
+
+    def test_build_concept_network_chart(self) -> None:
+        """Concept network chart returns valid PNG bytes."""
+        from forma.concept_network import ConceptEdge, ConceptNetwork, ConceptNode
+        from forma.domain_coverage_charts import build_concept_network_chart
+
+        nodes = [
+            ConceptNode(
+                concept="표피 구조", chapter="3장", importance="high",
+                major_topic="피부", delivery_quality=0.9, delivery_status="충분히 설명",
+                key_terms=["표피", "각질층"],
+            ),
+            ConceptNode(
+                concept="진피 기능", chapter="3장", importance="medium",
+                major_topic="피부", delivery_quality=0.5, delivery_status="부분 전달",
+                key_terms=["진피", "콜라겐"],
+            ),
+            ConceptNode(
+                concept="피하조직", chapter="3장", importance="low",
+                major_topic="피부", delivery_quality=0.0, delivery_status="미전달",
+                key_terms=["피하"],
+            ),
+        ]
+        edges = [
+            ConceptEdge(source="표피 구조", target="진피 기능",
+                        relationship="shared_terms", weight=0.5),
+            ConceptEdge(source="표피 구조", target="피하조직",
+                        relationship="semantic", weight=0.7),
+        ]
+        network = ConceptNetwork(nodes=nodes, edges=edges)
+        buf = build_concept_network_chart(network)
+        assert _is_valid_png(buf)
+
+    def test_build_concept_network_comparison(self) -> None:
+        """4-section comparison chart returns valid PNG bytes."""
+        from forma.concept_network import ConceptEdge, ConceptNetwork, ConceptNode
+        from forma.domain_coverage_charts import build_concept_network_comparison
+
+        nodes = [
+            ConceptNode(
+                concept="표피 구조", chapter="3장", importance="high",
+                major_topic="피부", key_terms=["표피"],
+            ),
+            ConceptNode(
+                concept="진피 기능", chapter="3장", importance="medium",
+                major_topic="피부", key_terms=["진피"],
+            ),
+        ]
+        edges = [
+            ConceptEdge(source="표피 구조", target="진피 기능",
+                        relationship="shared_terms", weight=0.6),
+        ]
+        network = ConceptNetwork(nodes=nodes, edges=edges)
+
+        deliveries_by_section = {
+            "A": [
+                DeliveryAnalysis(concept="표피 구조", section_id="A",
+                                 delivery_status="충분히 설명", delivery_quality=0.9,
+                                 evidence="", depth=""),
+                DeliveryAnalysis(concept="진피 기능", section_id="A",
+                                 delivery_status="부분 전달", delivery_quality=0.5,
+                                 evidence="", depth=""),
+            ],
+            "B": [
+                DeliveryAnalysis(concept="표피 구조", section_id="B",
+                                 delivery_status="부분 전달", delivery_quality=0.6,
+                                 evidence="", depth=""),
+                DeliveryAnalysis(concept="진피 기능", section_id="B",
+                                 delivery_status="미전달", delivery_quality=0.0,
+                                 evidence="", depth=""),
+            ],
+            "C": [
+                DeliveryAnalysis(concept="표피 구조", section_id="C",
+                                 delivery_status="충분히 설명", delivery_quality=0.85,
+                                 evidence="", depth=""),
+                DeliveryAnalysis(concept="진피 기능", section_id="C",
+                                 delivery_status="충분히 설명", delivery_quality=0.8,
+                                 evidence="", depth=""),
+            ],
+            "D": [
+                DeliveryAnalysis(concept="표피 구조", section_id="D",
+                                 delivery_status="미전달", delivery_quality=0.1,
+                                 evidence="", depth=""),
+                DeliveryAnalysis(concept="진피 기능", section_id="D",
+                                 delivery_status="미전달", delivery_quality=0.0,
+                                 evidence="", depth=""),
+            ],
+        }
+
+        buf = build_concept_network_comparison(network, deliveries_by_section)
+        assert _is_valid_png(buf)

@@ -128,6 +128,9 @@ class DomainDeliveryPDFReportGenerator:
         section_nets: list | None = None,
         missing_edges_map: dict | None = None,
         assessment_data: object | None = None,
+        hierarchy: object | None = None,
+        concept_network: object | None = None,
+        deliveries_by_section: dict | None = None,
     ) -> str:
         """Generate the domain delivery report PDF.
 
@@ -140,6 +143,10 @@ class DomainDeliveryPDFReportGenerator:
             section_nets: Optional list of KeywordNetwork per section.
             missing_edges_map: Optional {section: [(u,v),...]} missing edges.
             assessment_data: Optional assessment correlation data.
+            hierarchy: Optional TopicHierarchy for hierarchical charts.
+            concept_network: Optional ConceptNetwork for network graph.
+            deliveries_by_section: Optional {section: [DeliveryAnalysis]}
+                for per-section network comparison.
 
         Returns:
             Absolute path to generated PDF file.
@@ -179,7 +186,22 @@ class DomainDeliveryPDFReportGenerator:
             textbook_net, section_nets, missing_edges_map, section_num,
         ))
 
-        # Section 6: Section comparison heatmap
+        # Hierarchical overview (only when hierarchy is provided)
+        if hierarchy is not None:
+            section_num += 1
+            story.extend(self._build_hierarchical_overview_section(
+                result, hierarchy, section_num,
+            ))
+
+        # Concept network graph (only when concept_network provided)
+        if concept_network is not None:
+            section_num += 1
+            story.extend(self._build_concept_network_section(
+                concept_network, result, section_num,
+                deliveries_by_section=deliveries_by_section,
+            ))
+
+        # Section N: Section comparison heatmap
         section_num += 1
         story.extend(self._build_section_comparison(result, section_num))
 
@@ -578,6 +600,26 @@ class DomainDeliveryPDFReportGenerator:
                 story.append(Image(
                     chart_buf, width=170 * mm, height=75 * mm,
                 ))
+                # Text summary: missing edges for this section
+                if missing:
+                    edges_str = ", ".join(
+                        f"{_esc(u)}-{_esc(v)}" for u, v in missing[:5]
+                    )
+                    suffix = (
+                        f" 외 {len(missing) - 5}개"
+                        if len(missing) > 5 else ""
+                    )
+                    story.append(Paragraph(
+                        f"  {_esc(lecture_net.source)}반 누락 연결: "
+                        f"{edges_str}{suffix}",
+                        self._styles["DcSmall"],
+                    ))
+                else:
+                    story.append(Paragraph(
+                        f"  {_esc(lecture_net.source)}반: "
+                        "교과서 네트워크 연결 모두 포함",
+                        self._styles["DcSmall"],
+                    ))
                 story.append(Spacer(1, 3 * mm))
         except Exception as exc:
             logger.warning("네트워크 비교 차트 생성 실패: %s", exc)
@@ -616,6 +658,43 @@ class DomainDeliveryPDFReportGenerator:
                 io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
             ))
 
+        # Text summary: highest/lowest quality concepts
+        non_skipped = [
+            d for d in result.deliveries
+            if d.delivery_status != "의도적 생략"
+        ]
+        if non_skipped:
+            concept_avg: dict[str, list[float]] = {}
+            for d in non_skipped:
+                if d.concept not in concept_avg:
+                    concept_avg[d.concept] = []
+                concept_avg[d.concept].append(d.delivery_quality)
+
+            avg_scores = {
+                c: sum(vs) / len(vs) for c, vs in concept_avg.items()
+            }
+            if avg_scores:
+                best = max(avg_scores, key=avg_scores.get)
+                worst = min(avg_scores, key=avg_scores.get)
+                story.append(Spacer(1, 2 * mm))
+                story.append(Paragraph(
+                    f"  최고 전달: {_esc(best)} "
+                    f"(평균 {avg_scores[best]:.2f}), "
+                    f"최저 전달: {_esc(worst)} "
+                    f"(평균 {avg_scores[worst]:.2f})",
+                    self._styles["DcSmall"],
+                ))
+
+        # Section comparison table (T046)
+        section_comparisons = getattr(result, "_section_comparisons", None)
+        if section_comparisons:
+            story.append(Spacer(1, 5 * mm))
+            story.extend(
+                self._build_section_comparison_table(
+                    section_comparisons, section_num,
+                ),
+            )
+
         # Per-section rate differences
         if result.per_section_rate:
             story.append(Spacer(1, 3 * mm))
@@ -630,6 +709,78 @@ class DomainDeliveryPDFReportGenerator:
                 ))
 
         story.append(Spacer(1, 5 * mm))
+        return story
+
+    # ----------------------------------------------------------------
+    # Section comparison table (T046)
+    # ----------------------------------------------------------------
+
+    def _build_section_comparison_table(
+        self,
+        comparisons: list,
+        section_num: int,
+    ) -> list:
+        """Build statistical comparison table between sections.
+
+        Columns: 분반 A, 분반 B, 평균 A, 평균 B, 검정, p-value, 보정 p, 유의
+
+        Args:
+            comparisons: List of DeliverySectionComparison.
+            section_num: Current section number.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        story.append(Paragraph(
+            "<b>분반 간 통계 비교:</b>",
+            self._styles["DcBody"],
+        ))
+        story.append(Spacer(1, 2 * mm))
+
+        cell_style = self._styles["DcTableCell"]
+        headers = [
+            "분반 A", "분반 B", "평균 A", "평균 B",
+            "검정", "p-value", "보정 p", "유의",
+        ]
+        header_row = [
+            Paragraph(f"<b>{_esc(h)}</b>", cell_style) for h in headers
+        ]
+
+        data = [header_row]
+        for comp in comparisons:
+            sig_text = "유의" if comp.significant else "-"
+            sig_color = "#F44336" if comp.significant else "#666666"
+            row = [
+                Paragraph(f"{_esc(comp.section_a)}반", cell_style),
+                Paragraph(f"{_esc(comp.section_b)}반", cell_style),
+                Paragraph(f"{comp.mean_a:.3f}", cell_style),
+                Paragraph(f"{comp.mean_b:.3f}", cell_style),
+                Paragraph(_esc(comp.test_name), cell_style),
+                Paragraph(f"{comp.p_value:.4f}", cell_style),
+                Paragraph(f"{comp.corrected_p_value:.4f}", cell_style),
+                Paragraph(
+                    f'<font color="{sig_color}">{_esc(sig_text)}</font>',
+                    cell_style,
+                ),
+            ]
+            data.append(row)
+
+        if len(data) > 1:
+            col_widths = [20 * mm, 20 * mm, 20 * mm, 20 * mm,
+                          25 * mm, 22 * mm, 22 * mm, 18 * mm]
+            table = Table(data, colWidths=col_widths, repeatRows=1)
+            style_cmds = [
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E0E0E0")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ]
+            table.setStyle(TableStyle(style_cmds))
+            story.append(table)
+
         return story
 
     # ----------------------------------------------------------------
@@ -828,6 +979,75 @@ class DomainDeliveryPDFReportGenerator:
         return story
 
     # ----------------------------------------------------------------
+    # Hierarchical overview (T040)
+    # ----------------------------------------------------------------
+
+    def _build_hierarchical_overview_section(
+        self,
+        result: object,
+        hierarchy: object,
+        section_num: int,
+    ) -> list:
+        """Build hierarchical overview section with 3 charts.
+
+        Includes topic delivery stacked bar, grouped coverage bar,
+        and grouped quality heatmap.
+
+        Args:
+            result: DeliveryResult.
+            hierarchy: TopicHierarchy from summary file.
+            section_num: Current section number.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            f"{section_num}. 대주제별 계층 분석",
+            self._styles["DcSection"],
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+        try:
+            from forma.domain_coverage_charts import (
+                build_grouped_quality_heatmap,
+                build_hierarchical_coverage_chart,
+                build_topic_delivery_stacked_chart,
+            )
+
+            # Chart 1: Topic delivery stacked bar
+            chart1 = build_topic_delivery_stacked_chart(
+                result, hierarchy,
+                font_path=self._font_path, dpi=self._dpi,
+            )
+            story.append(Image(chart1, width=160 * mm, height=80 * mm))
+            story.append(Spacer(1, 5 * mm))
+
+            # Chart 2: Hierarchical coverage grouped bar
+            chart2 = build_hierarchical_coverage_chart(
+                result, hierarchy,
+                font_path=self._font_path, dpi=self._dpi,
+            )
+            story.append(Image(chart2, width=160 * mm, height=80 * mm))
+            story.append(Spacer(1, 5 * mm))
+
+            # Chart 3: Grouped quality heatmap
+            chart3 = build_grouped_quality_heatmap(
+                result, hierarchy,
+                font_path=self._font_path, dpi=self._dpi,
+            )
+            story.append(Image(chart3, width=160 * mm, height=100 * mm))
+        except Exception as exc:
+            logger.warning("계층 분석 차트 생성 실패: %s", exc)
+            story.append(Image(
+                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
+            ))
+
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+    # ----------------------------------------------------------------
     # Section 9: Assessment correlation (optional)
     # ----------------------------------------------------------------
 
@@ -892,6 +1112,86 @@ class DomainDeliveryPDFReportGenerator:
         if not well_poor and not under_poor and corr is None:
             story.append(Paragraph(
                 "형성평가 연결 분석 상세 데이터가 제공되지 않았습니다.",
+                self._styles["DcBody"],
+            ))
+
+        story.append(Spacer(1, 5 * mm))
+        return story
+
+
+    # ----------------------------------------------------------------
+    # Concept network graph section (T056)
+    # ----------------------------------------------------------------
+
+    def _build_concept_network_section(
+        self,
+        network: object,
+        result: object,
+        section_num: int,
+        deliveries_by_section: dict | None = None,
+    ) -> list:
+        """Build concept network graph section with charts and summary.
+
+        Args:
+            network: ConceptNetwork with nodes and edges.
+            result: DeliveryResult for delivery overlay.
+            section_num: Current section number.
+            deliveries_by_section: Optional per-section delivery data
+                for comparison chart.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story = []
+        story.append(PageBreak())
+        story.append(Paragraph(
+            f"{section_num}. 개념 네트워크 그래프",
+            self._styles["DcSection"],
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+        # Single network chart
+        try:
+            from forma.domain_coverage_charts import build_concept_network_chart
+            chart_buf = build_concept_network_chart(
+                network, font_path=self._font_path, dpi=self._dpi,
+            )
+            story.append(Image(chart_buf, width=160 * mm, height=130 * mm))
+            story.append(Spacer(1, 3 * mm))
+        except Exception as exc:
+            logger.warning("개념 네트워크 차트 생성 실패: %s", exc)
+            story.append(Image(
+                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
+            ))
+
+        # Comparison chart (if multi-section data available)
+        if deliveries_by_section and len(deliveries_by_section) >= 2:
+            try:
+                from forma.domain_coverage_charts import (
+                    build_concept_network_comparison,
+                )
+                comp_buf = build_concept_network_comparison(
+                    network, deliveries_by_section,
+                    font_path=self._font_path, dpi=self._dpi,
+                )
+                story.append(PageBreak())
+                story.append(Image(
+                    comp_buf, width=170 * mm, height=130 * mm,
+                ))
+                story.append(Spacer(1, 3 * mm))
+            except Exception as exc:
+                logger.warning("네트워크 비교 차트 생성 실패: %s", exc)
+
+        # Text summary: top 3 edges by weight
+        if network.edges:
+            sorted_edges = sorted(
+                network.edges, key=lambda e: e.weight, reverse=True,
+            )[:3]
+            connections = ", ".join(
+                f"{e.source}-{e.target}" for e in sorted_edges
+            )
+            story.append(Paragraph(
+                f"주요 연결: {_esc(connections)}",
                 self._styles["DcBody"],
             ))
 
