@@ -19,7 +19,7 @@ Get from installation to your first evaluation report in 15 minutes.
 
 Before starting, ensure you have:
 
-- **Python >= 3.11** and **JDK 17+** installed (see [README](../README.md#requirements) for platform-specific instructions)
+- **Python >= 3.11** and **JDK 17+** installed (see [Home](index.md) for details)
 - **mecab** Korean morphological analyzer installed
 - **formative-analysis** installed in your environment:
   ```bash

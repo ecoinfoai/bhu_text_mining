@@ -1,0 +1,62 @@
+site_name: FormA — Formative Assessment Toolkit
+site_description: AI-powered formative assessment CLI toolkit for university professors
+site_url: https://ecoinfoai.github.io/formative-analysis/
+repo_url: https://github.com/ecoinfoai/formative-analysis
+repo_name: ecoinfoai/formative-analysis
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: quickstart.md
+      - Configuration: configuration.md
+      - Config Setup Guide: config-setup-guide.md
+  - User Guides:
+      - Weekly Workflow: weekly-workflow.md
+      - Guide for New Teachers: for_new_teachers.md
+  - Reference:
+      - CLI Reference: cli-reference.md
+      - Data Formats: data-formats.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+
+plugins:
+  - search

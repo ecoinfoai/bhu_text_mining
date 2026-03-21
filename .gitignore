@@ -121,3 +121,6 @@ smtp*.yaml
 .agent-comm/
 .claude/commands/
 .specify/
+
+# MkDocs
+site/
