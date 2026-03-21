@@ -168,15 +168,15 @@ class TestCLIIntegration:
             assert issubclass(w[0].category, DeprecationWarning)
             assert "forma-old" in str(w[0].message)
 
-    def test_korean_error_messages(self) -> None:
-        """Korean error message templates format correctly."""
-        from forma.cli_main import _korean_error
+    def test_error_messages(self) -> None:
+        """Error message templates format correctly."""
+        from forma.cli_main import _error_message
 
-        msg = _korean_error("file_not_found", path="/tmp/test.yaml")
+        msg = _error_message("file_not_found", path="/tmp/test.yaml")
         assert "/tmp/test.yaml" in msg
         assert "File" in msg
 
-        msg = _korean_error("unknown_command", cmd="foobar")
+        msg = _error_message("unknown_command", cmd="foobar")
         assert "foobar" in msg
         assert "Unknown command" in msg
 
@@ -240,7 +240,6 @@ class TestDataIntegrityIntegration:
         trajectory = [base + i * 1e-17 for i in range(5)]
         # Slope is essentially zero but might be slightly negative due to float
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=trajectory,
             concept_scores={"A": 0.8},
             absence_ratio=0.0,
@@ -379,8 +378,8 @@ class TestCLIIntegrationExpanded:
             main([])
         assert exc.value.code == 0
 
-    def test_forma_unknown_command_korean_error(self, capsys) -> None:
-        """'forma foo' gives Korean error message on stderr."""
+    def test_forma_unknown_command_error(self, capsys) -> None:
+        """'forma foo' gives error message on stderr."""
         from forma.cli_main import main
 
         with pytest.raises(SystemExit) as exc:

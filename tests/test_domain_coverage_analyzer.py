@@ -1864,7 +1864,7 @@ class TestDeliveryPairwiseComparisons:
         with caplog.at_level(_logging.WARNING):
             comparisons = compute_delivery_pairwise_comparisons(deliveries)
         assert comparisons == []
-        assert any("2개 이상" in r.message for r in caplog.records)
+        assert any("at least 2 sections" in r.message for r in caplog.records)
 
     def test_2_sections_valid(self) -> None:
         """2 sections produce 1 comparison pair."""

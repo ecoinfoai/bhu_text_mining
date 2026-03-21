@@ -173,7 +173,7 @@ def generate_topic_dataframe(
 
 
 def generate_topic_keywords_table(
-    topic_model: BERTopic, sentences: list[str], topics: list[int]
+    topic_model: BERTopic, _sentences: list[str], _topics: list[int]
 ) -> pd.DataFrame:
     """
     Generate a table of topic keywords from the BERTopic model.

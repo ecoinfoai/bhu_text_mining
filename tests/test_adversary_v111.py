@@ -1863,8 +1863,8 @@ class TestCrossPersonaIntegration:
         result = _build_smtp_config(data, field_map=field_map)
         assert result.smtp_server == "smtp.test.com"
 
-    def test_empty_config_korean_error(self):
-        """Config manipulator (P4) triggers Korean error (P7)."""
+    def test_empty_config_error(self):
+        """Config manipulator (P4) triggers error (P7)."""
         from forma.config import get_smtp_config
 
         with pytest.raises(KeyError, match="smtp"):

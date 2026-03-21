@@ -389,7 +389,7 @@ class TestValidateAndRepair:
             "[원인] 핵심 관계를 일부 놓친 부분이 있습니다. 추가 학습이 필요합니다.\n"
             "[학생에게 권하는 사항] 관련 개념을 복습하면 좋겠습니다. 교재를 참고하세요."
         )
-        result = _validate_and_repair(text, tier_level=2)
+        result = _validate_and_repair(text)
         assert "[현재 상태]" in result
         assert "[원인]" in result
         assert "[학생에게 권하는 사항]" in result
@@ -399,7 +399,7 @@ class TestValidateAndRepair:
         text = "[현재 상태] 좋은 이해도입니다. [원인] 일부 부족합니다."
         # Missing [학생에게 권하는 사항]
         with pytest.raises(ValueError, match="학생에게 권하는 사항"):
-            _validate_and_repair(text, tier_level=2)
+            _validate_and_repair(text)
 
     def test_excess_sentences_truncated(self):
         """Section with >3 sentences is truncated to 3."""
@@ -408,7 +408,7 @@ class TestValidateAndRepair:
             "[원인] 원인입니다. 설명합니다.\n"
             "[학생에게 권하는 사항] 제안합니다. 복습하세요."
         )
-        result = _validate_and_repair(text, tier_level=2)
+        result = _validate_and_repair(text)
         # Count sentences in [현재 상태] section
         status_section = result.split("[원인]")[0]
         status_text = status_section.replace("[현재 상태]", "").strip()
@@ -422,7 +422,7 @@ class TestValidateAndRepair:
             "[원인] 일부 개념이 부족합니다.\n"
             "[학생에게 권하는 사항] 추가 학습을 권합니다"
         )
-        result = _validate_and_repair(text, tier_level=1)
+        result = _validate_and_repair(text)
         assert result.rstrip().endswith(".")
 
 

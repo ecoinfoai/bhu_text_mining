@@ -101,7 +101,6 @@ class WarningCard:
 
 
 def _classify_risk_types(
-    student_id: str,
     concept_scores: dict[str, float],
     score_trajectory: list[float],
     absence_ratio: float,
@@ -109,7 +108,6 @@ def _classify_risk_types(
     """Classify a student's risk types based on available data.
 
     Args:
-        student_id: Student identifier (for logging).
         concept_scores: {concept: mastery_score} for this student.
         score_trajectory: Weekly scores in chronological order.
         absence_ratio: Fraction of missed sessions.
@@ -251,7 +249,7 @@ def build_warning_data(
         absence = absence_ratios.get(sid, 0.0)
 
         # Classify risk types
-        risk_types = _classify_risk_types(sid, student_concepts, trajectory, absence)
+        risk_types = _classify_risk_types(student_concepts, trajectory, absence)
 
         # If no specific risk type classified, add a default based on detection
         if not risk_types:

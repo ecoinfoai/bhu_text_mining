@@ -533,12 +533,9 @@ class TestModernTypingImports:
     """Modules with __future__.annotations should use built-in generics."""
 
     @pytest.mark.parametrize("module_path", [
-        "forma/cohesion_analysis.py",
-        "forma/tesseract_processor.py",
         "forma/topic_analysis.py",
         "forma/network_analysis.py",
         "forma/naver_ocr.py",
-        "forma/knowledge_graph_analysis.py",
         "forma/exam_generator.py",
         "forma/font_utils.py",
     ])

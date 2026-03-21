@@ -169,7 +169,7 @@ class FeatureExtractor:
         Args:
             store: LongitudinalStore instance.
             weeks: List of week numbers to include.
-            class_name: Optional class filter (not used currently).
+            class_name: Optional class filter (reserved for future use).
 
         Returns:
             Tuple of (feature_matrix, feature_names, student_ids).
@@ -229,7 +229,7 @@ class FeatureExtractor:
             records: Student's LongitudinalRecords for the requested weeks.
             weeks: All requested week numbers.
             n_weeks: Total number of weeks.
-            student_weekly_scores: {week: ensemble_score} for this student.
+            student_weekly_scores: Reserved for future per-week score features.
             week_stats: {week: (class_mean, class_std)} for z-score.
 
         Returns:

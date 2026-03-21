@@ -211,5 +211,5 @@ echo "$FORMA_SMTP_PASSWORD" | forma deliver send \
 
 - [docs/for_new_teachers.md](for_new_teachers.md) — Scenario-based guide: choose the right workflow for your situation
 - [docs/weekly-workflow.md](weekly-workflow.md) — Step-by-step reference for the complete weekly assessment routine
-- [docs/cli-reference.md](cli-reference.md) — Complete flag reference for all 15 commands
+- [docs/cli-reference.md](cli-reference.md) — Complete flag reference for all 22 commands
 - [docs/configuration.md](configuration.md) — Full configuration reference (`config.json`, `forma.yaml`, `week.yaml`)

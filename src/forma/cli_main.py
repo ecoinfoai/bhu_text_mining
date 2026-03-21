@@ -1,7 +1,7 @@
 """Unified ``forma`` CLI entry point.
 
-Consolidates 14 separate ``forma-*`` commands into a single ``forma``
-command with nested subparsers.
+Consolidates legacy ``forma-*`` commands into a single ``forma``
+command with nested subparsers (22 subcommands across 12 groups).
 
 Usage::
 
@@ -19,7 +19,12 @@ import warnings
 
 logger = logging.getLogger(__name__)
 
-_VERSION = "0.12.0"
+try:
+    from importlib.metadata import version as _pkg_version
+
+    _VERSION = _pkg_version("formative-analysis")
+except Exception:
+    _VERSION = "0.13.0"
 
 # ---------------------------------------------------------------------------
 # Error messages (FR-048)
@@ -33,7 +38,7 @@ _ERROR_MESSAGES: dict[str, str] = {
 }
 
 
-def _korean_error(msg_type: str, **kwargs: str) -> str:
+def _error_message(msg_type: str, **kwargs: str) -> str:
     """Return a formatted error message for the given type.
 
     Args:
@@ -165,7 +170,7 @@ class _FormaParser(argparse.ArgumentParser):
             m = re.search(r"invalid choice: '([^']*)'", message)
             cmd = m.group(1) if m else "?"
             print(
-                _korean_error("unknown_command", cmd=cmd),
+                _error_message("unknown_command", cmd=cmd),
                 file=sys.stderr,
             )
             raise SystemExit(2)
@@ -176,7 +181,7 @@ def _build_parser() -> _FormaParser:
     """Build the top-level argument parser with nested subparsers."""
     parser = _FormaParser(
         prog="forma",
-        description="Formative Assessment Analysis Tool (형성평가 분석 도구)",
+        description="Formative Assessment Analysis Tool",
     )
     parser.add_argument(
         "--version",
@@ -192,7 +197,7 @@ def _build_parser() -> _FormaParser:
         default=False,
         help="Skip forma.yaml loading",
     )
-    parser.add_argument("--font-path", default=None, help="Korean font file path")
+    parser.add_argument("--font-path", default=None, help="Custom font file path")
     parser.add_argument("--dpi", type=int, default=150, help="Chart resolution DPI")
 
     subparsers = parser.add_subparsers(dest="command", title="commands")
@@ -296,7 +301,7 @@ def main(argv: list[str] | None = None) -> None:
     if key not in _COMMANDS:
         # Unknown subcommand
         print(
-            _korean_error("unknown_command", cmd=command),
+            _error_message("unknown_command", cmd=command),
             file=sys.stderr,
         )
         raise SystemExit(2)

@@ -407,7 +407,7 @@ forma report student --final final.yaml --config exam.yaml --eval-dir eval/ \
 
 ## See Also
 
-- [CLI Reference](cli-reference.md) -- complete flag lists for all 14 commands
+- [CLI Reference](cli-reference.md) -- complete flag lists for all 22 commands
 - [Configuration](configuration.md) -- config.json and forma.yaml setup guide
 - [Data Formats](data-formats.md) -- YAML file schemas for all input/output files
 - [Quickstart](quickstart.md) -- first-time setup and minimal working example

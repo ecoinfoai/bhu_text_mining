@@ -32,7 +32,7 @@ __all__ = [
 ]
 
 
-def _create_llm_provider(args):
+def _create_llm_provider():
     """Try to create an LLM provider from config or environment.
 
     Checks forma.json, then forma.yaml, then environment variables.
@@ -232,7 +232,7 @@ def main(argv=None) -> int | None:
             anon_summary = anonymize(student_data, warnings)
 
             # Try to create LLM provider from config or environment
-            provider = _create_llm_provider(args)
+            provider = _create_llm_provider()
             if provider is not None:
                 llm_texts = generate_interpretation(anon_summary, provider)
                 logger.info("LLM interpretation generated")
@@ -397,7 +397,7 @@ def batch_main(argv=None) -> int | None:
     llm_provider = None
     if not args.no_llm:
         try:
-            llm_provider = _create_llm_provider(args)
+            llm_provider = _create_llm_provider()
             if llm_provider is None:
                 logger.info("Cannot configure LLM provider, skipping LLM interpretation.")
         except Exception as exc:

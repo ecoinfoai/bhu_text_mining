@@ -125,7 +125,7 @@ def _soften_tone(text: str) -> str:
     return text
 
 
-def _validate_and_repair(text: str, tier_level: int) -> str:
+def _validate_and_repair(text: str) -> str:
     """Validate feedback structure and attempt minor repairs.
 
     Checks for required sections, truncates excess sentences (>3 per section),
@@ -134,7 +134,6 @@ def _validate_and_repair(text: str, tier_level: int) -> str:
 
     Args:
         text: Raw feedback text to validate.
-        tier_level: Tier level for context.
 
     Returns:
         Repaired text.
@@ -288,7 +287,7 @@ class FeedbackGenerator:
                 )
                 processed = _soften_tone(raw_feedback.strip())
                 processed = _truncate_at_sentence(processed, self._max_chars)
-                feedback = _validate_and_repair(processed, tier_level)
+                feedback = _validate_and_repair(processed)
                 break
             except ValueError as ve:
                 logger.warning(

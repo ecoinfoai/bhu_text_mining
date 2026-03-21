@@ -1,6 +1,6 @@
 # CLI Reference
 
-Complete reference for all 15 FormA CLI commands, accessible through the unified `forma` entry point.
+Complete reference for all 22 FormA CLI commands, accessible through the unified `forma` entry point.
 
 > **Note:** The deprecated `forma-*` command names (e.g., `forma-exam`, `forma-train`) remain functional but emit a `DeprecationWarning`. Migrate to the `forma <subcommand>` format shown in this reference.
 
@@ -21,6 +21,27 @@ Complete reference for all 15 FormA CLI commands, accessible through the unified
 - [forma deliver](#forma-deliver)
 - [forma intervention](#forma-intervention)
 - [forma select](#forma-select)
+- [forma lecture analyze](#forma-lecture-analyze)
+- [forma lecture compare](#forma-lecture-compare)
+- [forma lecture class-compare](#forma-lecture-class-compare)
+- [forma backfill longitudinal](#forma-backfill-longitudinal)
+- [forma domain extract](#forma-domain-extract)
+- [forma domain coverage](#forma-domain-coverage)
+- [forma domain report](#forma-domain-report)
+
+---
+
+## Global Flags
+
+These flags are accepted by the top-level `forma` command and apply to all subcommands:
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--version` | flag | -- | Print version and exit |
+| `--verbose` | flag | false | Enable verbose output |
+| `--no-config` | flag | false | Skip `forma.yaml` loading |
+| `--font-path` | path | None | Custom font file path |
+| `--dpi` | integer | 150 | Chart resolution DPI |
 
 ---
 
@@ -33,7 +54,7 @@ Complete reference for all 15 FormA CLI commands, accessible through the unified
 | 2 | File error (file not found, permission denied, write error) |
 | 3 | Rendering error (font missing) or partial failure (some emails failed) |
 
-> Accurate as of v0.12.2
+> Accurate as of v0.13.0
 
 ---
 
@@ -85,13 +106,14 @@ forma exam --questions-json '[{"topic":"T","text":"Q","limit":"50"}]' \
 
 ## forma ocr
 
-OCR pipeline for scanned exam answer sheets. Has two subcommands: `scan` and `join`.
+OCR pipeline for scanned exam answer sheets. Has three subcommands: `scan`, `join`, and `compare`.
 
 **Synopsis:**
 
 ```bash
-forma ocr [--no-config] scan --config <path> [options]
-forma ocr [--no-config] join --ocr-results <path> --output <path> [options]
+forma ocr [--no-config] scan (--config <path> | --class <id>) [options]
+forma ocr [--no-config] join [--class <id>] [--ocr-results <path>] [--output <path>] [options]
+forma ocr [--no-config] compare (--image <path> | --image-dir <path>) --output <path> [options]
 ```
 
 ### forma ocr scan
@@ -102,15 +124,24 @@ Scan images, decode QR codes, run OCR, and produce a YAML result file.
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `--config` | path | yes | -- | OCR configuration YAML file path |
-| `--num-questions` | integer | no | None | Number of questions (can be specified in config YAML; defaults to 2 if unset) |
-| `--class` | string | no | None | Class identifier; substitutes `{class}` in `week.yaml` path patterns |
+| `--config` | path | mutually exclusive | -- | OCR configuration YAML file path (legacy) |
+| `--class` | string | mutually exclusive | -- | Class identifier; substitutes `{class}` in `week.yaml` path patterns |
+| `--provider` | string | no | `gemini` | LLM provider (`gemini` or `anthropic`) |
+| `--model` | string | no | None | LLM model ID override |
+| `--subject` | string | no | None | Subject name (LLM prompt context) |
+| `--question` | string | no | None | Question text (LLM prompt context) |
+| `--answer-keywords` | string | no | None | Key terms, comma-separated (LLM prompt context) |
+| `--num-questions` | integer | no | None | Number of questions (can be specified in config YAML) |
+| `--recrop` | flag | no | false | Ignore saved crop coordinates; re-select |
+| `--week-config` | path | no | auto-discover | `week.yaml` path |
+| `--ocr-review-threshold` | float | no | 0.75 | OCR confidence review threshold |
 
 **Examples:**
 
 ```bash
 forma ocr scan --config ocr_config.yaml
-forma ocr scan --config ocr_config.yaml --num-questions 3
+forma ocr scan --class A --week-config week.yaml
+forma ocr scan --class A --provider anthropic --num-questions 3
 ```
 
 ### forma ocr join
@@ -121,25 +152,53 @@ Join OCR results with Google Forms/Sheets responses to produce a unified output 
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `--ocr-results` | path | yes | -- | OCR results YAML file path |
-| `--output` | path | yes | -- | Output YAML file path |
+| `--class` | string | no | None | Class identifier; substitutes `{class}` in `week.yaml` path patterns |
+| `--ocr-results` | path | no | None | OCR results YAML file path |
+| `--output` | path | no | None | Output YAML file path |
 | `--spreadsheet-url` | string | no | None | Google Sheets URL (preferred data source) |
 | `--forms-csv` | path | no | None | Google Forms CSV file path (fallback) |
 | `--credentials` | path | no | `credentials.json` | OAuth2 credentials JSON file path |
 | `--manual-mapping` | path | no | None | Manual mapping YAML for unmatched students |
 | `--student-id-column` | string | no | `student_id` | Student ID column name in the spreadsheet |
-| `--class` | string | no | None | Class identifier; substitutes `{class}` in `week.yaml` path patterns |
-
-At least one of `--spreadsheet-url` or `--forms-csv` must be provided.
+| `--week-config` | path | no | auto-discover | `week.yaml` path |
+| `--ocr-review-threshold` | float | no | 0.75 | OCR confidence review threshold |
 
 **Examples:**
 
 ```bash
+forma ocr join --class A --week-config week.yaml
+
 forma ocr join --ocr-results results.yaml --output final.yaml \
                --spreadsheet-url "https://docs.google.com/spreadsheets/d/XXX"
 
 forma ocr join --ocr-results results.yaml --output final.yaml \
                --forms-csv fallback.csv --manual-mapping mapping.yaml
+```
+
+### forma ocr compare
+
+Compare Naver OCR results against LLM Vision OCR results (research/diagnostic tool).
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--image` | path | mutually exclusive | -- | Single image file path to compare |
+| `--image-dir` | path | mutually exclusive | -- | Directory of images for batch comparison |
+| `--output` | path | yes | -- | Output YAML/directory path |
+| `--provider` | string | no | `gemini` | LLM provider (`gemini` or `anthropic`) |
+| `--model` | string | no | None | LLM model ID override |
+| `--subject` | string | no | None | Subject name (LLM prompt context) |
+| `--question` | string | no | None | Question text (LLM prompt context) |
+| `--answer-keywords` | string | no | None | Key terms, comma-separated (LLM prompt context) |
+| `--num-questions` | integer | no | 1 | Number of questions |
+| `--class` | string | no | None | Class identifier |
+
+**Examples:**
+
+```bash
+forma ocr compare --image scan001.jpg --output compare_result.yaml
+forma ocr compare --image-dir scans/ --output compare_results/ --provider anthropic
 ```
 
 ### Common Options
@@ -781,3 +840,257 @@ forma select --week-config path/to/week/week.yaml
 ```
 
 **Prerequisite**: A valid `week.yaml` with `select.source` and `select.questions` set. See [Configuration](configuration.md#weekyaml) for the full `week.yaml` field reference.
+
+---
+
+## forma lecture analyze
+
+Analyze a single STT lecture transcript: keyword extraction, network generation, topic modeling, emphasis scoring, and optional triplet extraction.
+
+**Synopsis:**
+
+```bash
+forma lecture analyze --input <path> --output <dir> --class <id> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--input` | path | yes | -- | STT transcript file path |
+| `--output` | path | yes | -- | Output directory |
+| `--class` | string | yes | -- | Class identifier |
+| `--week` | integer | no | 0 | Week number |
+| `--concepts` | path | no | None | Exam concepts YAML path (for concept-aware analysis) |
+| `--no-cache` | flag | no | false | Skip loading cached analysis results |
+| `--top-n` | integer | no | 50 | Top keyword count |
+| `--no-triplets` | flag | no | false | Skip triplet extraction |
+| `--extra-stopwords` | list | no | [] | Additional stopwords |
+
+**Examples:**
+
+```bash
+# Analyze a single transcript
+forma lecture analyze --input transcript_A_w1.txt --output results/lecture/ \
+                      --class A --week 1
+
+# With concept awareness and no triplets
+forma lecture analyze --input transcript_A_w1.txt --output results/lecture/ \
+                      --class A --week 1 --concepts exam.yaml --no-triplets
+```
+
+---
+
+## forma lecture compare
+
+Compare lecture transcripts across class sections for a single session (week). Produces exclusive keyword lists, concept gap analysis, and emphasis variance rankings.
+
+**Synopsis:**
+
+```bash
+forma lecture compare --input-dir <dir> --week <n> --classes <ids...> --output <dir> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--input-dir` | path | yes | -- | Directory containing analysis result YAML files |
+| `--week` | integer | yes | -- | Week number |
+| `--classes` | list | yes | -- | Class identifiers to compare (at least 2) |
+| `--output` | path | yes | -- | Output directory |
+| `--concepts` | path | no | None | Exam concepts YAML path |
+| `--top-n` | integer | no | 50 | Top keyword count |
+
+**Examples:**
+
+```bash
+forma lecture compare --input-dir results/lecture/ --week 1 \
+                      --classes A B C D --output results/comparison/
+```
+
+---
+
+## forma lecture class-compare
+
+Compare lecture transcripts across class sections for all sessions combined. Merges per-session analysis results into class-level summaries before comparison.
+
+**Synopsis:**
+
+```bash
+forma lecture class-compare --input-dir <dir> --weeks <ns...> --classes <ids...> --output <dir> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--input-dir` | path | yes | -- | Directory containing analysis result YAML files |
+| `--weeks` | list (int) | yes | -- | Week numbers to include |
+| `--classes` | list | yes | -- | Class identifiers to compare (at least 2) |
+| `--output` | path | yes | -- | Output directory |
+| `--concepts` | path | no | None | Exam concepts YAML path |
+| `--top-n` | integer | no | 50 | Top keyword count |
+| `--no-cache` | flag | no | false | Skip loading cached merged analysis |
+
+**Examples:**
+
+```bash
+forma lecture class-compare --input-dir results/lecture/ \
+                            --weeks 1 2 3 --classes A B C D \
+                            --output results/class_comparison/
+```
+
+---
+
+## forma backfill longitudinal
+
+Backfill the longitudinal store from existing evaluation result directories. Useful for retroactively populating longitudinal data from past assessments.
+
+**Synopsis:**
+
+```bash
+forma backfill longitudinal --eval-dir <dir> [--eval-dir <dir> ...] --store <path> --week <n> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--eval-dir` | path | yes | -- | Evaluation output directory (repeatable) |
+| `--store` | path | yes | -- | Path to longitudinal store YAML (created if not exists) |
+| `--week` | integer | yes | -- | Week number |
+| `--exam-file` | string | no | `""` | Exam config filename for metadata |
+| `--responses` | path | no | None | Path to final YAML for OCR confidence (repeatable) |
+
+**Examples:**
+
+```bash
+# Backfill week 1 from multiple class evaluation directories
+forma backfill longitudinal \
+    --eval-dir eval_A --eval-dir eval_B --eval-dir eval_C \
+    --store longitudinal.yaml --week 1 \
+    --exam-file Ch01_FormativeTest.yaml
+
+# With OCR confidence data from join output
+forma backfill longitudinal \
+    --eval-dir eval_A --eval-dir eval_B \
+    --store longitudinal.yaml --week 2 \
+    --responses final_A.yaml --responses final_B.yaml
+```
+
+---
+
+## forma domain extract
+
+Extract domain concepts from textbook text files. Uses LLM-based extraction (v2) when `--model` or `--summary` is provided; falls back to KoNLPy word-level extraction (v1) otherwise.
+
+**Synopsis:**
+
+```bash
+forma domain extract --output <path> (--textbook <path> | --summary <path>) [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--textbook` | path | conditional | None | Textbook chapter text file path (repeatable; required unless `--summary` used alone) |
+| `--summary` | path | no | None | Chapter summary Markdown file path (repeatable; triggers LLM extraction) |
+| `--output` | path | yes | -- | Output concepts YAML file path |
+| `--min-freq` | integer | no | 2 | Minimum frequency (v1 only; bilingual terms always included) |
+| `--no-cache` | flag | no | false | Disable concept cache |
+| `--model` | string | no | None | LLM model ID override (triggers LLM extraction) |
+| `--chunk` | flag | no | auto | Force chunk splitting (even for small files) |
+| `--no-chunk` | flag | no | auto | Disable chunk splitting (single call even for large files) |
+
+At least one of `--textbook` or `--summary` must be provided. `--chunk` and `--no-chunk` are mutually exclusive.
+
+**Examples:**
+
+```bash
+# v1 extraction (KoNLPy)
+forma domain extract --textbook ch01.txt --textbook ch02.txt --output concepts.yaml
+
+# v2 extraction (LLM) with chapter summaries
+forma domain extract --textbook ch01.txt --summary ch01_summary.md \
+                     --output concepts.yaml --model gemini-pro
+```
+
+---
+
+## forma domain coverage
+
+Analyze lecture coverage against textbook concepts using embedding similarity, term matching, and optional LLM analysis.
+
+**Synopsis:**
+
+```bash
+forma domain coverage --concepts <path> --transcripts <path> [--transcripts <path> ...] --output <path> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--concepts` | path | yes | -- | Concepts YAML file (from `forma domain extract`) |
+| `--transcripts` | path | yes | -- | Lecture transcript file path (repeatable) |
+| `--output` | path | yes | -- | Output coverage YAML file path |
+| `--week-config` | path | no | None | Week config YAML (with teaching scope) |
+| `--scope` | string | no | None | CLI scope override (e.g. `"2장:확산,능동수송;3장:"`) |
+| `--threshold` | float | no | 0.65 | Similarity threshold |
+| `--eval-store` | path | no | None | Longitudinal data YAML (for formative assessment linking) |
+| `--model` | string | no | None | LLM model ID override |
+| `--no-pedagogy` | flag | no | false | Skip pedagogy analysis |
+| `--no-network` | flag | no | false | Skip network graph generation |
+| `--no-llm` | flag | no | false | Skip LLM calls (use embedding/term/density signals only) |
+
+**Examples:**
+
+```bash
+# Basic coverage analysis
+forma domain coverage --concepts concepts.yaml \
+                      --transcripts lecture_w1.txt --transcripts lecture_w2.txt \
+                      --output coverage.yaml
+
+# With teaching scope and LLM analysis
+forma domain coverage --concepts concepts.yaml \
+                      --transcripts lecture_w1.txt \
+                      --output coverage.yaml \
+                      --week-config week.yaml --model gemini-flash
+```
+
+---
+
+## forma domain report
+
+Generate a domain delivery analysis PDF report from coverage/delivery analysis results.
+
+**Synopsis:**
+
+```bash
+forma domain report --coverage <path> --output <path> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--coverage` | path | yes | -- | Delivery analysis result YAML |
+| `--output` | path | yes | -- | Output PDF file path |
+| `--course-name` | string | no | `""` | Course name (displayed in report header) |
+| `--font-path` | path | no | None | Korean font path |
+| `--dpi` | integer | no | 150 | Chart resolution |
+| `--concepts` | path | no | None | Concepts YAML file (for network graph) |
+| `--summary` | path | no | None | Chapter summary Markdown file path (for hierarchy analysis) |
+
+**Examples:**
+
+```bash
+# Basic report
+forma domain report --coverage coverage.yaml --output domain_report.pdf
+
+# With course name and concept network graph
+forma domain report --coverage coverage.yaml --output domain_report.pdf \
+                    --course-name "Biology 101" --concepts concepts.yaml
+```

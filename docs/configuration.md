@@ -45,7 +45,7 @@ LLM provider settings for feedback generation and analysis.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `provider` | string | no | `"gemini"` | LLM provider (`"gemini"` or `"anthropic"`) |
-| `model` | string | no | -- | Model name (e.g., `gpt-4o`, `claude-sonnet-4-6`) |
+| `model` | string | no | -- | Model name (e.g., `gemini-2.0-flash`, `claude-sonnet-4-6`) |
 | `api_key` | string | no | -- | API key (recommend using environment variables instead) |
 
 ### naver_ocr section

@@ -633,7 +633,7 @@ def _recover_truncated_yaml(text: str) -> dict | None:
         data = yaml.safe_load(truncated)
         if isinstance(data, dict) and "concepts" in data:
             logger.info(
-                "잘린 응답 구제 성공: %d개 개념 파싱됨",
+                "Truncated response salvaged: %d concepts parsed",
                 len(data["concepts"]),
             )
             return data
@@ -912,12 +912,12 @@ def extract_concepts_llm_chunked(
 
             chunk_results.append(concepts)
             logger.info(
-                "청크 %d/%d 완료: %d개 개념 추출",
+                "Chunk %d/%d completed: %d concepts extracted",
                 idx + 1, len(chunks), len(concepts),
             )
         except Exception:
             logger.warning(
-                "청크 %d LLM 호출 실패", idx + 1, exc_info=True,
+                "Chunk %d LLM call failed", idx + 1, exc_info=True,
             )
             chunk_results.append([])
 
@@ -1106,35 +1106,6 @@ class TopicHierarchy:
     section_to_major: dict[str, str] = field(default_factory=dict)
     section_to_sub: dict[str, str] = field(default_factory=dict)
 
-
-def _fuzzy_section_match(section: str, candidates: list[str]) -> str | None:
-    """Find the best fuzzy match for a section name among candidates.
-
-    Uses substring containment in both directions: checks if the section
-    name is contained in a candidate or vice versa.
-
-    Args:
-        section: Section name to match.
-        candidates: List of candidate names.
-
-    Returns:
-        Best matching candidate, or None if no match found.
-    """
-    section_clean = section.strip()
-    if not section_clean:
-        return None
-
-    # Exact match first
-    for c in candidates:
-        if c == section_clean:
-            return c
-
-    # Substring match (section in candidate or candidate in section)
-    for c in candidates:
-        if section_clean in c or c in section_clean:
-            return c
-
-    return None
 
 
 def parse_summary_hierarchy(summary_path: str) -> TopicHierarchy:

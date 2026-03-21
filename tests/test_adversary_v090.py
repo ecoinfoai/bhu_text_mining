@@ -1804,7 +1804,7 @@ class TestWarningDataCrasher:
     def test_single_point_trajectory_no_slope(self):
         """Single-point trajectory: SCORE_DECLINE not triggered (need >=2)."""
         from forma.warning_report_data import _classify_risk_types, RiskType
-        types = _classify_risk_types("S001", {}, [0.3], 0.0)
+        types = _classify_risk_types({}, [0.3], 0.0)
         assert RiskType.SCORE_DECLINE not in types
 
 
@@ -2312,8 +2312,8 @@ class TestInvariant1000Phase3:
             trajectory = rng.uniform(0, 1, n_weeks).tolist()
             absence = rng.uniform(0, 1)
 
-            r1 = _classify_risk_types("S001", concept_scores, trajectory, absence)
-            r2 = _classify_risk_types("S001", concept_scores, trajectory, absence)
+            r1 = _classify_risk_types(concept_scores, trajectory, absence)
+            r2 = _classify_risk_types(concept_scores, trajectory, absence)
             assert r1 == r2
 
     def test_severity_always_bounded(self):

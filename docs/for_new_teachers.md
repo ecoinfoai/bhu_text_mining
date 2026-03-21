@@ -30,12 +30,20 @@ The command will ask a few questions interactively: your course name, the semest
 
 ### Step 2: Generate exam papers
 
-Your question bank lives in a YAML file. Pass it to `forma exam` to produce a printable exam PDF. The `--questions` flag selects which question numbers to include, and `--num-papers` controls how many copies to print.
+Your question bank lives in a YAML file. Pass it to `forma exam` to produce a printable exam PDF. The `--config` flag points to your unified YAML (which contains both metadata and questions), and `--num-papers` controls how many copies to print.
 
 ```bash
 forma exam \
   --config exams/Ch01_FormativeTest.yaml \
-  --questions 1 3 \
+  --num-papers 30 \
+  --output week_01_exam.pdf
+```
+
+If your questions are in a separate file (not a unified config), use `--questions` instead of `--config` — the two flags are mutually exclusive:
+
+```bash
+forma exam \
+  --questions questions.yaml \
   --num-papers 30 \
   --output week_01_exam.pdf
 ```
@@ -47,13 +55,16 @@ After this you will have `week_01_exam.pdf` ready to print. Hand it out, run the
 Once you have collected the physical answer sheets, photograph or scan them — good flat lighting, pages lying completely flat, consistent orientation. Put all the images into a directory called (for example) `scans_1A_w1/`. Then run:
 
 ```bash
-forma ocr scan --class A \
-  --image-dir scans_1A_w1 \
-  --output scans_1A_w1/ocr_results.yaml \
-  --num-questions 2
+forma ocr scan --class A --week-config week.yaml
 ```
 
-FormA will extract the handwritten answers from the images and write them to `ocr_results.yaml`. If you also collected responses via Google Forms (for the online cohort, for example), you will join them in the next step.
+If you are not using a `week.yaml` file yet, you can point the scanner at a legacy OCR config YAML directly:
+
+```bash
+forma ocr scan --config ocr_config.yaml --num-questions 2
+```
+
+FormA will extract the handwritten answers from the images and write them to an OCR results YAML. If you also collected responses via Google Forms (for the online cohort, for example), you will join them in the next step.
 
 ### Step 4: Join OCR results with Google Forms data (if applicable)
 
@@ -61,12 +72,12 @@ If some students submitted via Google Forms, merge both sources into one clean d
 
 ```bash
 forma ocr join --class A \
-  --ocr scans_1A_w1/ocr_results.yaml \
-  --forms forms_responses_w1.csv \
+  --ocr-results scans_1A_w1/ocr_results.yaml \
+  --forms-csv forms_responses_w1.csv \
   --output scans_1A_w1/final.yaml
 ```
 
-If you only have scanned paper responses and no Google Forms data, you can skip the `--forms` flag and the command will still produce the `final.yaml` file from the OCR output alone.
+If you only have scanned paper responses and no Google Forms data, you can omit the `--forms-csv` flag and the command will still produce the `final.yaml` file from the OCR output alone.
 
 ### Step 5: Evaluate student responses
 
@@ -96,7 +107,8 @@ forma eval --class A \
 Each student gets a PDF that shows their scores per concept, written feedback for every question they attempted, and a "what to review" section highlighting the concepts where they scored below the threshold.
 
 ```bash
-forma report student --class A \
+forma report student \
+  --final scans_1A_w1/final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir scans_1A_w1/eval/ \
   --output-dir reports/week_01/students/
@@ -109,26 +121,27 @@ After this command finishes you will find one PDF per student in `reports/week_0
 The professor report gives you a class-level view: score distributions, the concepts most commonly missed, a ranked list of students by performance, and — if you have been running FormA long enough — longitudinal trend charts.
 
 ```bash
-forma report professor --class A \
+forma report professor \
+  --final scans_1A_w1/final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir scans_1A_w1/eval/ \
-  --output reports/week_01/professor_A.pdf
+  --output-dir reports/week_01/
 ```
 
-Open `professor_A.pdf` and you will see histograms of the score distribution, a bar chart showing which concepts had the lowest average scores, a table of all students sorted by total score, and written commentary generated from the data.
+Open the generated PDF and you will see histograms of the score distribution, a bar chart showing which concepts had the lowest average scores, a table of all students sorted by total score, and written commentary generated from the data.
 
 ### Step 8: Prepare the email delivery package
 
 Before you can send anything, FormA needs to bundle the reports and match each PDF to the correct student email address. Your student roster (a YAML or CSV file mapping student IDs to email addresses) must be available.
 
 ```bash
-forma deliver prepare --class A \
-  --report-dir reports/week_01/students/ \
+forma deliver prepare \
+  --manifest delivery/manifest.yaml \
   --roster roster.yaml \
-  --output delivery/week_01_A/
+  --output-dir delivery/week_01_A/
 ```
 
-This creates a delivery manifest in `delivery/week_01_A/` listing every student, their email address, and the path to their PDF. No emails are sent yet.
+This creates a staging folder in `delivery/week_01_A/` with zip archives for every student, matched to their email address from the roster. No emails are sent yet.
 
 ### Step 9: Send the emails
 
@@ -136,7 +149,8 @@ Always do a dry run first to make sure every address looks right and the attachm
 
 ```bash
 forma deliver send \
-  --manifest delivery/week_01_A/manifest.yaml \
+  --staged delivery/week_01_A/ \
+  --template delivery/template.yaml \
   --dry-run
 ```
 
@@ -146,7 +160,8 @@ The dry run prints what would be sent without actually connecting to your mail s
 export FORMA_SMTP_PASSWORD="your_password_here"
 
 forma deliver send \
-  --manifest delivery/week_01_A/manifest.yaml
+  --staged delivery/week_01_A/ \
+  --template delivery/template.yaml
 ```
 
 Students will receive an email with their personalized PDF attached. You are done.
@@ -164,15 +179,8 @@ FormA's batch pipeline handles this cleanly. You scan and evaluate each section 
 Scan and join each section as you normally would:
 
 ```bash
-forma ocr scan --class A \
-  --image-dir scans_1A_w1 \
-  --output scans_1A_w1/ocr_results.yaml \
-  --num-questions 3
-
-forma ocr scan --class B \
-  --image-dir scans_1B_w1 \
-  --output scans_1B_w1/ocr_results.yaml \
-  --num-questions 3
+forma ocr scan --class A --week-config week.yaml
+forma ocr scan --class B --week-config week.yaml
 ```
 
 ### Batch evaluation across sections
@@ -182,12 +190,13 @@ Instead of running `forma eval` twice, use `forma eval batch` to evaluate all se
 ```bash
 forma eval batch \
   --config exams/Ch01_FormativeTest.yaml \
-  --classes A B \
-  --responses-pattern "scans_1{class}_w1/final.yaml" \
-  --output-pattern "scans_1{class}_w1/eval/"
+  --join-dir results/ \
+  --join-pattern "anp_1{class}_final.yaml" \
+  --output results/eval/ \
+  --classes A B
 ```
 
-The `{class}` placeholder is replaced with each class label in turn. After this step, both `scans_1A_w1/eval/` and `scans_1B_w1/eval/` are populated.
+The `{class}` placeholder is replaced with each class label in turn. After this step, evaluation results for both sections are populated.
 
 ### Batch report generation
 
@@ -196,24 +205,29 @@ Generate individual student reports for all sections at once:
 ```bash
 forma report batch \
   --config exams/Ch01_FormativeTest.yaml \
-  --classes A B \
-  --eval-pattern "scans_1{class}_w1/eval/" \
-  --output-dir reports/week_01/
+  --join-dir results/ \
+  --join-pattern "anp_1{class}_final.yaml" \
+  --eval-pattern "results/eval_{class}/" \
+  --output-dir reports/week_01/ \
+  --classes A B
 ```
 
 ### Aggregate professor summary
 
-The `--aggregate` flag tells FormA to produce an additional merged professor report that covers all sections together, including the cross-section statistical comparison table:
+The `--aggregate` flag on `report batch` tells FormA to produce an additional merged professor report that covers all sections together, including the cross-section statistical comparison table:
 
 ```bash
-forma report professor --aggregate \
+forma report batch \
   --config exams/Ch01_FormativeTest.yaml \
+  --join-dir results/ \
+  --join-pattern "anp_1{class}_final.yaml" \
+  --eval-pattern "results/eval_{class}/" \
+  --output-dir reports/week_01/ \
   --classes A B \
-  --eval-pattern "scans_1{class}_w1/eval/" \
-  --output reports/week_01/professor_aggregate.pdf
+  --aggregate
 ```
 
-After this, you will have individual section PDFs (`professor_A.pdf`, `professor_B.pdf`) as well as the aggregate PDF showing which section performed better on each concept, whether the difference is statistically significant, and the effect size. This is useful for calibrating instruction if one section is consistently behind the other. See `docs/cli-reference.md` for the full list of flags including `--no-individual` if you only want the aggregate and not the per-section files.
+After this, you will have individual section PDFs as well as the aggregate PDF showing which section performed better on each concept, whether the difference is statistically significant, and the effect size. This is useful for calibrating instruction if one section is consistently behind the other. Add `--no-individual` if you only want the aggregate report and not per-student PDFs.
 
 ---
 
@@ -245,17 +259,17 @@ The risk model uses logistic regression on a feature set extracted from the long
 forma train risk \
   --store longitudinal.yaml \
   --output models/risk.pkl \
-  --weeks 1 2 3 4
+  --min-weeks 3
 ```
 
-The `--weeks` flag tells FormA which week columns to use as training features. The trained model is saved to `models/risk.pkl` and will be used in Scenario D.
+The `--min-weeks` flag sets the minimum number of weeks of data required per student (default: 3). The trained model is saved to `models/risk.pkl` and will be used in Scenario D.
 
 ### Generating the longitudinal report
 
 ```bash
 forma report longitudinal \
   --store longitudinal.yaml \
-  --config exams/Ch01_FormativeTest.yaml \
+  --class-name "A" \
   --output reports/longitudinal_week_04.pdf
 ```
 
@@ -277,6 +291,7 @@ Professor Kim teaches Introductory Physics. After week four she pulls up the lon
 
 ```bash
 forma report warning \
+  --final scans_1A_w4/final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir scans_1A_w4/eval/ \
   --longitudinal-store longitudinal.yaml \
@@ -348,11 +363,12 @@ The outcome options are `개선` (improved), `유지` (maintained), and `악화`
 Once you have recorded some interventions with outcomes, regenerate the professor report with the intervention log attached:
 
 ```bash
-forma report professor --class A \
+forma report professor \
+  --final scans_1A_w6/final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir scans_1A_w6/eval/ \
   --intervention-log intervention_log.yaml \
-  --output reports/week_06/professor_A.pdf
+  --output-dir reports/week_06/
 ```
 
 The report now includes an intervention effectiveness section showing which intervention types correlated with improvement, a per-student summary of interventions and their outcomes, and a bar chart comparing the average score change for intervened versus non-intervened students. This evidence is valuable for your own professional reflection and for departmental reporting. See `docs/cli-reference.md` for all available flags.
@@ -401,12 +417,13 @@ The `--min-students` flag guards against training on too little data — if your
 With the model trained, generate an updated professor report that includes grade predictions:
 
 ```bash
-forma report professor --class A \
+forma report professor \
+  --final scans_1A_w12/final.yaml \
   --config exams/Ch01_FormativeTest.yaml \
   --eval-dir scans_1A_w12/eval/ \
   --longitudinal-store longitudinal.yaml \
   --grade-model models/grade.pkl \
-  --output reports/week_12/professor_A_with_grades.pdf
+  --output-dir reports/week_12/
 ```
 
 After this, you will have a professor report that includes a grade prediction table — every student's predicted grade distribution (probability of each grade band), a confidence score, and a flag for "cold start" students who have too little history for a reliable prediction.
@@ -497,10 +514,13 @@ forma select --week-config week.yaml
 forma ocr scan --class A --week-config week.yaml
 forma ocr join --class A --week-config week.yaml
 forma eval --class A --week-config week.yaml
-forma report student --class A --week-config week.yaml
-forma report professor --class A --week-config week.yaml
-forma deliver prepare --class A --week-config week.yaml
-forma deliver send --manifest delivery/week_01_A/manifest.yaml
+forma report student --final scans_1A_w1/final.yaml --config exams/Ch01_FormativeTest.yaml \
+  --eval-dir scans_1A_w1/eval/ --output-dir reports/week_01/students/
+forma report professor --final scans_1A_w1/final.yaml --config exams/Ch01_FormativeTest.yaml \
+  --eval-dir scans_1A_w1/eval/ --output-dir reports/week_01/
+forma deliver prepare --manifest delivery/manifest.yaml --roster roster.yaml \
+  --output-dir delivery/week_01_A/
+forma deliver send --staged delivery/week_01_A/ --template delivery/template.yaml
 ```
 
 And at the start of week two, you only need to change `week: 1` to `week: 2` at the top of `week.yaml` (and update path patterns if your naming convention includes the week number). The `crop_coords` field is written back to `week.yaml` automatically the first time you run a successful OCR scan, so you do not have to calibrate the scan region every week.
@@ -519,14 +539,15 @@ If you run `forma deliver send` with your email password as a command-line argum
 
 ```bash
 export FORMA_SMTP_PASSWORD="your_actual_password"
-forma deliver send --manifest delivery/week_01_A/manifest.yaml
+forma deliver send --staged delivery/week_01_A/ --template delivery/template.yaml
 ```
 
 If you are in a scripted or CI environment where environment variables are not practical, you can pipe the password from stdin:
 
 ```bash
 echo "your_actual_password" | forma deliver send \
-  --manifest delivery/week_01_A/manifest.yaml \
+  --staged delivery/week_01_A/ \
+  --template delivery/template.yaml \
   --password-from-stdin
 ```
 
@@ -537,7 +558,7 @@ Either way, the password never appears in any log file, YAML file, or shell hist
 This cannot be said strongly enough: run `--dry-run` every time before you actually send. The dry run prints exactly what would be sent — the recipient address, the subject line, the attachment filename — without connecting to your mail server. It takes two seconds and it prevents you from sending 80 emails to the wrong addresses or with the wrong attachments.
 
 ```bash
-forma deliver send --manifest delivery/week_01_A/manifest.yaml --dry-run
+forma deliver send --staged delivery/week_01_A/ --template delivery/template.yaml --dry-run
 ```
 
 Only when you have read through the dry-run output and everything looks correct should you remove `--dry-run` and send for real.

@@ -3,7 +3,7 @@
 [![CI](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/ecoinfoai/formative-analysis/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/ecoinfoai/formative-analysis/graph/badge.svg?token=AhHOn36NHd)](https://codecov.io/gh/ecoinfoai/formative-analysis)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-0.12.5-green.svg)](https://github.com/ecoinfoai/formative-analysis/releases)
+[![Version](https://img.shields.io/badge/version-0.13.0-green.svg)](https://github.com/ecoinfoai/formative-analysis/releases)
 
 An AI-powered formative assessment CLI toolkit for university professors. FormA automates the full assessment cycle — from exam generation and OCR scanning through knowledge-graph evaluation, personalized feedback, longitudinal tracking, and report delivery — enabling data-driven instructional decisions without manual grading overhead.
 
@@ -26,6 +26,16 @@ forma
 ├── train
 │   ├── risk          Train drop-risk prediction model
 │   └── grade         Train semester grade prediction model
+├── lecture
+│   ├── analyze       Analyze a single STT lecture transcript
+│   ├── compare       Compare class sections for the same session
+│   └── class-compare Compare class sections across all sessions combined
+├── domain
+│   ├── extract       Extract domain concepts from exam config
+│   ├── coverage      Analyze domain coverage in lecture transcripts
+│   └── report        Generate domain coverage PDF report
+├── backfill
+│   └── longitudinal  Backfill longitudinal store from past evaluations
 ├── intervention      Intervention activity tracking (add / list / update)
 ├── deliver           Report email delivery (prepare / send)
 ├── init              Interactive project configuration initialization
@@ -177,7 +187,7 @@ CI runs automatically on push via GitHub Actions (`.github/workflows/ci.yml`): t
 
 ```
 formative-analysis/
-├── src/forma/                  # Main package (80 modules)
+├── src/forma/                  # Main package (108 modules)
 │   ├── cli_main.py             # Unified forma entry point
 │   ├── cli.py                  # forma exam
 │   ├── cli_ocr.py              # forma ocr
@@ -186,11 +196,16 @@ formative-analysis/
 │   ├── cli_report_batch.py     # forma report batch
 │   ├── cli_report_longitudinal.py
 │   ├── cli_report_warning.py
-│   ├── cli_deliver.py          # forma-deliver entry point
-│   ├── cli_intervention.py     # forma-intervention entry point
-│   ├── cli_init.py             # forma-init entry point
-│   ├── cli_train.py            # forma-train entry point
-│   ├── cli_train_grade.py      # forma-train-grade entry point
+│   ├── cli_lecture.py           # forma lecture (analyze/compare/class-compare)
+│   ├── cli_domain.py           # forma domain (extract/coverage/report)
+│   ├── cli_backfill_longitudinal.py # forma backfill longitudinal
+│   ├── cli_report_student.py   # Student longitudinal PDF report
+│   ├── cli_deliver.py          # forma deliver (prepare/send)
+│   ├── cli_intervention.py     # forma intervention (add/list/update)
+│   ├── cli_init.py             # forma init
+│   ├── cli_select.py           # forma select
+│   ├── cli_train.py            # forma train risk
+│   ├── cli_train_grade.py      # forma train grade
 │   ├── pipeline_evaluation.py  # 4-layer evaluation pipeline
 │   ├── pipeline_batch_evaluation.py
 │   ├── config.py               # Configuration management
@@ -206,7 +221,7 @@ formative-analysis/
 │   ├── delivery_prepare.py     # Email delivery preparation
 │   ├── delivery_send.py        # SMTP email sending
 │   └── ...                     # Additional analysis and report modules
-├── tests/                      # Test suite (91 files, 2500+ tests)
+├── tests/                      # Test suite (138 files, 4100+ tests)
 ├── docs/                       # User guides and references
 ├── exams/                      # Exam YAML configurations
 ├── results/                    # Evaluation output data

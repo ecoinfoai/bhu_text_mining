@@ -213,7 +213,7 @@ class TestEpsilonGuard:
         # Trajectory that produces slope ~= -1e-16 (practically zero)
         # Two identical scores produce slope=0, so we use nearly-identical
         trajectory = [0.80, 0.80 - 1e-15]
-        risk_types = _classify_risk_types("s1", {}, trajectory, 0.0)
+        risk_types = _classify_risk_types({}, trajectory, 0.0)
         risk_names = [rt.value for rt in risk_types]
         assert "SCORE_DECLINE" not in risk_names
 
@@ -222,7 +222,7 @@ class TestEpsilonGuard:
         from forma.warning_report_data import _classify_risk_types
 
         trajectory = [0.80, 0.75, 0.70, 0.65]
-        risk_types = _classify_risk_types("s1", {}, trajectory, 0.0)
+        risk_types = _classify_risk_types({}, trajectory, 0.0)
         risk_names = [rt.value for rt in risk_types]
         assert "SCORE_DECLINE" in risk_names
 

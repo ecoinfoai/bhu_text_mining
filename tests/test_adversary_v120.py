@@ -443,7 +443,6 @@ class TestOverloader:
         concept_scores = {"A": 0.8, "B": 0.9}
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=score_trajectory,
             concept_scores=concept_scores,
             absence_ratio=0.0,
@@ -458,7 +457,6 @@ class TestOverloader:
         concept_scores = {"A": 0.8}
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=score_trajectory,
             concept_scores=concept_scores,
             absence_ratio=0.0,
@@ -473,7 +471,6 @@ class TestOverloader:
         concept_scores = {"A": 0.3, "B": 0.3, "C": 0.3}
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=score_trajectory,
             concept_scores=concept_scores,
             absence_ratio=0.0,
@@ -488,7 +485,6 @@ class TestOverloader:
         concept_scores = {"A": 0.8}
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=score_trajectory,
             concept_scores=concept_scores,
             absence_ratio=0.3,
@@ -503,7 +499,6 @@ class TestOverloader:
         concept_scores = {"A": 0.8}
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=score_trajectory,
             concept_scores=concept_scores,
             absence_ratio=0.0,
@@ -518,7 +513,6 @@ class TestOverloader:
         concept_scores = {"A": 0.299, "B": 0.299, "C": 0.299}
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=score_trajectory,
             concept_scores=concept_scores,
             absence_ratio=0.0,
@@ -530,7 +524,6 @@ class TestOverloader:
         from forma.warning_report_data import _classify_risk_types
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=[],
             concept_scores={"A": 0.8},
             absence_ratio=0.0,
@@ -542,7 +535,6 @@ class TestOverloader:
         from forma.warning_report_data import _classify_risk_types, RiskType
 
         risk_types = _classify_risk_types(
-            student_id="S001",
             score_trajectory=[0.1],
             concept_scores={"A": 0.8},
             absence_ratio=0.0,
@@ -1889,7 +1881,6 @@ class TestEmptyValueAttacker:
         from forma.warning_report_data import _classify_risk_types
 
         result = _classify_risk_types(
-            student_id="S001",
             score_trajectory=[],
             concept_scores={},
             absence_ratio=0.0,

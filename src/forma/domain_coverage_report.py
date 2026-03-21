@@ -197,7 +197,7 @@ class DomainDeliveryPDFReportGenerator:
         if concept_network is not None:
             section_num += 1
             story.extend(self._build_concept_network_section(
-                concept_network, result, section_num,
+                concept_network, section_num,
                 deliveries_by_section=deliveries_by_section,
             ))
 
@@ -691,7 +691,7 @@ class DomainDeliveryPDFReportGenerator:
             story.append(Spacer(1, 5 * mm))
             story.extend(
                 self._build_section_comparison_table(
-                    section_comparisons, section_num,
+                    section_comparisons,
                 ),
             )
 
@@ -718,7 +718,6 @@ class DomainDeliveryPDFReportGenerator:
     def _build_section_comparison_table(
         self,
         comparisons: list,
-        section_num: int,
     ) -> list:
         """Build statistical comparison table between sections.
 
@@ -726,7 +725,6 @@ class DomainDeliveryPDFReportGenerator:
 
         Args:
             comparisons: List of DeliverySectionComparison.
-            section_num: Current section number.
 
         Returns:
             List of ReportLab flowables.
@@ -1126,7 +1124,6 @@ class DomainDeliveryPDFReportGenerator:
     def _build_concept_network_section(
         self,
         network: object,
-        result: object,
         section_num: int,
         deliveries_by_section: dict | None = None,
     ) -> list:
@@ -1134,7 +1131,6 @@ class DomainDeliveryPDFReportGenerator:
 
         Args:
             network: ConceptNetwork with nodes and edges.
-            result: DeliveryResult for delivery overlay.
             section_num: Current section number.
             deliveries_by_section: Optional per-section delivery data
                 for comparison chart.

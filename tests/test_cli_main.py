@@ -19,7 +19,7 @@ from unittest import mock
 
 import pytest
 
-from forma.cli_main import main, log_progress, _korean_error
+from forma.cli_main import main, log_progress, _error_message
 
 
 class TestUnifiedCLI:
@@ -135,29 +135,29 @@ class TestUnknownSubcommand:
         assert "Unknown command" in captured.err
 
 
-class TestKoreanErrorMessages:
-    """FR-048: Korean error messages."""
+class TestErrorMessages:
+    """FR-048: Error messages."""
 
-    def test_file_not_found_korean(self):
-        """_korean_error returns proper Korean message for file_not_found."""
-        msg = _korean_error("file_not_found", path="/tmp/no_such_file.yaml")
+    def test_file_not_found(self):
+        """_error_message returns proper message for file_not_found."""
+        msg = _error_message("file_not_found", path="/tmp/no_such_file.yaml")
         assert "File not found" in msg
         assert "/tmp/no_such_file.yaml" in msg
 
-    def test_unknown_command_korean(self):
-        """_korean_error returns proper Korean message for unknown_command."""
-        msg = _korean_error("unknown_command", cmd="foo")
+    def test_unknown_command(self):
+        """_error_message returns proper message for unknown_command."""
+        msg = _error_message("unknown_command", cmd="foo")
         assert "Unknown command" in msg
         assert "foo" in msg
 
-    def test_yaml_parse_error_korean(self):
-        """_korean_error returns proper Korean message for yaml_parse_error."""
-        msg = _korean_error("yaml_parse_error", path="/tmp/bad.yaml")
+    def test_yaml_parse_error(self):
+        """_error_message returns proper message for yaml_parse_error."""
+        msg = _error_message("yaml_parse_error", path="/tmp/bad.yaml")
         assert "YAML parse error" in msg
 
-    def test_smtp_auth_failure_korean(self):
-        """_korean_error returns proper Korean message for smtp_auth_failure."""
-        msg = _korean_error("smtp_auth_failure")
+    def test_smtp_auth_failure(self):
+        """_error_message returns proper message for smtp_auth_failure."""
+        msg = _error_message("smtp_auth_failure")
         assert "SMTP authentication failed" in msg
 
 

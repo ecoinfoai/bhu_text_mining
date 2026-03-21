@@ -1395,14 +1395,14 @@ def analyze_delivery_llm(
             parsed = _parse_delivery_response(response, section_id)
             llm_results.extend(parsed)
             logger.info(
-                "배치 %d/%d 완료: %d개 개념 분석",
+                "Batch %d/%d completed: %d concepts analyzed",
                 i // _DELIVERY_BATCH_SIZE + 1,
                 (len(concepts) + _DELIVERY_BATCH_SIZE - 1) // _DELIVERY_BATCH_SIZE,
                 len(parsed),
             )
         except Exception:
             logger.warning(
-                "배치 %d 실패 (개념 %d~%d)",
+                "Batch %d failed (concepts %d~%d)",
                 i // _DELIVERY_BATCH_SIZE + 1, i, i + len(batch) - 1,
                 exc_info=True,
             )
@@ -1445,7 +1445,7 @@ def analyze_delivery_llm(
             da.signal_scores = signals
         except Exception:
             logger.debug(
-                "앙상블 신호 계산 실패, LLM 점수만 사용: %s", da.concept,
+                "Ensemble signal computation failed, using LLM score only: %s", da.concept,
                 exc_info=True,
             )
 
@@ -1609,7 +1609,7 @@ def _analyze_delivery_chunked(
                     chunk_results.extend(parsed)
                 except Exception:
                     logger.warning(
-                        "청크 %d 배치 %d 실패", chunk_idx + 1,
+                        "Chunk %d batch %d failed", chunk_idx + 1,
                         i // _DELIVERY_BATCH_SIZE + 1, exc_info=True,
                     )
 
@@ -1754,7 +1754,7 @@ def analyze_delivery_with_fallback(
         return analyze_delivery_llm(concepts, transcript_path, section_id, model)
     except Exception:
         logger.warning(
-            "%s반 LLM 전달 분석 실패, v1 fallback 사용",
+            "Section %s LLM delivery analysis failed, using v1 fallback",
             section_id,
             exc_info=True,
         )
@@ -2335,7 +2335,7 @@ def compute_delivery_pairwise_comparisons(
     sections = sorted(section_qualities.keys())
     if len(sections) < 2:
         logger.warning(
-            "분반 간 비교: 2개 이상의 분반이 필요합니다 (현재 %d개)", len(sections),
+            "Section comparison requires at least 2 sections (currently %d)", len(sections),
         )
         return []
 
