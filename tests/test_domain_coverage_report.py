@@ -200,7 +200,8 @@ class TestDomainDeliveryPDFReport:
         pdf_text = pdf_bytes.decode("latin-1", errors="replace")
 
         # Section headers should appear in order (in PDF stream)
-        for i in range(1, 10):
+        # Without concept_network, 8 sections; with it, 9 sections
+        for i in range(1, 9):
             assert f"{i}." in pdf_text
 
     def test_pdf_korean_text(self, tmp_path: Path) -> None:
