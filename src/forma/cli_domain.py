@@ -145,12 +145,17 @@ def extract_main(argv: list[str] | None = None) -> None:
     no_cache = args.no_cache
     force_chunk = args.force_chunk  # None=auto, True=force, False=disable
 
+    n_inputs = len(input_paths)
     if use_llm:
         # If force_chunk is specified, use per-file extraction with chunk control
         if force_chunk is not None:
             concepts_by_chapter = {}
             for i, path_str in enumerate(input_paths):
                 chapter_name = Path(path_str).stem
+                print(
+                    f"[{i + 1}/{n_inputs}] 개념 추출 중: {chapter_name}...",
+                    file=sys.stderr, flush=True,
+                )
                 sp = None
                 if summary_paths and i < len(summary_paths):
                     sp = summary_paths[i]
@@ -163,6 +168,10 @@ def extract_main(argv: list[str] | None = None) -> None:
                     force_chunk=force_chunk,
                 )
         else:
+            print(
+                f"개념 추출 중: {n_inputs}개 챕터...",
+                file=sys.stderr, flush=True,
+            )
             concepts_by_chapter = extract_multi_chapter_llm(
                 textbook_paths=input_paths,
                 summary_paths=summary_paths,
@@ -363,8 +372,14 @@ def coverage_main(argv: list[str] | None = None) -> None:
 
     # LLM delivery analysis per transcript
     all_deliveries = []
-    for transcript_path in args.transcripts:
+    n_transcripts = len(args.transcripts)
+    for t_idx, transcript_path in enumerate(args.transcripts):
         section_id = _infer_section_from_filename(Path(transcript_path).name)
+        print(
+            f"[{t_idx + 1}/{n_transcripts}] 전달 분석 중: "
+            f"{Path(transcript_path).name} (분반 {section_id})...",
+            file=sys.stderr, flush=True,
+        )
         try:
             deliveries = analyze_delivery_llm(
                 concepts=concept_names,
@@ -375,11 +390,15 @@ def coverage_main(argv: list[str] | None = None) -> None:
                 quality_weights=quality_weights,
             )
             all_deliveries.extend(deliveries)
-            logger.info(
-                "전달 분석 완료: %s (분반 %s, %d개 개념)",
-                transcript_path, section_id, len(deliveries),
+            print(
+                f"  ✓ {len(deliveries)}개 개념 분석 완료",
+                file=sys.stderr, flush=True,
             )
         except Exception:
+            print(
+                "  ✗ 분석 실패",
+                file=sys.stderr, flush=True,
+            )
             logger.warning(
                 "LLM 전달 분석 실패: %s", transcript_path, exc_info=True,
             )
@@ -387,6 +406,11 @@ def coverage_main(argv: list[str] | None = None) -> None:
     if not all_deliveries:
         print("오류: 모든 녹취록에서 전달 분석에 실패했습니다.", file=sys.stderr)
         raise SystemExit(1)
+
+    print(
+        f"결과 집계 중: {len(all_deliveries)}개 전달 분석...",
+        file=sys.stderr, flush=True,
+    )
 
     # Build v2 result
     result = build_delivery_result_v2(
@@ -411,6 +435,11 @@ def coverage_main(argv: list[str] | None = None) -> None:
 
     # Save
     save_delivery_yaml(result, args.output)
+
+    print(
+        f"완료: 전달률 {result.effective_delivery_rate * 100:.1f}% → {args.output}",
+        file=sys.stderr, flush=True,
+    )
 
     logger.info(
         "전달 분석 완료: %d개 개념, 전달률 %.1f%% → %s",
