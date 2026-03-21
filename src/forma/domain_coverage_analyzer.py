@@ -278,7 +278,7 @@ def compute_concept_emphasis(
     for path_str in transcript_paths:
         path = Path(path_str)
         if not path.exists():
-            logger.warning("녹취 파일 없음, 건너뜀: %s", path_str)
+            logger.warning("Transcript file not found, skipping: %s", path_str)
             continue
 
         section = _infer_section_from_filename(path.name)
@@ -701,7 +701,7 @@ def _compute_emphasis_bias(
     try:
         from scipy.stats import spearmanr
     except ImportError:
-        logger.warning("scipy 미설치, 강조 편향 상관 분석 건너뜀")
+        logger.warning("scipy not installed, skipping emphasis bias correlation analysis")
         return None
 
     pairs = []
@@ -833,7 +833,7 @@ def load_coverage_yaml(path: str) -> CoverageResult:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError(f"올바르지 않은 커버리지 YAML 형식: {path}")
+        raise ValueError(f"Invalid coverage YAML format: {path}")
 
     summary = data.get("summary", {})
 
@@ -1077,7 +1077,7 @@ def _parse_delivery_response(
         data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         # Try truncation recovery: find last complete "- concept:" block
-        logger.warning("전달 분석 YAML 파싱 실패, 잘린 응답 구제 시도: %s", exc)
+        logger.warning("Delivery analysis YAML parse failed, attempting truncated response rescue: %s", exc)
         lines = text.split("\n")
         markers = [i for i, ln in enumerate(lines) if ln.strip().startswith("- concept:")]
         if len(markers) >= 2:
@@ -1085,7 +1085,7 @@ def _parse_delivery_response(
             try:
                 data = yaml.safe_load(truncated)
                 if isinstance(data, dict) and "deliveries" in data:
-                    logger.info("잘린 응답 구제 성공: %d개", len(data["deliveries"]))
+                    logger.info("Truncated response rescued: %d entries", len(data["deliveries"]))
                 else:
                     data = None
             except yaml.YAMLError:
@@ -1093,11 +1093,11 @@ def _parse_delivery_response(
         else:
             data = None
         if data is None:
-            logger.warning("구제 실패\n--- 응답 원문 (처음 500자) ---\n%s", text[:500])
+            logger.warning("Rescue failed\n--- Response text (first 500 chars) ---\n%s", text[:500])
             return []
 
     if not isinstance(data, dict) or "deliveries" not in data:
-        logger.warning("LLM 응답에 'deliveries' 키가 없음")
+        logger.warning("LLM response missing 'deliveries' key")
         return []
 
     results: list[DeliveryAnalysis] = []
@@ -1332,7 +1332,7 @@ def analyze_delivery_llm(
 
     # T034: Empty transcript validation
     if not transcript_text.strip():
-        logger.warning("녹취록이 비어 있음: %s", transcript_path)
+        logger.warning("Transcript is empty: %s", transcript_path)
         return []
 
     # Determine weights
@@ -1382,7 +1382,7 @@ def analyze_delivery_llm(
         prompt = build_delivery_prompt(batch, transcript_text)
 
         if i > 0:
-            logger.debug("Rate limit: %.1f초 대기", _RATE_LIMIT_INTERVAL)
+            logger.debug("Rate limit: %.1f sec wait", _RATE_LIMIT_INTERVAL)
             time.sleep(_RATE_LIMIT_INTERVAL)
 
         try:
@@ -1408,7 +1408,7 @@ def analyze_delivery_llm(
             )
 
     if not llm_results:
-        raise RuntimeError(f"모든 배치 LLM 호출 실패: {transcript_path}")
+        raise RuntimeError(f"All batch LLM calls failed: {transcript_path}")
 
     # Compute ensemble quality for each result.
     # Signal scores are always computed and populated. The ensemble
@@ -1540,7 +1540,7 @@ def _analyze_delivery_chunked(
     from forma.llm_provider import create_provider
 
     transcript_chunks = _chunk_transcript_with_overlap(transcript_text)
-    logger.info("녹취록 청크 분할: %d개 청크 (%d자)", len(transcript_chunks), len(transcript_text))
+    logger.info("Transcript chunked: %d chunks (%d chars)", len(transcript_chunks), len(transcript_text))
 
     # Determine whether to override quality with ensemble
     _override_quality = weights is not None
@@ -1918,7 +1918,7 @@ def load_delivery_yaml(path: str) -> DeliveryResult:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError(f"올바르지 않은 전달분석 YAML 형식: {path}")
+        raise ValueError(f"Invalid delivery analysis YAML format: {path}")
 
     summary = data.get("summary", {})
 
@@ -2055,7 +2055,7 @@ def compare_networks(
 # ================================================================
 
 
-def encode_texts(texts: list[str]):
+def encode_texts(texts: list[str]) -> object:
     """Module-level wrapper for embedding_cache.encode_texts.
 
     Exists at module level to allow ``unittest.mock.patch`` in tests.

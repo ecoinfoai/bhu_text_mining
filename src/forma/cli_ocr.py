@@ -1,4 +1,3 @@
-# src/cli_ocr.py
 """forma-ocr CLI — OCR pipeline for scanned exam answer sheets.
 
 Usage:
@@ -35,162 +34,162 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse forma-ocr CLI arguments."""
     parser = argparse.ArgumentParser(
         prog="forma-ocr",
-        description="스캔된 답안지 OCR 파이프라인",
+        description="OCR pipeline for scanned answer sheets",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # ── scan subcommand ───────────────────────────
     scan_p = subparsers.add_parser(
         "scan",
-        help="이미지 스캔 → QR 디코딩 → OCR → YAML",
+        help="Image scan -> QR decode -> OCR -> YAML",
     )
     scan_source = scan_p.add_mutually_exclusive_group(required=False)
     scan_source.add_argument(
         "--config",
-        help="OCR 설정 YAML 파일 경로 (레거시, deprecated)",
+        help="OCR config YAML file path (legacy, deprecated)",
     )
     scan_source.add_argument(
         "--class", dest="class_id",
-        help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
+        help="Class identifier ({class} pattern in week.yaml)",
     )
     scan_p.add_argument(
         "--provider", dest="provider", default="gemini",
-        help="LLM 프로바이더 (gemini 또는 anthropic, 기본값: gemini)",
+        help="LLM provider (gemini or anthropic, default: gemini)",
     )
     scan_p.add_argument(
         "--model", default=None,
-        help="LLM 모델 ID 오버라이드",
+        help="LLM model ID override",
     )
     scan_p.add_argument(
         "--subject", default=None,
-        help="과목명 (LLM 프롬프트 문맥 정보)",
+        help="Subject name (LLM prompt context)",
     )
     scan_p.add_argument(
         "--question", default=None,
-        help="문항 텍스트 (LLM 프롬프트 문맥 정보)",
+        help="Question text (LLM prompt context)",
     )
     scan_p.add_argument(
         "--answer-keywords", default=None, dest="answer_keywords",
-        help="핵심 키워드 (쉼표 구분, LLM 프롬프트 문맥 정보)",
+        help="Key terms (comma-separated, LLM prompt context)",
     )
     scan_p.add_argument(
         "--num-questions", type=int, default=None,
-        help="문제 수 (config YAML의 num-questions 값 사용 가능)",
+        help="Number of questions (can use config YAML num-questions value)",
     )
     scan_p.add_argument(
         "--recrop", action="store_true", default=False,
-        help="저장된 crop 좌표 무시, 재선택",
+        help="Ignore saved crop coordinates, re-select",
     )
     scan_p.add_argument(
         "--week-config", default=None, dest="week_config",
-        help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
+        help="week.yaml path (default: auto-discover from current directory)",
     )
     scan_p.add_argument(
         "--ocr-review-threshold", type=float, default=None,
         dest="ocr_review_threshold",
-        help="OCR 인식률 검토 기준값 (기본값: 0.75)",
+        help="OCR confidence review threshold (default: 0.75)",
     )
 
     # ── join subcommand ───────────────────────────
     join_p = subparsers.add_parser(
         "join",
-        help="OCR 결과 + Google Forms/Sheets 조인",
+        help="Join OCR results with Google Forms/Sheets",
     )
     join_p.add_argument(
         "--class", dest="class_id", default=None,
-        help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
+        help="Class identifier ({class} pattern in week.yaml)",
     )
     join_p.add_argument(
         "--ocr-results", required=False, default=None,
-        help="OCR 결과 YAML 파일 경로",
+        help="OCR results YAML file path",
     )
     join_p.add_argument(
         "--output", required=False, default=None,
-        help="출력 YAML 파일 경로",
+        help="Output YAML file path",
     )
     join_p.add_argument(
         "--spreadsheet-url", default=None,
-        help="Google Sheets URL (우선 사용)",
+        help="Google Sheets URL (preferred source)",
     )
     join_p.add_argument(
         "--forms-csv", default=None,
-        help="Google Forms CSV 파일 경로 (폴백)",
+        help="Google Forms CSV file path (fallback)",
     )
     join_p.add_argument(
         "--credentials", default="credentials.json",
-        help="OAuth2 자격증명 JSON 경로 (기본값: credentials.json)",
+        help="OAuth2 credentials JSON path (default: credentials.json)",
     )
     join_p.add_argument(
         "--manual-mapping", default=None,
-        help="수동 매핑 YAML 파일 경로 (미매칭 학생 보완)",
+        help="Manual mapping YAML file path (for unmatched students)",
     )
     join_p.add_argument(
         "--student-id-column", default="student_id",
-        help="학생 ID 컬럼명 (기본값: student_id)",
+        help="Student ID column name (default: student_id)",
     )
     join_p.add_argument(
         "--week-config", default=None, dest="week_config",
-        help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
+        help="week.yaml path (default: auto-discover from current directory)",
     )
     join_p.add_argument(
         "--ocr-review-threshold", type=float, default=None,
         dest="ocr_review_threshold",
-        help="OCR 인식률 검토 기준값 (기본값: 0.75)",
+        help="OCR confidence review threshold (default: 0.75)",
     )
 
     # ── compare subcommand ─────────────────────────
     cmp_p = subparsers.add_parser(
         "compare",
-        help="Naver OCR vs LLM Vision 인식 비교 (연구용)",
+        help="Naver OCR vs LLM Vision comparison (research)",
     )
     cmp_source = cmp_p.add_mutually_exclusive_group(required=True)
     cmp_source.add_argument(
         "--image",
-        help="비교할 이미지 파일 경로 (단일 이미지)",
+        help="Image file path to compare (single image)",
     )
     cmp_source.add_argument(
         "--image-dir", dest="image_dir",
-        help="비교할 이미지 디렉토리 (배치 모드)",
+        help="Image directory to compare (batch mode)",
     )
     cmp_p.add_argument(
         "--provider", default="gemini",
-        help="LLM 프로바이더 (gemini 또는 anthropic, 기본값: gemini)",
+        help="LLM provider (gemini or anthropic, default: gemini)",
     )
     cmp_p.add_argument(
         "--model", default=None,
-        help="LLM 모델 ID (기본값: 프로바이더 기본 모델)",
+        help="LLM model ID (default: provider default)",
     )
     cmp_p.add_argument(
         "--naver-config", default="", dest="naver_config",
-        help="Naver OCR 설정 JSON 파일 경로",
+        help="Naver OCR config JSON file path",
     )
     cmp_p.add_argument(
         "--prefix", default="q",
-        help="배치 모드: 이미지 파일명 접두사 (기본값: q)",
+        help="Batch mode: image filename prefix (default: q)",
     )
     cmp_p.add_argument(
         "--subject", default=None,
-        help="과목명 (LLM 프롬프트 참고 정보)",
+        help="Subject name (LLM prompt context)",
     )
     cmp_p.add_argument(
         "--question", default=None,
-        help="문제 내용 (LLM 프롬프트 참고 정보)",
+        help="Question text (LLM prompt context)",
     )
     cmp_p.add_argument(
         "--answer-keywords", default=None, dest="answer_keywords",
-        help="핵심 키워드 (LLM 프롬프트 참고 정보)",
+        help="Key terms (LLM prompt context)",
     )
     cmp_p.add_argument(
         "--output", default=None,
-        help="비교 결과 YAML 저장 경로 (선택/배치 모드 필수)",
+        help="Comparison result YAML output path (required for batch mode)",
     )
     cmp_p.add_argument(
         "--no-resume", action="store_true", default=False, dest="no_resume",
-        help="배치 모드: 기존 결과 무시, 처음부터 재실행",
+        help="Batch mode: ignore previous results, start from scratch",
     )
 
     args = parser.parse_args(argv)
@@ -202,7 +201,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
         if not has_source:
             scan_p.error(
-                "하나 이상의 소스를 지정해야 합니다: --config, --class, 또는 --provider"
+                "At least one source must be specified: --config, --class, or --provider"
             )
     if (
         getattr(args, "command", None) == "join"
@@ -364,7 +363,7 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 week_yaml_path = find_week_config()
             if week_yaml_path is None:
-                print("오류: week.yaml을 찾을 수 없습니다.")
+                print("Error: week.yaml not found.")
                 sys.exit(1)
             week_cfg = load_week_config(week_yaml_path)
             resolved = resolve_class_patterns(week_cfg, args.class_id)
@@ -397,7 +396,7 @@ def main(argv: list[str] | None = None) -> None:
                         naver_ocr_config = ocr_section.get("naver_config", "")
                         ocr_model_from_config = ocr_section.get("ocr_model")
                 except Exception as exc:
-                    logger.debug("프로젝트 설정 로드 실패: %s", exc)
+                    logger.debug("Failed to load project config: %s", exc)
                 try:
                     from forma.config import get_llm_config, load_config
                     app_config = load_config()
@@ -475,7 +474,7 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 week_yaml_path = find_week_config()
             if week_yaml_path is None:
-                print("오류: week.yaml을 찾을 수 없습니다.")
+                print("Error: week.yaml not found.")
                 sys.exit(1)
             week_cfg = load_week_config(week_yaml_path)
             resolved = resolve_class_patterns(week_cfg, args.class_id)
@@ -506,12 +505,12 @@ def main(argv: list[str] | None = None) -> None:
                         if cred:
                             credentials_path = cred
                 except Exception as exc:
-                    logger.debug("프로젝트 설정 로드 실패: %s", exc)
+                    logger.debug("Failed to load project config: %s", exc)
 
             if not spreadsheet_url and not forms_csv:
                 print(
-                    "오류: spreadsheet_url(forma.yaml) 또는 "
-                    "--forms-csv 중 하나 이상 필요합니다."
+                    "Error: At least one of spreadsheet_url (forma.yaml) or "
+                    "--forms-csv is required."
                 )
                 sys.exit(1)
 
@@ -535,8 +534,8 @@ def main(argv: list[str] | None = None) -> None:
             # Legacy mode
             if args.spreadsheet_url is None and args.forms_csv is None:
                 print(
-                    "오류: --spreadsheet-url 또는 --forms-csv 중 "
-                    "하나 이상 필요합니다."
+                    "Error: At least one of --spreadsheet-url or "
+                    "--forms-csv is required."
                 )
                 sys.exit(1)
             join_threshold = args.ocr_review_threshold or 0.75
@@ -555,7 +554,7 @@ def main(argv: list[str] | None = None) -> None:
         if getattr(args, "image_dir", None):
             # Batch mode
             if not args.output:
-                print("오류: 배치 모드에서는 --output이 필수입니다.")
+                print("Error: --output is required in batch mode.")
                 sys.exit(1)
             main_compare_batch(
                 image_dir=args.image_dir,
@@ -605,27 +604,27 @@ def main_compare(
     from forma.ocr_compare import compare_single_image
 
     if not os.path.isfile(image):
-        print(f"오류: 이미지 파일을 찾을 수 없습니다: {image}")
+        print(f"Error: Image file not found: {image}")
         sys.exit(1)
 
     # Load Naver OCR config
     try:
         secret_key, api_url = load_naver_ocr_env()
     except Exception as exc:
-        print(f"오류: Naver OCR 설정 로드 실패: {exc}")
+        print(f"Error: Failed to load Naver OCR config: {exc}")
         sys.exit(1)
 
     # Run Naver OCR
     try:
         ocr_responses = send_images_receive_ocr(api_url, secret_key, [image])
     except Exception as exc:
-        print(f"오류: Naver OCR API 호출 실패: {exc}")
+        print(f"Error: Naver OCR API call failed: {exc}")
         sys.exit(1)
 
     # Extract raw data
     raw_data = extract_raw_ocr_data(ocr_responses)
     if not raw_data:
-        print("오류: OCR 결과가 없습니다.")
+        print("Error: No OCR results.")
         sys.exit(1)
 
     # Get first image's data
@@ -636,7 +635,7 @@ def main_compare(
     try:
         llm = create_provider(provider=provider, model=model)
     except Exception as exc:
-        print(f"오류: LLM 프로바이더 생성 실패: {exc}")
+        print(f"Error: Failed to create LLM provider: {exc}")
         sys.exit(1)
 
     # Build context
@@ -681,14 +680,14 @@ def main_compare(
         }
         with open(output, "w", encoding="utf-8") as f:
             yaml.dump(result_dict, f, allow_unicode=True, default_flow_style=False)
-        print(f"\n결과 저장: {output}")
+        print(f"\nResults saved: {output}")
 
 
-def _print_comparison_table(result) -> None:
+def _print_comparison_table(result: object) -> None:
     """Print a comparison table with box-drawing characters."""
-    print(f"\n이미지: {result.image_path}")
-    print(f"OCR 텍스트: {result.ocr_text}")
-    print(f"LLM 텍스트: {result.llm_text}")
+    print(f"\nImage: {result.image_path}")
+    print(f"OCR text: {result.ocr_text}")
+    print(f"LLM text: {result.llm_text}")
     print()
 
     idx_w = 4
@@ -698,7 +697,7 @@ def _print_comparison_table(result) -> None:
     match_w = 6
 
     print(f"┌{'─' * idx_w}┬{'─' * ocr_w}┬{'─' * llm_w}┬{'─' * conf_w}┬{'─' * match_w}┐")
-    print(f"│{'#':^{idx_w}}│{'OCR':^{ocr_w}}│{'LLM':^{llm_w}}│{'신뢰도':^{conf_w}}│{'일치':^{match_w}}│")
+    print(f"│{'#':^{idx_w}}│{'OCR':^{ocr_w}}│{'LLM':^{llm_w}}│{'Conf':^{conf_w}}│{'Match':^{match_w}}│")
     print(f"├{'─' * idx_w}┼{'─' * ocr_w}┼{'─' * llm_w}┼{'─' * conf_w}┼{'─' * match_w}┤")
 
     for fc in result.field_comparisons:
@@ -717,7 +716,7 @@ def _print_comparison_table(result) -> None:
     print(f"└{'─' * idx_w}┴{'─' * ocr_w}┴{'─' * llm_w}┴{'─' * conf_w}┴{'─' * match_w}┘")
 
     s = result.summary
-    print(f"\n합계: {s['total']}개 필드, 일치 {s['match_count']}개, 불일치 {s['mismatch_count']}개")
+    print(f"\nTotal: {s['total']} fields, matched {s['match_count']}, mismatched {s['mismatch_count']}")
 
 
 def main_compare_batch(
@@ -739,7 +738,7 @@ def main_compare_batch(
     from forma.ocr_compare import run_batch_comparison
 
     if not os.path.isdir(image_dir):
-        print(f"오류: 디렉토리를 찾을 수 없습니다: {image_dir}")
+        print(f"Error: Directory not found: {image_dir}")
         sys.exit(1)
 
     # Load naver_config from forma.yaml

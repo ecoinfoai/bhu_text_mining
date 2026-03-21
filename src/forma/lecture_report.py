@@ -479,7 +479,7 @@ class LectureReportGenerator:
             flowables.append(Spacer(1, 8 * mm))
             return flowables
 
-        # Build header: 개념, 편차, section1, section2, ...
+        # Build header: concept, deviation, section1, section2, ...
         sections = sorted(comparison.sections_compared)
         header_cells = [
             Paragraph("개념", self._styles["LectTableHeader"]),

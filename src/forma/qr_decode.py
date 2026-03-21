@@ -40,7 +40,7 @@ def decode_qr_from_image(image_path: str) -> Optional[str]:
     """
     if not _HAS_PYZBAR and not _HAS_CV2:
         raise ImportError(
-            "QR 디코딩에 pyzbar 또는 opencv-python-headless가 필요합니다. "
+            "QR decoding requires pyzbar or opencv-python-headless. "
             "Install: pip install pyzbar"
         )
 

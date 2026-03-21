@@ -181,5 +181,5 @@ def generate_interpretation(
         )
         return _parse_sections(response)
     except Exception as exc:
-        logger.warning("LLM 해석 생성 실패: %s", exc)
+        logger.warning("Failed to generate LLM interpretation: %s", exc)
         return empty_result

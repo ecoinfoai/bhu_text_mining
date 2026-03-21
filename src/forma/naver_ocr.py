@@ -195,9 +195,9 @@ def send_images_receive_ocr(
         request_json = {
             "images": [
                 {
-                    "format": os.path.splitext(image_file)[1][1:],  # 확장자
-                    "name": os.path.basename(image_file),  # 파일 이름
-                    "data": file_data_base64,  # Base64 데이터
+                    "format": os.path.splitext(image_file)[1][1:],  # extension
+                    "name": os.path.basename(image_file),  # filename
+                    "data": file_data_base64,  # Base64-encoded data
                 }
             ],
             "requestId": str(uuid.uuid4()),
@@ -209,7 +209,7 @@ def send_images_receive_ocr(
         response = requests.post(
             api_url,
             headers=headers,
-            json=request_json,  # JSON 데이터를 직접 전송
+            json=request_json,  # Send JSON data directly
         )
         response.raise_for_status()
         results.append(response.json())

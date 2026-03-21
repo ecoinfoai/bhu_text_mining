@@ -1142,7 +1142,7 @@ def _extract_ocr_confidence(
 
 
 def _extract_id_map(responses_data: list[dict]) -> dict[str, str]:
-    """Extract anonymous ID → 학번 mapping from join output responses."""
+    """Extract anonymous ID to real student ID mapping from join output responses."""
     id_map: dict[str, str] = {}
     for entry in responses_data:
         sid = entry.get("student_id")
@@ -1188,7 +1188,7 @@ def _save_longitudinal(
         snapshot_from_evaluation(
             store=store,
             ensemble_results=ensemble_results,
-            graph_metric_results={},  # v0.8.0 이후 미구현, 항상 빈 dict
+            graph_metric_results={},  # Not implemented since v0.8.0, always empty dict
             graph_comparison_results=graph_results or {},
             layer1_results=flat_layer1,
             week=week,
@@ -1309,16 +1309,16 @@ def main() -> None:
     )
     parser.add_argument(
         "--class", dest="class_id", default=None,
-        help="분반 식별자 (week.yaml의 {class} 패턴 치환)",
+        help="Class section identifier (replaces {class} pattern in week.yaml)",
     )
     parser.add_argument(
         "--week-config", dest="week_config", default=None,
-        help="week.yaml 경로 (기본: 현재 디렉토리에서 자동 탐색)",
+        help="week.yaml path (default: auto-search in current directory)",
     )
     parser.add_argument(
         "--eval-config",
         default=None,
-        help="평가 환경설정 YAML (모든 옵션을 파일 하나에 지정)",
+        help="Evaluation config YAML (all options in a single file)",
     )
     parser.add_argument(
         "--config", default=None, help="Exam YAML config path"
@@ -1368,11 +1368,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--questions-used", nargs="+", type=int, default=None,
-        help="출제 문항의 exam sn 번호를 q 순서대로 (예: 1 3)",
+        help="Exam sn numbers in q order (e.g., 1 3)",
     )
     parser.add_argument(
         "--n-calls", type=int, default=None,
-        help="LLM 호출 횟수 (기본 3, 비용 절감시 2)",
+        help="Number of LLM calls (default 3, use 2 to reduce cost)",
     )
     args = parser.parse_args()
 
@@ -1396,7 +1396,7 @@ def main() -> None:
         else:
             week_yaml_path = find_week_config()
         if week_yaml_path is None:
-            parser.error("--class 사용 시 week.yaml이 필요합니다.")
+            parser.error("--class requires week.yaml to be present.")
 
         week_config = load_week_config(week_yaml_path)
         week_config = resolve_class_patterns(week_config, args.class_id)
@@ -1432,9 +1432,9 @@ def main() -> None:
         # Deprecation warning when both are used
         if args.eval_config:
             eval_logger.warning(
-                "week.yaml과 --eval-config가 동시에 사용되었습니다. "
-                "week.yaml 값이 우선 적용됩니다. "
-                "--eval-config는 향후 제거될 예정입니다.",
+                "Both week.yaml and --eval-config are specified. "
+                "week.yaml values take precedence. "
+                "--eval-config will be removed in a future version.",
             )
 
     # --- Merge eval-config YAML with CLI flags (CLI wins) ---
@@ -1456,7 +1456,7 @@ def main() -> None:
 
     if not config_path or not responses_path or not output_dir:
         parser.error(
-            "--eval-config 또는 --config/--responses/--output 을 지정하세요."
+            "Specify --eval-config or --config/--responses/--output."
         )
 
     run_evaluation_pipeline(

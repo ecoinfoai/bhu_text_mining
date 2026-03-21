@@ -89,8 +89,8 @@ def run_scan_pipeline(
         coords_list = []
         for q_idx in range(1, num_questions + 1):
             print(
-                f"\nQ{q_idx} 답안 영역을 선택하세요 "
-                f"(좌상단 → 우하단 클릭):"
+                f"\nSelect answer area for Q{q_idx} "
+                f"(click top-left then bottom-right):"
             )
             coords_list.append(show_image(sample_image))
 
@@ -141,7 +141,7 @@ def run_scan_pipeline(
     qr_failed = 0
     file_counter: dict[int, int] = {}
 
-    print(f"\nQR 디코딩 + OCR 처리 중 ({total_files}개 이미지)...")
+    print(f"\nQR decoding + OCR processing ({total_files} images)...")
     for processed, (q_idx, img_path) in enumerate(all_cropped, 1):
         file_counter[q_idx] = file_counter.get(q_idx, 0) + 1
         file_idx = file_counter[q_idx]
@@ -248,9 +248,9 @@ def run_scan_pipeline(
     ]
     if low_conf:
         print(
-            f"⚠ 저인식률 {len(low_conf)}건 감지 "
+            f"WARNING: {len(low_conf)} low-confidence entries detected "
             f"(confidence < {ocr_review_threshold}). "
-            f"`forma ocr join`으로 상세 확인하세요."
+            f"Run `forma ocr join` for details."
         )
 
     # Generate review_needed.yaml for LLM mode
@@ -347,8 +347,8 @@ def run_join_pipeline(
         except Exception as exc:
             if forms_csv_path is not None:
                 print(
-                    f"⚠ Google Sheets 접근 실패 ({exc}), "
-                    f"CSV 폴백: {forms_csv_path}"
+                    f"WARNING: Google Sheets access failed ({exc}), "
+                    f"falling back to CSV: {forms_csv_path}"
                 )
             else:
                 raise
@@ -391,9 +391,9 @@ def run_join_pipeline(
     unmatched = sorted(all_sids - matched_sids)
     total = len(all_sids)
     matched = len(matched_sids)
-    print(f"✓ {matched}/{total} 학생 매칭 완료")
+    print(f"{matched}/{total} students matched")
     if unmatched:
-        print(f"⚠ {len(unmatched)}명 미매칭: {', '.join(unmatched)}")
+        print(f"WARNING: {len(unmatched)} unmatched: {', '.join(unmatched)}")
 
     # OCR confidence review table
     _print_confidence_review_table(joined, threshold=ocr_review_threshold)
@@ -445,7 +445,7 @@ def _print_confidence_review_table(
     ]
 
     if not low_entries:
-        print(f"✓ OCR 인식률 검토 대상 없음 (전체 confidence ≥ {threshold})")
+        print(f"OK: No OCR entries require review (all confidence >= {threshold})")
         return
 
     # Sort by confidence_mean ascending (INV-J01)
@@ -469,7 +469,7 @@ def _print_confidence_review_table(
         rows.append((sid, name, q_num, conf_mean, conf_min, preview))
 
     # Print table
-    headers = ("학번", "이름", "문항", "인식률", "최저블록", "인식된 텍스트 (앞 30자)")
+    headers = ("Student ID", "Name", "Q#", "Conf", "Min Block", "Recognized text (first 30 chars)")
     col_widths = [
         max(len(h), max(len(r[i]) for r in rows))
         for i, h in enumerate(headers)
@@ -482,7 +482,7 @@ def _print_confidence_review_table(
     sep = "├─" + "─┼─".join("─" * w for w in col_widths) + "─┤"
     bot = "└─" + "─┴─".join("─" * w for w in col_widths) + "─┘"
 
-    title = f"  OCR 인식률 검토 대상 (confidence < {threshold})"
+    title = f"  OCR entries requiring review (confidence < {threshold})"
     title_row = f"│{title.ljust(sum(col_widths) + 3 * (len(col_widths) - 1) + 2)}│"
     title_top = "┌" + "─" * (sum(col_widths) + 3 * (len(col_widths) - 1) + 2) + "┐"
 
@@ -496,7 +496,7 @@ def _print_confidence_review_table(
     print(bot)
 
     pct = len(low_entries) * 100 / total_with_confidence if total_with_confidence else 0
-    print(f"  {len(low_entries)}건 / 전체 {total_with_confidence}건 ({pct:.1f}%)")
+    print(f"  {len(low_entries)} / {total_with_confidence} total ({pct:.1f}%)")
 
 
 # ── internal helpers ─────────────────────────────
@@ -551,4 +551,4 @@ def _save_yaml(
             default_flow_style=False,
             sort_keys=False,
         )
-    print(f"✓ 결과 저장: {output_path}")
+    print(f"Results saved: {output_path}")

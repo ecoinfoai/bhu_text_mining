@@ -43,7 +43,7 @@ def _create_llm_provider(args):
     try:
         from forma.llm_provider import create_provider
     except ImportError:
-        logger.debug("llm_provider 모듈을 불러올 수 없습니다.")
+        logger.debug("Cannot import llm_provider module.")
         return None
 
     # Try forma.json first
@@ -79,7 +79,7 @@ def _create_llm_provider(args):
     try:
         return create_provider(provider=provider_name, api_key=api_key)
     except Exception as exc:
-        logger.warning("LLM 프로바이더 생성 실패: %s", exc)
+        logger.warning("Failed to create LLM provider: %s", exc)
         return None
 
 
@@ -87,49 +87,49 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-student."""
     parser = argparse.ArgumentParser(
         prog="forma-report-student",
-        description="학생 개인 종단 분석 PDF 보고서 생성기",
+        description="Student individual longitudinal analysis PDF report generator",
     )
     # Required args
     parser.add_argument(
         "--store", required=True,
-        help="종단 저장소 YAML 파일 경로",
+        help="Longitudinal store YAML file path",
     )
     parser.add_argument(
         "--student", required=True,
-        help="학번 (student ID)",
+        help="Student ID",
     )
     parser.add_argument(
         "--id-csv", required=True, dest="id_csv",
-        help="학번-이름-분반 매핑 CSV 파일 경로",
+        help="Student ID-name-class mapping CSV file path",
     )
     parser.add_argument(
         "--output", required=True,
-        help="출력 PDF 파일 경로",
+        help="Output PDF file path",
     )
     # Optional args
     parser.add_argument(
         "--weeks", type=int, nargs="+", default=None,
-        help="포함할 주차 목록 (생략 시 전체 주차)",
+        help="Week list to include (all weeks if omitted)",
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
-        help="한국어 폰트 파일 경로 (생략 시 자동 감지)",
+        help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
         "--dpi", type=int, default=150,
-        help="차트 DPI (기본값: 150)",
+        help="Chart DPI (default: 150)",
     )
     parser.add_argument(
         "--no-llm", action="store_true", default=False, dest="no_llm",
-        help="LLM 호출 없이 그래프만 포함된 보고서 생성",
+        help="Generate report with charts only, no LLM calls",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     return parser
 
@@ -153,7 +153,7 @@ def main(argv=None) -> int | None:
             raw_argv = argv if argv is not None else sys.argv[1:]
             apply_project_config(args, argv=raw_argv)
         except Exception as exc:
-            logger.debug("프로젝트 설정 적용 실패 (계속 진행): %s", exc)
+            logger.debug("Failed to apply project config (continuing): %s", exc)
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -162,12 +162,12 @@ def main(argv=None) -> int | None:
 
     # Validate store file
     if not os.path.isfile(args.store):
-        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.store)
+        logger.error("Longitudinal store file not found: %s", args.store)
         sys.exit(1)
 
     # Validate optional font file
     if args.font_path and not os.path.isfile(args.font_path):
-        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("Font file not found: %s", args.font_path)
         sys.exit(1)
 
     # Load longitudinal store
@@ -184,13 +184,13 @@ def main(argv=None) -> int | None:
         weeks = sorted({r.week for r in all_records})
 
     if not weeks:
-        logger.error("종단 저장소에 데이터가 없습니다.")
+        logger.error("No data in longitudinal store.")
         sys.exit(1)
 
     # Check student exists in store
     history = store.get_student_history(args.student)
     if not history:
-        logger.error("학생 '%s'의 데이터가 종단 저장소에 없습니다.", args.student)
+        logger.error("Student '%s' not found in longitudinal store.", args.student)
         sys.exit(1)
 
     # Parse ID CSV for student name and class
@@ -235,11 +235,11 @@ def main(argv=None) -> int | None:
             provider = _create_llm_provider(args)
             if provider is not None:
                 llm_texts = generate_interpretation(anon_summary, provider)
-                logger.info("LLM 해석 생성 완료")
+                logger.info("LLM interpretation generated")
             else:
-                logger.info("LLM 프로바이더를 설정할 수 없어 LLM 해석을 건너뜁니다.")
+                logger.info("Cannot configure LLM provider, skipping LLM interpretation.")
         except Exception as exc:
-            logger.warning("LLM 해석 생성 실패 (계속 진행): %s", exc)
+            logger.warning("LLM interpretation generation failed (continuing): %s", exc)
 
     # Generate PDF
     from forma.student_longitudinal_report import StudentLongitudinalPDFReportGenerator
@@ -252,9 +252,9 @@ def main(argv=None) -> int | None:
             student_data, cohort, warnings, alert_level, args.output,
             llm_texts=llm_texts,
         )
-        logger.info("학생 보고서 생성 완료: %s", result)
+        logger.info("Student report generated: %s", result)
     except FileNotFoundError as exc:
-        logger.error("PDF 생성 실패: %s", exc)
+        logger.error("PDF generation failed: %s", exc)
         sys.exit(2)
 
     return None
@@ -264,43 +264,43 @@ def _build_batch_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-student-batch."""
     parser = argparse.ArgumentParser(
         prog="forma-report-student-batch",
-        description="학생 개인 종단 분석 PDF 보고서 일괄 생성기",
+        description="Student individual longitudinal PDF report batch generator",
     )
     parser.add_argument(
         "--store", required=True,
-        help="종단 저장소 YAML 파일 경로",
+        help="Longitudinal store YAML file path",
     )
     parser.add_argument(
         "--id-csv", required=True, dest="id_csv",
-        help="학번-이름-분반 매핑 CSV 파일 경로",
+        help="Student ID-name-class mapping CSV file path",
     )
     parser.add_argument(
         "--output-dir", required=True, dest="output_dir",
-        help="출력 PDF 디렉토리 경로",
+        help="Output PDF directory path",
     )
     parser.add_argument(
         "--weeks", type=int, nargs="+", default=None,
-        help="포함할 주차 목록 (생략 시 전체 주차)",
+        help="Week list to include (all weeks if omitted)",
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
-        help="한국어 폰트 파일 경로 (생략 시 자동 감지)",
+        help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
         "--dpi", type=int, default=150,
-        help="차트 DPI (기본값: 150)",
+        help="Chart DPI (default: 150)",
     )
     parser.add_argument(
         "--no-llm", action="store_true", default=False, dest="no_llm",
-        help="LLM 호출 없이 그래프만 포함된 보고서 생성",
+        help="Generate report with charts only, no LLM calls",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     return parser
 
@@ -324,7 +324,7 @@ def batch_main(argv=None) -> int | None:
             raw_argv = argv if argv is not None else sys.argv[1:]
             apply_project_config(args, argv=raw_argv)
         except Exception as exc:
-            logger.debug("프로젝트 설정 적용 실패 (계속 진행): %s", exc)
+            logger.debug("Failed to apply project config (continuing): %s", exc)
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -333,12 +333,12 @@ def batch_main(argv=None) -> int | None:
 
     # Validate store file
     if not os.path.isfile(args.store):
-        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.store)
+        logger.error("Longitudinal store file not found: %s", args.store)
         sys.exit(1)
 
     # Validate optional font file
     if args.font_path and not os.path.isfile(args.font_path):
-        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("Font file not found: %s", args.font_path)
         sys.exit(1)
 
     # Create output directory if needed
@@ -358,7 +358,7 @@ def batch_main(argv=None) -> int | None:
         weeks = sorted({r.week for r in all_records})
 
     if not weeks:
-        logger.error("종단 저장소에 데이터가 없습니다.")
+        logger.error("No data in longitudinal store.")
         sys.exit(1)
 
     # Parse ID CSV for student name and class
@@ -379,7 +379,7 @@ def batch_main(argv=None) -> int | None:
     student_ids = sorted({r.student_id for r in all_records})
 
     if not student_ids:
-        logger.error("종단 저장소에 학생 데이터가 없습니다.")
+        logger.error("No student data in longitudinal store.")
         sys.exit(1)
 
     # Prepare PDF generator
@@ -390,7 +390,7 @@ def batch_main(argv=None) -> int | None:
             font_path=args.font_path, dpi=args.dpi,
         )
     except FileNotFoundError as exc:
-        logger.error("PDF 생성기 초기화 실패: %s", exc)
+        logger.error("PDF generator initialization failed: %s", exc)
         sys.exit(2)
 
     # Prepare LLM provider (once for all students)
@@ -399,9 +399,9 @@ def batch_main(argv=None) -> int | None:
         try:
             llm_provider = _create_llm_provider(args)
             if llm_provider is None:
-                logger.info("LLM 프로바이더를 설정할 수 없어 LLM 해석을 건너뜁니다.")
+                logger.info("Cannot configure LLM provider, skipping LLM interpretation.")
         except Exception as exc:
-            logger.warning("LLM 프로바이더 생성 실패 (계속 진행): %s", exc)
+            logger.warning("Failed to create LLM provider (continuing): %s", exc)
 
     total = len(student_ids)
     success = 0
@@ -435,7 +435,7 @@ def batch_main(argv=None) -> int | None:
                     llm_texts = generate_interpretation(anon_summary, llm_provider)
                 except Exception as exc:
                     logger.warning(
-                        "학생 %s LLM 해석 실패 (계속 진행): %s", student_id, exc,
+                        "Student %s LLM interpretation failed (continuing): %s", student_id, exc,
                     )
 
             # Generate PDF
@@ -447,7 +447,7 @@ def batch_main(argv=None) -> int | None:
             success += 1
             print(f"\r[report] {idx}/{total} ({student_id}) ...", end="", flush=True)
         except Exception as exc:
-            logger.error("학생 %s 보고서 생성 실패: %s", student_id, exc)
+            logger.error("Student %s report generation failed: %s", student_id, exc)
             print(f"\r[report] {idx}/{total} ({student_id}) FAIL", end="", flush=True)
 
     print()  # newline after progress
@@ -459,43 +459,43 @@ def _build_summary_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-student-summary."""
     parser = argparse.ArgumentParser(
         prog="forma-report-student-summary",
-        description="전체 수강생 종단 분석 요약 PDF 보고서 생성기 (테이블 전용)",
+        description="All-student longitudinal summary PDF report generator (table only)",
     )
     parser.add_argument(
         "--store", required=True,
-        help="종단 저장소 YAML 파일 경로",
+        help="Longitudinal store YAML file path",
     )
     parser.add_argument(
         "--id-csv", required=True, dest="id_csv",
-        help="학번-이름-분반 매핑 CSV 파일 경로",
+        help="Student ID-name-class mapping CSV file path",
     )
     parser.add_argument(
         "--output", required=True,
-        help="출력 PDF 파일 경로",
+        help="Output PDF file path",
     )
     parser.add_argument(
         "--weeks", type=int, nargs="+", default=None,
-        help="포함할 주차 목록 (생략 시 전체 주차)",
+        help="Week list to include (all weeks if omitted)",
     )
     parser.add_argument(
         "--course-name", default="", dest="course_name",
-        help="과목명 (표지에 표시)",
+        help="Course name (displayed on cover)",
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
-        help="한국어 폰트 파일 경로 (생략 시 자동 감지)",
+        help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
         "--dpi", type=int, default=150,
-        help="DPI (기본값: 150)",
+        help="DPI (default: 150)",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     return parser
 
@@ -522,7 +522,7 @@ def summary_main(argv=None) -> int | None:
             raw_argv = argv if argv is not None else sys.argv[1:]
             apply_project_config(args, argv=raw_argv)
         except Exception as exc:
-            logger.debug("프로젝트 설정 적용 실패 (계속 진행): %s", exc)
+            logger.debug("Failed to apply project config (continuing): %s", exc)
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -531,12 +531,12 @@ def summary_main(argv=None) -> int | None:
 
     # Validate store file
     if not os.path.isfile(args.store):
-        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.store)
+        logger.error("Longitudinal store file not found: %s", args.store)
         sys.exit(1)
 
     # Validate optional font file
     if args.font_path and not os.path.isfile(args.font_path):
-        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("Font file not found: %s", args.font_path)
         sys.exit(1)
 
     # Load longitudinal store
@@ -553,7 +553,7 @@ def summary_main(argv=None) -> int | None:
         weeks = sorted({r.week for r in all_records})
 
     if not weeks:
-        logger.error("종단 저장소에 데이터가 없습니다.")
+        logger.error("No data in longitudinal store.")
         sys.exit(1)
 
     # Parse ID CSV
@@ -583,9 +583,9 @@ def summary_main(argv=None) -> int | None:
         result = gen.generate_pdf(
             rows, weeks, args.output, course_name=args.course_name,
         )
-        logger.info("요약 보고서 생성 완료: %s", result)
+        logger.info("Summary report generated: %s", result)
     except FileNotFoundError as exc:
-        logger.error("PDF 생성 실패: %s", exc)
+        logger.error("PDF generation failed: %s", exc)
         sys.exit(2)
 
     return None

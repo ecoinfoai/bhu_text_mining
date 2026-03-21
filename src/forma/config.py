@@ -65,8 +65,8 @@ def load_config(config_path: str | None = None) -> dict:
         dep_expanded = os.path.expanduser(DEPRECATED_CONFIG_PATH)
         if os.path.isfile(dep_expanded):
             warnings.warn(
-                "forma.json은 향후 버전에서 제거됩니다. "
-                "config.json으로 이름을 변경하세요: "
+                "forma.json is deprecated and will be removed in a future version. "
+                "Rename it to config.json: "
                 f"{dep_expanded}",
                 DeprecationWarning,
                 stacklevel=2,
@@ -105,9 +105,9 @@ def get_naver_ocr_config(config: dict) -> tuple[str, str]:
     if "naver_ocr" in config:
         ocr = config["naver_ocr"]
         if not isinstance(ocr, dict):
-            raise KeyError("naver_ocr 섹션이 dict 형식이 아닙니다")
+            raise KeyError("'naver_ocr' section must be a dict")
         return ocr["secret_key"], ocr["api_url"]
-    raise KeyError("naver_ocr 섹션이 없습니다")
+    raise KeyError("'naver_ocr' section not found in config")
 
 
 JSON_FIELD_MAP = {
@@ -140,7 +140,7 @@ def get_smtp_config(config: dict):
 
     smtp_data = config.get("smtp")
     if not isinstance(smtp_data, dict):
-        raise KeyError("config.json에 'smtp' 섹션이 없습니다")
+        raise KeyError("'smtp' section not found in config.json")
 
     return _build_smtp_config(smtp_data, field_map=JSON_FIELD_MAP)
 
@@ -224,7 +224,7 @@ def get_quality_weights(config: dict) -> dict[str, float]:
                 result[key] = float(overrides[key])
             except (TypeError, ValueError):
                 logger.warning(
-                    "quality_weights.%s 값이 올바르지 않음, 기본값 사용: %s",
+                    "quality_weights.%s has invalid value, using default: %s",
                     key, overrides[key],
                 )
     return result

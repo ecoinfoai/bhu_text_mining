@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover
 
 
 class ExamPDFGenerator:
-    """텍스트 기반 시험지 PDF 생성기 (QR 코드 지원)."""
+    """Text-based exam paper PDF generator with optional QR code support."""
 
     FONT_SIZE_TITLE: int = 20
     FONT_SIZE_BODY: int = 14
@@ -43,9 +43,8 @@ class ExamPDFGenerator:
             font_path = self._find_font()
         if not os.path.exists(font_path):
             raise FileNotFoundError(
-                f"폰트를 찾을 수 없습니다: {font_path}\n"
-                f"font_path 인자로 직접 경로를 지정하거나\n"
-                f"나눔고딕 폰트를 설치하세요."
+                f"Font not found: {font_path}\n"
+                f"Specify a font_path argument or install NanumGothic."
             )
         pdfmetrics.registerFont(
             TTFont("NanumGothic", font_path),
@@ -65,7 +64,7 @@ class ExamPDFGenerator:
     # ── font discovery ───────────────────────────
 
     def _find_font(self) -> str:
-        """OS별 폰트 자동 탐색."""
+        """Auto-detect Korean font path based on the operating system."""
         system = platform.system()
         search_paths: list[str] = []
         if system == "Windows":
@@ -89,7 +88,7 @@ class ExamPDFGenerator:
         for path in search_paths:
             if os.path.exists(path):
                 return path
-        raise FileNotFoundError("폰트를 찾을 수 없습니다.")
+        raise FileNotFoundError("Korean font not found. Install NanumGothic.")
 
     # ── input validation ─────────────────────────
 
@@ -237,7 +236,7 @@ class ExamPDFGenerator:
         course_name: str,
         week_num: int,
     ) -> float:
-        """Draw serial number and title. Returns y_pos."""
+        """Draw serial number and title header. Returns y position after header."""
         y = self.page_height - self.margin
         serial = f"{paper_num:04d}"
         c.setFont("NanumGothicBold", 36)
@@ -570,6 +569,6 @@ class ExamPDFGenerator:
             c.showPage()
         c.save()
         print(
-            f"✓ 시험지 {len(ids)}장 생성 완료: "
+            f"Generated {len(ids)} exam papers: "
             f"{output_path}"
         )

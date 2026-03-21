@@ -146,21 +146,21 @@ def load_template(path: str) -> EmailTemplate:
         ValueError: If required fields are missing or empty.
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f"템플릿 파일을 찾을 수 없습니다: {path}")
+        raise FileNotFoundError(f"Template file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError("템플릿 파일이 dict 형식이어야 합니다.")
+        raise ValueError("Template file must be in dict format.")
 
     subject = data.get("subject")
     if not subject:
-        raise ValueError("템플릿에 'subject' 필드가 필요합니다.")
+        raise ValueError("Template requires 'subject' field.")
 
     body = data.get("body")
     if not body:
-        raise ValueError("템플릿에 'body' 필드가 필요합니다.")
+        raise ValueError("Template requires 'body' field.")
 
     return EmailTemplate(subject=str(subject), body=str(body))
 
@@ -189,30 +189,30 @@ def _build_smtp_config(data: dict, field_map: dict | None = None) -> SmtpConfig:
 
     smtp_server = data.get("smtp_server")
     if not smtp_server:
-        raise ValueError("SMTP 설정에 'smtp_server' 필드가 필요합니다.")
+        raise ValueError("SMTP config requires 'smtp_server' field.")
 
     sender_email = data.get("sender_email")
     if not sender_email:
-        raise ValueError("SMTP 설정에 'sender_email' 필드가 필요합니다.")
+        raise ValueError("SMTP config requires 'sender_email' field.")
 
     sender_email = str(sender_email)
     if "@" not in sender_email:
-        raise ValueError(f"sender_email 형식이 올바르지 않습니다: {sender_email}")
+        raise ValueError(f"Invalid sender_email format: {sender_email}")
 
     smtp_port = data.get("smtp_port", 587)
     if isinstance(smtp_port, bool) or not isinstance(smtp_port, int):
-        raise ValueError(f"smtp_port는 유효한 정수여야 합니다: {smtp_port}")
+        raise ValueError(f"smtp_port must be a valid integer: {smtp_port}")
     if smtp_port < 1 or smtp_port > 65535:
-        raise ValueError(f"smtp_port는 1~65535 범위여야 합니다: {smtp_port}")
+        raise ValueError(f"smtp_port must be in range 1-65535: {smtp_port}")
 
     sender_name = str(data.get("sender_name", ""))
     use_tls = data.get("use_tls", True)
     send_interval_sec = data.get("send_interval_sec", 1.0)
 
     if isinstance(send_interval_sec, bool) or not isinstance(send_interval_sec, (int, float)):
-        raise ValueError(f"send_interval_sec는 숫자여야 합니다: {send_interval_sec}")
+        raise ValueError(f"send_interval_sec must be a number: {send_interval_sec}")
     if send_interval_sec < 0:
-        raise ValueError(f"send_interval_sec는 0 이상이어야 합니다: {send_interval_sec}")
+        raise ValueError(f"send_interval_sec must be >= 0: {send_interval_sec}")
 
     return SmtpConfig(
         smtp_server=str(smtp_server),
@@ -238,13 +238,13 @@ def load_smtp_config(path: str) -> SmtpConfig:
         ValueError: If required fields are missing or invalid.
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f"SMTP 설정 파일을 찾을 수 없습니다: {path}")
+        raise FileNotFoundError(f"SMTP config file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError("SMTP 설정 파일이 dict 형식이어야 합니다.")
+        raise ValueError("SMTP config file must be in dict format.")
 
     return _build_smtp_config(data)
 
@@ -273,8 +273,8 @@ def validate_template_variables(template: EmailTemplate) -> None:
     unsupported = found_vars - SUPPORTED_VARIABLES
     if unsupported:
         raise ValueError(
-            f"지원하지 않는 템플릿 변수: {', '.join(sorted(unsupported))}. "
-            f"지원 변수: {', '.join(sorted(SUPPORTED_VARIABLES))}"
+            f"Unsupported template variables: {', '.join(sorted(unsupported))}. "
+            f"Supported: {', '.join(sorted(SUPPORTED_VARIABLES))}"
         )
 
 
@@ -463,19 +463,19 @@ def load_delivery_log(path: str) -> DeliveryLog:
         FileNotFoundError: If the file does not exist.
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f"발송 로그 파일을 찾을 수 없습니다: {path}")
+        raise FileNotFoundError(f"Delivery log file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError(f"delivery_log.yaml 형식이 올바르지 않습니다: {path}")
+        raise ValueError(f"Invalid delivery_log.yaml format: {path}")
 
     _REQUIRED_KEYS = ("sent_at", "smtp_server", "total", "success", "failed")
     missing = [k for k in _REQUIRED_KEYS if k not in data]
     if missing:
         raise ValueError(
-            f"delivery_log.yaml에 필수 키가 없습니다: {', '.join(missing)} ({path})"
+            f"delivery_log.yaml missing required keys: {', '.join(missing)} ({path})"
         )
 
     results = []
@@ -554,7 +554,7 @@ def send_emails(
         summary_data = yaml.safe_load(f)
 
     if not isinstance(summary_data, dict):
-        raise ValueError(f"prepare_summary.yaml 형식이 올바르지 않습니다: {summary_path}")
+        raise ValueError(f"Invalid prepare_summary.yaml format: {summary_path}")
 
     # Check for existing delivery log (FR-022)
     log_path = os.path.join(staging_dir, "delivery_log.yaml")
@@ -565,7 +565,7 @@ def send_emails(
             has_success = any(r.status == "success" for r in existing_log.results)
             if has_success and not force:
                 raise ValueError(
-                    "이미 발송 완료된 기록이 있습니다. --force로 강제 재발송하세요."
+                    "Delivery log already contains successful sends. Use --force to resend."
                 )
 
     # Resolve password (FR-008)
@@ -574,8 +574,8 @@ def send_emails(
             password = os.environ.get("FORMA_SMTP_PASSWORD")
         if not password:
             raise ValueError(
-                "SMTP 비밀번호가 설정되지 않았습니다. "
-                "FORMA_SMTP_PASSWORD 환경변수 또는 --password-from-stdin을 사용하세요."
+                "SMTP password not configured. "
+                "Use FORMA_SMTP_PASSWORD env var or --password-from-stdin."
             )
 
     # Determine send targets
@@ -626,7 +626,7 @@ def send_emails(
                 results.append(DeliveryResult(
                     student_id=sid, email=email, status="failed",
                     sent_at=now, attachment="", size_bytes=0,
-                    error="zip 파일 없음",
+                    error="zip file not found",
                 ))
                 failed_count += 1
                 continue
@@ -674,13 +674,13 @@ def send_emails(
                         except smtplib.SMTPServerDisconnected as disc_err:
                             last_error = disc_err
                             logger.warning(
-                                "SMTP 연결 끊김 (시도 %d/%d): %s (%s)",
+                                "SMTP disconnected (attempt %d/%d): %s (%s)",
                                 attempt + 1, _MAX_RETRIES, sid, disc_err,
                             )
                             try:
                                 smtp_conn = _connect_smtp()
                             except Exception as reconn_err:
-                                logger.warning("SMTP 재연결 실패: %s", reconn_err)
+                                logger.warning("SMTP reconnect failed: %s", reconn_err)
                                 last_error = reconn_err
                     if sent:
                         results.append(DeliveryResult(
@@ -690,7 +690,7 @@ def send_emails(
                         ))
                         success_count += 1
                     else:
-                        logger.warning("발송 실패: %s (%s): %s", sid, _mask_email(email), last_error)
+                        logger.warning("Send failed: %s (%s): %s", sid, _mask_email(email), last_error)
                         results.append(DeliveryResult(
                             student_id=sid, email=email, status="failed",
                             sent_at=now, attachment=os.path.basename(zip_path),
@@ -698,7 +698,7 @@ def send_emails(
                         ))
                         failed_count += 1
                 except Exception as e:
-                    logger.warning("발송 실패: %s (%s): %s", sid, _mask_email(email), e)
+                    logger.warning("Send failed: %s (%s): %s", sid, _mask_email(email), e)
                     results.append(DeliveryResult(
                         student_id=sid, email=email, status="failed",
                         sent_at=now, attachment=os.path.basename(zip_path),
@@ -745,8 +745,8 @@ def print_delivery_summary(log: DeliveryLog) -> None:
     """
     prefix = "[DRY-RUN] " if log.dry_run else ""
     print(
-        f"{prefix}전체 {log.total}건 중 {log.success}건 성공, "
-        f"{log.failed}건 실패"
+        f"{prefix}Total {log.total}: {log.success} success, "
+        f"{log.failed} failed"
     )
 
     if log.failed > 0:

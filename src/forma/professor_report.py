@@ -12,7 +12,6 @@ import io
 import logging
 import os
 import re
-from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -83,7 +82,7 @@ class ProfessorPDFReportGenerator:
         dpi: Resolution for chart images (default 150).
     """
 
-    def __init__(self, font_path: Optional[str] = None, dpi: int = 150) -> None:
+    def __init__(self, font_path: str | None = None, dpi: int = 150) -> None:
         if font_path is None:
             font_path = find_korean_font()
         if not os.path.exists(font_path):
@@ -472,24 +471,24 @@ class ProfessorPDFReportGenerator:
         # ------------------------------------------------------------------
         # Build header rows
         # ------------------------------------------------------------------
-        # Row 0: [순위, 학번, 이름, 종합] + [Q{sn} (spanning n_sub)] per question
-        # Row 1: [순위, 학번, 이름, level, score] + [level, score(, coverage)] per q
+        # Row 0: [rank, student_id, name, overall] + [Q{sn} (spanning n_sub)] per question
+        # Row 1: [rank, student_id, name, level, score] + [level, score(, coverage)] per q
 
         header_bg = HexColor("#37474F")
         header_text_color = HexColor("#FFFFFF")
 
         # Row 0: top-level headers
-        # Columns: 순위, 학번, 이름, 종합(level+score=2cols), then Q1, Q2, ...
+        # Columns: rank, student_id, name, overall(level+score=2cols), then Q1, Q2, ...
         # For overall: 2 sub-cols (level, score) always
         n_overall_sub = 2
-        n_fixed = 3  # 순위, 학번, 이름
+        n_fixed = 3  # rank, student_id, name
 
         row0 = [
             Paragraph(_esc("순위"), self._styles["ProfTableHeader"]),
             Paragraph(_esc("학번"), self._styles["ProfTableHeader"]),
             Paragraph(_esc("이름"), self._styles["ProfTableHeader"]),
             Paragraph(_esc("종합"), self._styles["ProfTableHeader"]),
-            Paragraph("", self._styles["ProfTableHeader"]),  # span placeholder for 종합 2nd col
+            Paragraph("", self._styles["ProfTableHeader"]),  # span placeholder for overall 2nd col
         ]
         for qs in question_stats:
             row0.append(Paragraph(_esc(f"Q{qs.question_sn}"), self._styles["ProfTableHeader"]))
@@ -555,8 +554,8 @@ class ProfessorPDFReportGenerator:
         # Compute column widths
         # ------------------------------------------------------------------
         page_width = 190 * mm  # A4 usable width
-        fixed_col_widths = [12 * mm, 25 * mm, 22 * mm]  # 순위, 학번, 이름
-        overall_col_widths = [14 * mm, 14 * mm]  # 수준, 점수
+        fixed_col_widths = [12 * mm, 25 * mm, 22 * mm]  # rank, student_id, name
+        overall_col_widths = [14 * mm, 14 * mm]  # level, score
         remaining = page_width - sum(fixed_col_widths) - sum(overall_col_widths)
         if n_questions > 0:
             per_q_width = remaining / n_questions / n_sub
@@ -591,10 +590,10 @@ class ProfessorPDFReportGenerator:
         ]
 
         # Span header row 0 cells:
-        # 순위 spans row 0 and 1: (0,0)-(0,1)
-        # 학번 spans row 0 and 1: (1,0)-(1,1)
-        # 이름 spans row 0 and 1: (2,0)-(2,1)
-        # 종합 spans cols 3-4 in row 0: (3,0)-(4,0)
+        # rank spans row 0 and 1: (0,0)-(0,1)
+        # student_id spans row 0 and 1: (1,0)-(1,1)
+        # name spans row 0 and 1: (2,0)-(2,1)
+        # overall spans cols 3-4 in row 0: (3,0)-(4,0)
         # Q{n} spans n_sub columns in row 0
         style_cmds += [
             ("SPAN", (0, 0), (0, 1)),
@@ -1045,7 +1044,7 @@ class ProfessorPDFReportGenerator:
         story.append(Paragraph(_esc(summary_text), self._styles["ProfBody"]))
         story.append(Spacer(1, 4 * mm))
 
-        # Header: 개념 | 편차 | 분반별 점수...
+        # Header: concept | deviation | per-section scores...
         class_names = sorted(class_maps.keys())
         header = ["개념", "편차"] + class_names
         table_data = [header]
@@ -1065,7 +1064,7 @@ class ProfessorPDFReportGenerator:
             )
             para_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
 
-        # Column widths: 개념(120) + 편차(50) + 분반별(50 each)
+        # Column widths: concept(120) + deviation(50) + per-section(50 each)
         col_widths = [120, 50] + [50] * len(class_names)
         comp_table = Table(para_rows, colWidths=col_widths)
         table_style = [
@@ -1420,7 +1419,7 @@ class ProfessorPDFReportGenerator:
                 )
                 story.append(Spacer(1, 8))
         except Exception as exc:
-            logger.warning("분반 비교 박스플롯 생성 실패: %s", exc)
+            logger.warning("Failed to generate section comparison box plot: %s", exc)
 
         # --- Concept mastery heatmap ---
         if cross_report.concept_mastery_by_section:
@@ -1434,7 +1433,7 @@ class ProfessorPDFReportGenerator:
                     )
                     story.append(Spacer(1, 8))
             except Exception as exc:
-                logger.warning("개념 숙달도 히트맵 생성 실패: %s", exc)
+                logger.warning("Failed to generate concept mastery heatmap: %s", exc)
 
         # --- Weekly interaction chart ---
         if cross_report.weekly_interaction:
@@ -1448,7 +1447,7 @@ class ProfessorPDFReportGenerator:
                     )
                     story.append(Spacer(1, 8))
             except Exception as exc:
-                logger.warning("주차별 상호작용 차트 생성 실패: %s", exc)
+                logger.warning("Failed to generate weekly interaction chart: %s", exc)
 
         return story
 
@@ -1855,7 +1854,7 @@ class ProfessorPDFReportGenerator:
             story.append(Image(chart_buf, width=120 * mm, height=80 * mm))
             story.append(Spacer(1, 8))
         except Exception as exc:
-            logger.warning("OCR 인식률 히스토그램 생성 실패: %s", exc)
+            logger.warning("OCR confidence histogram generation failed: %s", exc)
 
         # Low-confidence student table
         low_sorted = sorted(low, key=lambda d: d["confidence_mean"])

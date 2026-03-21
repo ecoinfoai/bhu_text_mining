@@ -40,15 +40,15 @@ def _build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma-deliver",
-        description="보고서 이메일 발송 자동화",
+        description="Report email delivery automation",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
 
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -56,61 +56,61 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- prepare subcommand ---
     prepare_parser = subparsers.add_parser(
-        "prepare", help="학생별 보고서 수집 및 zip 생성",
+        "prepare", help="Collect student reports and create zip archives",
     )
     prepare_parser.add_argument(
         "--manifest", required=True,
-        help="발송 매니페스트 YAML 파일 경로",
+        help="Delivery manifest YAML file path",
     )
     prepare_parser.add_argument(
         "--roster", required=True,
-        help="학생 명부 YAML 파일 경로",
+        help="Student roster YAML file path",
     )
     prepare_parser.add_argument(
         "--output-dir", required=True, dest="output_dir",
-        help="staging 폴더 출력 경로",
+        help="Staging folder output path",
     )
     prepare_parser.add_argument(
         "--force", action="store_true", default=False,
-        help="기존 staging 폴더 덮어쓰기",
+        help="Overwrite existing staging folder",
     )
 
     # --- send subcommand ---
     send_parser = subparsers.add_parser(
-        "send", help="이메일 발송",
+        "send", help="Send emails",
     )
     send_parser.add_argument(
         "--staged", required=True,
-        help="prepare에서 생성한 staging 폴더 경로",
+        help="Staging folder path from prepare step",
     )
     send_parser.add_argument(
         "--template", required=True,
-        help="이메일 템플릿 YAML 파일 경로",
+        help="Email template YAML file path",
     )
     send_parser.add_argument(
         "--smtp-config", required=False, default=None, dest="smtp_config",
-        help="SMTP 설정 YAML 파일 경로 (미지정 시 config.json smtp 섹션 사용)",
+        help="SMTP config YAML file path (uses config.json smtp section if not specified)",
     )
     send_parser.add_argument(
         "--dry-run", action="store_true", default=False, dest="dry_run",
-        help="미리보기만 (실제 발송 없음)",
+        help="Preview only (no actual delivery)",
     )
     send_parser.add_argument(
         "--retry-failed", action="store_true", default=False, dest="retry_failed",
-        help="이전 실패 건만 재발송",
+        help="Resend previously failed items only",
     )
     send_parser.add_argument(
         "--force", action="store_true", default=False,
-        help="이미 발송 완료된 기록 무시하고 전체 재발송",
+        help="Ignore previously sent records and resend all",
     )
     send_parser.add_argument(
         "--notify-sender", action="store_true", default=False, dest="notify_sender",
-        help="교수자에게 결과 요약 이메일 발송",
+        help="Send result summary email to instructor",
     )
     send_parser.add_argument(
         "--password-from-stdin", action="store_true", default=False,
         dest="password_from_stdin",
-        help="SMTP 비밀번호를 stdin에서 읽기",
+        help="Read SMTP password from stdin",
     )
 
     return parser
@@ -127,14 +127,14 @@ def _cmd_prepare(args: argparse.Namespace) -> None:
     # Validate file existence (exit 2 for missing paths)
     if not os.path.exists(args.manifest):
         print(
-            f"Error: 매니페스트 파일을 찾을 수 없습니다: {args.manifest}",
+            f"Error: Manifest file not found: {args.manifest}",
             file=sys.stderr,
         )
         sys.exit(2)
 
     if not os.path.exists(args.roster):
         print(
-            f"Error: 명부 파일을 찾을 수 없습니다: {args.roster}",
+            f"Error: Roster file not found: {args.roster}",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -155,7 +155,7 @@ def _cmd_prepare(args: argparse.Namespace) -> None:
 
     # Console summary output
     print(
-        f"준비 완료: 전체 {summary.total_students}명 "
+        f"Preparation complete: {summary.total_students} students total "
         f"(ready={summary.ready}, warning={summary.warnings}, "
         f"error={summary.errors})"
     )
@@ -184,11 +184,11 @@ def _cmd_send(args: argparse.Namespace) -> None:
 
     # Validate file existence (exit 2 for missing paths)
     if not os.path.exists(args.staged):
-        print(f"Error: staging 폴더를 찾을 수 없습니다: {args.staged}", file=sys.stderr)
+        print(f"Error: Staging folder not found: {args.staged}", file=sys.stderr)
         sys.exit(2)
 
     if not os.path.exists(args.template):
-        print(f"Error: 템플릿 파일을 찾을 수 없습니다: {args.template}", file=sys.stderr)
+        print(f"Error: Template file not found: {args.template}", file=sys.stderr)
         sys.exit(2)
 
     # Resolve SMTP configuration: --smtp-config path or config.json fallback
@@ -201,14 +201,14 @@ def _cmd_send(args: argparse.Namespace) -> None:
         import warnings
 
         warnings.warn(
-            "--smtp-config는 향후 버전에서 제거됩니다. "
-            "config.json의 smtp 섹션으로 마이그레이션하세요.",
+            "--smtp-config is deprecated and will be removed in a future version. "
+            "Migrate to the smtp section in config.json.",
             DeprecationWarning,
             stacklevel=2,
         )
         if not os.path.exists(args.smtp_config):
             print(
-                f"Error: SMTP 설정 파일을 찾을 수 없습니다: {args.smtp_config}",
+                f"Error: SMTP config file not found: {args.smtp_config}",
                 file=sys.stderr,
             )
             sys.exit(2)
@@ -222,15 +222,15 @@ def _cmd_send(args: argparse.Namespace) -> None:
             _config_password: str | None = get_smtp_password(config)
         except (FileNotFoundError, KeyError, ValueError):
             print(
-                "Error: SMTP 설정을 찾을 수 없습니다. "
-                "--smtp-config 또는 config.json smtp 섹션을 설정하세요.",
+                "Error: SMTP config not found. "
+                "Configure --smtp-config or config.json smtp section.",
                 file=sys.stderr,
             )
             sys.exit(2)
 
     # Flag interaction: --retry-failed + --force is invalid
     if getattr(args, "retry_failed", False) and getattr(args, "force", False):
-        print("Error: --retry-failed와 --force는 함께 사용할 수 없습니다.", file=sys.stderr)
+        print("Error: --retry-failed and --force cannot be used together.", file=sys.stderr)
         sys.exit(1)
 
     # Resolve password: stdin > config.json smtp.password > env var (in send_emails)
@@ -261,8 +261,8 @@ def _cmd_send(args: argparse.Namespace) -> None:
     # Console summary output (FR-018)
     prefix = "[DRY-RUN] " if log.dry_run else ""
     print(
-        f"{prefix}전체 {log.total}건 중 {log.success}건 성공, "
-        f"{log.failed}건 실패"
+        f"{prefix}Total: {log.success}/{log.total} succeeded, "
+        f"{log.failed} failed"
     )
 
     # Notify sender summary email (FR-019)
@@ -280,9 +280,9 @@ def _cmd_send(args: argparse.Namespace) -> None:
                     smtp_cfg = load_smtp_config(args.smtp_config)
                 send_summary_email(log, smtp_cfg, password=notify_password)
             except Exception as e:
-                print(f"Warning: 요약 이메일 발송 실패: {e}", file=sys.stderr)
+                print(f"Warning: Summary email delivery failed: {e}", file=sys.stderr)
         else:
-            print("Warning: --notify-sender 사용 시 비밀번호가 필요합니다.", file=sys.stderr)
+            print("Warning: --notify-sender requires a password.", file=sys.stderr)
 
     # Exit code 3 for partial failure
     if log.failed > 0 and not log.dry_run:

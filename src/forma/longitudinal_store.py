@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional  # used by _compute_concept_scores return type
 
 import yaml
 
@@ -17,6 +17,7 @@ from forma.evaluation_types import LongitudinalRecord
 
 
 def _record_key(student_id: str, week: int, question_sn: int) -> str:
+    """Build a unique composite key for a longitudinal record."""
     return f"{student_id}_{week}_{question_sn}"
 
 
@@ -43,6 +44,7 @@ class LongitudinalStore:
         self._by_week = by_week
 
     def _to_dict(self, record: LongitudinalRecord, manual_override: bool = False) -> dict:
+        """Convert a LongitudinalRecord to a plain dict for YAML storage."""
         d = {
             "student_id": record.student_id,
             "week": record.week,
@@ -72,6 +74,7 @@ class LongitudinalStore:
         return d
 
     def _to_record(self, data: dict) -> LongitudinalRecord:
+        """Convert a stored dict back to a LongitudinalRecord."""
         return LongitudinalRecord(
             student_id=data["student_id"],
             week=data["week"],

@@ -15,7 +15,7 @@ from forma.network_analysis import (
 )
 
 
-def compare_topic_lengths_with_xy(topic_df: pd.DataFrame):
+def compare_topic_lengths_with_xy(topic_df: pd.DataFrame) -> pd.DataFrame:
     """
     Compare topic-wise sentence counts and average sentence lengths per person,
     and visualize the results using XY scatter plots in grouped subplots.
@@ -146,8 +146,8 @@ def compare_topic_lengths_with_xy(topic_df: pd.DataFrame):
 
 
 def generate_person_networks_from_sentences(
-    topic_df: pd.DataFrame, stopwords: set, font_prop, window_size=2
-):
+    topic_df: pd.DataFrame, stopwords: set, font_prop: object, window_size: int = 2,
+) -> None:
     """
     Generate and visualize keyword co-occurrence network graphs for each person.
 

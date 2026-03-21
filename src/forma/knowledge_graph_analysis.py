@@ -14,13 +14,10 @@ from forma.network_analysis import (
 )
 
 
-# Develop knowledge graph
 def build_knowledge_graph(
-    topic_df: pd.DataFrame, stopwords: set, window_size=2
+    topic_df: pd.DataFrame, stopwords: set[str], window_size: int = 2
 ) -> nx.Graph:
-    """
-
-    Build a knowledge graph from text data using keyword co-occurrence.
+    """Build a knowledge graph from text data using keyword co-occurrence.
 
     Creates a network graph where nodes are keywords and edges represent
     co-occurrence within the window size.
@@ -43,7 +40,7 @@ def build_knowledge_graph(
 
 
 def create_student_knowledge_graph(
-    student_name: str, topic_df: pd.DataFrame, stopwords: set, window_size=2
+    student_name: str, topic_df: pd.DataFrame, stopwords: set[str], window_size: int = 2
 ) -> nx.Graph:
     """
     Create a knowledge graph from a specific student's text data.
@@ -64,7 +61,7 @@ def create_student_knowledge_graph(
 
 
 def create_reference_knowledge_graph(
-    topic_df: pd.DataFrame, stopwords: set, window_size=2
+    topic_df: pd.DataFrame, stopwords: set[str], window_size: int = 2
 ) -> nx.Graph:
     """
     Create a reference knowledge graph from professor's text data.
@@ -109,7 +106,6 @@ def compare_graphs(graph1: nx.Graph, graph2: nx.Graph) -> dict[str, list]:
     return results
 
 
-# Tabulation of comparison results
 def display_comparison_results(
     comparison_results: dict[str, dict[str, list]]
 ) -> pd.DataFrame:
@@ -158,13 +154,12 @@ def display_comparison_results(
     return results_df
 
 
-# Visualization of superimposed graph
 def visualize_superimposed_graph(
     reference_graph: nx.Graph,
     student_graph: nx.Graph,
-    font_prop,
-    title="Superimposed Graph Comparison",
-):
+    font_prop: object,
+    title: str = "Superimposed Graph Comparison",
+) -> None:
     """
     Create visualization comparing reference and student knowledge graphs.
 
@@ -182,7 +177,7 @@ def visualize_superimposed_graph(
     """
     plt.figure(figsize=(12, 10))
 
-    # Create commone layouts (including all nodes)
+    # Create common layout (including all nodes)
     combined_nodes = set(reference_graph.nodes()).union(
         set(student_graph.nodes())
     )
@@ -221,7 +216,7 @@ def visualize_superimposed_graph(
         student_graph, pos, edge_color="blue", alpha=0.8, label="Student Edges"
     )
 
-    # Emphasizing the NODE difference (Extra/Missing Nodes)
+    # Emphasize node differences (extra/missing nodes)
     missing_nodes = set(reference_graph.nodes()) - set(student_graph.nodes())
     extra_nodes = set(student_graph.nodes()) - set(reference_graph.nodes())
     nx.draw_networkx_nodes(
@@ -243,7 +238,7 @@ def visualize_superimposed_graph(
         label="Extra Nodes",
     )
 
-    # Emphasizing the EDGE diffference (Extra/Missing Edges)
+    # Emphasize edge differences (extra/missing edges)
     missing_edges = set(reference_graph.edges()) - set(student_graph.edges())
     extra_edges = set(student_graph.edges()) - set(reference_graph.edges())
     nx.draw_networkx_edges(
@@ -265,7 +260,7 @@ def visualize_superimposed_graph(
         label="Extra Edges",
     )
 
-    # Label the nodes
+    # Draw node labels
     nx.draw_networkx_labels(
         combined_graph, pos, font_family=font_prop.get_name()
     )

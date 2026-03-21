@@ -12,7 +12,6 @@ import logging
 import os
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4, landscape
@@ -102,7 +101,7 @@ class StudentSummaryRow:
     weekly_coverage_q1: dict[int, float] = field(default_factory=dict)
     weekly_coverage_q2: dict[int, float] = field(default_factory=dict)
     trend_direction: str = "데이터 부족"
-    trend_slope: Optional[float] = None
+    trend_slope: float | None = None
     latest_percentile: float = 0.0
     alert_level: AlertLevel = AlertLevel.NORMAL
     triggered_signals: list[str] = field(default_factory=list)
@@ -221,7 +220,7 @@ class CohortSummaryPDFReportGenerator:
         dpi: Unused (kept for API consistency). Default 150.
     """
 
-    def __init__(self, font_path: Optional[str] = None, dpi: int = 150) -> None:
+    def __init__(self, font_path: str | None = None, dpi: int = 150) -> None:
         if font_path is None:
             font_path = find_korean_font()
         if not os.path.exists(font_path):
@@ -442,7 +441,7 @@ class CohortSummaryPDFReportGenerator:
 
         # Calculate column widths
         n_weeks = len(weeks)
-        # Fixed columns: #(8mm), 학번(22mm), 이름(18mm), 분반(12mm), 추세(18mm), 백분위(14mm), 경고(14mm)
+        # Fixed columns: #(8mm), student_id(22mm), name(18mm), section(12mm), trend(18mm), percentile(14mm), alert(14mm)
         fixed_width = 8 + 22 + 18 + 12 + 18 + 14 + 14  # = 106mm
         available = 277 - fixed_width  # landscape A4 ~ 277mm usable (297 - 20 margins)
         week_col_width = max(12, available / max(n_weeks, 1))

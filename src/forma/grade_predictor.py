@@ -29,7 +29,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional  # used in GradeFeatureExtractor.extract param
 
 import joblib
 import numpy as np

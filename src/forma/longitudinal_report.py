@@ -11,7 +11,6 @@ from __future__ import annotations
 import io
 import logging
 import os
-from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -40,7 +39,7 @@ class LongitudinalPDFReportGenerator:
         dpi: Resolution for chart images (default 150).
     """
 
-    def __init__(self, font_path: Optional[str] = None, dpi: int = 150) -> None:
+    def __init__(self, font_path: str | None = None, dpi: int = 150) -> None:
         if font_path is None:
             font_path = find_korean_font()
         if not os.path.exists(font_path):
@@ -214,7 +213,7 @@ class LongitudinalPDFReportGenerator:
             )
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
-            logger.warning("궤적 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate trajectory chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
@@ -239,7 +238,7 @@ class LongitudinalPDFReportGenerator:
             )
             story.append(Image(chart_buf, width=160 * mm, height=120 * mm))
         except Exception as exc:
-            logger.warning("히트맵 생성 실패: %s", exc)
+            logger.warning("Failed to generate heatmap: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
@@ -339,7 +338,7 @@ class LongitudinalPDFReportGenerator:
             story.append(Image(chart_buf, width=160 * mm,
                                height=min(chart_height, 200) * mm))
         except Exception as exc:
-            logger.warning("개념 마스터리 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate concept mastery chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 5 * mm))
@@ -404,7 +403,7 @@ class LongitudinalPDFReportGenerator:
             )
             story.append(Image(chart_buf, width=160 * mm, height=80 * mm))
         except Exception as exc:
-            logger.warning("리스크 트렌드 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate risk trend chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 5 * mm))
@@ -438,7 +437,7 @@ class LongitudinalPDFReportGenerator:
                 height=min(chart_height, 200) * mm,
             ))
         except Exception as exc:
-            logger.warning("개입 효과 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate intervention effect chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
@@ -477,7 +476,7 @@ class LongitudinalPDFReportGenerator:
                 chart_buf, width=160 * mm, height=100 * mm,
             ))
         except Exception as exc:
-            logger.warning("텍스트 인식 신뢰도 추이 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate OCR confidence trend chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))

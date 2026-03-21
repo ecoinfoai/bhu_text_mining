@@ -178,7 +178,7 @@ def _parse_pedagogy_response(
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError:
-        logger.warning("교수법 분석 LLM 응답 YAML 파싱 실패")
+        logger.warning("Failed to parse pedagogy analysis LLM response YAML")
         return PedagogyAnalysis(section_id=section_id)
 
     if not isinstance(data, dict):
@@ -275,7 +275,7 @@ def analyze_pedagogy_llm(
         )
     except Exception:
         logger.warning(
-            "%s반 교수법 분석 LLM 호출 실패", section_id, exc_info=True,
+            "Section %s pedagogy analysis LLM call failed", section_id, exc_info=True,
         )
         return PedagogyAnalysis(section_id=section_id)
 

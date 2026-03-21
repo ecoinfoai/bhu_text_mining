@@ -60,7 +60,7 @@ def merge_analyses(
     """
     if not analyses:
         raise ValueError(
-            f"병합할 분석 결과가 없습니다: class_id={class_id}"
+            f"No analyses to merge: class_id={class_id}"
         )
 
     # Sort by week
@@ -80,7 +80,7 @@ def merge_analyses(
         per_session_freq[a.week] = dict(a.keyword_frequencies)
 
     logger.info(
-        "병합 완료: class_id=%s, weeks=%s, 키워드 수=%d",
+        "Merge complete: class_id=%s, weeks=%s, keyword_count=%d",
         class_id, weeks, len(combined_freq),
     )
 
@@ -122,7 +122,7 @@ def save_merged_analysis(
     }
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
-    logger.info("병합 분석 결과 저장: %s", path)
+    logger.info("Merged analysis saved: %s", path)
     return path
 
 
@@ -141,7 +141,7 @@ def load_merged_analysis(path: Path) -> MergedAnalysis:
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(
-            f"병합 분석 결과 파일을 찾을 수 없습니다: {path}"
+            f"Merged analysis file not found: {path}"
         )
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)

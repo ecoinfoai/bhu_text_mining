@@ -12,7 +12,6 @@ with NanumGothic font for Korean text rendering.
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -45,7 +44,7 @@ class StudentReportGenerator:
         font_path: Path to Korean .ttf font.  Auto-detected if None.
     """
 
-    def __init__(self, font_path: Optional[str] = None) -> None:
+    def __init__(self, font_path: str | None = None) -> None:
         if font_path is None:
             font_path = find_korean_font()
         if not os.path.exists(font_path):
@@ -254,7 +253,7 @@ class StudentReportGenerator:
         return paths
 
     @staticmethod
-    def _find_student(counseling_data: dict, student_id: str) -> Optional[dict]:
+    def _find_student(counseling_data: dict, student_id: str) -> dict | None:
         """Find a student's entry in counseling data."""
         for student in counseling_data.get("students", []):
             if student.get("student_id") == student_id:

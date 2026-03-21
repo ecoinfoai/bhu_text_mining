@@ -84,8 +84,8 @@ def compare_sections(
     """
     if len(analyses) < 2:
         raise ValueError(
-            f"비교에는 최소 2개 반이 필요합니다. "
-            f"제공된 반 수: {len(analyses)}"
+            f"At least 2 sections required for comparison. "
+            f"Provided: {len(analyses)}"
         )
 
     # 1. Exclusive keywords (FR-017)
@@ -214,7 +214,7 @@ def load_comparison_result(path: Path) -> ComparisonResult:
     """
     path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"비교 결과 파일이 존재하지 않습니다: {path}")
+        raise FileNotFoundError(f"Comparison result file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)

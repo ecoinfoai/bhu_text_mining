@@ -11,7 +11,6 @@ import io
 import logging
 import os
 import re
-from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -57,7 +56,7 @@ class StudentPDFReportGenerator:
 
     def __init__(
         self,
-        font_path: Optional[str] = None,
+        font_path: str | None = None,
         dpi: int = 150,
     ) -> None:
         if font_path is None:
@@ -123,11 +122,11 @@ class StudentPDFReportGenerator:
         student_data: StudentReportData,
         distributions: ClassDistributions,
         output_dir: str,
-        weekly_deltas: Optional[dict] = None,
-        trajectory_chart: Optional["io.BytesIO"] = None,
-        learning_path: Optional["LearningPath"] = None,  # noqa: F821
-        learning_path_chart: Optional["io.BytesIO"] = None,
-        grade_trend: Optional[str] = None,
+        weekly_deltas: dict | None = None,
+        trajectory_chart: "io.BytesIO | None" = None,
+        learning_path: "LearningPath | None" = None,  # noqa: F821
+        learning_path_chart: "io.BytesIO | None" = None,
+        grade_trend: str | None = None,
     ) -> str:
         """Generate a single student's PDF report.
 
@@ -247,7 +246,7 @@ class StudentPDFReportGenerator:
     def _build_learning_path_section(
         self,
         learning_path: "LearningPath",  # noqa: F821
-        learning_path_chart: Optional["io.BytesIO"] = None,
+        learning_path_chart: "io.BytesIO | None" = None,
     ) -> list:
         """Build recommended learning path section (v0.10.0 US4, FR-020).
 
@@ -712,7 +711,7 @@ class StudentPDFReportGenerator:
         Returns:
             Full file path.
         """
-        # Extract class code: "A반" → "1A", "B반" → "1B"
+        # Extract class code: "A반" -> "1A", "B반" -> "1B"
         class_name = student_data.class_name or "X"
         class_letter = class_name[0] if class_name else "X"
         class_code = f"1{class_letter}"

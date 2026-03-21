@@ -25,35 +25,35 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for forma-train-grade."""
     parser = argparse.ArgumentParser(
         prog="forma-train-grade",
-        description="학기말 성적 예측 모델 학습",
+        description="Train semester grade prediction model",
     )
     parser.add_argument(
         "--store", required=True,
-        help="종단 저장소 YAML 파일 경로",
+        help="Longitudinal store YAML file path",
     )
     parser.add_argument(
         "--grades", required=True,
-        help="성적 매핑 YAML 파일 경로",
+        help="Grade mapping YAML file path",
     )
     parser.add_argument(
         "--output", required=True,
-        help="출력 모델 파일 경로 (.pkl)",
+        help="Output model file path (.pkl)",
     )
     parser.add_argument(
         "--semester", default=None,
-        help="학습에 사용할 학기 라벨 (생략 시 마지막 학기)",
+        help="Semester label to use (defaults to last semester)",
     )
     parser.add_argument(
         "--min-students", type=int, default=10, dest="min_students",
-        help="최소 학생 수 (기본값: 10)",
+        help="Minimum number of students (default: 10)",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     return parser
 

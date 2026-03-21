@@ -257,7 +257,7 @@ def extract_multi_chapter(
         if use_cache:
             cached = _load_cache(path_str)
             if cached is not None:
-                logger.info("캐시에서 개념 로드: %s", path_str)
+                logger.info("Loaded concepts from cache: %s", path_str)
                 result[chapter_name] = cached
                 continue
 
@@ -378,7 +378,7 @@ def _load_cache(file_path: str) -> list[TextbookConcept] | None:
             for c in cache_data.get("concepts", [])
         ]
     except Exception:
-        logger.warning("캐시 로드 실패: %s", cache_path, exc_info=True)
+        logger.warning("Failed to load cache: %s", cache_path, exc_info=True)
         return None
 
 
@@ -469,7 +469,7 @@ def load_concepts_yaml(
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict) or "chapters" not in data:
-        raise ValueError(f"올바르지 않은 개념 YAML 형식: {path}")
+        raise ValueError(f"Invalid concepts YAML format: {path}")
 
     result: dict[str, list] = {}
 
@@ -669,16 +669,16 @@ def _parse_llm_concepts(
         data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         # Truncated response recovery: cut back to last complete concept entry
-        logger.warning("YAML 파싱 실패, 잘린 응답 구제 시도: %s", exc)
+        logger.warning("YAML parse failed, attempting truncated response recovery: %s", exc)
         data = _recover_truncated_yaml(text)
         if data is None:
             logger.warning(
-                "구제 실패\n--- 응답 원문 (처음 500자) ---\n%s", text[:500],
+                "Recovery failed\n--- Response text (first 500 chars) ---\n%s", text[:500],
             )
             return []
 
     if not isinstance(data, dict) or "concepts" not in data:
-        logger.warning("LLM 응답에 'concepts' 키가 없음")
+        logger.warning("LLM response missing 'concepts' key")
         return []
 
     concepts: list[DomainConcept] = []
@@ -690,7 +690,7 @@ def _parse_llm_concepts(
         description = item.get("description")
         key_terms = item.get("key_terms")
         if not concept_name or not description or not key_terms:
-            logger.debug("필수 필드 누락, 건너뜀: %s", item)
+            logger.debug("Required fields missing, skipping: %s", item)
             continue
 
         concepts.append(DomainConcept(
@@ -763,7 +763,7 @@ def _load_v2_cache(file_path: str) -> list[DomainConcept] | None:
             for c in cache_data.get("concepts", [])
         ]
     except Exception:
-        logger.warning("v2 캐시 로드 실패: %s", cache_path, exc_info=True)
+        logger.warning("v2 cache load failed: %s", cache_path, exc_info=True)
         return None
 
 
@@ -860,7 +860,7 @@ def extract_concepts_llm_chunked(
     if not no_cache:
         cached = _load_v2_cache(textbook_path)
         if cached is not None:
-            logger.info("v2 캐시에서 개념 로드 (chunked): %s", textbook_path)
+            logger.info("Loaded concepts from v2 cache (chunked): %s", textbook_path)
             return cached
 
     raw_text = path.read_text(encoding="utf-8")
@@ -872,20 +872,20 @@ def extract_concepts_llm_chunked(
     )
 
     if not cleaned_body.strip():
-        logger.warning("본문이 비어 있음: %s", textbook_path)
+        logger.warning("Body text is empty: %s", textbook_path)
         return []
 
     # Chunk the text
     chunks = chunk_textbook_by_sections(
         cleaned_body, summary_path=summary_path,
     )
-    logger.info("청크 분할: %d개 청크", len(chunks))
+    logger.info("Chunked into %d chunks", len(chunks))
 
     provider = create_provider(model=model)
     chunk_results: list[list[DomainConcept]] = []
 
     for idx, chunk in enumerate(chunks):
-        section_context = " > ".join(chunk.section_path) if chunk.section_path else f"청크 {idx + 1}"
+        section_context = " > ".join(chunk.section_path) if chunk.section_path else f"chunk {idx + 1}"
 
         prompt = _CHUNK_EXTRACTION_PROMPT_TEMPLATE.format(
             section_context=section_context,
@@ -971,7 +971,7 @@ def extract_concepts_llm(
     if not no_cache:
         cached = _load_v2_cache(textbook_path)
         if cached is not None:
-            logger.info("v2 캐시에서 개념 로드: %s", textbook_path)
+            logger.info("Loaded concepts from v2 cache: %s", textbook_path)
             return cached
 
     # Read and preprocess
@@ -981,13 +981,13 @@ def extract_concepts_llm(
     )
 
     if not cleaned_body.strip():
-        logger.warning("본문이 비어 있음: %s", textbook_path)
+        logger.warning("Body text is empty: %s", textbook_path)
         return []
 
     # T021: Route to chunked if body > 12000 chars
     should_chunk = force_chunk if force_chunk is not None else (len(cleaned_body) > 12000)
     if should_chunk:
-        logger.info("본문 %d자 → 청크 추출 모드", len(cleaned_body))
+        logger.info("Body %d chars -> chunked extraction mode", len(cleaned_body))
         return extract_concepts_llm_chunked(
             textbook_path=textbook_path,
             summary_path=summary_path,
@@ -1008,7 +1008,7 @@ def extract_concepts_llm(
             system_instruction=_SYSTEM_INSTRUCTION,
         )
     except Exception:
-        logger.warning("LLM 호출 실패: %s", textbook_path, exc_info=True)
+        logger.warning("LLM call failed: %s", textbook_path, exc_info=True)
         return []
 
     # Parse response

@@ -13,7 +13,6 @@ import logging
 import os
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -109,11 +108,11 @@ class StudentLongitudinalData:
     """
 
     student_id: str
-    student_name: Optional[str] = None
-    class_name: Optional[str] = None
+    student_name: str | None = None
+    class_name: str | None = None
     weeks: list[int] = field(default_factory=list)
     scores_by_week: dict[int, dict[int, dict[str, float]]] = field(default_factory=dict)
-    trend_slope: Optional[float] = None
+    trend_slope: float | None = None
     trend_direction: str = "데이터 부족"
     percentiles_by_week: dict[int, float] = field(default_factory=dict)
 
@@ -165,7 +164,7 @@ class AnonymizedStudentSummary:
     weekly_coverage_q2: dict[int, float] = field(default_factory=dict)
     weekly_ensemble: dict[int, float] = field(default_factory=dict)
     percentiles: dict[int, float] = field(default_factory=dict)
-    trend_slope: Optional[float] = None
+    trend_slope: float | None = None
     trend_direction: str = "데이터 부족"
     alert_level: str = "정상"
     triggered_signals: list[str] = field(default_factory=list)
@@ -279,8 +278,8 @@ def build_student_data(
     student_id: str,
     weeks: list[int],
     cohort: CohortDistribution,
-    student_name: Optional[str] = None,
-    class_name: Optional[str] = None,
+    student_name: str | None = None,
+    class_name: str | None = None,
 ) -> StudentLongitudinalData:
     """Build per-student longitudinal data from the store.
 
@@ -321,7 +320,7 @@ def build_student_data(
             weekly_avg_ensemble[week] = sum(ensemble_vals) / len(ensemble_vals)
 
     # OLS trend slope
-    trend_slope: Optional[float] = None
+    trend_slope: float | None = None
     trend_direction = "데이터 부족"
     if len(weekly_avg_ensemble) >= 2:
         x = np.array(list(weekly_avg_ensemble.keys()), dtype=float)
@@ -388,7 +387,7 @@ def evaluate_warnings(
     latest_week = student_data.weeks[-1] if student_data.weeks else None
 
     # Latest average ensemble_score
-    latest_ensemble: Optional[float] = None
+    latest_ensemble: float | None = None
     if latest_week and latest_week in student_data.scores_by_week:
         q_map = student_data.scores_by_week[latest_week]
         vals = [s.get("ensemble_score", 0.0) for s in q_map.values() if "ensemble_score" in s]
@@ -396,7 +395,7 @@ def evaluate_warnings(
             latest_ensemble = sum(vals) / len(vals)
 
     # Latest average concept_coverage
-    latest_coverage: Optional[float] = None
+    latest_coverage: float | None = None
     if latest_week and latest_week in student_data.scores_by_week:
         q_map = student_data.scores_by_week[latest_week]
         vals = [s.get("concept_coverage", 0.0) for s in q_map.values() if "concept_coverage" in s]
@@ -404,11 +403,11 @@ def evaluate_warnings(
             latest_coverage = sum(vals) / len(vals)
 
     # Latest percentile
-    latest_percentile: Optional[float] = None
+    latest_percentile: float | None = None
     if latest_week and latest_week in student_data.percentiles_by_week:
         latest_percentile = student_data.percentiles_by_week[latest_week]
 
-    # --- Signal 1: 위험 구간 진입 (critical) ---
+    # --- Signal 1: Risk zone entry (critical) ---
     risk_triggered = latest_ensemble is not None and latest_ensemble < _RISK_ZONE_THRESHOLD
     signals.append(WarningSignal(
         name="위험 구간 진입",
@@ -418,7 +417,7 @@ def evaluate_warnings(
         requires_min_weeks=0,
     ))
 
-    # --- Signal 2: 하위 백분위 (critical) ---
+    # --- Signal 2: Low percentile (critical) ---
     low_pct_triggered = latest_percentile is not None and latest_percentile < _LOW_PERCENTILE_THRESHOLD
     signals.append(WarningSignal(
         name="하위 백분위",
@@ -428,7 +427,7 @@ def evaluate_warnings(
         requires_min_weeks=0,
     ))
 
-    # --- Signal 3: 저조한 개념 커버리지 (non-critical) ---
+    # --- Signal 3: Low concept coverage (non-critical) ---
     low_cov_triggered = latest_coverage is not None and latest_coverage < _LOW_COVERAGE_THRESHOLD
     signals.append(WarningSignal(
         name="저조한 개념 커버리지",
@@ -438,7 +437,7 @@ def evaluate_warnings(
         requires_min_weeks=0,
     ))
 
-    # --- Signal 4: 연속 하강 (non-critical, requires 3+ weeks) ---
+    # --- Signal 4: Consecutive decline (non-critical, requires 3+ weeks) ---
     if n_weeks >= _CONSECUTIVE_DECLINE_MIN_WEEKS:
         # Compute per-week average ensemble
         weekly_avgs: list[tuple[int, float]] = []
@@ -475,7 +474,7 @@ def evaluate_warnings(
             requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
         ))
 
-    # --- Signal 5: 음수 추세 기울기 (non-critical, requires 3+ weeks) ---
+    # --- Signal 5: Negative trend slope (non-critical, requires 3+ weeks) ---
     if n_weeks >= _CONSECUTIVE_DECLINE_MIN_WEEKS:
         neg_slope_triggered = (
             student_data.trend_slope is not None

@@ -1,3 +1,5 @@
+"""BERTopic-based topic modeling for lecture transcript analysis."""
+
 from __future__ import annotations
 
 import warnings
@@ -13,7 +15,6 @@ with warnings.catch_warnings():
 import pandas as pd
 
 
-# Prepare your data
 def load_yaml_data(yaml_path: str) -> dict[str, str]:
     """
     Load data from a YAML file into a dictionary.
@@ -36,7 +37,7 @@ def load_yaml_data(yaml_path: str) -> dict[str, str]:
         return yaml.safe_load(f)
 
 
-def split_sentences(yaml_data: dict[str, str]) -> list[str]:
+def split_sentences(yaml_data: dict[str, str]) -> tuple[list[str], list[str]]:
     """
     Split the text data in a YAML dictionary into individual sentences.
 
@@ -69,7 +70,6 @@ def split_sentences(yaml_data: dict[str, str]) -> list[str]:
     return all_sentences, keys
 
 
-# BERTopic model
 def configure_bertopic(env_config: dict) -> BERTopic:
     """
     Configure a BERTopic model using environment settings.
@@ -129,7 +129,6 @@ def analyze_topics_with_bertopic(
     return topics, probs
 
 
-# Examine topics from BERTopic model
 def generate_topic_dataframe(
     sentences: list[str], topics: list[int], keys: list[str]
 ) -> pd.DataFrame:

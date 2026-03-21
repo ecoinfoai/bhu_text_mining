@@ -5,7 +5,7 @@ Usage:
         --eval-dir eval_A --eval-dir eval_B --eval-dir eval_C \
         --store longitudinal.yaml \
         --week 1 \
-        --exam-file Ch01_서론_FormativeTest.yaml \
+        --exam-file Ch01_FormativeTest.yaml \
         [--responses final_A.yaml --responses final_B.yaml ...]
 """
 
@@ -100,14 +100,14 @@ def _extract_ocr_confidence(
 
 
 def _extract_id_map(responses: list[dict]) -> dict[str, str]:
-    """Extract anonymous ID → real student ID (학번) mapping from join output.
+    """Extract anonymous ID to real student ID mapping from join output.
 
     Reads ``forms_data`` from each entry in ``final_*.yaml``.
-    The anonymous IDs change each week, so the real student ID (학번)
+    The anonymous IDs change each week, so the real student ID
     must be used as the longitudinal tracking key.
 
     Returns:
-        Mapping of anonymous student_id (e.g. "S015") to 학번 (e.g. "2026194126").
+        Mapping of anonymous student_id (e.g. "S015") to real ID (e.g. "2026194126").
     """
     id_map: dict[str, str] = {}
     for entry in responses:
@@ -120,6 +120,7 @@ def _extract_id_map(responses: list[dict]) -> dict[str, str]:
 
 
 def main() -> None:
+    """Backfill longitudinal store from existing evaluation result directories."""
     parser = argparse.ArgumentParser(
         description="Backfill longitudinal store from existing eval results",
     )
@@ -154,7 +155,7 @@ def main() -> None:
     if os.path.exists(args.store):
         store.load()
 
-    # Pre-load all responses to build id_map (anonymous ID → 학번)
+    # Pre-load all responses to build id_map (anonymous ID -> real student ID)
     all_responses: list[dict] = []
     if args.responses:
         for resp_path in args.responses:
@@ -168,7 +169,7 @@ def main() -> None:
 
     id_map = _extract_id_map(all_responses) if all_responses else {}
     if id_map:
-        print(f"[backfill] ID mapping loaded: {len(id_map)} students (anonymous → 학번)")
+        print(f"[backfill] ID mapping loaded: {len(id_map)} students (anonymous -> real ID)")
     else:
         print("[backfill] WARNING: no ID mapping found — using anonymous IDs", file=sys.stderr)
 
@@ -202,8 +203,8 @@ def main() -> None:
         )
 
     # OCR confidence — patch records using already-loaded responses
-    # Note: ocr_conf keys are anonymous IDs, but store records now use 학번.
-    # Build a reverse map (학번 → anonymous ID) for lookup.
+    # Note: ocr_conf keys are anonymous IDs, but store records now use real IDs.
+    # Build a reverse map (real ID -> anonymous ID) for lookup.
     if all_responses:
         ocr_conf = _extract_ocr_confidence(all_responses)
         reverse_map = {v: k for k, v in id_map.items()} if id_map else {}

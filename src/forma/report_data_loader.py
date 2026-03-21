@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import yaml
 
@@ -138,8 +138,8 @@ class WeeklyDelta:
     """
 
     current_score: float
-    previous_score: Optional[float]
-    delta: Optional[float]
+    previous_score: float | None
+    delta: float | None
     delta_symbol: str
 
 

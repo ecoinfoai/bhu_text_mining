@@ -21,44 +21,44 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
         prog="forma-exam",
-        description="형성평가 시험지 PDF 생성기",
+        description="Formative assessment exam paper PDF generator",
     )
 
     # Question source (mutually exclusive)
     q_group = parser.add_mutually_exclusive_group(required=True)
     q_group.add_argument(
         "--config",
-        help="통합 YAML 파일 경로 (메타데이터 + 문제)",
+        help="Unified YAML file path (metadata + questions)",
     )
     q_group.add_argument(
         "--questions",
-        help="YAML 파일 경로 (문제 목록)",
+        help="YAML file path (question list)",
     )
     q_group.add_argument(
         "--questions-json",
-        help="인라인 JSON 문자열 (문제 목록)",
+        help="Inline JSON string (question list)",
     )
 
     # num-papers: optional (can come from config YAML)
     parser.add_argument(
         "--num-papers", type=int, default=None,
-        help="시험지 매수",
+        help="Number of exam papers",
     )
     parser.add_argument(
         "--output", required=True,
-        help="PDF 출력 경로",
+        help="PDF output path",
     )
 
     # Optional arguments — all default to None so
     # config YAML values are not shadowed by argparse.
-    parser.add_argument("--year", type=int, default=None, help="학년도")
-    parser.add_argument("--grade", type=int, default=None, help="학년")
-    parser.add_argument("--semester", type=int, default=None, help="학기")
-    parser.add_argument("--course", default=None, help="과목명")
-    parser.add_argument("--week", type=int, default=None, help="주차")
-    parser.add_argument("--form-url", default=None, help="Google Forms URL 템플릿")
-    parser.add_argument("--student-ids", nargs="+", default=None, help="학생 ID 목록")
-    parser.add_argument("--font-path", default=None, help="폰트 경로")
+    parser.add_argument("--year", type=int, default=None, help="Academic year")
+    parser.add_argument("--grade", type=int, default=None, help="Grade level")
+    parser.add_argument("--semester", type=int, default=None, help="Semester")
+    parser.add_argument("--course", default=None, help="Course name")
+    parser.add_argument("--week", type=int, default=None, help="Week number")
+    parser.add_argument("--form-url", default=None, help="Google Forms URL template")
+    parser.add_argument("--student-ids", nargs="+", default=None, help="Student ID list")
+    parser.add_argument("--font-path", default=None, help="Font file path")
 
     return parser.parse_args(argv)
 
@@ -89,7 +89,7 @@ def _load_questions(source: str) -> list[dict]:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for bhu-exam."""
+    """CLI entrypoint for forma-exam."""
     args = _parse_args(argv)
 
     # Mapping: YAML key -> (argparse dest, type-cast)

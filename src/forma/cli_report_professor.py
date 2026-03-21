@@ -19,34 +19,34 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-professor."""
     parser = argparse.ArgumentParser(
         prog="forma-report-professor",
-        description="교수 학급 요약 PDF 리포트 생성기",
+        description="Professor class summary PDF report generator",
     )
     # Required args
-    parser.add_argument("--final", required=True, help="최종 결과 YAML 파일 경로 (anp_*_final.yaml)")
-    parser.add_argument("--config", required=True, help="시험 설정 YAML 파일 경로 (Ch*_FormativeTest.yaml)")
-    parser.add_argument("--eval-dir", required=True, dest="eval_dir", help="평가 결과 디렉토리 경로")
-    parser.add_argument("--output-dir", required=True, dest="output_dir", help="PDF 출력 디렉토리 경로")
+    parser.add_argument("--final", required=True, help="Final result YAML file path (anp_*_final.yaml)")
+    parser.add_argument("--config", required=True, help="Exam config YAML file path (Ch*_FormativeTest.yaml)")
+    parser.add_argument("--eval-dir", required=True, dest="eval_dir", help="Evaluation results directory path")
+    parser.add_argument("--output-dir", required=True, dest="output_dir", help="PDF output directory path")
     # Optional args
-    parser.add_argument("--forma-config", default=None, dest="forma_config", help="forma 설정 파일 경로")
-    parser.add_argument("--class-name", default=None, dest="class_name", help="학급명 (파일명에서 자동 추출)")
-    parser.add_argument("--skip-llm", action="store_true", dest="skip_llm", default=False, help="AI 분석 생략")
-    parser.add_argument("--font-path", default=None, dest="font_path", help="한글 폰트 파일 경로")
-    parser.add_argument("--dpi", type=int, default=150, help="차트 DPI (기본값: 150)")
-    parser.add_argument("--verbose", action="store_true", default=False, help="상세 로그 출력")
+    parser.add_argument("--forma-config", default=None, dest="forma_config", help="Forma config file path")
+    parser.add_argument("--class-name", default=None, dest="class_name", help="Class name (auto-extracted from filename)")
+    parser.add_argument("--skip-llm", action="store_true", dest="skip_llm", default=False, help="Skip AI analysis")
+    parser.add_argument("--font-path", default=None, dest="font_path", help="Korean font file path")
+    parser.add_argument("--dpi", type=int, default=150, help="Chart DPI (default: 150)")
+    parser.add_argument("--verbose", action="store_true", default=False, help="Enable verbose logging")
     parser.add_argument("--no-config", action="store_true", default=False, dest="no_config",
-                        help="forma.yaml 설정 파일 무시")
+                        help="Skip forma.yaml config file")
     parser.add_argument("--model", default=None, dest="model_path",
-                        help="드롭 리스크 예측 모델 파일 경로 (.pkl)")
+                        help="Drop risk prediction model file path (.pkl)")
     parser.add_argument("--transcript-dir", default=None, dest="transcript_dir",
-                        help="강의 녹취록 텍스트 파일 디렉토리 경로")
+                        help="Lecture transcript text file directory path")
     parser.add_argument("--longitudinal-store", default=None, dest="longitudinal_store",
-                        help="종단 저장소 YAML 경로 (위험군 변동 표시)")
+                        help="Longitudinal store YAML path (risk group change display)")
     parser.add_argument("--week", type=int, default=None,
-                        help="현재 주차 번호")
+                        help="Current week number")
     parser.add_argument("--grade-model", default=None, dest="grade_model_path",
-                        help="성적 예측 모델 파일 경로 (.pkl, forma-train-grade 출력)")
+                        help="Grade prediction model file path (.pkl, from forma-train-grade)")
     parser.add_argument("--intervention-log", default=None, dest="intervention_log",
-                        help="개입 활동 로그 YAML 경로 (개입 효과 분석 활성화)")
+                        help="Intervention log YAML path (enables intervention effect analysis)")
     return parser
 
 
@@ -66,21 +66,21 @@ def main() -> int | None:
 
     # Validate required input files/dirs exist
     if not os.path.isfile(args.final):
-        logger.error("최종 결과 파일이 존재하지 않습니다: %s", args.final)
+        logger.error("Final result file not found: %s", args.final)
         sys.exit(1)
     if not os.path.isfile(args.config):
-        logger.error("시험 설정 파일이 존재하지 않습니다: %s", args.config)
+        logger.error("Exam config file not found: %s", args.config)
         sys.exit(1)
     if not os.path.isdir(args.eval_dir):
-        logger.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
+        logger.error("Evaluation results directory not found: %s", args.eval_dir)
         sys.exit(1)
 
     # Validate longitudinal args
     if args.longitudinal_store and not os.path.isfile(args.longitudinal_store):
-        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.longitudinal_store)
+        logger.error("Longitudinal store file not found: %s", args.longitudinal_store)
         sys.exit(1)
     if args.week is not None and args.longitudinal_store is None:
-        logger.error("--week 옵션은 --longitudinal-store와 함께 사용해야 합니다.")
+        logger.error("--week requires --longitudinal-store")
         sys.exit(1)
 
     # Create output directory if it doesn't exist
@@ -91,12 +91,12 @@ def main() -> int | None:
     try:
         students, distributions = load_all_student_data(args.final, args.config, args.eval_dir)
     except yaml.YAMLError:
-        logger.error("오류: YAML 파일을 읽을 수 없습니다: %s", args.config)
+        logger.error("Error: Cannot read YAML file: %s", args.config)
         sys.exit(2)
 
     # Validate minimum student count
     if len(students) < 3:
-        logger.error("학생 수가 너무 적습니다 (%d명). 최소 3명 이상 필요합니다.", len(students))
+        logger.error("Too few students (%d). At least 3 are required.", len(students))
         sys.exit(2)
 
     # Load exam config metadata for report
@@ -111,7 +111,7 @@ def main() -> int | None:
         class_name=args.class_name or "Unknown",
         week_num=_meta.get("week_num", args.week or 0),
         subject=_meta.get("course_name", ""),
-        exam_title=_meta.get("chapter_name", "형성평가"),
+        exam_title=_meta.get("chapter_name", "Formative Assessment"),
     )
 
     # Load longitudinal store ONCE if available (shared by risk movement,
@@ -123,7 +123,7 @@ def main() -> int | None:
             long_store = LongitudinalStore(args.longitudinal_store)
             long_store.load()
         except Exception as exc:
-            logger.warning("종단 저장소 로드 실패 (계속 진행): %s", exc)
+            logger.warning("Failed to load longitudinal store (continuing): %s", exc)
 
     # v0.10.0: Parse concept dependencies from exam YAML → class deficit map (FR-021)
     concept_dag = None
@@ -143,7 +143,7 @@ def main() -> int | None:
         deps = parse_concept_dependencies(exam_yaml)
         if deps:
             concept_dag = build_and_validate_dag(deps)
-            logger.info("개념 의존성 DAG 구축 완료: %d개 노드", len(concept_dag.nodes))
+            logger.info("Concept dependency DAG built: %d nodes", len(concept_dag.nodes))
 
             # Build per-student concept scores from question concepts
             from forma.learning_path import build_class_deficit_map
@@ -158,7 +158,7 @@ def main() -> int | None:
                 all_students_scores[student.student_id] = scores
 
             deficit_map = build_class_deficit_map(all_students_scores, concept_dag)
-            logger.info("학급 개념 결손 맵 구축 완료: %d개 개념", len(deficit_map.concept_counts))
+            logger.info("Class concept deficit map built: %d concepts", len(deficit_map.concept_counts))
 
             # Generate deficit map chart
             try:
@@ -166,9 +166,9 @@ def main() -> int | None:
 
                 deficit_map_chart = build_deficit_map_chart(deficit_map)
             except Exception as chart_exc:
-                logger.warning("결손 맵 차트 생성 실패 (계속 진행): %s", chart_exc)
+                logger.warning("Deficit map chart generation failed (continuing): %s", chart_exc)
     except Exception as exc:
-        logger.warning("개념 의존성 처리 실패 (계속 진행): %s", exc)
+        logger.warning("Concept dependency processing failed (continuing): %s", exc)
 
     # v0.7.3 T013a: Compute class knowledge aggregates from graph comparison data
     try:
@@ -213,7 +213,7 @@ def main() -> int | None:
                 report_data.class_knowledge_aggregates.append(agg)
                 qstat.class_knowledge_aggregate = agg
     except Exception as exc:
-        logger.warning("학급 집합 그래프 계산 실패 (계속 진행): %s", exc)
+        logger.warning("Class knowledge aggregate graph computation failed (continuing): %s", exc)
 
     # v0.7.3 T017a: Compute misconception clusters per question
     try:
@@ -225,11 +225,11 @@ def main() -> int | None:
                 clusters = cluster_misconceptions(classified)
                 qstat.misconception_clusters = clusters
                 logger.info(
-                    "문항 %d 오개념 클러스터링: %d개 입력 -> %d개 클러스터",
+                    "Question %d misconception clustering: %d inputs -> %d clusters",
                     qstat.question_sn, len(classified), len(clusters),
                 )
     except Exception as exc:
-        logger.warning("오개념 클러스터링 실패 (계속 진행): %s", exc)
+        logger.warning("Misconception clustering failed (continuing): %s", exc)
 
     # T042: transcript loading + emphasis/gap computation (FR-019a)
     if args.transcript_dir and os.path.isdir(args.transcript_dir):
@@ -245,7 +245,7 @@ def main() -> int | None:
                     with open(fpath, encoding="utf-8") as fh:
                         transcript_lines.extend(fh.read().splitlines())
                 except OSError as exc:
-                    logger.warning("트랜스크립트 파일 읽기 실패: %s — %s", fpath, exc)
+                    logger.warning("Failed to read transcript file: %s — %s", fpath, exc)
 
         if transcript_lines:
             # Gather master concepts from all question concept mastery rates
@@ -260,7 +260,7 @@ def main() -> int | None:
                     emphasis_map = compute_emphasis_map(sentences, concept_list)
                     report_data.emphasis_map = emphasis_map
                     logger.info(
-                        "강조도 맵 생성 완료: %d개 개념, %d개 문장",
+                        "Emphasis map generated: %d concepts, %d sentences",
                         emphasis_map.n_concepts, emphasis_map.n_sentences,
                     )
 
@@ -285,16 +285,16 @@ def main() -> int | None:
                     )
                     report_data.lecture_gap_report = gap_report
                     logger.info(
-                        "강의 갭 분석 완료: 커버리지 %.1f%%, 누락 %d개",
+                        "Lecture gap analysis complete: coverage %.1f%%, missing %d",
                         gap_report.coverage_ratio * 100,
                         len(gap_report.missed_concepts),
                     )
                 except Exception as exc:
-                    logger.warning("강조도/갭 분석 실패 (계속 진행): %s", exc)
+                    logger.warning("Emphasis/gap analysis failed (continuing): %s", exc)
         else:
-            logger.warning("트랜스크립트 디렉토리에 .txt 파일이 없습니다: %s", args.transcript_dir)
+            logger.warning("No .txt files found in transcript directory: %s", args.transcript_dir)
     elif args.transcript_dir:
-        logger.warning("트랜스크립트 디렉토리가 존재하지 않습니다: %s", args.transcript_dir)
+        logger.warning("Transcript directory not found: %s", args.transcript_dir)
 
     # Conditional LLM analysis
     if not args.skip_llm:
@@ -322,7 +322,7 @@ def main() -> int | None:
                             )
                             cluster.correction_point = correction
             except Exception as exc:
-                logger.warning("오개념 클러스터 교정 포인트 생성 실패 (계속 진행): %s", exc)
+                logger.warning("Misconception cluster correction point generation failed (continuing): %s", exc)
 
     # Compute risk movement from longitudinal store
     risk_movement = None
@@ -352,18 +352,18 @@ def main() -> int | None:
             risk_movement = compute_risk_movement(current_risk, previous_risk)
             report_data.risk_movement = risk_movement
             logger.info(
-                "위험군 변동: 신규 %d, 탈출 %d, 지속 %d",
+                "Risk movement: new %d, exited %d, persistent %d",
                 len(risk_movement.newly_at_risk),
                 len(risk_movement.exited_risk),
                 len(risk_movement.persistent_risk),
             )
         except Exception as exc:
-            logger.warning("위험군 변동 계산 실패 (계속 진행): %s", exc)
+            logger.warning("Risk movement computation failed (continuing): %s", exc)
 
     # v0.9.0: Risk prediction from pre-trained model (FR-014, FR-015)
     if args.model_path:
         if not os.path.isfile(args.model_path):
-            logger.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+            logger.error("Model file not found: %s", args.model_path)
             sys.exit(1)
         try:
             from forma.risk_predictor import (
@@ -388,23 +388,23 @@ def main() -> int | None:
                         )
                     else:
                         logger.warning(
-                            "모델 피처 불일치 — cold start 예측 사용",
+                            "Model feature mismatch — using cold start prediction",
                         )
                         preds = predictor.predict_cold_start(
                             matrix, student_ids, feat_names,
                         )
                     report_data.risk_predictions = preds
-                    logger.info("드롭 리스크 예측 완료: %d명", len(preds))
+                    logger.info("Drop risk prediction complete: %d students", len(preds))
             else:
-                logger.info("종단 저장소 없음 — 리스크 예측 건너뜀")
+                logger.info("No longitudinal store — skipping risk prediction")
         except Exception as exc:
-            logger.warning("리스크 예측 실패 (계속 진행): %s", exc)
+            logger.warning("Risk prediction failed (continuing): %s", exc)
 
     # v0.10.0: Grade prediction from pre-trained grade model (FR-029, FR-030)
     grade_predictions = None
     if args.grade_model_path:
         if not os.path.isfile(args.grade_model_path):
-            logger.error("성적 예측 모델 파일이 존재하지 않습니다: %s", args.grade_model_path)
+            logger.error("Grade prediction model file not found: %s", args.grade_model_path)
             sys.exit(1)
         try:
             from forma.grade_predictor import (
@@ -427,24 +427,24 @@ def main() -> int | None:
                         )
                     else:
                         logger.warning(
-                            "성적 모델 피처 불일치 — cold start 예측 사용",
+                            "Grade model feature mismatch — using cold start prediction",
                         )
                         grade_predictions = grade_predictor.predict_cold_start(
                             g_matrix, g_student_ids, g_feat_names,
                         )
                     report_data.grade_predictions = grade_predictions
-                    logger.info("성적 예측 완료: %d명", len(grade_predictions))
+                    logger.info("Grade prediction complete: %d students", len(grade_predictions))
             else:
-                logger.info("종단 저장소 없음 — 성적 예측 건너뜀")
+                logger.info("No longitudinal store — skipping grade prediction")
         except Exception as exc:
-            logger.warning("성적 예측 실패 (계속 진행): %s", exc)
+            logger.warning("Grade prediction failed (continuing): %s", exc)
 
     # v0.10.0: Intervention effect analysis (FR-008, FR-010, FR-013)
     intervention_effects = None
     intervention_type_summaries = None
     if args.intervention_log:
         if not os.path.isfile(args.intervention_log):
-            logger.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
+            logger.error("Intervention log file not found: %s", args.intervention_log)
             sys.exit(1)
         try:
             from forma.intervention_effect import (
@@ -460,18 +460,18 @@ def main() -> int | None:
                 intervention_effects = compute_intervention_effects(ilog, long_store)
                 intervention_type_summaries = compute_type_summary(intervention_effects)
                 logger.info(
-                    "개입 효과 분석 완료: %d건 (유효 %d건)",
+                    "Intervention effect analysis complete: %d records (%d valid)",
                     len(intervention_effects),
                     sum(1 for e in intervention_effects if e.sufficient_data),
                 )
             else:
-                logger.info("종단 저장소 없음 — 개입 효과 분석 건너뜀")
+                logger.info("No longitudinal store — skipping intervention effect analysis")
         except Exception as exc:
-            logger.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
+            logger.warning("Intervention effect analysis failed (continuing): %s", exc)
 
     # Validate font path if provided
     if args.font_path is not None and not os.path.isfile(args.font_path):
-        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("Font file not found: %s", args.font_path)
         sys.exit(3)
 
     # Generate PDF report
@@ -485,8 +485,8 @@ def main() -> int | None:
             intervention_type_summaries=intervention_type_summaries,
         )
     except FileNotFoundError as exc:
-        logger.error("PDF 생성 중 파일을 찾을 수 없습니다: %s", exc)
+        logger.error("File not found during PDF generation: %s", exc)
         sys.exit(3)
 
-    logger.info("교수 리포트 PDF 생성이 완료되었습니다: %s", args.output_dir)
+    logger.info("Professor report PDF generated: %s", args.output_dir)
     return None

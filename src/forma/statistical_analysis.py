@@ -15,7 +15,7 @@ returns a dict with 'Difficulty' and 'Discrimination' keys.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional  # used in RaschAnalyzer/LCAAnalyzer instance vars
 
 import numpy as np
 

@@ -204,24 +204,24 @@ def validate_llm_recognition(
     valid = True
 
     if not text or not text.strip():
-        warnings.append("빈 텍스트 — 인식 실패")
+        warnings.append("empty text — recognition failed")
         valid = False
 
     # Gemini returns "FinishReason.STOP", Anthropic returns "end_turn"
     stop_reasons = {"STOP", "FinishReason.STOP", "end_turn"}
     truncated_reasons = {"MAX_TOKENS", "FinishReason.MAX_TOKENS"}
     if finish_reason not in stop_reasons and finish_reason not in truncated_reasons:
-        warnings.append(f"finish_reason={finish_reason} — 응답이 완료되지 않음")
+        warnings.append(f"finish_reason={finish_reason} — response incomplete")
         valid = False
     elif finish_reason in truncated_reasons:
-        warnings.append(f"finish_reason={finish_reason} — 텍스트 잘림")
+        warnings.append(f"finish_reason={finish_reason} — text truncated")
         valid = False
 
     if text and len(text) > 200:
-        warnings.append(f"텍스트 길이 {len(text)}자 > 200자 — 환각 가능성")
+        warnings.append(f"text length {len(text)} chars > 200 — possible hallucination")
 
     if confidence_mean is not None and confidence_mean < 0.3:
-        warnings.append(f"평균 confidence {confidence_mean:.2f} < 0.3 — 수동 검토 필요")
+        warnings.append(f"mean confidence {confidence_mean:.2f} < 0.3 — manual review required")
 
     return {"valid": valid, "warnings": warnings}
 
@@ -349,7 +349,7 @@ def extract_text_via_llm(
             )
             if not validation["valid"]:
                 logger.warning(
-                    "LLM 인식 결과 검증 실패 (%s): %s — 재시도",
+                    "LLM recognition validation failed (%s): %s — retrying",
                     image_path, "; ".join(validation["warnings"]),
                 )
                 full_resp = llm.generate_with_image_full(
@@ -379,7 +379,7 @@ def extract_text_via_llm(
                 f"\r  [{idx + 1}/{total}] {image_name} — ERROR"
                 + " " * 20,
             )
-            logger.warning("LLM 인식 실패: %s — %s", image_path, exc)
+            logger.warning("LLM recognition failed: %s — %s", image_path, exc)
             results[image_path] = LLMVisionResponse(
                 text="",
                 word_confidences=None,
@@ -391,7 +391,7 @@ def extract_text_via_llm(
                 safety_ratings=None,
             )
 
-    print(f"  완료: {ok_count}/{total} 성공, {err_count} 실패")
+    print(f"  Done: {ok_count}/{total} succeeded, {err_count} failed")
 
     # Collect MAX_TOKENS truncated results for selective retry
     truncated = [
@@ -399,7 +399,7 @@ def extract_text_via_llm(
         if "MAX_TOKENS" in (resp.finish_reason or "")
     ]
     if truncated:
-        print(f"\n  ⚠ {len(truncated)}개 이미지가 토큰 부족으로 잘림:")
+        print(f"\n  WARNING: {len(truncated)} image(s) truncated due to token limit:")
         for path in truncated:
             name = os.path.basename(path)
             text_preview = results[path].text[:30].replace("\n", " ")
@@ -408,7 +408,7 @@ def extract_text_via_llm(
         if sys.stdin.isatty():
             try:
                 answer = input(
-                    f"\n  토큰을 2048로 늘려서 {len(truncated)}개를 재시도할까요? (y/N): "
+                    f"\n  Retry {len(truncated)} image(s) with max_tokens=2048? (y/N): "
                 ).strip().lower()
             except (EOFError, KeyboardInterrupt):
                 answer = "n"
@@ -417,7 +417,7 @@ def extract_text_via_llm(
 
         if answer in ("y", "yes"):
             retry_max_tokens = 2048
-            print(f"  재시도 중 (max_tokens={retry_max_tokens})...")
+            print(f"  Retrying (max_tokens={retry_max_tokens})...")
             for retry_idx, path in enumerate(truncated):
                 if retry_idx > 0:
                     time.sleep(rate_limit_delay)
@@ -445,7 +445,7 @@ def extract_text_via_llm(
                         f"\r  [{retry_idx + 1}/{len(truncated)}] {name}"
                         f" — ERROR" + " " * 20,
                     )
-                    logger.warning("재시도 실패: %s — %s", path, exc)
-            print("  재시도 완료")
+                    logger.warning("Retry failed: %s — %s", path, exc)
+            print("  Retry complete")
 
     return results

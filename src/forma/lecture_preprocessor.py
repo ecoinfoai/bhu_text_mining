@@ -148,12 +148,12 @@ def validate_path(path: str) -> None:
     """
     if '\x00' in path:
         raise ValueError(
-            f"경로에 null 바이트가 포함되어 있습니다: {path!r}"
+            f"Path contains null byte: {path!r}"
         )
     if re.search(r'(?:^|[/\\])\.\.(?:[/\\]|$)', path):
         raise ValueError(
-            f"경로에 디렉토리 탐색 시퀀스가 포함되어 있습니다. "
-            f"보안상 허용되지 않습니다: {path}"
+            f"Path contains directory traversal sequence "
+            f"(not allowed for security): {path}"
         )
 
 
@@ -175,7 +175,7 @@ def load_and_decode(path: str) -> tuple[str, str]:
             return f.read(), "utf-8"
     except UnicodeDecodeError:
         logger.warning(
-            "UTF-8 디코딩 실패, EUC-KR로 재시도: %s", path,
+            "UTF-8 decoding failed, retrying with EUC-KR: %s", path,
         )
         with open(path, encoding="euc-kr") as f:
             return f.read(), "euc-kr"
@@ -377,14 +377,14 @@ def preprocess_transcript(
     # Check empty file
     if not raw_text.strip():
         raise ValueError(
-            f"파일이 비어 있습니다: {path}"
+            f"File is empty: {path}"
         )
 
     # Step 3: length check
     if len(raw_text) > MAX_TRANSCRIPT_LENGTH:
         raise ValueError(
-            f"파일이 최대 길이({MAX_TRANSCRIPT_LENGTH}자)를 "
-            f"초과합니다: {len(raw_text)}자 ({path})"
+            f"File exceeds maximum length ({MAX_TRANSCRIPT_LENGTH} chars): "
+            f"{len(raw_text)} chars ({path})"
         )
 
     # Step 4: remove fillers
@@ -410,7 +410,7 @@ def preprocess_transcript(
     # Step 8: validate non-empty after cleaning
     if not cleaned_text.strip():
         raise ValueError(
-            f"전처리 후 텍스트가 비어 있습니다: {path}"
+            f"Text is empty after preprocessing: {path}"
         )
 
     return CleanedTranscript(

@@ -19,7 +19,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Template with Korean comments and sensible defaults
+# Template with Korean inline comments (for end-user config file) and sensible defaults
 _TEMPLATE = """\
 # forma.yaml — 형성평가 분석 프로젝트 설정 파일 (학기 단위)
 # 이 파일은 forma init 으로 생성되었습니다.
@@ -61,17 +61,17 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for forma init."""
     parser = argparse.ArgumentParser(
         prog="forma-init",
-        description="forma.yaml 설정 파일 템플릿 생성",
+        description="Generate forma.yaml configuration template",
     )
     parser.add_argument(
         "--output",
         default="forma.yaml",
-        help="출력 파일 경로 (기본값: ./forma.yaml)",
+        help="Output file path (default: ./forma.yaml)",
     )
     parser.add_argument(
         "--force",
         action="store_true",
-        help="기존 파일 덮어쓰기",
+        help="Overwrite existing file",
     )
     return parser
 

@@ -34,44 +34,44 @@ def _build_extract_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma domain extract",
-        description="교과서 텍스트에서 도메인 개념 추출",
+        description="Extract domain concepts from textbook text",
     )
     parser.add_argument(
         "--textbook",
         type=str,
         action="append",
         default=None,
-        help="교과서 챕터 텍스트 파일 경로 (반복 지정 가능, --summary와 택일)",
+        help="Textbook chapter text file path (repeatable, mutually exclusive with --summary)",
     )
     parser.add_argument(
         "--output",
         type=str,
         required=True,
-        help="출력 개념 YAML 파일 경로",
+        help="Output concepts YAML file path",
     )
     parser.add_argument(
         "--min-freq",
         type=int,
         default=2,
-        help="최소 빈도 (기본값: 2, 영한 병기 용어는 항상 포함)",
+        help="Minimum frequency (default: 2, bilingual terms always included)",
     )
     parser.add_argument(
         "--no-cache",
         action="store_true",
-        help="개념 캐시 사용 안 함",
+        help="Disable concept cache",
     )
     parser.add_argument(
         "--summary",
         type=str,
         action="append",
         default=None,
-        help="챕터 요약 Markdown 파일 경로 (반복 지정 가능, 선택적 구조 가이드)",
+        help="Chapter summary Markdown file path (repeatable, optional structure guide)",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="LLM 모델 ID 오버라이드 (기본: forma.yaml domain_analysis.extract_model)",
+        help="LLM model ID override (default: forma.yaml domain_analysis.extract_model)",
     )
     chunk_group = parser.add_mutually_exclusive_group()
     chunk_group.add_argument(
@@ -79,13 +79,13 @@ def _build_extract_parser() -> argparse.ArgumentParser:
         dest="force_chunk",
         action="store_true",
         default=None,
-        help="청크 분할 강제 사용 (작은 파일도 청크 분할)",
+        help="Force chunk splitting (even for small files)",
     )
     chunk_group.add_argument(
         "--no-chunk",
         dest="force_chunk",
         action="store_false",
-        help="청크 분할 사용 안 함 (큰 파일도 단일 호출)",
+        help="Disable chunk splitting (single call even for large files)",
     )
     return parser
 
@@ -112,7 +112,7 @@ def extract_main(argv: list[str] | None = None) -> None:
     # Must have at least one of --textbook or --summary
     if not args.textbook and not args.summary:
         print(
-            "오류: --textbook 또는 --summary 중 하나 이상 지정해야 합니다.",
+            "Error: At least one of --textbook or --summary must be specified.",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -131,7 +131,7 @@ def extract_main(argv: list[str] | None = None) -> None:
     for path in input_paths:
         if not Path(path).exists():
             print(
-                f"오류: 파일을 찾을 수 없습니다: {path}",
+                f"Error: File not found: {path}",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -140,7 +140,7 @@ def extract_main(argv: list[str] | None = None) -> None:
     if summary_paths:
         for summary_path in summary_paths:
             if not Path(summary_path).exists():
-                logger.warning("요약 파일을 찾을 수 없습니다: %s", summary_path)
+                logger.warning("Summary file not found: %s", summary_path)
 
     no_cache = args.no_cache
     force_chunk = args.force_chunk  # None=auto, True=force, False=disable
@@ -153,7 +153,7 @@ def extract_main(argv: list[str] | None = None) -> None:
             for i, path_str in enumerate(input_paths):
                 chapter_name = Path(path_str).stem
                 print(
-                    f"[{i + 1}/{n_inputs}] 개념 추출 중: {chapter_name}...",
+                    f"[{i + 1}/{n_inputs}] Extracting concepts: {chapter_name}...",
                     file=sys.stderr, flush=True,
                 )
                 sp = None
@@ -169,7 +169,7 @@ def extract_main(argv: list[str] | None = None) -> None:
                 )
         else:
             print(
-                f"개념 추출 중: {n_inputs}개 챕터...",
+                f"Extracting concepts: {n_inputs} chapters...",
                 file=sys.stderr, flush=True,
             )
             concepts_by_chapter = extract_multi_chapter_llm(
@@ -192,7 +192,7 @@ def extract_main(argv: list[str] | None = None) -> None:
 
     total_concepts = sum(len(cs) for cs in concepts_by_chapter.values())
     logger.info(
-        "개념 추출 완료: %d개 챕터, 총 %d개 개념 → %s",
+        "Concept extraction complete: %d chapters, %d total concepts → %s",
         len(concepts_by_chapter),
         total_concepts,
         args.output,
@@ -212,71 +212,71 @@ def _build_coverage_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma domain coverage",
-        description="교과서 개념 대비 강의 커버리지 분석",
+        description="Analyze lecture coverage against textbook concepts",
     )
     parser.add_argument(
         "--concepts",
         type=str,
         required=True,
-        help="개념 목록 YAML 파일 (extract 출력)",
+        help="Concepts YAML file (extract output)",
     )
     parser.add_argument(
         "--transcripts",
         type=str,
         required=True,
         action="append",
-        help="강의 녹취 파일 경로 (반복 지정 가능)",
+        help="Lecture transcript file path (repeatable)",
     )
     parser.add_argument(
         "--output",
         type=str,
         required=True,
-        help="출력 커버리지 YAML 파일 경로",
+        help="Output coverage YAML file path",
     )
     parser.add_argument(
         "--week-config",
         type=str,
         default=None,
-        help="주차 설정 YAML (teaching scope 포함)",
+        help="Week config YAML (with teaching scope)",
     )
     parser.add_argument(
         "--scope",
         type=str,
         default=None,
-        help='CLI scope 오버라이드 (예: "2장:확산,능동수송;3장:")',
+        help='CLI scope override (e.g. "2장:확산,능동수송;3장:")',
     )
     parser.add_argument(
         "--threshold",
         type=float,
         default=0.65,
-        help="유사도 임계값 (기본값: 0.65)",
+        help="Similarity threshold (default: 0.65)",
     )
     parser.add_argument(
         "--eval-store",
         type=str,
         default=None,
-        help="종단 데이터 YAML (형성평가 연결 분석용)",
+        help="Longitudinal data YAML (for formative assessment linking)",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="LLM 모델 ID 오버라이드 (기본: flash)",
+        help="LLM model ID override (default: flash)",
     )
     parser.add_argument(
         "--no-pedagogy",
         action="store_true",
-        help="교수법 분석 생략",
+        help="Skip pedagogy analysis",
     )
     parser.add_argument(
         "--no-network",
         action="store_true",
-        help="네트워크 그래프 생성 생략",
+        help="Skip network graph generation",
     )
     parser.add_argument(
         "--no-llm",
         action="store_true",
-        help="LLM 호출 생략 (임베딩/용어/밀도 신호만 사용)",
+        help="Skip LLM calls (use embedding/term/density signals only)",
     )
     return parser
 
@@ -306,7 +306,7 @@ def coverage_main(argv: list[str] | None = None) -> None:
     # Validate inputs
     if not Path(args.concepts).exists():
         print(
-            f"오류: 개념 파일을 찾을 수 없습니다: {args.concepts}",
+            f"Error: Concepts file not found: {args.concepts}",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -314,7 +314,7 @@ def coverage_main(argv: list[str] | None = None) -> None:
     for transcript_path in args.transcripts:
         if not Path(transcript_path).exists():
             print(
-                f"오류: 녹취 파일을 찾을 수 없습니다: {transcript_path}",
+                f"Error: Transcript file not found: {transcript_path}",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -326,7 +326,7 @@ def coverage_main(argv: list[str] | None = None) -> None:
         all_concepts.extend(chapter_concepts)
 
     if not all_concepts:
-        print("오류: 개념 목록이 비어 있습니다.", file=sys.stderr)
+        print("Error: Concept list is empty.", file=sys.stderr)
         raise SystemExit(1)
 
     concept_names = [
@@ -339,7 +339,7 @@ def coverage_main(argv: list[str] | None = None) -> None:
     if args.week_config:
         if not Path(args.week_config).exists():
             print(
-                f"오류: 주차 설정 파일을 찾을 수 없습니다: {args.week_config}",
+                f"Error: Week config file not found: {args.week_config}",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -376,8 +376,8 @@ def coverage_main(argv: list[str] | None = None) -> None:
     for t_idx, transcript_path in enumerate(args.transcripts):
         section_id = _infer_section_from_filename(Path(transcript_path).name)
         print(
-            f"[{t_idx + 1}/{n_transcripts}] 전달 분석 중: "
-            f"{Path(transcript_path).name} (분반 {section_id})...",
+            f"[{t_idx + 1}/{n_transcripts}] Analyzing delivery: "
+            f"{Path(transcript_path).name} (section {section_id})...",
             file=sys.stderr, flush=True,
         )
         try:
@@ -391,24 +391,24 @@ def coverage_main(argv: list[str] | None = None) -> None:
             )
             all_deliveries.extend(deliveries)
             print(
-                f"  ✓ {len(deliveries)}개 개념 분석 완료",
+                f"  ✓ {len(deliveries)} concepts analyzed",
                 file=sys.stderr, flush=True,
             )
         except Exception:
             print(
-                "  ✗ 분석 실패",
+                "  ✗ Analysis failed",
                 file=sys.stderr, flush=True,
             )
             logger.warning(
-                "LLM 전달 분석 실패: %s", transcript_path, exc_info=True,
+                "LLM delivery analysis failed: %s", transcript_path, exc_info=True,
             )
 
     if not all_deliveries:
-        print("오류: 모든 녹취록에서 전달 분석에 실패했습니다.", file=sys.stderr)
+        print("Error: Delivery analysis failed for all transcripts.", file=sys.stderr)
         raise SystemExit(1)
 
     print(
-        f"결과 집계 중: {len(all_deliveries)}개 전달 분석...",
+        f"Aggregating results: {len(all_deliveries)} delivery analyses...",
         file=sys.stderr, flush=True,
     )
 
@@ -429,20 +429,20 @@ def coverage_main(argv: list[str] | None = None) -> None:
         comparisons = compute_delivery_pairwise_comparisons(all_deliveries)
         if comparisons:
             result._section_comparisons = comparisons
-            logger.info("분반 간 비교: %d개 쌍 계산 완료", len(comparisons))
+            logger.info("Section pairwise comparison: %d pairs computed", len(comparisons))
     except Exception:
-        logger.warning("분반 간 통계 비교 실패", exc_info=True)
+        logger.warning("Section pairwise statistical comparison failed", exc_info=True)
 
     # Save
     save_delivery_yaml(result, args.output)
 
     print(
-        f"완료: 전달률 {result.effective_delivery_rate * 100:.1f}% → {args.output}",
+        f"Complete: delivery rate {result.effective_delivery_rate * 100:.1f}% → {args.output}",
         file=sys.stderr, flush=True,
     )
 
     logger.info(
-        "전달 분석 완료: %d개 개념, 전달률 %.1f%% → %s",
+        "Delivery analysis complete: %d concepts, delivery rate %.1f%% -> %s",
         len(concept_names),
         result.effective_delivery_rate * 100,
         args.output,
@@ -462,50 +462,50 @@ def _build_report_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma domain report",
-        description="도메인 전달 분석 결과 PDF 보고서 생성",
+        description="Generate domain delivery analysis PDF report",
     )
     parser.add_argument(
         "--coverage",
         type=str,
         required=True,
-        help="전달 분석 결과 YAML (coverage/delivery 출력)",
+        help="Delivery analysis result YAML (coverage/delivery output)",
     )
     parser.add_argument(
         "--output",
         type=str,
         required=True,
-        help="출력 PDF 파일 경로",
+        help="Output PDF file path",
     )
     parser.add_argument(
         "--course-name",
         type=str,
         default="",
-        help="교과목명 (보고서 헤더에 표시)",
+        help="Course name (displayed in report header)",
     )
     parser.add_argument(
         "--font-path",
         type=str,
         default=None,
-        help="한국어 폰트 경로",
+        help="Korean font path",
     )
     parser.add_argument(
         "--dpi",
         type=int,
         default=150,
-        help="차트 해상도 (기본값: 150)",
+        help="Chart resolution (default: 150)",
     )
     parser.add_argument(
         "--concepts",
         type=str,
         default=None,
         dest="concepts_file",
-        help="개념 목록 YAML 파일 (네트워크 그래프용, 선택적)",
+        help="Concepts YAML file (for network graph, optional)",
     )
     parser.add_argument(
         "--summary",
         type=str,
         default=None,
-        help="챕터 요약 Markdown 파일 경로 (계층 분석용, 선택적)",
+        help="Chapter summary Markdown file path (for hierarchy analysis, optional)",
     )
     return parser
 
@@ -528,7 +528,7 @@ def report_main(argv: list[str] | None = None) -> None:
     # Validate input
     if not Path(args.coverage).exists():
         print(
-            f"오류: 커버리지 파일을 찾을 수 없습니다: {args.coverage}",
+            f"Error: Coverage file not found: {args.coverage}",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -553,9 +553,9 @@ def report_main(argv: list[str] | None = None) -> None:
         if summary_path.exists():
             from forma.domain_concept_extractor import parse_summary_hierarchy
             hierarchy = parse_summary_hierarchy(str(summary_path))
-            logger.info("계층 구조 로드: %s", args.summary)
+            logger.info("Hierarchy loaded: %s", args.summary)
         else:
-            logger.warning("요약 파일을 찾을 수 없습니다: %s", args.summary)
+            logger.warning("Summary file not found: %s", args.summary)
 
     # Build concept network from delivery data (if v2 with concepts)
     concept_network = None
@@ -598,7 +598,7 @@ def report_main(argv: list[str] | None = None) -> None:
                     deliveries_by_section[d.section_id] = []
                 deliveries_by_section[d.section_id].append(d)
         except Exception:
-            logger.warning("개념 네트워크 구축 실패", exc_info=True)
+            logger.warning("Concept network construction failed", exc_info=True)
 
     # Generate PDF
     generator = DomainDeliveryPDFReportGenerator(
@@ -615,4 +615,4 @@ def report_main(argv: list[str] | None = None) -> None:
         deliveries_by_section=deliveries_by_section,
     )
 
-    logger.info("PDF 보고서 생성 완료: %s", output_path)
+    logger.info("PDF report generated: %s", output_path)

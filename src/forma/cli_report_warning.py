@@ -26,53 +26,53 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-warning."""
     parser = argparse.ArgumentParser(
         prog="forma-report-warning",
-        description="조기 경고 PDF 보고서 생성기",
+        description="Early warning PDF report generator",
     )
     # Required args
     parser.add_argument(
         "--final", required=True,
-        help="최종 결과 YAML 파일 경로",
+        help="Final result YAML file path",
     )
     parser.add_argument(
         "--config", required=True,
-        help="시험 설정 YAML 파일 경로",
+        help="Exam config YAML file path",
     )
     parser.add_argument(
         "--eval-dir", required=True, dest="eval_dir",
-        help="평가 결과 디렉토리 경로",
+        help="Evaluation results directory path",
     )
     parser.add_argument(
         "--output", required=True,
-        help="출력 PDF 파일 경로",
+        help="Output PDF file path",
     )
     # Optional args
     parser.add_argument(
         "--longitudinal-store", default=None, dest="longitudinal_store",
-        help="종단 저장소 YAML 파일 경로 (예측 모델용)",
+        help="Longitudinal store YAML file path (for prediction model)",
     )
     parser.add_argument(
         "--week", type=int, default=None,
-        help="현재 주차 번호",
+        help="Current week number",
     )
     parser.add_argument(
         "--model", default=None, dest="model_path",
-        help="사전 학습된 예측 모델 파일 경로 (.pkl)",
+        help="Pre-trained prediction model file path (.pkl)",
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
-        help="한국어 폰트 파일 경로 (생략 시 자동 감지)",
+        help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
         "--dpi", type=int, default=150,
-        help="차트 DPI (기본값: 150)",
+        help="Chart DPI (default: 150)",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     return parser
 
@@ -101,21 +101,21 @@ def main(argv=None) -> int | None:
 
     # Validate required input files
     if not os.path.isfile(args.final):
-        logger.error("최종 결과 파일이 존재하지 않습니다: %s", args.final)
+        logger.error("Final result file not found: %s", args.final)
         sys.exit(1)
     if not os.path.isfile(args.config):
-        logger.error("시험 설정 파일이 존재하지 않습니다: %s", args.config)
+        logger.error("Exam config file not found: %s", args.config)
         sys.exit(1)
     if not os.path.isdir(args.eval_dir):
-        logger.error("평가 결과 디렉토리가 존재하지 않습니다: %s", args.eval_dir)
+        logger.error("Evaluation results directory not found: %s", args.eval_dir)
         sys.exit(1)
 
     # Validate optional file args
     if args.model_path and not os.path.isfile(args.model_path):
-        logger.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+        logger.error("Model file not found: %s", args.model_path)
         sys.exit(1)
     if args.font_path and not os.path.isfile(args.font_path):
-        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("Font file not found: %s", args.font_path)
         sys.exit(1)
 
     # Load student data
@@ -180,9 +180,9 @@ def main(argv=None) -> int | None:
                 risk_predictions = predictor.predict(
                     trained_model, feature_matrix, student_ids,
                 )
-                logger.info("모델 예측 완료: %d명", len(risk_predictions))
+                logger.info("Model prediction complete: %d students", len(risk_predictions))
         except Exception as exc:
-            logger.warning("모델 예측 실패 (계속 진행): %s", exc)
+            logger.warning("Model prediction failed (continuing): %s", exc)
 
     # Build warning cards
     from forma.warning_report_data import build_warning_data
@@ -195,7 +195,7 @@ def main(argv=None) -> int | None:
         absence_ratios=absence_ratios,
     )
 
-    logger.info("경고 카드 생성: %d장", len(warning_cards))
+    logger.info("Warning cards generated: %d", len(warning_cards))
 
     # Generate PDF
     from forma.warning_report import WarningPDFReportGenerator
@@ -207,8 +207,8 @@ def main(argv=None) -> int | None:
             class_name=report_data.class_name or "",
         )
     except FileNotFoundError as exc:
-        logger.error("PDF 생성 실패: %s", exc)
+        logger.error("PDF generation failed: %s", exc)
         sys.exit(2)
 
-    logger.info("조기 경고 보고서 생성 완료: %s", args.output)
+    logger.info("Early warning report generated: %s", args.output)
     return None

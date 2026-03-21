@@ -38,78 +38,78 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser with add/list/update subcommands."""
     parser = argparse.ArgumentParser(
         prog="forma-intervention",
-        description="개입 활동 기록 관리",
+        description="Manage intervention activity records",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--verbose", action="store_true", default=False,
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
 
     subparsers = parser.add_subparsers(dest="subcommand")
 
     # --- add subcommand ---
-    add_parser = subparsers.add_parser("add", help="개입 기록 추가")
+    add_parser = subparsers.add_parser("add", help="Add intervention record")
     add_parser.add_argument(
         "--store", required=True,
-        help="개입 기록 YAML 파일 경로",
+        help="Intervention record YAML file path",
     )
     add_parser.add_argument(
         "--student", required=True,
-        help="학생 ID",
+        help="Student ID",
     )
     add_parser.add_argument(
         "--week", type=int, required=True,
-        help="주차 번호",
+        help="Week number",
     )
     add_parser.add_argument(
         "--type", required=True,
-        help="개입 유형 (면담/보충학습/과제부여/멘토링/기타)",
+        help="Intervention type",
     )
     add_parser.add_argument(
         "--description", default="",
-        help="개입 내용 설명",
+        help="Intervention description",
     )
     add_parser.add_argument(
         "--recorded-by", default=None, dest="recorded_by",
-        help="기록자 이름",
+        help="Recorded by",
     )
     add_parser.add_argument(
         "--follow-up-week", type=int, default=None, dest="follow_up_week",
-        help="후속 조치 주차",
+        help="Follow-up week",
     )
 
     # --- list subcommand ---
-    list_parser = subparsers.add_parser("list", help="개입 기록 조회")
+    list_parser = subparsers.add_parser("list", help="List intervention records")
     list_parser.add_argument(
         "--store", required=True,
-        help="개입 기록 YAML 파일 경로",
+        help="Intervention record YAML file path",
     )
     list_parser.add_argument(
         "--student", default=None,
-        help="학생 ID 필터",
+        help="Student ID filter",
     )
     list_parser.add_argument(
         "--week", type=int, default=None,
-        help="주차 필터",
+        help="Week filter",
     )
 
     # --- update subcommand ---
-    update_parser = subparsers.add_parser("update", help="개입 결과 업데이트")
+    update_parser = subparsers.add_parser("update", help="Update intervention outcome")
     update_parser.add_argument(
         "--store", required=True,
-        help="개입 기록 YAML 파일 경로",
+        help="Intervention record YAML file path",
     )
     update_parser.add_argument(
         "--id", type=int, required=True,
-        help="개입 기록 ID",
+        help="Intervention record ID",
     )
     update_parser.add_argument(
         "--outcome", required=True,
-        help="결과 (개선/유지/악화)",
+        help="Outcome",
     )
 
     return parser
@@ -121,15 +121,15 @@ def _cmd_add(args: argparse.Namespace) -> None:
 
     if args.week < 1:
         print(
-            f"Error: 주차 번호는 1 이상이어야 합니다 (입력값: {args.week})",
+            f"Error: Week number must be >= 1 (got: {args.week})",
             file=sys.stderr,
         )
         sys.exit(1)
 
     if args.type not in INTERVENTION_TYPES:
         print(
-            f"Error: 유효하지 않은 개입 유형 '{args.type}'. "
-            f"허용: {', '.join(INTERVENTION_TYPES)}",
+            f"Error: Invalid intervention type '{args.type}'. "
+            f"Allowed: {', '.join(INTERVENTION_TYPES)}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -147,7 +147,7 @@ def _cmd_add(args: argparse.Namespace) -> None:
     )
     log.save()
 
-    print(f"개입 기록 추가 완료 (ID: {record_id})")
+    print(f"Intervention record added (ID: {record_id})")
 
 
 def _cmd_list(args: argparse.Namespace) -> None:
@@ -155,7 +155,7 @@ def _cmd_list(args: argparse.Namespace) -> None:
     from forma.intervention_store import InterventionLog
 
     if not os.path.exists(args.store):
-        print(f"Error: 기록 파일을 찾을 수 없습니다: {args.store}", file=sys.stderr)
+        print(f"Error: Record file not found: {args.store}", file=sys.stderr)
         sys.exit(1)
 
     log = InterventionLog(args.store)
@@ -167,11 +167,11 @@ def _cmd_list(args: argparse.Namespace) -> None:
     records.sort(key=lambda r: (r.week, r.id))
 
     if not records:
-        print("기록 없음 (0건)")
+        print("No records found (0 records)")
         return
 
-    print(f"조회 결과: {len(records)}건")
-    print(f"{'ID':>4}  {'학생':<8}  {'주차':>4}  {'유형':<8}  {'설명':<20}  {'결과':<6}")
+    print(f"Query result: {len(records)} records")
+    print(f"{'ID':>4}  {'Student':<8}  {'Week':>4}  {'Type':<8}  {'Description':<20}  {'Outcome':<6}")
     print("-" * 72)
     for r in records:
         outcome_str = r.outcome if r.outcome else "-"
@@ -187,14 +187,14 @@ def _cmd_update(args: argparse.Namespace) -> None:
     from forma.intervention_store import InterventionLog
 
     if not os.path.exists(args.store):
-        print(f"Error: 기록 파일을 찾을 수 없습니다: {args.store}", file=sys.stderr)
+        print(f"Error: Record file not found: {args.store}", file=sys.stderr)
         sys.exit(1)
 
     # Strict outcome validation at CLI level
     if args.outcome not in VALID_OUTCOMES:
         print(
-            f"Error: 유효하지 않은 결과 '{args.outcome}'. "
-            f"허용: {', '.join(VALID_OUTCOMES)}",
+            f"Error: Invalid outcome '{args.outcome}'. "
+            f"Allowed: {', '.join(VALID_OUTCOMES)}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -204,11 +204,11 @@ def _cmd_update(args: argparse.Namespace) -> None:
 
     success = log.update_outcome(args.id, args.outcome)
     if not success:
-        print(f"Error: ID {args.id}에 해당하는 기록을 찾을 수 없습니다.", file=sys.stderr)
+        print(f"Error: ID {args.id} not found.", file=sys.stderr)
         sys.exit(1)
 
     log.save()
-    print(f"기록 ID {args.id}의 결과가 '{args.outcome}'(으)로 업데이트되었습니다.")
+    print(f"Record ID {args.id} outcome updated to '{args.outcome}'.")
 
 
 def main(argv=None) -> None:

@@ -218,7 +218,7 @@ def analyze_transcript(
         )
         top_keywords = [kw for kw, _ in sorted_kw[:top_n]]
     except Exception:
-        logger.warning("키워드 추출 실패", exc_info=True)
+        logger.warning("Keyword extraction failed", exc_info=True)
 
     # Stage 2: Network analysis
     network_image_path: Path | None = None
@@ -231,7 +231,7 @@ def analyze_transcript(
             _save_network_image(G, net_path)
             network_image_path = net_path
     except Exception:
-        logger.warning("네트워크 분석 실패", exc_info=True)
+        logger.warning("Network analysis failed", exc_info=True)
 
     # Stage 3: Sentence splitting
     sentences: list[str] = []
@@ -239,7 +239,7 @@ def analyze_transcript(
         _kss = _ensure_kss()
         sentences = _kss.split_sentences(text)
     except Exception:
-        logger.warning("문장 분리 실패", exc_info=True)
+        logger.warning("Sentence splitting failed", exc_info=True)
 
     sentence_count = len(sentences)
 
@@ -248,7 +248,7 @@ def analyze_transcript(
     topic_skipped_reason: str | None = None
     if sentence_count < _MIN_SENTENCES_FOR_TOPICS:
         topic_skipped_reason = (
-            f"문장 수 부족 ({sentence_count} < {_MIN_SENTENCES_FOR_TOPICS})"
+            f"Insufficient sentences ({sentence_count} < {_MIN_SENTENCES_FOR_TOPICS})"
         )
     else:
         try:
@@ -284,8 +284,8 @@ def analyze_transcript(
                     representative_sentence=rep_sentence,
                 ))
         except Exception:
-            logger.warning("토픽 모델링 실패", exc_info=True)
-            topic_skipped_reason = "토픽 모델링 오류 발생"
+            logger.warning("Topic modeling failed", exc_info=True)
+            topic_skipped_reason = "Topic modeling error"
 
     # Stage 5: Concept coverage and emphasis
     concept_coverage: ConceptCoverage | None = None
@@ -295,7 +295,7 @@ def analyze_transcript(
             emphasis_map = compute_emphasis_map(sentences, concepts)
             emphasis_scores = emphasis_map.concept_scores
         except Exception:
-            logger.warning("강조도 분석 실패", exc_info=True)
+            logger.warning("Emphasis analysis failed", exc_info=True)
 
         try:
             # Determine which concepts are covered using keyword overlap
@@ -317,15 +317,15 @@ def analyze_transcript(
                 coverage_ratio=gap_report.coverage_ratio,
             )
         except Exception:
-            logger.warning("개념 커버리지 분석 실패", exc_info=True)
+            logger.warning("Concept coverage analysis failed", exc_info=True)
 
     # Stage 6: Triplet extraction
     triplets: list[Any] | None = None
     triplet_skipped_reason: str | None = None
     if no_triplets:
-        triplet_skipped_reason = "트리플렛 추출 건너뛰기 (--no-triplets)"
+        triplet_skipped_reason = "Triplet extraction skipped (--no-triplets)"
     elif provider is None:
-        triplet_skipped_reason = "LLM 제공자 미지정"
+        triplet_skipped_reason = "No LLM provider specified"
     else:
         try:
             from forma.lecture_processor import extract_triplets_from_lecture
@@ -335,8 +335,8 @@ def analyze_transcript(
                 for t in raw_triplets
             ]
         except Exception:
-            logger.warning("트리플렛 추출 실패", exc_info=True)
-            triplet_skipped_reason = "트리플렛 추출 오류 발생"
+            logger.warning("Triplet extraction failed", exc_info=True)
+            triplet_skipped_reason = "Triplet extraction error"
 
     return AnalysisResult(
         class_id=cleaned.class_id,
@@ -396,7 +396,7 @@ def load_analysis_result(path: Path) -> AnalysisResult:
     """
     path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"분석 결과 파일이 존재하지 않습니다: {path}")
+        raise FileNotFoundError(f"Analysis result file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)

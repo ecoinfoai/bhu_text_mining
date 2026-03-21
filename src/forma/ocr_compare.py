@@ -201,7 +201,7 @@ def run_comparison(
     )
 
     secret_key, api_url = load_naver_ocr_env(naver_config)
-    logger.info("Naver OCR 호출: %s", image_path)
+    logger.info("Naver OCR call: %s", image_path)
     ocr_responses = send_images_receive_ocr(api_url, secret_key, [image_path])
     raw_data = extract_raw_ocr_data(ocr_responses)
 
@@ -211,7 +211,7 @@ def run_comparison(
     # --- Vision LLM ---
     from forma.llm_provider import create_provider
 
-    logger.info("LLM Vision 호출: %s (%s)", llm_provider_name, llm_model or "default")
+    logger.info("LLM Vision call: %s (%s)", llm_provider_name, llm_model or "default")
     provider = create_provider(
         provider=llm_provider_name, api_key=llm_api_key, model=llm_model,
     )
@@ -227,16 +227,16 @@ def run_comparison(
 def format_comparison_report(result: ComparisonResult) -> str:
     """Format a ComparisonResult as a human-readable text report."""
     lines = [
-        f"=== OCR 비교 결과: {os.path.basename(result.image_path)} ===",
+        f"=== OCR Comparison Result: {os.path.basename(result.image_path)} ===",
         "",
         f"Naver OCR: {result.ocr_text}",
-        f"LLM 인식:  {result.llm_text}",
+        f"LLM Recognition: {result.llm_text}",
         "",
-        f"필드 수: {result.summary['total']}",
-        f"일치:    {result.summary['match_count']}",
-        f"불일치:  {result.summary['mismatch_count']}",
+        f"Fields: {result.summary['total']}",
+        f"Match:    {result.summary['match_count']}",
+        f"Mismatch: {result.summary['mismatch_count']}",
         "",
-        "--- 필드별 비교 ---",
+        "--- Field-level comparison ---",
     ]
 
     for fc in result.field_comparisons:
@@ -309,7 +309,7 @@ def run_batch_comparison(
             existing = yaml.safe_load(f) or []
         for entry in existing:
             done[entry["image_name"]] = entry
-        logger.info("기존 결과 %d건 로드 (재개 모드)", len(done))
+        logger.info("Loaded %d existing results (resume mode)", len(done))
 
     # Initialize providers
     secret_key, api_url = load_naver_ocr_env(naver_config)
@@ -338,10 +338,10 @@ def run_batch_comparison(
         image_name = os.path.basename(img_path)
 
         if image_name in done:
-            print(f"  [{idx:3d}/{total}] {image_name} — 건너뜀 (이미 처리)")
+            print(f"  [{idx:3d}/{total}] {image_name} — skipped (already processed)")
             continue
 
-        print(f"  [{idx:3d}/{total}] {image_name} — 처리 중...", end="", flush=True)
+        print(f"  [{idx:3d}/{total}] {image_name} — processing...", end="", flush=True)
 
         # 1) Naver OCR
         try:
@@ -351,7 +351,7 @@ def run_batch_comparison(
             raw_map = extract_raw_ocr_data(ocr_responses)
             naver_raw = raw_map.get(image_name, {"fields": []})
         except Exception as exc:
-            logger.warning("Naver OCR 실패 %s: %s", image_name, exc)
+            logger.warning("Naver OCR failed %s: %s", image_name, exc)
             naver_raw = {"fields": []}
 
         # 2) LLM Vision
@@ -363,8 +363,8 @@ def run_batch_comparison(
                 context=context,
             )
         except Exception as exc:
-            logger.warning("LLM 비교 실패 %s: %s", image_name, exc)
-            print(f" 실패: {exc}")
+            logger.warning("LLM comparison failed %s: %s", image_name, exc)
+            print(f" failed: {exc}")
             continue
 
         # 3) Build result entry
@@ -398,7 +398,7 @@ def run_batch_comparison(
             else 0
         )
         print(
-            f" 완료 (일치 {llm_result.summary['match_count']}"
+            f" done (match {llm_result.summary['match_count']}"
             f"/{llm_result.summary['total']}"
             f" = {match_rate:.0%})"
         )
@@ -426,7 +426,7 @@ def _save_batch_results(results: list[dict], output_path: str) -> None:
 def _print_batch_summary(results: list[dict]) -> None:
     """Print aggregate statistics for batch comparison."""
     if not results:
-        print("\n결과 없음")
+        print("\nNo results")
         return
 
     total_fields = 0
@@ -442,8 +442,8 @@ def _print_batch_summary(results: list[dict]) -> None:
     overall_rate = total_match / total_fields if total_fields > 0 else 0
 
     print(f"\n{'=' * 50}")
-    print(f"배치 비교 완료: {len(results)}개 이미지")
-    print(f"전체 필드: {total_fields}개")
-    print(f"일치: {total_match}개 ({overall_rate:.1%})")
-    print(f"불일치: {total_mismatch}개")
+    print(f"Batch comparison complete: {len(results)} images")
+    print(f"Total fields: {total_fields}")
+    print(f"Match: {total_match} ({overall_rate:.1%})")
+    print(f"Mismatch: {total_mismatch}")
     print(f"{'=' * 50}")

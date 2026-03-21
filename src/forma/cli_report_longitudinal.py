@@ -14,43 +14,43 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-longitudinal."""
     parser = argparse.ArgumentParser(
         prog="forma-report-longitudinal",
-        description="종단 분석 기간 요약 PDF 리포트 생성기",
+        description="Longitudinal analysis period summary PDF report generator",
     )
     parser.add_argument(
         "--store", required=True,
-        help="종단 저장소 YAML 파일 경로",
+        help="Longitudinal store YAML file path",
     )
     parser.add_argument(
         "--class-name", required=True, dest="class_name",
-        help="분반명 (보고서 표지에 표시)",
+        help="Class name (displayed on report cover)",
     )
     parser.add_argument(
         "--output", required=True,
-        help="출력 PDF 경로",
+        help="Output PDF path",
     )
     parser.add_argument(
         "--weeks", type=int, nargs="+", default=None,
-        help="포함할 주차 번호 (예: --weeks 1 2 3 4). 생략 시 전체 주차",
+        help="Week numbers to include (e.g. --weeks 1 2 3 4). All weeks if omitted",
     )
     parser.add_argument(
         "--exam-file", default=None, dest="exam_file",
-        help="시험 파일 경로 (개념 마스터리 분석 참조용)",
+        help="Exam file path (for concept mastery analysis reference)",
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
-        help="한국어 폰트 경로 (생략 시 자동 감지)",
+        help="Korean font path (auto-detected if omitted)",
     )
     parser.add_argument(
         "--no-config", action="store_true", default=False, dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--model", default=None, dest="model_path",
-        help="드롭 리스크 예측 모델 파일 경로 (.pkl)",
+        help="Drop risk prediction model file path (.pkl)",
     )
     parser.add_argument(
         "--intervention-log", default=None, dest="intervention_log",
-        help="개입 활동 로그 YAML 경로 (개입 전후 차트 활성화)",
+        help="Intervention log YAML path (enables before/after charts)",
     )
     return parser
 
@@ -66,17 +66,17 @@ def main() -> int | None:
 
     # Validate store file exists
     if not os.path.isfile(args.store):
-        logger.error("종단 저장소 파일이 존재하지 않습니다: %s", args.store)
+        logger.error("Longitudinal store file not found: %s", args.store)
         sys.exit(1)
 
     # Validate exam file if specified
     if args.exam_file and not os.path.isfile(args.exam_file):
-        logger.error("시험 파일이 존재하지 않습니다: %s", args.exam_file)
+        logger.error("Exam file not found: %s", args.exam_file)
         sys.exit(1)
 
     # Validate font path if specified
     if args.font_path and not os.path.isfile(args.font_path):
-        logger.error("폰트 파일이 존재하지 않습니다: %s", args.font_path)
+        logger.error("Font file not found: %s", args.font_path)
         sys.exit(1)
 
     # Load store
@@ -91,9 +91,9 @@ def main() -> int | None:
         all_records = store.get_all_records()
         weeks = sorted({r.week for r in all_records})
         if not weeks:
-            logger.error("저장소에 레코드가 없습니다.")
+            logger.error("Store contains no records.")
             sys.exit(1)
-        logger.info("자동 감지된 주차: %s", weeks)
+        logger.info("Auto-detected weeks: %s", weeks)
 
     # Build summary data
     from forma.longitudinal_report_data import build_longitudinal_summary
@@ -102,7 +102,7 @@ def main() -> int | None:
     # v0.9.0: Risk prediction from pre-trained model (FR-014, FR-015)
     if args.model_path:
         if not os.path.isfile(args.model_path):
-            logger.error("모델 파일이 존재하지 않습니다: %s", args.model_path)
+            logger.error("Model file not found: %s", args.model_path)
             sys.exit(1)
         try:
             from forma.risk_predictor import (
@@ -119,20 +119,20 @@ def main() -> int | None:
                         trained_model, matrix, student_ids,
                     )
                 else:
-                    logger.warning("모델 피처 불일치 — cold start 예측 사용")
+                    logger.warning("Model feature mismatch — using cold start prediction")
                     preds = predictor.predict_cold_start(
                         matrix, student_ids, feat_names,
                     )
                 summary.risk_predictions = preds
-                logger.info("드롭 리스크 예측 완료: %d명", len(preds))
+                logger.info("Drop risk prediction complete: %d students", len(preds))
         except Exception as exc:
-            logger.warning("리스크 예측 실패 (계속 진행): %s", exc)
+            logger.warning("Risk prediction failed (continuing): %s", exc)
 
     # v0.10.0: Intervention effect analysis (FR-008, FR-011)
     intervention_effects = None
     if args.intervention_log:
         if not os.path.isfile(args.intervention_log):
-            logger.error("개입 로그 파일이 존재하지 않습니다: %s", args.intervention_log)
+            logger.error("Intervention log file not found: %s", args.intervention_log)
             sys.exit(1)
         try:
             from forma.intervention_effect import compute_intervention_effects
@@ -142,12 +142,12 @@ def main() -> int | None:
             ilog.load()
             intervention_effects = compute_intervention_effects(ilog, store)
             logger.info(
-                "개입 효과 분석 완료: %d건 (유효 %d건)",
+                "Intervention effect analysis complete: %d records (%d valid)",
                 len(intervention_effects),
                 sum(1 for e in intervention_effects if e.sufficient_data),
             )
         except Exception as exc:
-            logger.warning("개입 효과 분석 실패 (계속 진행): %s", exc)
+            logger.warning("Intervention effect analysis failed (continuing): %s", exc)
 
     # Generate PDF
     from forma.longitudinal_report import LongitudinalPDFReportGenerator
@@ -157,5 +157,5 @@ def main() -> int | None:
         intervention_effects=intervention_effects,
     )
 
-    logger.info("종단 분석 보고서 생성 완료: %s", output_path)
+    logger.info("Longitudinal analysis report generated: %s", output_path)
     return None

@@ -42,39 +42,39 @@ def main_analyze(argv: list[str] | None = None) -> None:
     """
     parser = argparse.ArgumentParser(
         prog="forma lecture analyze",
-        description="단일 강의 녹취록 분석",
+        description="Analyze single lecture transcript",
     )
-    parser.add_argument("--input", type=str, default=None, help="STT 녹취록 파일 경로")
-    parser.add_argument("--output", type=str, required=True, help="출력 디렉토리")
-    parser.add_argument("--class", dest="class_id", type=str, required=True, help="반 식별자")
-    parser.add_argument("--week", type=int, default=None, help="주차 번호")
-    parser.add_argument("--concepts", type=str, default=None, help="시험 개념 YAML 경로")
-    parser.add_argument("--no-cache", action="store_true", help="캐시 미사용")
-    parser.add_argument("--top-n", type=int, default=50, help="상위 키워드 수")
-    parser.add_argument("--no-triplets", action="store_true", help="트리플렛 추출 건너뛰기")
-    parser.add_argument("--extra-stopwords", nargs="*", default=[], help="추가 불용어")
+    parser.add_argument("--input", type=str, default=None, help="STT transcript file path")
+    parser.add_argument("--output", type=str, required=True, help="Output directory")
+    parser.add_argument("--class", dest="class_id", type=str, required=True, help="Class identifier")
+    parser.add_argument("--week", type=int, default=None, help="Week number")
+    parser.add_argument("--concepts", type=str, default=None, help="Exam concepts YAML path")
+    parser.add_argument("--no-cache", action="store_true", help="Skip cache")
+    parser.add_argument("--top-n", type=int, default=50, help="Top keyword count")
+    parser.add_argument("--no-triplets", action="store_true", help="Skip triplet extraction")
+    parser.add_argument("--extra-stopwords", nargs="*", default=[], help="Additional stopwords")
 
     args = parser.parse_args(argv)
 
     # Validate input path
     input_path = args.input
     if input_path is None:
-        print("오류: --input 인자가 필요합니다.", file=sys.stderr)
+        print("Error: --input argument is required.", file=sys.stderr)
         raise SystemExit(1)
 
     # Path traversal check
     if "../" in input_path:
-        print(f"오류: 경로에 '../'가 포함되어 있습니다: {input_path}", file=sys.stderr)
+        print(f"Error: Path contains '../': {input_path}", file=sys.stderr)
         raise SystemExit(1)
 
     input_file = Path(input_path)
     if not input_file.exists():
-        print(f"오류: 파일이 존재하지 않습니다: {input_path}", file=sys.stderr)
+        print(f"Error: File not found: {input_path}", file=sys.stderr)
         raise SystemExit(1)
 
     # Check empty file
     if input_file.stat().st_size == 0:
-        print(f"오류: 파일이 비어 있습니다: {input_path}", file=sys.stderr)
+        print(f"Error: File is empty: {input_path}", file=sys.stderr)
         raise SystemExit(1)
 
     output_dir = Path(args.output)
@@ -87,7 +87,7 @@ def main_analyze(argv: list[str] | None = None) -> None:
     concepts: list[str] | None = None
     if args.concepts:
         if "../" in args.concepts:
-            print(f"오류: 경로에 '../'가 포함되어 있습니다: {args.concepts}", file=sys.stderr)
+            print(f"Error: Path contains '../': {args.concepts}", file=sys.stderr)
             raise SystemExit(1)
         try:
             with open(args.concepts, encoding="utf-8") as f:
@@ -97,10 +97,10 @@ def main_analyze(argv: list[str] | None = None) -> None:
             elif isinstance(concepts_data, list):
                 concepts = concepts_data
             else:
-                print("오류: 개념 YAML 형식이 올바르지 않습니다.", file=sys.stderr)
+                print("Error: Invalid concept YAML format.", file=sys.stderr)
                 raise SystemExit(1)
         except yaml.YAMLError as e:
-            print(f"오류: 개념 YAML 파싱 실패: {e}", file=sys.stderr)
+            print(f"Error: Concept YAML parse failed: {e}", file=sys.stderr)
             raise SystemExit(1)
 
     # Check cache
@@ -108,9 +108,9 @@ def main_analyze(argv: list[str] | None = None) -> None:
     if not args.no_cache and cache_path.exists():
         try:
             result = load_analysis_result(cache_path)
-            logger.info("캐시에서 분석 결과 로드: %s", cache_path)
+            logger.info("Loaded analysis result from cache: %s", cache_path)
         except Exception:
-            logger.warning("캐시 로드 실패, 재분석 수행", exc_info=True)
+            logger.warning("Cache load failed, re-analyzing", exc_info=True)
             result = None
     else:
         result = None
@@ -125,7 +125,7 @@ def main_analyze(argv: list[str] | None = None) -> None:
                 extra_stopwords=args.extra_stopwords if args.extra_stopwords else None,
             )
         except ValueError as e:
-            print(f"오류: {e}", file=sys.stderr)
+            print(f"Error: {e}", file=sys.stderr)
             raise SystemExit(1)
 
         # Analyze
@@ -145,9 +145,9 @@ def main_analyze(argv: list[str] | None = None) -> None:
         gen = LectureReportGenerator()
         pdf_path = output_dir / f"lecture_report_{args.class_id}_w{week}.pdf"
         gen.generate_analysis_report(result, pdf_path)
-        logger.info("PDF 보고서 생성: %s", pdf_path)
+        logger.info("PDF report generated: %s", pdf_path)
     except Exception:
-        logger.warning("PDF 보고서 생성 실패", exc_info=True)
+        logger.warning("PDF report generation failed", exc_info=True)
 
 
 def _load_concepts(concepts_path: str | None) -> list[str] | None:
@@ -168,10 +168,10 @@ def _load_concepts(concepts_path: str | None) -> list[str] | None:
             return concepts_data["concepts"]
         if isinstance(concepts_data, list):
             return concepts_data
-        print("오류: 개념 YAML 형식이 올바르지 않습니다.", file=sys.stderr)
+        print("Error: Invalid concept YAML format.", file=sys.stderr)
         raise SystemExit(1)
     except yaml.YAMLError as e:
-        print(f"오류: 개념 YAML 파싱 실패: {e}", file=sys.stderr)
+        print(f"Error: Concept YAML parse failed: {e}", file=sys.stderr)
         raise SystemExit(1)
 
 
@@ -187,19 +187,19 @@ def main_compare(argv: list[str] | None = None) -> None:
     """
     parser = argparse.ArgumentParser(
         prog="forma lecture compare",
-        description="동일 세션 반 간 비교",
+        description="Compare sections for same session",
     )
-    parser.add_argument("--input-dir", type=str, required=True, help="분석 결과 디렉토리")
-    parser.add_argument("--week", type=int, required=True, help="주차 번호")
-    parser.add_argument("--classes", nargs="+", required=True, help="비교할 반 목록 (최소 2개)")
-    parser.add_argument("--output", type=str, required=True, help="출력 디렉토리")
-    parser.add_argument("--concepts", type=str, default=None, help="시험 개념 YAML 경로")
-    parser.add_argument("--top-n", type=int, default=50, help="상위 키워드 수")
+    parser.add_argument("--input-dir", type=str, required=True, help="Analysis results directory")
+    parser.add_argument("--week", type=int, required=True, help="Week number")
+    parser.add_argument("--classes", nargs="+", required=True, help="Class list to compare (at least 2)")
+    parser.add_argument("--output", type=str, required=True, help="Output directory")
+    parser.add_argument("--concepts", type=str, default=None, help="Exam concepts YAML path")
+    parser.add_argument("--top-n", type=int, default=50, help="Top keyword count")
     args = parser.parse_args(argv)
 
     # Validate >= 2 classes
     if len(args.classes) < 2:
-        print("비교에는 최소 2개 반이 필요합니다.", file=sys.stderr)
+        print("At least 2 classes are required for comparison.", file=sys.stderr)
         raise SystemExit(2)
 
     input_dir = Path(args.input_dir)
@@ -210,7 +210,7 @@ def main_compare(argv: list[str] | None = None) -> None:
         path = input_dir / f"analysis_{class_id}_w{args.week}.yaml"
         if not path.exists():
             print(
-                f"오류: 분석 결과 파일이 존재하지 않습니다: {path}",
+                f"Error: Analysis result file not found: {path}",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -242,9 +242,9 @@ def main_compare(argv: list[str] | None = None) -> None:
         sections_label = "_".join(sorted(args.classes))
         pdf_path = output_dir / f"comparison_session_w{args.week}_{sections_label}.pdf"
         gen.generate_comparison_report(comparison, pdf_path)
-        logger.info("비교 PDF 보고서 생성: %s", pdf_path)
+        logger.info("Comparison PDF report generated: %s", pdf_path)
     except Exception:
-        logger.warning("비교 PDF 보고서 생성 실패", exc_info=True)
+        logger.warning("Comparison PDF report generation failed", exc_info=True)
 
 
 def main_class_compare(argv: list[str] | None = None) -> None:
@@ -258,20 +258,20 @@ def main_class_compare(argv: list[str] | None = None) -> None:
     """
     parser = argparse.ArgumentParser(
         prog="forma lecture class-compare",
-        description="전체 세션 반 간 비교",
+        description="Compare sections across all sessions",
     )
-    parser.add_argument("--input-dir", type=str, required=True, help="분석 결과 디렉토리")
-    parser.add_argument("--weeks", type=int, nargs="+", required=True, help="주차 번호 목록")
-    parser.add_argument("--classes", nargs="+", required=True, help="비교할 반 목록 (최소 2개)")
-    parser.add_argument("--output", type=str, required=True, help="출력 디렉토리")
-    parser.add_argument("--concepts", type=str, default=None, help="시험 개념 YAML 경로")
-    parser.add_argument("--top-n", type=int, default=50, help="상위 키워드 수")
-    parser.add_argument("--no-cache", action="store_true", help="캐시 미사용")
+    parser.add_argument("--input-dir", type=str, required=True, help="Analysis results directory")
+    parser.add_argument("--weeks", type=int, nargs="+", required=True, help="Week number list")
+    parser.add_argument("--classes", nargs="+", required=True, help="Class list to compare (at least 2)")
+    parser.add_argument("--output", type=str, required=True, help="Output directory")
+    parser.add_argument("--concepts", type=str, default=None, help="Exam concepts YAML path")
+    parser.add_argument("--top-n", type=int, default=50, help="Top keyword count")
+    parser.add_argument("--no-cache", action="store_true", help="Skip cache")
     args = parser.parse_args(argv)
 
     # Validate >= 2 classes
     if len(args.classes) < 2:
-        print("비교에는 최소 2개 반이 필요합니다.", file=sys.stderr)
+        print("At least 2 classes are required for comparison.", file=sys.stderr)
         raise SystemExit(2)
 
     input_dir = Path(args.input_dir)
@@ -283,7 +283,7 @@ def main_class_compare(argv: list[str] | None = None) -> None:
             path = input_dir / f"analysis_{class_id}_w{week}.yaml"
             if not path.exists():
                 print(
-                    f"오류: 분석 결과 파일이 존재하지 않습니다: {path}",
+                    f"Error: Analysis result file not found: {path}",
                     file=sys.stderr,
                 )
                 raise SystemExit(1)
@@ -314,7 +314,7 @@ def main_class_compare(argv: list[str] | None = None) -> None:
             )[:args.top_n],
             network_image_path=None,
             topics=None,
-            topic_skipped_reason="병합 분석",
+            topic_skipped_reason="merged analysis",
             concept_coverage=None,
             emphasis_scores=None,
             triplets=None,
@@ -342,6 +342,6 @@ def main_class_compare(argv: list[str] | None = None) -> None:
         sections_label = "_".join(sorted(args.classes))
         pdf_path = output_dir / f"comparison_class_{sections_label}.pdf"
         gen.generate_comparison_report(comparison, pdf_path)
-        logger.info("반 간 비교 PDF 보고서 생성: %s", pdf_path)
+        logger.info("Cross-class comparison PDF report generated: %s", pdf_path)
     except Exception:
-        logger.warning("반 간 비교 PDF 보고서 생성 실패", exc_info=True)
+        logger.warning("Cross-class comparison PDF report generation failed", exc_info=True)

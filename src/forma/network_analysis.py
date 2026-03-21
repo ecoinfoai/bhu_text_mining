@@ -9,7 +9,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-def load_stopwords(file_path: str) -> set:
+def load_stopwords(file_path: str) -> set[str]:
     """
     Load stopwords from a text file into a set.
 
@@ -64,7 +64,7 @@ def extract_keywords(text: str, stopwords: set) -> list[str]:
     return extracted_keywords
 
 
-def create_network(keywords: list[str], window_size=2):
+def create_network(keywords: list[str], window_size: int = 2) -> nx.Graph:
     """
     Create a keyword co-occurrence network.
 
@@ -108,7 +108,7 @@ def create_network(keywords: list[str], window_size=2):
 
 
 def build_network_from_keywords(
-    keywords_dict: dict[str, list], target_filename: str, window_size=2
+    keywords_dict: dict[str, list[str]], target_filename: str, window_size: int = 2
 ) -> nx.Graph:
     """
     Build a network graph from preprocessed keywords for a specific target.
@@ -136,7 +136,7 @@ def build_network_from_keywords(
     return create_network(keywords, window_size=window_size)
 
 
-def visualize_network(G, font_prop, title="Keyword Network"):
+def visualize_network(G: nx.Graph, font_prop: object, title: str = "Keyword Network") -> None:
     """
     Visualize a keyword co-occurrence network.
 

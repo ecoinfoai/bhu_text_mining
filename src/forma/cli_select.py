@@ -41,16 +41,16 @@ def _build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma-select",
-        description="형성평가 문제 선택 및 시험지 PDF 생성",
+        description="Formative assessment question selection and exam PDF generation",
     )
     parser.add_argument(
         "--week-config",
-        help="week.yaml 파일 경로 (미지정 시 자동 탐색)",
+        help="week.yaml file path (auto-discovered if not specified)",
     )
     parser.add_argument(
         "--no-config",
         action="store_true",
-        help="week.yaml 자동 탐색 비활성화",
+        help="Disable week.yaml auto-discovery",
     )
     return parser
 
@@ -74,7 +74,7 @@ def _extract_questions(
     """
     source_path = Path(source_path)
     if not source_path.is_file():
-        raise FileNotFoundError(f"소스 파일을 찾을 수 없습니다: {source_path}")
+        raise FileNotFoundError(f"Source file not found: {source_path}")
 
     with open(source_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -84,7 +84,7 @@ def _extract_questions(
     elif isinstance(data, list):
         questions_list = data
     else:
-        raise ValueError(f"FormativeTest YAML 형식 오류: {source_path}")
+        raise ValueError(f"FormativeTest YAML format error: {source_path}")
 
     # Build sn → question lookup
     sn_map: dict[int, dict] = {}
@@ -97,7 +97,7 @@ def _extract_questions(
     for sn in sn_list:
         if sn not in sn_map:
             raise ValueError(
-                f"문제 sn={sn}을(를) 소스 파일에서 찾을 수 없습니다: {source_path}",
+                f"Question sn={sn} not found in source file: {source_path}",
             )
         result.append(sn_map[sn])
 
@@ -122,7 +122,7 @@ def _write_questions_yaml(
     output_path = Path(output_path)
     atomic_write_yaml(output, output_path)
 
-    logger.info("questions.yaml 생성: %s", output_path)
+    logger.info("questions.yaml generated: %s", output_path)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -147,14 +147,14 @@ def main(argv: list[str] | None = None) -> int:
         week_yaml_path = None
 
     if week_yaml_path is None or not week_yaml_path.is_file():
-        logger.error("week.yaml을 찾을 수 없습니다.")
+        logger.error("week.yaml not found.")
         return 1
 
     # Load and validate
     try:
         config = load_week_config(week_yaml_path)
     except Exception as exc:
-        logger.error("week.yaml 로드 실패: %s", exc)
+        logger.error("Failed to load week.yaml: %s", exc)
         return 1
 
     # Validate select section
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
             raw_dict = yaml.safe_load(f) or {}
         validate_week_config(raw_dict, required_section="select")
     except ValueError as exc:
-        logger.error("week.yaml select 섹션 검증 실패: %s", exc)
+        logger.error("week.yaml select section validation failed: %s", exc)
         return 1
 
     week_dir = week_yaml_path.parent
@@ -218,9 +218,9 @@ def main(argv: list[str] | None = None) -> int:
                 grade=source_metadata.get("grade", 0),
                 semester=source_metadata.get("semester", 0),
             )
-            logger.info("시험지 PDF 생성: %s", exam_output_path)
+            logger.info("Exam PDF generated: %s", exam_output_path)
         except Exception as exc:
-            logger.error("PDF 생성 실패: %s", exc)
+            logger.error("PDF generation failed: %s", exc)
             return 4
 
     return 0

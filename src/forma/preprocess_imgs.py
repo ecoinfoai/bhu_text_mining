@@ -2,33 +2,28 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from PIL import Image
 import os
 import re
 
 
-def show_image(image_path):
-    """
-    Displays an image and captures crop coordinates.
+def show_image(image_path: str) -> tuple[int, int, int, int]:
+    """Display an image and capture crop coordinates via mouse clicks.
 
-    Opens the specified image file in a new window, allows the user to click on
-    two points (top-left and bottom-right corners of the crop area), and returns
-    the coordinates as a tuple.
+    Opens the specified image in a matplotlib window and allows the user
+    to click two points (top-left and bottom-right corners of the crop area).
 
     Args:
-        image_path (str): The file path of the image to be displayed.
+        image_path: Path to the image file to display.
 
     Returns:
-        Tuple[int, int, int, int]: The crop coordinates (left, upper, right, lower).
+        Crop coordinates as (left, upper, right, lower).
 
-    Example:
-        >>> image_path = "example.jpg"
-        >>> crop_coords = show_image(image_path)
-        Click on the top left corner: (50, 100)
-        Click on the bottom right corner: (400, 300)
-        Confirmed coordinates: [(50, 100), (400, 300)]
-        >>> print(crop_coords)
-        (50, 100, 400, 300)
+    Raises:
+        ImportError: If Qt5 backend is not available.
+        ValueError: If two points were not selected.
     """
     import matplotlib
 
@@ -39,22 +34,15 @@ def show_image(image_path):
         plt.close()
     except ImportError:
         raise ImportError(
-            "Qt5 백엔드를 로드할 수 없습니다. "
-            "NixOS: nix-shell에 python3Packages.pyqt5를 추가하세요. "
-            "기타: pip install PyQt5"
+            "Cannot load Qt5 backend. "
+            "NixOS: add python3Packages.pyqt5 to nix-shell. "
+            "Other: pip install PyQt5"
         ) from None
 
-    # Local variable to store coordinates
-    coordinates = []
+    coordinates: list[tuple[int, int]] = []
 
-    def onclick(event):
-        """
-        Handles mouse click events to record coordinates of the clicked points.
-
-        Args:
-            event (matplotlib.backend_bases.MouseEvent): The mouse event object containing
-                the coordinates and metadata of the click event.
-        """
+    def onclick(event: Any) -> None:
+        """Handle mouse click events to record crop coordinates."""
         if event.xdata and event.ydata:
             coordinates.append((int(event.xdata), int(event.ydata)))
             print(
@@ -93,26 +81,17 @@ def crop_and_save_images(
     image_dir: str,
     crop_coordinates: tuple[int, int, int, int],
     output_prefix: str,
-):
-    """
-    Crops and saves multiple images from a specified directory.
+) -> None:
+    """Crop and save all images in a directory using the given coordinates.
 
-    Iterates through all images in the given directory, crops each image using
-    the provided coordinates, and saves the cropped images with a new filename.
+    Iterates through supported image files (jpg, jpeg, png), crops each
+    using the provided coordinates, and saves with the given prefix.
+    Already-cropped files (starting with ``q<N>_``) are skipped.
 
     Args:
-        image_dir (str): Path to the directory containing images to process.
-        crop_coordinates (tuple[int, int, int, int]): Coordinates for cropping
-            in the format (left, upper, right, lower).
-        output_prefix (str): Prefix for the output file names.
-
-    Example:
-        >>> image_dir = "images/"
-        >>> crop_coordinates = (50, 100, 400, 300)
-        >>> output_prefix = "cropped"
-        >>> crop_and_save_images(image_dir, crop_coordinates, output_prefix)
-        Saved the cropped image to: images/cropped_image1.jpg
-        Saved the cropped image to: images/cropped_image2.jpg
+        image_dir: Path to the directory containing images.
+        crop_coordinates: Crop region as (left, upper, right, lower).
+        output_prefix: Prefix for the output filenames.
     """
 
     supported_formats = (".jpg", ".jpeg", ".png")

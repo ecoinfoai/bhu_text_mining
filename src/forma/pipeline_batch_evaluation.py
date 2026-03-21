@@ -236,7 +236,7 @@ def main() -> None:
         nargs="+",
         type=int,
         default=None,
-        help="출제 문항의 exam sn 번호를 q 순서대로 지정 (예: 1 3 → q1=sn1, q2=sn3)",
+        help="Exam sn numbers in q order (e.g., 1 3 means q1=sn1, q2=sn3)",
     )
     args = parser.parse_args()
 

@@ -156,30 +156,30 @@ def load_manifest(path: str) -> DeliveryManifest:
         ValueError: If required fields are missing or invalid.
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f"매니페스트 파일을 찾을 수 없습니다: {path}")
+        raise FileNotFoundError(f"Manifest file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     source = data.get("report_source") if isinstance(data, dict) else None
     if not isinstance(source, dict):
-        raise ValueError("매니페스트에 'report_source' 섹션이 필요합니다.")
+        raise ValueError("Manifest requires a 'report_source' section.")
 
     directory = source.get("directory")
     if not directory:
-        raise ValueError("매니페스트에 'directory' 필드가 필요합니다.")
+        raise ValueError("Manifest requires a 'directory' field.")
 
     if not os.path.isdir(directory):
-        raise ValueError(f"directory가 존재하지 않습니다: {directory}")
+        raise ValueError(f"Directory does not exist: {directory}")
 
     file_patterns = source.get("file_patterns")
     if not file_patterns:
-        raise ValueError("매니페스트에 'file_patterns' 필드가 필요합니다 (1개 이상).")
+        raise ValueError("Manifest requires 'file_patterns' field (at least one).")
 
     for pat in file_patterns:
         if "{student_id}" not in pat:
             raise ValueError(
-                f"file_patterns의 각 패턴에 '{{student_id}}'가 포함되어야 합니다: {pat}"
+                f"Each file_pattern must contain '{{student_id}}': {pat}"
             )
 
     return DeliveryManifest(directory=str(directory), file_patterns=list(file_patterns))
@@ -199,41 +199,41 @@ def load_roster(path: str) -> StudentRoster:
         ValueError: If required fields are missing, duplicated, or invalid.
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f"명부 파일을 찾을 수 없습니다: {path}")
+        raise FileNotFoundError(f"Roster file not found: {path}")
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError("명부 파일 형식이 올바르지 않습니다.")
+        raise ValueError("Roster file format is invalid.")
 
     class_name = data.get("class_name")
     if not class_name:
-        raise ValueError("명부에 'class_name' 필드가 필요합니다.")
+        raise ValueError("Roster requires 'class_name' field.")
 
     students_raw = data.get("students")
     if not students_raw:
-        raise ValueError("명부에 'students' 목록이 필요합니다 (1명 이상).")
+        raise ValueError("Roster requires 'students' list (at least one).")
 
     seen_ids: set[str] = set()
     students: list[StudentEntry] = []
 
     for i, entry in enumerate(students_raw):
         if not isinstance(entry, dict):
-            raise ValueError(f"학생 항목 {i + 1}이 올바른 형식이 아닙니다.")
+            raise ValueError(f"Student entry {i + 1} has invalid format.")
 
         sid = entry.get("student_id")
         if not sid:
-            raise ValueError(f"학생 항목 {i + 1}에 'student_id' 필드가 필요합니다.")
+            raise ValueError(f"Student entry {i + 1} requires 'student_id' field.")
 
         sid = str(sid)
         if sid in seen_ids:
-            raise ValueError(f"student_id 중복: {sid}")
+            raise ValueError(f"Duplicate student_id: {sid}")
         seen_ids.add(sid)
 
         name = entry.get("name")
         if not name:
-            raise ValueError(f"학생 '{sid}'에 'name' 필드가 필요합니다.")
+            raise ValueError(f"Student '{sid}' requires 'name' field.")
 
         # email may be empty/missing -- FR-021: handled in prepare_delivery()
         email = str(entry.get("email") or "")
@@ -426,8 +426,8 @@ def prepare_delivery(
     if os.path.exists(output_dir):
         if not force:
             raise FileExistsError(
-                f"출력 폴더가 이미 존재합니다: {output_dir}\n"
-                "--force 플래그로 덮어쓸 수 있습니다."
+                f"Output directory already exists: {output_dir}\n"
+                "Use --force flag to overwrite."
             )
         import shutil
         shutil.rmtree(output_dir)
@@ -444,7 +444,7 @@ def prepare_delivery(
                 name=student.name,
                 email=student.email,
                 status="error",
-                message="email 누락 또는 형식 오류",
+                message="email missing or invalid format",
             ))
             continue
 
@@ -459,7 +459,7 @@ def prepare_delivery(
                 name=student.name,
                 email=student.email,
                 status="error",
-                message="매칭 파일 없음",
+                message="no matching files found",
             ))
             continue
 
@@ -486,7 +486,7 @@ def prepare_delivery(
                 email=student.email,
                 status="error",
                 matched_files=matched,
-                message=f"zip 크기 초과 (25MB 제한): {zip_size} bytes",
+                message=f"zip size exceeds 25MB limit: {zip_size} bytes",
             ))
             continue
 
@@ -494,7 +494,7 @@ def prepare_delivery(
         if len(matched) < n_patterns:
             status = "warning"
             missing_count = n_patterns - len(matched)
-            message = f"{missing_count}개 패턴 미매칭"
+            message = f"{missing_count} pattern(s) not matched"
         else:
             status = "ready"
             message = ""
@@ -529,7 +529,7 @@ def prepare_delivery(
     save_prepare_summary(summary, summary_path)
 
     logger.info(
-        "준비 완료: 전체 %d명 (ready=%d, warning=%d, error=%d)",
+        "Prepare complete: %d students (ready=%d, warning=%d, error=%d)",
         summary.total_students, ready_count, warning_count, error_count,
     )
 

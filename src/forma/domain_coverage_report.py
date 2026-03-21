@@ -336,7 +336,7 @@ class DomainDeliveryPDFReportGenerator:
             story.append(Spacer(1, 5 * mm))
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
-            logger.warning("전달율 바 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate delivery rate bar chart: %s", exc)
             story.append(Image(
                 io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
             ))
@@ -622,7 +622,7 @@ class DomainDeliveryPDFReportGenerator:
                     ))
                 story.append(Spacer(1, 3 * mm))
         except Exception as exc:
-            logger.warning("네트워크 비교 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate network comparison chart: %s", exc)
             story.append(Image(
                 io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
             ))
@@ -653,7 +653,7 @@ class DomainDeliveryPDFReportGenerator:
             )
             story.append(Image(chart_buf, width=160 * mm, height=120 * mm))
         except Exception as exc:
-            logger.warning("전달 히트맵 생성 실패: %s", exc)
+            logger.warning("Failed to generate delivery heatmap: %s", exc)
             story.append(Image(
                 io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
             ))
@@ -1039,7 +1039,7 @@ class DomainDeliveryPDFReportGenerator:
             )
             story.append(Image(chart3, width=160 * mm, height=100 * mm))
         except Exception as exc:
-            logger.warning("계층 분석 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate hierarchy analysis chart: %s", exc)
             story.append(Image(
                 io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
             ))
@@ -1159,7 +1159,7 @@ class DomainDeliveryPDFReportGenerator:
             story.append(Image(chart_buf, width=160 * mm, height=130 * mm))
             story.append(Spacer(1, 3 * mm))
         except Exception as exc:
-            logger.warning("개념 네트워크 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate concept network chart: %s", exc)
             story.append(Image(
                 io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
             ))
@@ -1180,7 +1180,7 @@ class DomainDeliveryPDFReportGenerator:
                 ))
                 story.append(Spacer(1, 3 * mm))
             except Exception as exc:
-                logger.warning("네트워크 비교 차트 생성 실패: %s", exc)
+                logger.warning("Failed to generate network comparison chart: %s", exc)
 
         # Text summary: top 3 edges by weight
         if network.edges:

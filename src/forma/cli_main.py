@@ -22,26 +22,26 @@ logger = logging.getLogger(__name__)
 _VERSION = "0.12.0"
 
 # ---------------------------------------------------------------------------
-# Korean error messages (FR-048)
+# Error messages (FR-048)
 # ---------------------------------------------------------------------------
 
 _ERROR_MESSAGES: dict[str, str] = {
-    "file_not_found": "파일을 찾을 수 없습니다: {path}",
-    "yaml_parse_error": "YAML 파싱 오류: {path}",
-    "unknown_command": "알 수 없는 명령 '{cmd}'. 'forma --help'로 사용 가능한 명령을 확인하세요.",
-    "smtp_auth_failure": "SMTP 인증 실패: 사용자명 또는 비밀번호를 확인하세요.",
+    "file_not_found": "File not found: {path}",
+    "yaml_parse_error": "YAML parse error: {path}",
+    "unknown_command": "Unknown command '{cmd}'. Run 'forma --help' to see available commands.",
+    "smtp_auth_failure": "SMTP authentication failed: check username or password.",
 }
 
 
 def _korean_error(msg_type: str, **kwargs: str) -> str:
-    """Return a Korean error message for the given type.
+    """Return a formatted error message for the given type.
 
     Args:
         msg_type: Key in ``_ERROR_MESSAGES``.
         **kwargs: Format parameters for the message template.
 
     Returns:
-        Formatted Korean error message string.
+        Formatted error message string.
     """
     template = _ERROR_MESSAGES.get(msg_type, msg_type)
     return template.format(**kwargs)
@@ -53,7 +53,7 @@ def _korean_error(msg_type: str, **kwargs: str) -> str:
 
 
 def log_progress(current: int, total: int, task_name: str) -> None:
-    """Emit a progress log line in ``[N/총수]`` format.
+    """Emit a progress log line in ``[N/total]`` format.
 
     Args:
         current: Current item number.
@@ -68,7 +68,7 @@ def log_progress(current: int, total: int, task_name: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _make_legacy_wrapper(legacy_name: str, new_name: str, target_main):
+def _make_legacy_wrapper(legacy_name: str, new_name: str, target_main: object) -> object:
     """Create a wrapper that emits DeprecationWarning then calls *target_main*.
 
     Args:
@@ -82,7 +82,7 @@ def _make_legacy_wrapper(legacy_name: str, new_name: str, target_main):
 
     def _wrapper() -> None:
         warnings.warn(
-            f"'{legacy_name}'는 향후 버전에서 제거됩니다. '{new_name}'를 사용하세요.",
+            f"'{legacy_name}' is deprecated and will be removed in a future version. Use '{new_name}' instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -140,7 +140,7 @@ _COMMANDS: dict[tuple[str, str | None], tuple[str, str]] = {
 _NESTED_GROUPS = {"report", "train", "eval", "lecture", "backfill", "domain"}
 
 
-def _import_delegate(module_path: str, func_name: str):
+def _import_delegate(module_path: str, func_name: str) -> object:
     """Lazily import and return the delegate function."""
     import importlib
 
@@ -154,7 +154,7 @@ def _import_delegate(module_path: str, func_name: str):
 
 
 class _FormaParser(argparse.ArgumentParser):
-    """Custom parser that emits Korean error for unknown subcommands."""
+    """Custom parser that emits a user-friendly error for unknown subcommands."""
 
     def error(self, message: str) -> None:  # noqa: D102
         if "invalid choice" in message:
@@ -184,74 +184,74 @@ def _build_parser() -> _FormaParser:
         version=f"forma {_VERSION}",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False, help="상세 출력 활성화"
+        "--verbose", action="store_true", default=False, help="Enable verbose output"
     )
     parser.add_argument(
         "--no-config",
         action="store_true",
         default=False,
-        help="forma.yaml 로딩 건너뛰기",
+        help="Skip forma.yaml loading",
     )
-    parser.add_argument("--font-path", default=None, help="한글 폰트 경로")
-    parser.add_argument("--dpi", type=int, default=150, help="차트 해상도")
+    parser.add_argument("--font-path", default=None, help="Korean font file path")
+    parser.add_argument("--dpi", type=int, default=150, help="Chart resolution DPI")
 
-    subparsers = parser.add_subparsers(dest="command", title="명령")
+    subparsers = parser.add_subparsers(dest="command", title="commands")
 
     # --- Simple commands (no nested subcommands) ---
-    subparsers.add_parser("exam", help="시험지 생성")
-    subparsers.add_parser("ocr", help="OCR 스캔 처리")
-    subparsers.add_parser("intervention", help="중재 활동 관리")
-    subparsers.add_parser("deliver", help="리포트 이메일 발송")
-    subparsers.add_parser("init", help="프로젝트 설정 초기화")
-    subparsers.add_parser("select", help="학생 답안 선별")
+    subparsers.add_parser("exam", help="Generate exam papers")
+    subparsers.add_parser("ocr", help="OCR scan processing")
+    subparsers.add_parser("intervention", help="Manage intervention activities")
+    subparsers.add_parser("deliver", help="Email report delivery")
+    subparsers.add_parser("init", help="Initialize project configuration")
+    subparsers.add_parser("select", help="Select student answers")
 
     # --- eval (optional 'batch' subcommand — parsed manually to avoid
     #     argparse consuming --class values as subcommand names) ---
-    subparsers.add_parser("eval", help="평가 파이프라인 실행")
+    subparsers.add_parser("eval", help="Run evaluation pipeline")
 
     # --- report (nested subcommands) ---
-    report_parser = subparsers.add_parser("report", help="리포트 생성")
+    report_parser = subparsers.add_parser("report", help="Generate reports")
     report_sub = report_parser.add_subparsers(dest="report_sub")
-    report_sub.add_parser("student", help="학생 개별 리포트")
-    report_sub.add_parser("professor", help="교수용 리포트")
-    report_sub.add_parser("longitudinal", help="종단 분석 리포트")
-    report_sub.add_parser("warning", help="조기 경보 리포트")
-    report_sub.add_parser("batch", help="배치 리포트 생성")
+    report_sub.add_parser("student", help="Individual student report")
+    report_sub.add_parser("professor", help="Professor class summary report")
+    report_sub.add_parser("longitudinal", help="Longitudinal analysis report")
+    report_sub.add_parser("warning", help="Early warning report")
+    report_sub.add_parser("batch", help="Batch report generation")
 
     # --- train (nested subcommands) ---
-    train_parser = subparsers.add_parser("train", help="모델 학습")
+    train_parser = subparsers.add_parser("train", help="Train models")
     train_sub = train_parser.add_subparsers(dest="train_sub")
-    train_sub.add_parser("risk", help="드롭 리스크 예측 모델 학습")
-    train_sub.add_parser("grade", help="성적 예측 모델 학습")
+    train_sub.add_parser("risk", help="Train drop risk prediction model")
+    train_sub.add_parser("grade", help="Train grade prediction model")
 
     # --- lecture (nested subcommands) ---
     lecture_parser = subparsers.add_parser(
-        "lecture", help="강의 녹취록 분석",
+        "lecture", help="Lecture transcript analysis",
     )
     lecture_sub = lecture_parser.add_subparsers(
         dest="lecture_sub",
     )
-    lecture_sub.add_parser("analyze", help="단일 녹취록 분석")
+    lecture_sub.add_parser("analyze", help="Analyze single transcript")
     lecture_sub.add_parser(
-        "compare", help="동일 세션 반 간 비교",
+        "compare", help="Compare sections for same session",
     )
     lecture_sub.add_parser(
-        "class-compare", help="전체 세션 반 간 비교",
+        "class-compare", help="Compare sections across all sessions",
     )
 
     # --- backfill (nested subcommands) ---
-    backfill_parser = subparsers.add_parser("backfill", help="기존 결과 역채움")
+    backfill_parser = subparsers.add_parser("backfill", help="Backfill existing results")
     backfill_sub = backfill_parser.add_subparsers(dest="backfill_sub")
-    backfill_sub.add_parser("longitudinal", help="종단 저장소 역채움")
+    backfill_sub.add_parser("longitudinal", help="Backfill longitudinal store")
 
     # --- domain (nested subcommands) ---
     domain_parser = subparsers.add_parser(
-        "domain", help="교과서-강의 도메인 커버리지 분석",
+        "domain", help="Textbook-lecture domain coverage analysis",
     )
     domain_sub = domain_parser.add_subparsers(dest="domain_sub")
-    domain_sub.add_parser("extract", help="교과서 개념 추출")
-    domain_sub.add_parser("coverage", help="강의 커버리지 분석")
-    domain_sub.add_parser("report", help="커버리지 PDF 보고서 생성")
+    domain_sub.add_parser("extract", help="Extract textbook concepts")
+    domain_sub.add_parser("coverage", help="Analyze lecture coverage")
+    domain_sub.add_parser("report", help="Generate coverage PDF report")
 
     return parser
 

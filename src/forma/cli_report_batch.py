@@ -211,7 +211,7 @@ def main(argv=None):
                         report_data.class_knowledge_aggregates.append(agg)
                         qstat.class_knowledge_aggregate = agg
             except Exception as exc:
-                logger.warning("분반 %s 학급 집합 그래프 계산 실패: %s", class_id, exc)
+                logger.warning("Class %s knowledge aggregate graph computation failed: %s", class_id, exc)
 
             # v0.7.3 T017a: Compute misconception clusters per question
             try:
@@ -223,11 +223,11 @@ def main(argv=None):
                         clusters = cluster_misconceptions(classified)
                         qstat.misconception_clusters = clusters
                         logger.info(
-                            "분반 %s 문항 %d 오개념 클러스터링: %d개 입력 -> %d개 클러스터",
+                            "Class %s question %d misconception clustering: %d inputs -> %d clusters",
                             class_id, qstat.question_sn, len(classified), len(clusters),
                         )
             except Exception as exc:
-                logger.warning("분반 %s 오개념 클러스터링 실패: %s", class_id, exc)
+                logger.warning("Class %s misconception clustering failed: %s", class_id, exc)
 
             # T044: per-class transcript processing (FR-019b, FR-020)
             if args.transcript_pattern:
@@ -242,7 +242,7 @@ def main(argv=None):
                             try:
                                 transcript_lines.extend(fname.read_text(encoding="utf-8").splitlines())
                             except OSError as exc:
-                                logger.warning("트랜스크립트 파일 읽기 실패: %s — %s", fname, exc)
+                                logger.warning("Failed to read transcript file: %s — %s", fname, exc)
 
                     if transcript_lines:
                         master_concepts: set[str] = set()
@@ -273,14 +273,14 @@ def main(argv=None):
                                 )
                                 report_data.lecture_gap_report = gap_report
                                 logger.info(
-                                    "분반 %s 강의 갭 분석: 커버리지 %.1f%%",
+                                    "Class %s lecture gap analysis: coverage %.1f%%",
                                     class_id, gap_report.coverage_ratio * 100,
                                 )
                             except Exception as exc:
-                                logger.warning("분반 %s 강조도/갭 분석 실패: %s", class_id, exc)
+                                logger.warning("Class %s emphasis/gap analysis failed: %s", class_id, exc)
                 else:
                     logger.warning(
-                        "분반 %s 트랜스크립트 디렉토리 없음: %s", class_id, transcript_dir
+                        "Class %s transcript directory not found: %s", class_id, transcript_dir
                     )
 
             # v0.7.3 T021a: Generate LLM correction points for misconception clusters
@@ -305,7 +305,7 @@ def main(argv=None):
                                     cluster.correction_point = correction
                 except Exception as exc:
                     logger.warning(
-                        "분반 %s 오개념 클러스터 교정 포인트 생성 실패: %s", class_id, exc,
+                        "Class %s misconception cluster correction point generation failed: %s", class_id, exc,
                     )
 
             # Generate professor PDF
@@ -381,11 +381,11 @@ def main(argv=None):
                 weekly_interaction=None,
             )
             logger.info(
-                "분반 간 비교 분석 완료: %d개 분반, %d개 쌍대 비교",
+                "Cross-section comparison complete: %d sections, %d pairwise comparisons",
                 len(stats_list), len(pairwise),
             )
         except Exception as exc:
-            logger.warning("분반 간 비교 분석 실패: %s", exc)
+            logger.warning("Cross-section comparison failed: %s", exc)
 
         agg_gen = ProfessorPDFReportGenerator(
             font_path=args.font_path,

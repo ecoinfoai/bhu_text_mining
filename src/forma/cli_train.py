@@ -25,31 +25,31 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for forma-train."""
     parser = argparse.ArgumentParser(
         prog="forma-train",
-        description="드롭 리스크 예측 모델 학습",
+        description="Train drop risk prediction model",
     )
     parser.add_argument(
         "--store", required=True,
-        help="종단 저장소 YAML 파일 경로",
+        help="Longitudinal store YAML file path",
     )
     parser.add_argument(
         "--output", required=True,
-        help="출력 모델 파일 경로 (.pkl)",
+        help="Output model file path (.pkl)",
     )
     parser.add_argument(
         "--threshold", type=float, default=0.45,
-        help="드롭 정의 점수 임계값 (기본값: 0.45)",
+        help="Drop score threshold (default: 0.45)",
     )
     parser.add_argument(
         "--min-weeks", type=int, default=3, dest="min_weeks",
-        help="최소 주차 수 (기본값: 3)",
+        help="Minimum number of weeks (default: 3)",
     )
     parser.add_argument(
         "--min-students", type=int, default=10, dest="min_students",
-        help="최소 학생 수 (기본값: 10)",
+        help="Minimum number of students (default: 10)",
     )
     parser.add_argument(
         "--verbose", action="store_true",
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     return parser
 

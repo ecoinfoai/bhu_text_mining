@@ -100,7 +100,7 @@ class ProjectConfiguration:
     values that differ from the defaults.
 
     Attributes:
-        course_name: Course name (e.g. "인체구조와기능").
+        course_name: Course name (e.g. "Human Anatomy and Physiology").
         year: Academic year (>= 2020).
         semester: Semester number (1 or 2).
         grade: Student grade year (>= 1).

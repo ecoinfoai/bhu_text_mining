@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional  # used in InterventionEffect dataclass fields
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +68,8 @@ class InterventionTypeSummary:
 
 
 def compute_intervention_effects(
-    log,
-    store,
+    log: object,
+    store: object,
     window: int = 2,
 ) -> list[InterventionEffect]:
     """Compute pre/post intervention effects from log and longitudinal store.

@@ -10,7 +10,6 @@ from __future__ import annotations
 import io
 import logging
 import os
-from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -51,7 +50,7 @@ class StudentLongitudinalPDFReportGenerator:
         dpi: Resolution for chart images (default 150).
     """
 
-    def __init__(self, font_path: Optional[str] = None, dpi: int = 150) -> None:
+    def __init__(self, font_path: str | None = None, dpi: int = 150) -> None:
         if font_path is None:
             font_path = find_korean_font()
         if not os.path.exists(font_path):
@@ -202,7 +201,7 @@ class StudentLongitudinalPDFReportGenerator:
                 )
                 story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
             except Exception as exc:
-                logger.warning("Q%d 커버리지 차트 생성 실패: %s", qsn, exc)
+                logger.warning("Failed to generate Q%d coverage chart: %s", qsn, exc)
                 story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
             story.append(Spacer(1, 3 * mm))
 
@@ -237,7 +236,7 @@ class StudentLongitudinalPDFReportGenerator:
             )
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
-            logger.warning("항목별 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate component breakdown chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
@@ -274,7 +273,7 @@ class StudentLongitudinalPDFReportGenerator:
             )
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
-            logger.warning("상대 위치 차트 생성 실패: %s", exc)
+            logger.warning("Failed to generate cohort position chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
@@ -316,7 +315,7 @@ class StudentLongitudinalPDFReportGenerator:
                 height=min(chart_height, 200) * mm,
             ))
         except Exception as exc:
-            logger.warning("경고 테이블 생성 실패: %s", exc)
+            logger.warning("Failed to generate warning table: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))

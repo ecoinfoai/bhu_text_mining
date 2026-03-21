@@ -31,85 +31,85 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for forma-report."""
     parser = argparse.ArgumentParser(
         prog="forma-report",
-        description="학생 개인별 PDF 리포트 생성",
+        description="Generate individual student PDF reports",
     )
     parser.add_argument(
         "--final",
         required=True,
-        help="학생 답변 YAML 파일 경로 (예: anp_1A_final.yaml)",
+        help="Student response YAML file path (e.g. anp_1A_final.yaml)",
     )
     parser.add_argument(
         "--config",
         required=True,
-        help="시험 설정 YAML 파일 경로 (예: Ch01_서론_FormativeTest.yaml)",
+        help="Exam config YAML file path (e.g. Ch01_FormativeTest.yaml)",
     )
     parser.add_argument(
         "--eval-dir",
         required=True,
-        help="평가 결과 디렉토리 경로 (예: eval_1A/)",
+        help="Evaluation results directory path (e.g. eval_1A/)",
     )
     parser.add_argument(
         "--output-dir",
         required=True,
-        help="PDF 출력 디렉토리 경로",
+        help="PDF output directory path",
     )
     parser.add_argument(
         "--student",
         default=None,
-        help="특정 학생 ID만 생성 (예: S015)",
+        help="Generate for specific student ID only (e.g. S015)",
     )
     parser.add_argument(
         "--font-path",
         default=None,
-        help="한국어 폰트 파일 경로 (미지정 시 자동 탐색)",
+        help="Korean font file path (auto-detected if not specified)",
     )
     parser.add_argument(
         "--dpi",
         type=int,
         default=150,
-        help="차트 이미지 해상도 (기본: 150, 범위: 72-600)",
+        help="Chart image resolution (default: 150, range: 72-600)",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="상세 로그 출력",
+        help="Enable verbose logging",
     )
     parser.add_argument(
         "--no-config",
         action="store_true",
         dest="no_config",
-        help="forma.yaml 설정 파일 무시",
+        help="Skip forma.yaml config file",
     )
     parser.add_argument(
         "--longitudinal-store",
         default=None,
         dest="longitudinal_store",
-        help="종단 저장소 YAML 경로 (변화 표시 활성화)",
+        help="Longitudinal store YAML path (enables change indicators)",
     )
     parser.add_argument(
         "--week",
         type=int,
         default=None,
-        help="현재 주차 번호 (변화 비교 기준)",
+        help="Current week number (baseline for change comparison)",
     )
     parser.add_argument(
         "--grade-model",
         default=None,
         dest="grade_model_path",
-        help="성적 예측 모델 파일 경로 (.pkl, 학습 추이 표시용)",
+        help="Grade prediction model file path (.pkl, for learning trend display)",
     )
     parser.add_argument(
         "--concept-deps",
         action="store_true",
         default=False,
         dest="concept_deps",
-        help="개념 의존성 기반 학습 경로 활성화 (exam YAML에 정의 필요)",
+        help="Enable concept dependency learning paths (requires exam YAML definitions)",
     )
     parser.add_argument(
         "--intervention-log",
         default=None,
         dest="intervention_log",
-        help="개입 활동 로그 YAML 경로 (학생 리포트에서는 무시됨, FR-013)",
+        help="Intervention log YAML path (ignored in student reports, FR-013)",
     )
     return parser
 
@@ -188,10 +188,10 @@ def main() -> None:
             args.eval_dir,
         )
     except yaml.YAMLError as exc:
-        print(f"오류: YAML 파일을 파싱할 수 없습니다: {exc}", file=sys.stderr)
+        print(f"Error: Failed to parse YAML file: {exc}", file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
-        print(f"Error: 데이터 로딩 실패: {exc}", file=sys.stderr)
+        print(f"Error: Failed to load data: {exc}", file=sys.stderr)
         sys.exit(1)
 
     # Count questions
@@ -203,7 +203,7 @@ def main() -> None:
         filtered = [s for s in students if s.student_id == args.student]
         if not filtered:
             print(
-                f"Error: 학생 {args.student}의 데이터를 찾을 수 없습니다.",
+                f"Error: No data found for student {args.student}.",
                 file=sys.stderr,
             )
             sys.exit(2)
@@ -233,11 +233,11 @@ def main() -> None:
             deps = parse_concept_dependencies(exam_yaml)
             if deps:
                 concept_dag = build_and_validate_dag(deps)
-                logger.info("개념 의존성 DAG 구축 완료: %d개 노드", len(concept_dag.nodes))
+                logger.info("Concept dependency DAG built: %d nodes", len(concept_dag.nodes))
             else:
-                logger.info("exam YAML에 concept_dependencies가 없어 학습 경로 생략")
+                logger.info("No concept_dependencies in exam YAML, skipping learning path")
         except Exception as exc:
-            logger.warning("개념 의존성 파싱 실패 (계속 진행): %s", exc)
+            logger.warning("Concept dependency parsing failed (continuing): %s", exc)
 
     # Load grade model and predict softened tiers (FR-031)
     grade_trend_map: dict[str, str] = {}
@@ -265,9 +265,9 @@ def main() -> None:
                         grade_trend_map[pred.student_id] = "중위권"
                     else:
                         grade_trend_map[pred.student_id] = "하위권"
-                logger.info("성적 추이 예측 완료: %d명", len(grade_trend_map))
+                logger.info("Grade trend prediction complete: %d students", len(grade_trend_map))
         except Exception as exc:
-            logger.warning("성적 추이 예측 실패 (계속 진행): %s", exc)
+            logger.warning("Grade trend prediction failed (continuing): %s", exc)
 
     # Create report generator
     try:
@@ -277,7 +277,7 @@ def main() -> None:
         )
     except FileNotFoundError as exc:
         print(
-            f"Error: NanumGothic 폰트를 설치하세요. ({exc})",
+            f"Error: Please install NanumGothic font. ({exc})",
             file=sys.stderr,
         )
         sys.exit(3)
@@ -364,7 +364,7 @@ def main() -> None:
                         )
                     except Exception as chart_exc:
                         logger.warning(
-                            "학습 경로 차트 생성 실패 (계속 진행): %s", chart_exc,
+                            "Learning path chart generation failed (continuing): %s", chart_exc,
                         )
 
             grade_trend = grade_trend_map.get(student.student_id)
