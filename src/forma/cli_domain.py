@@ -39,9 +39,9 @@ def _build_extract_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--textbook",
         type=str,
-        required=True,
         action="append",
-        help="교과서 챕터 텍스트 파일 경로 (반복 지정 가능)",
+        default=None,
+        help="교과서 챕터 텍스트 파일 경로 (반복 지정 가능, --summary와 택일)",
     )
     parser.add_argument(
         "--output",
@@ -60,42 +60,132 @@ def _build_extract_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="개념 캐시 사용 안 함",
     )
+    parser.add_argument(
+        "--summary",
+        type=str,
+        action="append",
+        default=None,
+        help="챕터 요약 Markdown 파일 경로 (반복 지정 가능, 선택적 구조 가이드)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="LLM 모델 ID 오버라이드 (기본: forma.yaml domain_analysis.extract_model)",
+    )
+    chunk_group = parser.add_mutually_exclusive_group()
+    chunk_group.add_argument(
+        "--chunk",
+        dest="force_chunk",
+        action="store_true",
+        default=None,
+        help="청크 분할 강제 사용 (작은 파일도 청크 분할)",
+    )
+    chunk_group.add_argument(
+        "--no-chunk",
+        dest="force_chunk",
+        action="store_false",
+        help="청크 분할 사용 안 함 (큰 파일도 단일 호출)",
+    )
     return parser
 
 
 def extract_main(argv: list[str] | None = None) -> None:
     """Extract domain concepts from textbook text files.
 
-    Parses CLI arguments, validates input files, runs concept
-    extraction, and saves results to YAML.
+    Uses LLM-based extraction (v2) when --model or --summary is
+    provided. Falls back to v1 (KoNLPy word-level) otherwise.
 
     Args:
         argv: Command-line arguments. Uses sys.argv if None.
     """
     from forma.domain_concept_extractor import (
+        extract_concepts_llm,
         extract_multi_chapter,
+        extract_multi_chapter_llm,
         save_concepts_yaml,
     )
 
     parser = _build_extract_parser()
     args = parser.parse_args(argv)
 
+    # Must have at least one of --textbook or --summary
+    if not args.textbook and not args.summary:
+        print(
+            "오류: --textbook 또는 --summary 중 하나 이상 지정해야 합니다.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    # When only --summary given, use summary files as textbook input for LLM
+    if not args.textbook and args.summary:
+        input_paths = args.summary
+        summary_paths = None  # summary IS the input, no separate guide
+        use_llm = True
+    else:
+        input_paths = args.textbook
+        summary_paths = args.summary
+        use_llm = args.model is not None or args.summary is not None
+
     # Validate input files exist
-    for textbook_path in args.textbook:
-        if not Path(textbook_path).exists():
+    for path in input_paths:
+        if not Path(path).exists():
             print(
-                f"오류: 파일을 찾을 수 없습니다: {textbook_path}",
+                f"오류: 파일을 찾을 수 없습니다: {path}",
                 file=sys.stderr,
             )
             raise SystemExit(1)
 
-    # Extract concepts
-    use_cache = not args.no_cache
-    concepts_by_chapter = extract_multi_chapter(
-        textbook_paths=args.textbook,
-        min_freq=args.min_freq,
-        use_cache=use_cache,
-    )
+    # Validate summary files if provided separately
+    if summary_paths:
+        for summary_path in summary_paths:
+            if not Path(summary_path).exists():
+                logger.warning("요약 파일을 찾을 수 없습니다: %s", summary_path)
+
+    no_cache = args.no_cache
+    force_chunk = args.force_chunk  # None=auto, True=force, False=disable
+
+    n_inputs = len(input_paths)
+    if use_llm:
+        # If force_chunk is specified, use per-file extraction with chunk control
+        if force_chunk is not None:
+            concepts_by_chapter = {}
+            for i, path_str in enumerate(input_paths):
+                chapter_name = Path(path_str).stem
+                print(
+                    f"[{i + 1}/{n_inputs}] 개념 추출 중: {chapter_name}...",
+                    file=sys.stderr, flush=True,
+                )
+                sp = None
+                if summary_paths and i < len(summary_paths):
+                    sp = summary_paths[i]
+                concepts_by_chapter[chapter_name] = extract_concepts_llm(
+                    textbook_path=path_str,
+                    summary_path=sp,
+                    model=args.model,
+                    chapter_name=chapter_name,
+                    no_cache=no_cache,
+                    force_chunk=force_chunk,
+                )
+        else:
+            print(
+                f"개념 추출 중: {n_inputs}개 챕터...",
+                file=sys.stderr, flush=True,
+            )
+            concepts_by_chapter = extract_multi_chapter_llm(
+                textbook_paths=input_paths,
+                summary_paths=summary_paths,
+                model=args.model,
+                no_cache=no_cache,
+            )
+    else:
+        # v1 fallback: KoNLPy word-level extraction
+        use_cache = not no_cache
+        concepts_by_chapter = extract_multi_chapter(
+            textbook_paths=input_paths,
+            min_freq=args.min_freq,
+            use_cache=use_cache,
+        )
 
     # Save to YAML
     save_concepts_yaml(concepts_by_chapter, args.output)
@@ -167,6 +257,27 @@ def _build_coverage_parser() -> argparse.ArgumentParser:
         default=None,
         help="종단 데이터 YAML (형성평가 연결 분석용)",
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="LLM 모델 ID 오버라이드 (기본: flash)",
+    )
+    parser.add_argument(
+        "--no-pedagogy",
+        action="store_true",
+        help="교수법 분석 생략",
+    )
+    parser.add_argument(
+        "--no-network",
+        action="store_true",
+        help="네트워크 그래프 생성 생략",
+    )
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="LLM 호출 생략 (임베딩/용어/밀도 신호만 사용)",
+    )
     return parser
 
 
@@ -181,13 +292,12 @@ def coverage_main(argv: list[str] | None = None) -> None:
     from forma.domain_concept_extractor import load_concepts_yaml
     from forma.domain_coverage_analyzer import (
         TeachingScope,
-        build_coverage_result,
-        classify_concepts,
-        compute_concept_emphasis,
-        detect_extra_concepts,
+        _infer_section_from_filename,
+        analyze_delivery_llm,
+        build_delivery_result_v2,
         parse_scope_string,
         parse_teaching_scope,
-        save_coverage_yaml,
+        save_delivery_yaml,
     )
 
     parser = _build_coverage_parser()
@@ -219,6 +329,11 @@ def coverage_main(argv: list[str] | None = None) -> None:
         print("오류: 개념 목록이 비어 있습니다.", file=sys.stderr)
         raise SystemExit(1)
 
+    concept_names = [
+        getattr(c, "concept", None) or getattr(c, "name_ko", "")
+        for c in all_concepts
+    ]
+
     # Build teaching scope
     week = 0
     if args.week_config:
@@ -233,7 +348,6 @@ def coverage_main(argv: list[str] | None = None) -> None:
         scope = parse_teaching_scope(week_data)
         week = week_data.get("week", 0)
     else:
-        # Default: all chapters in scope, no restrictions
         all_chapters = sorted(concepts_by_chapter.keys())
         scope = TeachingScope(chapters=all_chapters, scope_rules={})
 
@@ -241,42 +355,96 @@ def coverage_main(argv: list[str] | None = None) -> None:
     if args.scope:
         scope_rules = parse_scope_string(args.scope)
         scope.scope_rules.update(scope_rules)
-        # Add any chapters from scope override
         for ch in scope_rules:
             if ch not in scope.chapters:
                 scope.chapters.append(ch)
 
-    # Compute emphasis
-    emphasis_list = compute_concept_emphasis(
-        transcript_paths=args.transcripts,
-        concepts=all_concepts,
-        threshold=args.threshold,
+    # T029: Load quality_weights from config
+    quality_weights = None
+    try:
+        from forma.config import get_quality_weights, load_config as _load_cfg
+        _cfg = _load_cfg()
+        quality_weights = get_quality_weights(_cfg)
+    except (FileNotFoundError, ImportError):
+        pass
+
+    no_llm = args.no_llm
+
+    # LLM delivery analysis per transcript
+    all_deliveries = []
+    n_transcripts = len(args.transcripts)
+    for t_idx, transcript_path in enumerate(args.transcripts):
+        section_id = _infer_section_from_filename(Path(transcript_path).name)
+        print(
+            f"[{t_idx + 1}/{n_transcripts}] 전달 분석 중: "
+            f"{Path(transcript_path).name} (분반 {section_id})...",
+            file=sys.stderr, flush=True,
+        )
+        try:
+            deliveries = analyze_delivery_llm(
+                concepts=concept_names,
+                transcript_path=transcript_path,
+                section_id=section_id,
+                model=args.model,
+                no_llm=no_llm,
+                quality_weights=quality_weights,
+            )
+            all_deliveries.extend(deliveries)
+            print(
+                f"  ✓ {len(deliveries)}개 개념 분석 완료",
+                file=sys.stderr, flush=True,
+            )
+        except Exception:
+            print(
+                "  ✗ 분석 실패",
+                file=sys.stderr, flush=True,
+            )
+            logger.warning(
+                "LLM 전달 분석 실패: %s", transcript_path, exc_info=True,
+            )
+
+    if not all_deliveries:
+        print("오류: 모든 녹취록에서 전달 분석에 실패했습니다.", file=sys.stderr)
+        raise SystemExit(1)
+
+    print(
+        f"결과 집계 중: {len(all_deliveries)}개 전달 분석...",
+        file=sys.stderr, flush=True,
     )
 
-    # Classify concepts
-    classified = classify_concepts(all_concepts, emphasis_list, scope)
-
-    # Detect extra concepts
-    extras = detect_extra_concepts(
-        transcript_paths=args.transcripts,
-        concepts=all_concepts,
-    )
-
-    # Build result
-    result = build_coverage_result(
-        classified=classified,
-        extras=extras,
+    # Build v2 result
+    result = build_delivery_result_v2(
+        deliveries=all_deliveries,
+        scope=scope,
+        concepts=concept_names,
         week=week,
         chapters=scope.chapters,
     )
 
+    # T047: Compute pairwise section comparisons
+    try:
+        from forma.domain_coverage_analyzer import (
+            compute_delivery_pairwise_comparisons,
+        )
+        comparisons = compute_delivery_pairwise_comparisons(all_deliveries)
+        if comparisons:
+            result._section_comparisons = comparisons
+            logger.info("분반 간 비교: %d개 쌍 계산 완료", len(comparisons))
+    except Exception:
+        logger.warning("분반 간 통계 비교 실패", exc_info=True)
+
     # Save
-    save_coverage_yaml(result, args.output)
+    save_delivery_yaml(result, args.output)
+
+    print(
+        f"완료: 전달률 {result.effective_delivery_rate * 100:.1f}% → {args.output}",
+        file=sys.stderr, flush=True,
+    )
 
     logger.info(
-        "커버리지 분석 완료: %d개 개념, 커버리지 %.1f%% → %s",
-        result.total_textbook_concepts,
-        result.effective_coverage_rate * 100,
+        "전달 분석 완료: %d개 개념, 전달률 %.1f%% → %s",
+        len(concept_names),
+        result.effective_delivery_rate * 100,
         args.output,
     )
 
@@ -294,13 +462,13 @@ def _build_report_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="forma domain report",
-        description="도메인 커버리지 분석 결과 PDF 보고서 생성",
+        description="도메인 전달 분석 결과 PDF 보고서 생성",
     )
     parser.add_argument(
         "--coverage",
         type=str,
         required=True,
-        help="커버리지 분석 결과 YAML (coverage 출력)",
+        help="전달 분석 결과 YAML (coverage/delivery 출력)",
     )
     parser.add_argument(
         "--output",
@@ -326,17 +494,33 @@ def _build_report_parser() -> argparse.ArgumentParser:
         default=150,
         help="차트 해상도 (기본값: 150)",
     )
+    parser.add_argument(
+        "--concepts",
+        type=str,
+        default=None,
+        dest="concepts_file",
+        help="개념 목록 YAML 파일 (네트워크 그래프용, 선택적)",
+    )
+    parser.add_argument(
+        "--summary",
+        type=str,
+        default=None,
+        help="챕터 요약 Markdown 파일 경로 (계층 분석용, 선택적)",
+    )
     return parser
 
 
 def report_main(argv: list[str] | None = None) -> None:
-    """Generate PDF report from coverage analysis.
+    """Generate PDF report from delivery analysis.
+
+    Supports both v1 (CoverageResult) and v2 (DeliveryResult) YAML.
 
     Args:
         argv: Command-line arguments. Uses sys.argv if None.
     """
-    from forma.domain_coverage_analyzer import load_coverage_yaml
-    from forma.domain_coverage_report import DomainCoveragePDFReportGenerator
+    import yaml
+
+    from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
 
     parser = _build_report_parser()
     args = parser.parse_args(argv)
@@ -349,11 +533,75 @@ def report_main(argv: list[str] | None = None) -> None:
         )
         raise SystemExit(1)
 
-    # Load coverage result
-    result = load_coverage_yaml(args.coverage)
+    # Detect YAML version and load accordingly
+    with open(args.coverage, encoding="utf-8") as f:
+        raw = yaml.safe_load(f)
+
+    is_v2 = isinstance(raw, dict) and raw.get("version") == "v2"
+
+    if is_v2:
+        from forma.domain_coverage_analyzer import load_delivery_yaml
+        result = load_delivery_yaml(args.coverage)
+    else:
+        from forma.domain_coverage_analyzer import load_coverage_yaml
+        result = load_coverage_yaml(args.coverage)
+
+    # Parse hierarchy from summary if provided
+    hierarchy = None
+    if args.summary:
+        summary_path = Path(args.summary)
+        if summary_path.exists():
+            from forma.domain_concept_extractor import parse_summary_hierarchy
+            hierarchy = parse_summary_hierarchy(str(summary_path))
+            logger.info("계층 구조 로드: %s", args.summary)
+        else:
+            logger.warning("요약 파일을 찾을 수 없습니다: %s", args.summary)
+
+    # Build concept network from delivery data (if v2 with concepts)
+    concept_network = None
+    deliveries_by_section = None
+    if is_v2 and hasattr(result, "deliveries") and result.deliveries:
+        try:
+            from forma.concept_network import build_concept_network
+            from forma.domain_concept_extractor import DomainConcept
+
+            # Extract unique concepts from deliveries
+            seen = set()
+            concepts_for_net = []
+            for d in result.deliveries:
+                if d.concept not in seen:
+                    seen.add(d.concept)
+                    concepts_for_net.append(DomainConcept(
+                        concept=d.concept,
+                        description="",
+                        key_terms=getattr(d, "_key_terms", []),
+                    ))
+
+            # Try loading concepts file for richer key_terms
+            if args.concepts_file:
+                from forma.domain_concept_extractor import load_concepts_yaml
+                cby = load_concepts_yaml(args.concepts_file)
+                concept_map = {}
+                for cs in cby.values():
+                    for c in cs:
+                        concept_map[c.concept] = c
+                concepts_for_net = [
+                    concept_map.get(c.concept, c) for c in concepts_for_net
+                ]
+
+            concept_network = build_concept_network(concepts_for_net)
+
+            # Group deliveries by section
+            deliveries_by_section = {}
+            for d in result.deliveries:
+                if d.section_id not in deliveries_by_section:
+                    deliveries_by_section[d.section_id] = []
+                deliveries_by_section[d.section_id].append(d)
+        except Exception:
+            logger.warning("개념 네트워크 구축 실패", exc_info=True)
 
     # Generate PDF
-    generator = DomainCoveragePDFReportGenerator(
+    generator = DomainDeliveryPDFReportGenerator(
         font_path=args.font_path,
         dpi=args.dpi,
     )
@@ -362,6 +610,9 @@ def report_main(argv: list[str] | None = None) -> None:
         result=result,
         output_path=args.output,
         course_name=args.course_name,
+        hierarchy=hierarchy,
+        concept_network=concept_network,
+        deliveries_by_section=deliveries_by_section,
     )
 
     logger.info("PDF 보고서 생성 완료: %s", output_path)

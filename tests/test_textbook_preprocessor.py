@@ -147,3 +147,129 @@ class TestExtractBilingualTerms:
         result = extract_bilingual_terms(text)
         # Should not match since parenthetical has no English alphabetic chars
         assert len(result) == 0
+
+
+# ----------------------------------------------------------------
+# T004: Enhanced body-only filtering (v2)
+# ----------------------------------------------------------------
+
+
+class TestCleanTextbookTextV2:
+    """Tests for enhanced clean_textbook_text() — figure/table/quiz removal."""
+
+    def test_removes_standalone_figure_titles(self) -> None:
+        """Standalone figure title lines like '그림 3-1 발열의 병인론' are removed."""
+        raw = "본문 내용입니다.\n그림 3-1 발열의 병인론\n다음 문단 시작."
+        result = clean_textbook_text(raw)
+        assert "그림 3-1 발열의 병인론" not in result
+        assert "본문 내용입니다." in result
+        assert "다음 문단 시작." in result
+
+    def test_removes_standalone_figure_titles_endash(self) -> None:
+        """Figure titles with en-dash like '그림 3–1 피부 구조' are removed."""
+        raw = "본문.\n그림 3–1 피부 구조\n다음."
+        result = clean_textbook_text(raw)
+        assert "그림 3–1 피부 구조" not in result
+
+    def test_removes_standalone_table_titles(self) -> None:
+        """Standalone table title lines like '표 3-1 피부의 구조' are removed."""
+        raw = "본문 내용.\n표 3-1 피부의 구조\n다음 문단."
+        result = clean_textbook_text(raw)
+        assert "표 3-1 피부의 구조" not in result
+        assert "본문 내용." in result
+        assert "다음 문단." in result
+
+    def test_removes_standalone_table_titles_endash(self) -> None:
+        """Table titles with en-dash like '표 2–3 근육 유형' are removed."""
+        raw = "본문.\n표 2–3 근육 유형\n다음."
+        result = clean_textbook_text(raw)
+        assert "표 2–3 근육 유형" not in result
+
+    def test_preserves_inline_figure_refs(self) -> None:
+        """Inline figure references like '(그림 3-1)' in body text are preserved."""
+        raw = "피부의 구조를 살펴보면 (그림 3-1) 표피와 진피로 구성된다."
+        result = clean_textbook_text(raw)
+        assert "(그림 3-1)" in result
+        assert "표피와 진피로 구성된다." in result
+
+    def test_preserves_inline_table_refs(self) -> None:
+        """Inline table references like '(표 3-1)' in body text are preserved."""
+        raw = "세포의 종류는 (표 3-1) 참고하라."
+        result = clean_textbook_text(raw)
+        assert "(표 3-1)" in result
+
+    def test_removes_quiz_section_문제(self) -> None:
+        """Lines starting with quiz markers like '문제' remove the section."""
+        raw = "본문 내용입니다.\n문제\n1. 표피는 무엇인가?\n2. 진피의 역할은?"
+        result = clean_textbook_text(raw)
+        assert "본문 내용입니다." in result
+        assert "문제" not in result
+        assert "표피는 무엇인가?" not in result
+
+    def test_removes_quiz_section_퀴즈(self) -> None:
+        """Lines starting with '퀴즈' remove the section."""
+        raw = "본문.\n퀴즈\n1. 답하시오."
+        result = clean_textbook_text(raw)
+        assert "본문." in result
+        assert "퀴즈" not in result
+
+    def test_removes_quiz_section_복습문제(self) -> None:
+        """Lines starting with '복습문제' remove the section."""
+        raw = "본문.\n복습문제\n1. 설명하시오."
+        result = clean_textbook_text(raw)
+        assert "본문." in result
+        assert "복습문제" not in result
+
+    def test_removes_quiz_section_연습문제(self) -> None:
+        """Lines starting with '연습문제' remove the section."""
+        raw = "본문.\n연습문제\n1. 서술하시오."
+        result = clean_textbook_text(raw)
+        assert "본문." in result
+        assert "연습문제" not in result
+
+
+# ----------------------------------------------------------------
+# T005: prepare_textbook_for_llm
+# ----------------------------------------------------------------
+
+
+class TestPrepareTextbookForLLM:
+    """Tests for prepare_textbook_for_llm()."""
+
+    def test_returns_cleaned_body_without_summary(self) -> None:
+        """Without summary, returns (cleaned_body, None)."""
+        from forma.textbook_preprocessor import prepare_textbook_for_llm
+
+        raw = "C H A P T E R  03\n본문 내용입니다.\n그림 3-1 발열도\n더 많은 본문."
+        body, guide = prepare_textbook_for_llm(raw)
+        assert "본문 내용입니다." in body
+        assert "그림 3-1 발열도" not in body
+        assert guide is None
+
+    def test_returns_cleaned_body_with_summary(self) -> None:
+        """With summary path, returns (cleaned_body, summary_text)."""
+        import tempfile
+        from pathlib import Path
+
+        from forma.textbook_preprocessor import prepare_textbook_for_llm
+
+        raw = "본문 내용입니다.\n표 3-1 피부 구조\n진피에 대한 설명."
+        summary_text = "# 3장 피부\n## 1. 표피\n- 4층 구조"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            summary_path = Path(tmpdir) / "Ch03_Summary.md"
+            summary_path.write_text(summary_text, encoding="utf-8")
+
+            body, guide = prepare_textbook_for_llm(raw, summary_path=str(summary_path))
+            assert "본문 내용입니다." in body
+            assert "표 3-1 피부 구조" not in body
+            assert guide is not None
+            assert "3장 피부" in guide
+
+    def test_nonexistent_summary_returns_none(self) -> None:
+        """Non-existent summary path returns None for guide."""
+        from forma.textbook_preprocessor import prepare_textbook_for_llm
+
+        body, guide = prepare_textbook_for_llm("본문 내용.", summary_path="/nonexistent/file.md")
+        assert "본문 내용." in body
+        assert guide is None

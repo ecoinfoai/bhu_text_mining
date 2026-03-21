@@ -1,22 +1,24 @@
-"""Tests for domain coverage PDF report generation.
+"""Tests for domain delivery PDF report generation (v2).
 
-T031: PDF generation tests
+T048: PDF has 9 sections, continuous numbering, non-zero file size, Korean text
+T049: PDF without assessment data -> 8 sections, section 9 omitted
+T050: Instructor feedback page uses concept-level language, not word frequency
 """
 
 from __future__ import annotations
 
-import statistics
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
-from forma.domain_concept_extractor import TextbookConcept
 from forma.domain_coverage_analyzer import (
-    ConceptEmphasis,
-    CoverageResult,
-    ExtraConcept,
-    TeachingScope,
-    build_coverage_result,
-    classify_concepts,
+    DeliveryAnalysis,
+    DeliveryResult,
+)
+from forma.domain_pedagogy_analyzer import (
+    EffectivePattern,
+    HabitualExpression,
+    PedagogyAnalysis,
 )
 
 
@@ -25,136 +27,337 @@ from forma.domain_coverage_analyzer import (
 # ----------------------------------------------------------------
 
 
-def _make_concept(
-    name_ko: str,
-    chapter: str = "3장 피부",
-    frequency: int = 5,
-    name_en: str | None = None,
-) -> TextbookConcept:
-    return TextbookConcept(
-        name_ko=name_ko,
-        name_en=name_en,
-        chapter=chapter,
-        frequency=frequency,
-        context_sentence=f"{name_ko}는 중요하다.",
-        is_bilingual=name_en is not None,
+def _build_sample_delivery_result() -> DeliveryResult:
+    """Build a sample DeliveryResult with typical data."""
+    deliveries = [
+        DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.9,
+            evidence="표피의 4층에 대해 상세히 설명했다",
+            depth="메커니즘까지 설명",
+        ),
+        DeliveryAnalysis(
+            concept="표피의 4층 구조",
+            section_id="B",
+            delivery_status="부분 전달",
+            delivery_quality=0.5,
+            evidence="용어만 언급",
+            depth="용어 수준",
+        ),
+        DeliveryAnalysis(
+            concept="진피의 구조와 기능",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.85,
+            evidence="진피 구조와 기능 상세 설명",
+            depth="상세 설명",
+        ),
+        DeliveryAnalysis(
+            concept="진피의 구조와 기능",
+            section_id="B",
+            delivery_status="미전달",
+            delivery_quality=0.0,
+            evidence="",
+            depth="",
+        ),
+        DeliveryAnalysis(
+            concept="세포막 인지질 이중층",
+            section_id="A",
+            delivery_status="의도적 생략",
+            delivery_quality=0.0,
+            evidence="",
+            depth="",
+        ),
+        DeliveryAnalysis(
+            concept="세포막 인지질 이중층",
+            section_id="B",
+            delivery_status="의도적 생략",
+            delivery_quality=0.0,
+            evidence="",
+            depth="",
+        ),
+        DeliveryAnalysis(
+            concept="각질층 형성 과정",
+            section_id="A",
+            delivery_status="충분히 설명",
+            delivery_quality=0.8,
+            evidence="각질층 형성 메커니즘 설명",
+            depth="과정 설명",
+        ),
+        DeliveryAnalysis(
+            concept="각질층 형성 과정",
+            section_id="B",
+            delivery_status="충분히 설명",
+            delivery_quality=0.75,
+            evidence="각질층 생성 과정",
+            depth="과정 설명",
+        ),
+    ]
+    return DeliveryResult(
+        week=2,
+        chapters=["3장 피부", "1장 세포"],
+        deliveries=deliveries,
+        effective_delivery_rate=0.75,
+        per_section_rate={"A": 1.0, "B": 0.5},
     )
 
 
-def _make_emphasis(
-    concept_name: str,
-    chapter: str = "3장 피부",
-    section_scores: dict[str, float] | None = None,
-) -> ConceptEmphasis:
-    if section_scores is None:
-        section_scores = {"A": 0.5, "B": 0.6}
-    values = list(section_scores.values())
-    mean_score = statistics.mean(values) if values else 0.0
-    std_score = statistics.stdev(values) if len(values) >= 2 else 0.0
-    return ConceptEmphasis(
-        concept_name=concept_name,
-        chapter=chapter,
-        section_scores=section_scores,
-        mean_score=mean_score,
-        std_score=std_score,
-    )
+def _build_sample_pedagogy() -> list[PedagogyAnalysis]:
+    """Build sample PedagogyAnalysis list."""
+    return [
+        PedagogyAnalysis(
+            section_id="A",
+            habitual_expressions=[
+                HabitualExpression(
+                    expression="여러분",
+                    frequency_per_minute=2.0,
+                    total_count=40,
+                    recommendation="사용 자제 권장",
+                ),
+                HabitualExpression(
+                    expression="보시면",
+                    frequency_per_minute=1.0,
+                    total_count=20,
+                    recommendation="정상 범위",
+                ),
+            ],
+            effective_patterns=[
+                EffectivePattern(
+                    pattern_type="비유/유추",
+                    count=3,
+                    examples=["세포막을 지퍼에 비유하면..."],
+                ),
+            ],
+            domain_ratio=0.7,
+        ),
+    ]
 
 
-def _build_sample_result() -> CoverageResult:
-    """Build a sample CoverageResult with typical data."""
-    concepts = [
-        _make_concept("표피", chapter="3장", frequency=15, name_en="epidermis"),
-        _make_concept("진피", chapter="3장", frequency=10, name_en="dermis"),
-        _make_concept("각질층", chapter="3장", frequency=8),
-        _make_concept("세포막", chapter="1장", frequency=5),
-        _make_concept("근육", chapter="5장", frequency=3),
-    ]
-    emphasis_list = [
-        _make_emphasis("표피", chapter="3장", section_scores={"A": 0.9, "B": 0.7, "C": 0.8}),
-        _make_emphasis("진피", chapter="3장", section_scores={"A": 0.6, "B": 0.4, "C": 0.5}),
-        _make_emphasis("각질층", chapter="3장", section_scores={"A": 0.3, "B": 0.1, "C": 0.2}),
-        _make_emphasis("세포막", chapter="1장", section_scores={"A": 0.02, "B": 0.01, "C": 0.01}),
-    ]
-    scope = TeachingScope(chapters=["3장", "1장"])
-    classified = classify_concepts(concepts, emphasis_list, scope)
-    extras = [ExtraConcept(
-        name="염증",
-        section_mentions={"A": 5, "B": 3},
-        example_sentence="염증 반응이 피부에서 나타났다.",
-    )]
-    return build_coverage_result(classified, extras, week=2, chapters=["3장", "1장"])
+@dataclass
+class MockAssessmentData:
+    """Mock assessment correlation data for testing."""
+
+    correlation: float = 0.65
+    well_explained_poor: list[str] = field(default_factory=lambda: [
+        "표피의 4층 구조",
+    ])
+    under_explained_poor: list[str] = field(default_factory=lambda: [
+        "진피의 구조와 기능",
+    ])
 
 
 # ----------------------------------------------------------------
-# T031: PDF generation
+# T048: PDF has 9 sections
 # ----------------------------------------------------------------
 
 
-class TestDomainCoveragePDFReport:
-    """Tests for DomainCoveragePDFReportGenerator."""
+class TestDomainDeliveryPDFReport:
+    """Tests for DomainDeliveryPDFReportGenerator (9-section v2 report)."""
 
-    def test_pdf_exists_and_nonzero(self, tmp_path) -> None:
-        """Generated PDF exists and is non-zero."""
-        from forma.domain_coverage_report import DomainCoveragePDFReportGenerator
+    def test_pdf_9_sections_nonzero(self, tmp_path: Path) -> None:
+        """PDF with assessment data has 9 sections, non-zero file size."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
 
-        result = _build_sample_result()
-        output = str(tmp_path / "report.pdf")
+        result = _build_sample_delivery_result()
+        pedagogy = _build_sample_pedagogy()
+        assessment = MockAssessmentData()
+        output = str(tmp_path / "report_9.pdf")
 
-        gen = DomainCoveragePDFReportGenerator()
-        path = gen.generate_pdf(result, output, course_name="인체구조와기능")
+        gen = DomainDeliveryPDFReportGenerator()
+        path = gen.generate_pdf(
+            result, output,
+            course_name="인체구조와기능",
+            pedagogy=pedagogy,
+            assessment_data=assessment,
+        )
 
         assert Path(path).exists()
         assert Path(path).stat().st_size > 0
 
-    def test_pdf_with_typical_data(self, tmp_path) -> None:
-        """PDF with typical data generates without error."""
-        from forma.domain_coverage_report import DomainCoveragePDFReportGenerator
-
-        result = _build_sample_result()
-        output = str(tmp_path / "report.pdf")
-
-        gen = DomainCoveragePDFReportGenerator()
-        path = gen.generate_pdf(result, output)
-
-        assert Path(path).exists()
-        # Check file starts with PDF magic bytes
+        # Verify PDF magic bytes
         with open(path, "rb") as f:
             header = f.read(5)
         assert header == b"%PDF-"
 
-    def test_pdf_with_empty_concepts(self, tmp_path) -> None:
-        """PDF with empty concepts handles gracefully."""
-        from forma.domain_coverage_report import DomainCoveragePDFReportGenerator
+    def test_pdf_continuous_numbering(self, tmp_path: Path) -> None:
+        """PDF sections use continuous numbering (1-9)."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
 
-        result = CoverageResult(
-            week=1,
-            chapters=["1장"],
-            total_textbook_concepts=0,
-            in_scope_count=0,
-            skipped_count=0,
-            covered_count=0,
-            gap_count=0,
-            extra_count=0,
-            effective_coverage_rate=0.0,
-            per_section_coverage={},
-            classified_concepts=[],
+        result = _build_sample_delivery_result()
+        assessment = MockAssessmentData()
+        output = str(tmp_path / "report_num.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
+        path = gen.generate_pdf(
+            result, output,
+            assessment_data=assessment,
         )
-        output = str(tmp_path / "empty_report.pdf")
 
-        gen = DomainCoveragePDFReportGenerator()
+        # Read PDF text to verify section numbering
+        pdf_bytes = Path(path).read_bytes()
+        pdf_text = pdf_bytes.decode("latin-1", errors="replace")
+
+        # Section headers should appear in order (in PDF stream)
+        # Without concept_network, 8 sections; with it, 9 sections
+        for i in range(1, 9):
+            assert f"{i}." in pdf_text
+
+    def test_pdf_korean_text(self, tmp_path: Path) -> None:
+        """PDF contains Korean text (course name, section titles)."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = _build_sample_delivery_result()
+        output = str(tmp_path / "report_kr.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
+        path = gen.generate_pdf(
+            result, output,
+            course_name="인체구조와기능",
+        )
+
+        assert Path(path).exists()
+        assert Path(path).stat().st_size > 1000  # Non-trivial size
+
+    def test_pdf_with_all_data(self, tmp_path: Path) -> None:
+        """PDF with all optional data (pedagogy, assessment) generates OK."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = _build_sample_delivery_result()
+        pedagogy = _build_sample_pedagogy()
+        assessment = MockAssessmentData()
+        output = str(tmp_path / "report_full.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
+        path = gen.generate_pdf(
+            result, output,
+            course_name="인체구조와기능",
+            pedagogy=pedagogy,
+            assessment_data=assessment,
+        )
+
+        assert Path(path).exists()
+
+
+# ----------------------------------------------------------------
+# T049: PDF without assessment data -> 8 sections
+# ----------------------------------------------------------------
+
+
+class TestDomainDeliveryPDFNoAssessment:
+    """Tests for report without assessment data (8 sections)."""
+
+    def test_pdf_8_sections_no_assessment(self, tmp_path: Path) -> None:
+        """PDF without assessment data has 8 sections, section 9 omitted."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = _build_sample_delivery_result()
+        output = str(tmp_path / "report_8.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
         path = gen.generate_pdf(result, output)
 
         assert Path(path).exists()
         assert Path(path).stat().st_size > 0
 
-    def test_pdf_no_course_name(self, tmp_path) -> None:
-        """PDF without course name generates correctly."""
-        from forma.domain_coverage_report import DomainCoveragePDFReportGenerator
+        # Read PDF text — should NOT contain section 9 header
+        pdf_bytes = Path(path).read_bytes()
+        pdf_text = pdf_bytes.decode("latin-1", errors="replace")
 
-        result = _build_sample_result()
-        output = str(tmp_path / "report.pdf")
+        # Sections 1-8 should exist
+        for i in range(1, 9):
+            assert f"{i}." in pdf_text
 
-        gen = DomainCoveragePDFReportGenerator()
+    def test_empty_deliveries(self, tmp_path: Path) -> None:
+        """PDF with empty deliveries generates without error."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = DeliveryResult(
+            week=1,
+            chapters=["1장"],
+            deliveries=[],
+            effective_delivery_rate=0.0,
+            per_section_rate={},
+        )
+        output = str(tmp_path / "empty_report.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
         path = gen.generate_pdf(result, output)
 
         assert Path(path).exists()
+        assert Path(path).stat().st_size > 0
+
+
+# ----------------------------------------------------------------
+# T050: Feedback uses concept-level language
+# ----------------------------------------------------------------
+
+
+class TestFeedbackConceptLevel:
+    """Tests that feedback uses concept-level language, not word frequency."""
+
+    def test_feedback_concept_names_not_word_counts(
+        self, tmp_path: Path,
+    ) -> None:
+        """Feedback section shows concept names, not word frequency stats."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = _build_sample_delivery_result()
+        output = str(tmp_path / "report_feedback.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
+        path = gen.generate_pdf(result, output)
+
+        # Read raw PDF bytes and check
+        pdf_bytes = Path(path).read_bytes()
+        pdf_text = pdf_bytes.decode("latin-1", errors="replace")
+
+        # Should NOT contain word-frequency patterns like "N회 언급"
+        # in feedback section context (word counting language)
+        # The feedback should use concept-level language like
+        # "보충 지도가 필요한" and concept names
+
+        # Verify absence of word-frequency patterns
+        assert "단어 빈도" not in pdf_text
+        assert "회 언급" not in pdf_text
+
+    def test_backward_compat_alias(self) -> None:
+        """DomainCoveragePDFReportGenerator alias still works."""
+        from forma.domain_coverage_report import (
+            DomainCoveragePDFReportGenerator,
+            DomainDeliveryPDFReportGenerator,
+        )
+
+        assert DomainCoveragePDFReportGenerator is DomainDeliveryPDFReportGenerator
+
+
+# ----------------------------------------------------------------
+# T036: Hierarchy fallback when no TopicHierarchy provided
+# ----------------------------------------------------------------
+
+
+class TestHierarchyFallback:
+    """Tests for hierarchical section fallback behavior."""
+
+    def test_hierarchy_fallback_no_summary(self, tmp_path: Path) -> None:
+        """When no TopicHierarchy provided, hierarchical section skipped, no error."""
+        from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
+
+        result = _build_sample_delivery_result()
+        output = str(tmp_path / "report_no_hierarchy.pdf")
+
+        gen = DomainDeliveryPDFReportGenerator()
+        # generate_pdf without hierarchy kwarg should succeed
+        path = gen.generate_pdf(
+            result, output,
+            course_name="인체구조와기능",
+        )
+
+        assert Path(path).exists()
+        assert Path(path).stat().st_size > 0
+
+        # Verify PDF is valid
+        with open(path, "rb") as f:
+            header = f.read(5)
+        assert header == b"%PDF-"

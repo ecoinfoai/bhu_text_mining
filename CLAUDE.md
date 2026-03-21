@@ -2,6 +2,11 @@
 
 Auto-generated from all feature plans. Last updated: 2026-03-11
 
+## Multi-Agent Workflow Rule
+- 멀티에이전트 협업 요청 시 반드시 **TeamCreate**를 사용할 것 (Agent subagent 단독 사용 금지)
+- 팀원은 Agent tool의 `team_name` 파라미터로 spawn, 소통은 **SendMessage** 사용
+- 작업 완료 후 **shutdown_request**로 팀 정리
+
 ## Active Technologies
 - Python >=3.11, <4 + scikit-learn>=1.4.0 (KMeans), networkx>=3.4.2 (DiGraph), numpy<2.1.0 (embedding matrix), matplotlib>=3.10.0 (Agg backend), ReportLab>=4.4.4 (Platypus API) — 전부 기존 deps (004-class-graph-clustering)
 - YAML (PyYAML>=6.0) — 기존 파이프라인 출력 파일 읽기 전용; 신규 저장소 없음 (004-class-graph-clustering)
@@ -37,6 +42,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - YAML files (concepts, coverage results), PDF (reports), textbook/transcript text files (020-domain-coverage)
 - Python >=3.11, <4 + LLM (Gemini Pro/Flash via llm_provider.py), KoNLPy (Okt — network graphs), networkx (network analysis), matplotlib >=3.10.0, ReportLab >=4.4.4, PyYAML >=6.0, numpy, scipy (Spearman), sentence-transformers (v1 fallback) (021-domain-delivery-analysis)
 - YAML files (concepts, delivery results), PDF (reports), text files (textbook, transcripts) (021-domain-delivery-analysis)
+- Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, networkx >=3.4.2, numpy <2.1.0, scipy >=1.12.0, sentence-transformers (ko-sroberta-multitask), google-genai (Gemini API) (022-domain-delivery-v3)
+- YAML files (concepts, delivery results, config), PNG (charts), PDF (reports) (022-domain-delivery-v3)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -165,6 +172,7 @@ Python >=3.11, <4: Follow standard conventions
 - `week_config.py` — `+lecture_*` fields in `WeekConfiguration`, `+"lecture_transcript_pattern"` in `_CLASS_PATTERN_FIELDS`, lecture section parsing in `load_week_config()`
 
 ## Recent Changes
+- 022-domain-delivery-v3: Added Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, networkx >=3.4.2, numpy <2.1.0, scipy >=1.12.0, sentence-transformers (ko-sroberta-multitask), google-genai (Gemini API)
 - 021-domain-delivery-analysis: Added Python >=3.11, <4 + LLM (Gemini Pro/Flash via llm_provider.py), KoNLPy (Okt — network graphs), networkx (network analysis), matplotlib >=3.10.0, ReportLab >=4.4.4, PyYAML >=6.0, numpy, scipy (Spearman), sentence-transformers (v1 fallback)
 - 020-domain-coverage: Added Python >=3.11, <4 + KoNLPy (Okt), sentence-transformers (ko-sroberta), matplotlib >=3.10.0, ReportLab >=4.4.4, PyYAML >=6.0, numpy <2.1.0, scipy (Spearman correlation)
 - 019-student-longitudinal-report: Added Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0, numpy <2.1.0, existing `llm_provider.py` (Gemini/Anthropic)
