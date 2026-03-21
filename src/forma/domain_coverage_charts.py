@@ -54,6 +54,20 @@ def _get_font_props(font_path: str | None) -> FontProperties | None:
     return None
 
 
+def _get_font_family(fp: FontProperties | None) -> str | None:
+    """Extract font family name for networkx labels.
+
+    Args:
+        fp: FontProperties instance or None.
+
+    Returns:
+        Font family name string, or None if no font.
+    """
+    if fp is None:
+        return None
+    return fp.get_name()
+
+
 # ----------------------------------------------------------------
 # T033: Coverage bar chart
 # ----------------------------------------------------------------
@@ -295,7 +309,8 @@ def build_section_variance_heatmap(
         "분반 간 강조도 편차",
         fontproperties=fp, fontsize=14, fontweight="bold",
     )
-    fig.colorbar(im, ax=ax, label="강조도", shrink=0.8)
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8)
+    cbar.set_label("강조도", fontproperties=fp)
     fig.tight_layout()
 
     return save_fig(fig, dpi=dpi)
@@ -393,8 +408,10 @@ def build_network_comparison_chart(
             G, pos, node_color="#4CAF50", node_size=300,
             alpha=0.8, ax=ax,
         )
+        _ff = _get_font_family(fp)
+        _label_kw = {"font_family": _ff} if _ff else {}
         nx.draw_networkx_labels(
-            G, pos, font_size=8, ax=ax,
+            G, pos, font_size=8, ax=ax, **_label_kw,
         )
 
         ax.set_title(title, fontproperties=fp, fontsize=12, fontweight="bold")
@@ -587,7 +604,8 @@ def build_delivery_heatmap(
         "분반별 개념 전달 품질",
         fontproperties=fp, fontsize=14, fontweight="bold",
     )
-    fig.colorbar(im, ax=ax, label="전달 품질", shrink=0.8)
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8)
+    cbar.set_label("전달 품질", fontproperties=fp)
     fig.tight_layout()
 
     return save_fig(fig, dpi=dpi)
@@ -982,7 +1000,8 @@ def build_grouped_quality_heatmap(
         "계층 전달 품질 히트맵",
         fontproperties=fp, fontsize=14, fontweight="bold",
     )
-    fig.colorbar(im, ax=ax, label="전달 품질", shrink=0.8)
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8)
+    cbar.set_label("전달 품질", fontproperties=fp)
     fig.tight_layout()
 
     return save_fig(fig, dpi=dpi)
@@ -1078,7 +1097,9 @@ def build_concept_network_chart(
 
     # Labels truncated to 15 chars
     labels = {n: n[:15] for n in G.nodes()}
-    nx.draw_networkx_labels(G, pos, labels=labels, font_size=8, ax=ax)
+    _ff = _get_font_family(fp)
+    _label_kw = {"font_family": _ff} if _ff else {}
+    nx.draw_networkx_labels(G, pos, labels=labels, font_size=8, ax=ax, **_label_kw)
 
     ax.set_title(
         "개념 네트워크 그래프",
@@ -1089,7 +1110,8 @@ def build_concept_network_chart(
     # Colorbar
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 1))
     sm.set_array([])
-    fig.colorbar(sm, ax=ax, label="전달 품질", shrink=0.7)
+    cbar = fig.colorbar(sm, ax=ax, shrink=0.7)
+    cbar.set_label("전달 품질", fontproperties=fp)
     fig.tight_layout()
 
     return save_fig(fig, dpi=dpi)
@@ -1124,6 +1146,7 @@ def build_concept_network_comparison(
     from forma.concept_network import overlay_delivery
 
     fp = _get_font_props(font_path)
+    _ff = _get_font_family(fp)
     sections = sorted(deliveries_by_section.keys())
     n_sections = len(sections)
 
@@ -1203,7 +1226,8 @@ def build_concept_network_comparison(
         )
 
         labels = {n: n[:15] for n in G.nodes()}
-        nx.draw_networkx_labels(G, pos, labels=labels, font_size=7, ax=ax)
+        _label_kw = {"font_family": _ff} if _ff else {}
+        nx.draw_networkx_labels(G, pos, labels=labels, font_size=7, ax=ax, **_label_kw)
 
         ax.set_title(
             f"{section}반", fontproperties=fp, fontsize=12, fontweight="bold",
