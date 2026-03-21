@@ -367,8 +367,8 @@ class TestScanPipelineConfidence:
             )
 
         captured = capsys.readouterr().out
-        assert "저인식률" in captured
-        assert "1건" in captured
+        assert "low-confidence" in captured
+        assert "1 low-confidence" in captured
 
     def test_scan_no_low_confidence_no_message(
         self, image_dir, ocr_config_file, tmp_path, capsys
@@ -410,7 +410,7 @@ class TestScanPipelineConfidence:
             )
 
         captured = capsys.readouterr().out
-        assert "저인식률" not in captured
+        assert "low-confidence" not in captured
 
 
 class TestJoinPipelineConfidence:
@@ -495,7 +495,7 @@ class TestJoinPipelineConfidence:
 
         captured = capsys.readouterr().out
         # Table header
-        assert "OCR 인식률 검토 대상" in captured
+        assert "OCR entries requiring review" in captured
         # Low-confidence entries (threshold 0.75 default)
         assert "S001" in captured
         assert "S002" in captured
@@ -504,7 +504,7 @@ class TestJoinPipelineConfidence:
         # High-confidence S001 q2 (0.90) should NOT appear
         assert "0.90" not in captured
         # Summary line
-        assert "2건" in captured
+        assert "2 / 3" in captured
 
     def test_join_no_low_confidence_prints_ok(
         self, tmp_path, forms_csv_file, capsys
@@ -535,7 +535,7 @@ class TestJoinPipelineConfidence:
         )
 
         captured = capsys.readouterr().out
-        assert "검토 대상 없음" in captured
+        assert "No OCR entries require review" in captured
 
     def test_join_no_confidence_data_no_table(
         self, ocr_results_no_confidence, forms_csv_file, tmp_path, capsys
@@ -663,7 +663,7 @@ class TestCliOcrReviewThreshold:
             forms_csv_path=csv_path,
         )
         captured = capsys.readouterr().out
-        assert "검토 대상 없음" in captured
+        assert "No OCR entries require review" in captured
 
         # With threshold 0.95 → entry flagged
         run_join_pipeline(
@@ -673,7 +673,7 @@ class TestCliOcrReviewThreshold:
             ocr_review_threshold=0.95,
         )
         captured = capsys.readouterr().out
-        assert "OCR 인식률 검토 대상" in captured
+        assert "OCR entries requiring review" in captured
         assert "0.90" in captured
 
 
@@ -1038,7 +1038,7 @@ class TestAdversarialPersonas:
         _print_confidence_review_table(joined, threshold=0)
         captured = capsys.readouterr().out
         # threshold=0 means nothing is < 0, so no entries flagged
-        assert "검토 대상 없음" in captured
+        assert "No OCR entries require review" in captured
 
     def test_review_table_threshold_above_one_flags_all(self, capsys):
         """threshold=2.0 flags all entries (impossible to reach)."""
@@ -1050,7 +1050,7 @@ class TestAdversarialPersonas:
         ]
         _print_confidence_review_table(joined, threshold=2.0)
         captured = capsys.readouterr().out
-        assert "OCR 인식률 검토 대상" in captured
+        assert "OCR entries requiring review" in captured
         assert "S001" in captured
 
     # ── Persona 9: Concurrent-Access Tester ──────────────────
@@ -1149,7 +1149,7 @@ class TestAdversarialPersonas:
         ]
         _print_confidence_review_table(joined, threshold=0.75)
         captured = capsys.readouterr().out
-        assert "검토 대상 없음" in captured
+        assert "No OCR entries require review" in captured
 
     # ── Persona 11: Manual-Edit Simulator ────────────────────
 

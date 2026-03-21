@@ -635,6 +635,6 @@ class TestRunJoinPipeline:
             forms_csv_path=forms_csv_file,
         )
         captured = capsys.readouterr().out
-        assert "매칭 완료" in captured
-        assert "미매칭" in captured
+        assert "students matched" in captured
+        assert "unmatched" in captured
         assert "S099" in captured

@@ -93,17 +93,17 @@ class TestPersona2MaliciousUser:
 
     def test_path_traversal_forward_slash(self):
         """Path traversal with ../"""
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("../../etc/passwd")
 
     def test_path_traversal_in_middle(self):
         """Path traversal embedded in a longer path."""
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("/home/user/../../../etc/shadow")
 
     def test_path_traversal_backslash(self):
         """Path traversal with Windows-style backslashes is rejected."""
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("..\\..\\etc\\passwd")
 
     def test_null_byte_in_path(self, tmp_path):
@@ -159,7 +159,7 @@ class TestPersona2MaliciousUser:
 
     def test_preprocess_path_traversal_blocked(self):
         """Full pipeline rejects traversal path."""
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             preprocess_transcript("../../../etc/passwd", "A", 1)
 
 
@@ -173,14 +173,14 @@ class TestPersona3EdgeCaseExpert:
         """Completely empty file (0 bytes)."""
         f = tmp_path / "empty.txt"
         f.write_text("", encoding="utf-8")
-        with pytest.raises(ValueError, match="비어"):
+        with pytest.raises(ValueError, match="empty"):
             preprocess_transcript(str(f), "A", 1)
 
     def test_whitespace_only_file(self, tmp_path):
         """File containing only whitespace."""
         f = tmp_path / "spaces.txt"
         f.write_text("   \n\n\t\t  \n", encoding="utf-8")
-        with pytest.raises(ValueError, match="비어"):
+        with pytest.raises(ValueError, match="empty"):
             preprocess_transcript(str(f), "A", 1)
 
     def test_fillers_only_file(self, tmp_path):
@@ -205,7 +205,7 @@ class TestPersona3EdgeCaseExpert:
         f = tmp_path / "over.txt"
         text = "세" * (MAX_TRANSCRIPT_LENGTH + 1)
         f.write_text(text, encoding="utf-8")
-        with pytest.raises(ValueError, match="초과"):
+        with pytest.raises(ValueError, match="exceeds"):
             preprocess_transcript(str(f), "A", 1)
 
     def test_single_word_transcript(self, tmp_path):
@@ -266,7 +266,7 @@ class TestPersona3EdgeCaseExpert:
         """File with only newline characters."""
         f = tmp_path / "newlines.txt"
         f.write_text("\n" * 100, encoding="utf-8")
-        with pytest.raises(ValueError, match="비어"):
+        with pytest.raises(ValueError, match="empty"):
             preprocess_transcript(str(f), "A", 1)
 
 
@@ -605,7 +605,7 @@ class TestPersona3ValidatePathEdgeCases:
 
     def test_validate_path_only_dotdotslash(self):
         """'../' alone."""
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("../")
 
 
@@ -718,7 +718,7 @@ class TestPersona6AnalyzerEdgeCases:
             no_triplets=True, provider=None,
         )
         assert result.triplets is None
-        assert "건너뛰기" in result.triplet_skipped_reason
+        assert "skipped" in result.triplet_skipped_reason
 
     def test_analyze_no_provider(self, tmp_path):
         """Triplet extraction skipped when provider is None."""
@@ -737,7 +737,7 @@ class TestPersona6AnalyzerEdgeCases:
             no_triplets=False, provider=None,
         )
         assert result.triplets is None
-        assert "미지정" in result.triplet_skipped_reason
+        assert "No LLM provider" in result.triplet_skipped_reason
 
 
 # ====================================================================

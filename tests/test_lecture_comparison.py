@@ -198,7 +198,7 @@ class TestCompareSections:
         from forma.lecture_comparison import compare_sections
 
         result_a = _make_result(class_id="A")
-        with pytest.raises(ValueError, match="최소 2개 반"):
+        with pytest.raises(ValueError, match="At least 2 sections"):
             compare_sections({"A": result_a})
 
     def test_compare_four_sections(self) -> None:

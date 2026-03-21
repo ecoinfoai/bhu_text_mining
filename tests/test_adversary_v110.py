@@ -181,7 +181,7 @@ class TestDataPoisoner:
             {"student_id": "dup001", "name": "홍길동복사", "email": "b@u.kr"},
         ])
 
-        with pytest.raises(ValueError, match="중복"):
+        with pytest.raises(ValueError, match="Duplicate"):
             load_roster(roster_path)
 
     def test_edge7_empty_email_field(self, tmp_path):
@@ -290,7 +290,7 @@ class TestDataPoisoner:
         with open(str(mf), "w", encoding="utf-8") as f:
             yaml.dump(data, f)
 
-        with pytest.raises(ValueError, match="directory"):
+        with pytest.raises(ValueError, match="does not exist"):
             load_manifest(str(mf))
 
     def test_empty_roster(self, tmp_path):
@@ -440,7 +440,7 @@ class TestSmtpSaboteur:
         send_emails(staging, template_path, smtp_config_path)
 
         # Second send without force raises
-        with pytest.raises(ValueError, match="발송"):
+        with pytest.raises(ValueError, match="already contains"):
             send_emails(staging, template_path, smtp_config_path)
 
     def test_smtp_auth_failure(self, tmp_path, monkeypatch):
@@ -477,7 +477,7 @@ class TestSmtpSaboteur:
 
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
-        with pytest.raises(ValueError, match="비밀번호"):
+        with pytest.raises(ValueError, match="password"):
             send_emails(staging, template_path, smtp_config_path)
 
     def test_password_from_parameter_overrides_env(self, tmp_path, monkeypatch):

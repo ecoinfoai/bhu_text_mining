@@ -326,7 +326,7 @@ class TestT027StudentFilter:
         captured = capsys.readouterr()
         combined = captured.out + captured.err
         assert "S999" in combined
-        assert "찾을 수 없습니다" in combined
+        assert "No data found" in combined
 
 
 # ---------------------------------------------------------------------------

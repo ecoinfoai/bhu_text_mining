@@ -1718,7 +1718,7 @@ class TestAdversaryMaliciousTemplate:
 
         # validate_template_variables uses \w+ pattern, '0' matches \w+
         # so it should detect '0' as unsupported variable
-        with pytest.raises(ValueError, match="지원하지 않는"):
+        with pytest.raises(ValueError, match="Unsupported"):
             validate_template_variables(t)
 
     def test_format_string_globals_attack(self):

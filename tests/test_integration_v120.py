@@ -174,11 +174,11 @@ class TestCLIIntegration:
 
         msg = _korean_error("file_not_found", path="/tmp/test.yaml")
         assert "/tmp/test.yaml" in msg
-        assert "파일" in msg
+        assert "File" in msg
 
         msg = _korean_error("unknown_command", cmd="foobar")
         assert "foobar" in msg
-        assert "알 수 없는" in msg
+        assert "Unknown command" in msg
 
     def test_progress_logging(self) -> None:
         """log_progress produces correctly formatted output."""
@@ -322,7 +322,7 @@ class TestSecurityPipelineExpanded:
             body="Secret: {secret_var}",
         )
 
-        with pytest.raises(ValueError, match="지원하지 않는 템플릿 변수"):
+        with pytest.raises(ValueError, match="Unsupported template variables"):
             validate_template_variables(malicious_template)
 
     def test_prepare_then_verify_summary_integrity(self, tmp_path) -> None:
@@ -387,7 +387,7 @@ class TestCLIIntegrationExpanded:
             main(["foo"])
         assert exc.value.code == 2
         captured = capsys.readouterr()
-        assert "알 수 없는 명령" in captured.err
+        assert "Unknown command" in captured.err
 
     def test_forma_report_no_subcommand_exits(self) -> None:
         """'forma report' without subcommand exits with error."""

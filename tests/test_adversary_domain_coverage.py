@@ -590,21 +590,21 @@ class TestYAMLInjectionAttacker:
         """YAML containing a list instead of dict → ValueError."""
         p = tmp_path / "concepts.yaml"
         p.write_text(yaml.dump(["a", "b", "c"]), encoding="utf-8")
-        with pytest.raises(ValueError, match="올바르지 않은"):
+        with pytest.raises(ValueError, match="Invalid"):
             load_concepts_yaml(str(p))
 
     def test_load_concepts_yaml_missing_chapters_key(self, tmp_path):
         """Dict without 'chapters' key → ValueError."""
         p = tmp_path / "concepts.yaml"
         p.write_text(yaml.dump({"data": "something"}), encoding="utf-8")
-        with pytest.raises(ValueError, match="올바르지 않은"):
+        with pytest.raises(ValueError, match="Invalid"):
             load_concepts_yaml(str(p))
 
     def test_load_coverage_yaml_not_dict(self, tmp_path):
         """Coverage YAML that's a list → ValueError."""
         p = tmp_path / "coverage.yaml"
         p.write_text(yaml.dump([1, 2, 3]), encoding="utf-8")
-        with pytest.raises(ValueError, match="올바르지 않은"):
+        with pytest.raises(ValueError, match="Invalid"):
             load_coverage_yaml(str(p))
 
     def test_extremely_long_concept_name(self, tmp_path):

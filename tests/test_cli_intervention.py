@@ -347,7 +347,7 @@ class TestCliInterventionList:
         main(["--no-config", "list", "--store", store_path, "--student", "s999"])
 
         captured = capsys.readouterr()
-        assert "기록 없음" in captured.out
+        assert "No records found" in captured.out
 
     def test_list_nonexistent_store_exits(self, tmp_path):
         """list with nonexistent store file exits with error."""
@@ -387,11 +387,11 @@ class TestCliInterventionList:
         captured = capsys.readouterr()
         # Should contain column headers
         assert "ID" in captured.out
-        assert "학생" in captured.out
-        assert "주차" in captured.out
-        assert "유형" in captured.out
-        assert "설명" in captured.out
-        assert "결과" in captured.out
+        assert "Student" in captured.out
+        assert "Week" in captured.out
+        assert "Type" in captured.out
+        assert "Description" in captured.out
+        assert "Outcome" in captured.out
 
     def test_list_chronological_order(self, tmp_path, capsys):
         """list output is in chronological order (by week)."""

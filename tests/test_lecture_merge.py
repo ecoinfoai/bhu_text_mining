@@ -120,7 +120,7 @@ class TestMergeAnalyses:
 
     def test_merge_empty_raises(self) -> None:
         """Empty analyses list raises ValueError."""
-        with pytest.raises(ValueError, match="병합할 분석 결과가 없습니다"):
+        with pytest.raises(ValueError, match="No analyses to merge"):
             merge_analyses([], class_id="A")
 
 
@@ -156,7 +156,7 @@ class TestMergedCaching:
 
     def test_load_missing_file(self) -> None:
         """Loading nonexistent file raises FileNotFoundError."""
-        with pytest.raises(FileNotFoundError, match="병합 분석 결과 파일"):
+        with pytest.raises(FileNotFoundError, match="Merged analysis file not found"):
             load_merged_analysis(Path("/nonexistent/path.yaml"))
 
     def test_save_creates_directory(self, tmp_path: Path) -> None:

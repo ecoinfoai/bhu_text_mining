@@ -800,7 +800,7 @@ class TestConfigPoisonerExpanded:
         """smtp_port > 65535 raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config({
                 "smtp_server": "smtp.test.com",
                 "sender_email": "a@b.com",
@@ -811,7 +811,7 @@ class TestConfigPoisonerExpanded:
         """smtp_port = 0 raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config({
                 "smtp_server": "smtp.test.com",
                 "sender_email": "a@b.com",
@@ -859,7 +859,7 @@ class TestConfigPoisonerExpanded:
         log_path = tmp_path / "delivery_log.yaml"
         log_path.write_text(yaml.dump([1, 2, 3]))
 
-        with pytest.raises(ValueError, match="형식이 올바르지 않습니다"):
+        with pytest.raises(ValueError, match="Invalid"):
             load_delivery_log(str(log_path))
 
 
@@ -904,7 +904,7 @@ class TestNetworkDestroyerExpanded:
             subject="Report for {student_name}",
             body="Hello {student_name}, secret: {__class__}",
         )
-        with pytest.raises(ValueError, match="지원하지 않는 템플릿 변수"):
+        with pytest.raises(ValueError, match="Unsupported template variables"):
             validate_template_variables(template)
 
     def test_render_template_no_attribute_traversal(self) -> None:

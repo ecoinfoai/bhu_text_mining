@@ -1528,7 +1528,7 @@ class TestCliDeliverSendSmtpConfigOptional:
             ])
 
         captured = capsys.readouterr()
-        assert "SMTP 설정을 찾을 수 없습니다" in captured.err
+        assert "SMTP config not found" in captured.err
 
     def test_explicit_smtp_config_takes_priority(self, tmp_path, monkeypatch):
         """When --smtp-config is given, use it even if forma.json has smtp section."""
@@ -1637,7 +1637,7 @@ class TestCliDeliverSendDeprecation:
             ]
             msg = str(deprecation_warnings[0].message)
             assert "config.json" in msg
-            assert "마이그레이션" in msg
+            assert "Migrate" in msg
 
     def test_no_deprecation_without_smtp_config_flag(self, tmp_path, monkeypatch):
         """When --smtp-config is NOT used, no deprecation warning is emitted."""

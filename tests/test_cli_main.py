@@ -132,7 +132,7 @@ class TestUnknownSubcommand:
             main(["foo"])
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "알 수 없는 명령" in captured.err
+        assert "Unknown command" in captured.err
 
 
 class TestKoreanErrorMessages:
@@ -141,24 +141,24 @@ class TestKoreanErrorMessages:
     def test_file_not_found_korean(self):
         """_korean_error returns proper Korean message for file_not_found."""
         msg = _korean_error("file_not_found", path="/tmp/no_such_file.yaml")
-        assert "파일을 찾을 수 없습니다" in msg
+        assert "File not found" in msg
         assert "/tmp/no_such_file.yaml" in msg
 
     def test_unknown_command_korean(self):
         """_korean_error returns proper Korean message for unknown_command."""
         msg = _korean_error("unknown_command", cmd="foo")
-        assert "알 수 없는 명령" in msg
+        assert "Unknown command" in msg
         assert "foo" in msg
 
     def test_yaml_parse_error_korean(self):
         """_korean_error returns proper Korean message for yaml_parse_error."""
         msg = _korean_error("yaml_parse_error", path="/tmp/bad.yaml")
-        assert "YAML 파싱 오류" in msg
+        assert "YAML parse error" in msg
 
     def test_smtp_auth_failure_korean(self):
         """_korean_error returns proper Korean message for smtp_auth_failure."""
         msg = _korean_error("smtp_auth_failure")
-        assert "SMTP 인증 실패" in msg
+        assert "SMTP authentication failed" in msg
 
 
 class TestProgressLogging:

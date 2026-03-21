@@ -971,7 +971,7 @@ class TestTranscriptDir:
 
         # Should have logged a warning about non-existent dir
         assert any(
-            "트랜스크립트" in record.message and "존재하지" in record.message
+            "transcript directory not found" in record.message.lower()
             for record in caplog.records
         ), f"Expected transcript warning, got: {[r.message for r in caplog.records]}"
 

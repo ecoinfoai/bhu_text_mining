@@ -282,7 +282,7 @@ class TestFormatComparisonReport:
             summary={"total": 2, "match_count": 2, "mismatch_count": 0},
         )
         report = format_comparison_report(result)
-        assert "비교 결과" in report
+        assert "Comparison Result" in report
         assert "test.jpg" in report
         assert "[O]" in report
 

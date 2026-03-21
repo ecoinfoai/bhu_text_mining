@@ -485,8 +485,8 @@ class TestCliDeprecationPath:
 
             dep_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
             expected = (
-                "--smtp-config는 향후 버전에서 제거됩니다. "
-                "config.json의 smtp 섹션으로 마이그레이션하세요."
+                "--smtp-config is deprecated and will be removed in a future version. "
+                "Migrate to the smtp section in config.json."
             )
             assert str(dep_warnings[0].message) == expected
 
@@ -647,7 +647,7 @@ class TestMissingSmtpBothSources:
         assert exc_info.value.code == 2
 
         captured = capsys.readouterr()
-        assert "SMTP 설정을 찾을 수 없습니다" in captured.err
+        assert "SMTP config not found" in captured.err
         assert "--smtp-config" in captured.err
         assert "config.json" in captured.err
 

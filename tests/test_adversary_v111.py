@@ -820,14 +820,14 @@ class TestInjectionArtistExtended:
         """Template with {__import__} rejected."""
         from forma.delivery_send import EmailTemplate, validate_template_variables
 
-        with pytest.raises(ValueError, match="\uc9c0\uc6d0\ud558\uc9c0 \uc54a\ub294"):
+        with pytest.raises(ValueError, match="Unsupported"):
             validate_template_variables(EmailTemplate(subject="T", body="{__import__}"))
 
     def test_unsupported_template_variable_class(self):
         """Template {__class__} rejected."""
         from forma.delivery_send import EmailTemplate, validate_template_variables
 
-        with pytest.raises(ValueError, match="\uc9c0\uc6d0\ud558\uc9c0 \uc54a\ub294"):
+        with pytest.raises(ValueError, match="Unsupported"):
             validate_template_variables(EmailTemplate(subject="T", body="{__class__}"))
 
     def test_escaped_braces_safe(self):
@@ -852,7 +852,7 @@ class TestInjectionArtistExtended:
             subject="{student_name} {__class__}",
             body="{student_id} {os}",
         )
-        with pytest.raises(ValueError, match="\uc9c0\uc6d0\ud558\uc9c0 \uc54a\ub294"):
+        with pytest.raises(ValueError, match="Unsupported"):
             validate_template_variables(tpl)
 
 
@@ -868,35 +868,35 @@ class TestBoundaryBreakerExtended:
         """Port 0 must be rejected."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config(_valid_data(smtp_port=0))
 
     def test_port_65536(self):
         """Port 65536 must be rejected."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config(_valid_data(smtp_port=65536))
 
     def test_port_2_pow_31(self):
         """Port 2**31 must be rejected."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config(_valid_data(smtp_port=2**31))
 
     def test_port_2_pow_63(self):
         """Port 2**63 must be rejected."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config(_valid_data(smtp_port=2**63))
 
     def test_port_negative_large(self):
         """Very negative port must be rejected."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config(_valid_data(smtp_port=-2**31))
 
     def test_server_whitespace_only(self):
@@ -1345,7 +1345,7 @@ class TestCLIAbuserExtended:
 
             dep = [x for x in w if issubclass(x.category, DeprecationWarning)]
             assert len(dep) >= 1
-            assert "\ub9c8\uc774\uadf8\ub808\uc774\uc158" in str(dep[0].message)
+            assert "Migrate" in str(dep[0].message)
 
     def test_prepare_missing_manifest(self, tmp_path):
         """prepare with non-existent manifest -> exit 2."""
@@ -1620,49 +1620,49 @@ class TestKoreanTextExtended:
         """Missing server error must be Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="SMTP \uc124\uc815\uc5d0"):
+        with pytest.raises(ValueError, match="SMTP config requires"):
             _build_smtp_config({"sender_email": "a@b.com"})
 
     def test_error_msg_missing_email_korean(self):
         """Missing email error must be Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="SMTP \uc124\uc815\uc5d0"):
+        with pytest.raises(ValueError, match="SMTP config requires"):
             _build_smtp_config({"smtp_server": "smtp.test.com"})
 
     def test_error_msg_bad_port_range_korean(self):
         """Bad port range error in Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="\ubc94\uc704"):
+        with pytest.raises(ValueError, match="range"):
             _build_smtp_config(_valid_data(smtp_port=99999))
 
     def test_error_msg_bad_port_type_korean(self):
         """Bad port type error in Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="\uc815\uc218"):
+        with pytest.raises(ValueError, match="integer"):
             _build_smtp_config(_valid_data(smtp_port="nope"))
 
     def test_error_msg_bad_email_format_korean(self):
         """Bad email format error in Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="\ud615\uc2dd"):
+        with pytest.raises(ValueError, match="format"):
             _build_smtp_config(_valid_data(sender_email="nope"))
 
     def test_error_msg_bad_interval_type_korean(self):
         """Bad interval type error in Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="\uc22b\uc790"):
+        with pytest.raises(ValueError, match="number"):
             _build_smtp_config(_valid_data(send_interval_sec="abc"))
 
     def test_error_msg_negative_interval_korean(self):
         """Negative interval error in Korean."""
         from forma.delivery_send import _build_smtp_config
 
-        with pytest.raises(ValueError, match="\uc774\uc0c1"):
+        with pytest.raises(ValueError, match=">= 0"):
             _build_smtp_config(_valid_data(send_interval_sec=-5))
 
     def test_error_msg_missing_smtp_section_korean(self):
@@ -1693,7 +1693,7 @@ class TestKoreanTextExtended:
 
             dep = [x for x in w if issubclass(x.category, DeprecationWarning)]
             assert len(dep) >= 1
-            assert "\ub9c8\uc774\uadf8\ub808\uc774\uc158" in str(dep[0].message)
+            assert "Migrate" in str(dep[0].message)
 
     def test_template_korean_body_renders(self):
         """Korean text in email template renders correctly."""
@@ -1782,7 +1782,7 @@ class TestCrossPersonaIntegration:
 
         data = {"host": "s", "p": 0, "email": "a@b.com"}
         field_map = {"host": "smtp_server", "p": "smtp_port", "email": "sender_email"}
-        with pytest.raises(ValueError, match="1~65535"):
+        with pytest.raises(ValueError, match="1-65535"):
             _build_smtp_config(data, field_map=field_map)
 
     def test_cli_with_injection_template(self, tmp_path):

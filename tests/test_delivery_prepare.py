@@ -226,7 +226,7 @@ class TestLoadManifest:
             encoding="utf-8",
         )
 
-        with pytest.raises(ValueError, match="directory"):
+        with pytest.raises(ValueError, match="does not exist"):
             load_manifest(str(manifest_file))
 
     def test_load_manifest_pattern_without_student_id(self, tmp_path):
@@ -310,7 +310,7 @@ class TestLoadRoster:
             encoding="utf-8",
         )
 
-        with pytest.raises(ValueError, match="중복.*s1|duplicate.*s1"):
+        with pytest.raises(ValueError, match="Duplicate.*s1"):
             load_roster(str(roster_file))
 
     def test_load_roster_empty_email(self, tmp_path):
@@ -1142,7 +1142,7 @@ class TestAdversaryDataManglerPrepare:
         roster_file = tmp_path / "roster.yaml"
         roster_file.write_text("- item1\n- item2\n", encoding="utf-8")
 
-        with pytest.raises(ValueError, match="형식"):
+        with pytest.raises(ValueError, match="invalid"):
             load_roster(str(roster_file))
 
     def test_roster_whitespace_only_email(self, tmp_path):

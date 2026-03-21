@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
 
 from forma.domain_concept_extractor import TextbookConcept
@@ -1003,8 +1004,6 @@ class TestCompareNetworks:
 # v3 Tests: Phase 2 — Embedding Signals & Ensemble (T010)
 # ================================================================
 
-import numpy as np
-
 try:
     from forma.domain_coverage_analyzer import (
         compute_embedding_signal,
@@ -1040,10 +1039,6 @@ class TestComputeEmbeddingSignal:
         key_term_vecs = np.array([
             [0.8, 0.2, 0.0],   # key_term 1 embedding
         ])
-        key_term_sentence_sims = np.array([
-            [0.7, 0.1, 0.4],   # key_term 1 vs 3 sentences
-        ])
-
         # Mock: first call for concept vs sentences, second for key_terms vs sentences
         call_count = [0]
 
@@ -1899,7 +1894,7 @@ class TestDeliverySectionComparisonSerialization:
         )
 
         deliveries = _build_4section_deliveries()
-        comparisons = compute_delivery_pairwise_comparisons(deliveries)
+        compute_delivery_pairwise_comparisons(deliveries)
 
         result = DeliveryResult(
             week=2,

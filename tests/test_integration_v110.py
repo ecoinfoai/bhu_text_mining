@@ -463,7 +463,7 @@ class TestCliE2E:
             "--output-dir", staging_dir,
         ])
         captured = capsys.readouterr()
-        assert "2명" in captured.out
+        assert "2 students" in captured.out
         assert "ready=2" in captured.out
 
         # CLI: send (mock SMTP)
@@ -477,7 +477,7 @@ class TestCliE2E:
             "--smtp-config", smtp_config_path,
         ])
         captured = capsys.readouterr()
-        assert "2건 성공" in captured.out
+        assert "2/2 succeeded" in captured.out
 
     def test_cli_dry_run(self, tmp_path, monkeypatch, capsys):
         """CLI: --dry-run produces [DRY-RUN] prefix in output."""
@@ -549,9 +549,9 @@ class TestSummaryIntegration:
         print_delivery_summary(log)
 
         captured = capsys.readouterr()
-        assert "3건" in captured.out
-        assert "3건 성공" in captured.out
-        assert "0건 실패" in captured.out
+        assert "Total 3" in captured.out
+        assert "3 success" in captured.out
+        assert "0 failed" in captured.out
 
     def test_send_summary_email_after_send(self, tmp_path, monkeypatch):
         """send_summary_email sends to professor after real send."""

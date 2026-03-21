@@ -15,12 +15,18 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+import pytest
 
 from forma.domain_concept_extractor import (
+    DomainConcept,
     TextbookConcept,
+    build_extraction_prompt,
     extract_concepts,
+    extract_concepts_llm,
     extract_multi_chapter,
+    extract_multi_chapter_llm,
     save_concepts_yaml,
     load_concepts_yaml,
 )
@@ -271,16 +277,6 @@ class TestConceptCaching:
 # ================================================================
 # v2 Tests: LLM-based concept extraction (T008-T011)
 # ================================================================
-
-from unittest.mock import MagicMock, patch
-
-from forma.domain_concept_extractor import (
-    DomainConcept,
-    build_extraction_prompt,
-    extract_concepts_llm,
-    extract_multi_chapter_llm,
-)
-
 
 # ----------------------------------------------------------------
 # T008: DomainConcept dataclass and prompt construction
@@ -647,16 +643,12 @@ class TestMultiChapterLLMAndYAML:
 try:
     from forma.domain_concept_extractor import (
         TopicHierarchy,
-        MajorTopic,
-        SubTopic,
         parse_summary_hierarchy,
     )
 
     _HAS_HIERARCHY = True
 except ImportError:
     _HAS_HIERARCHY = False
-
-import pytest
 
 _skip_hierarchy = pytest.mark.skipif(
     not _HAS_HIERARCHY,

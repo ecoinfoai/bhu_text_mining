@@ -30,7 +30,7 @@ class TestValidatePath:
         """Paths containing ``../`` raise ValueError."""
         from forma.lecture_preprocessor import validate_path
 
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("data/../etc/passwd")
 
     def test_validate_path_accepts_normal(self) -> None:
@@ -44,7 +44,7 @@ class TestValidatePath:
         """Backslash traversal (Windows-style) is rejected."""
         from forma.lecture_preprocessor import validate_path
 
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("data\\..\\etc\\passwd")
 
     def test_validate_path_rejects_null_byte(self) -> None:
@@ -64,14 +64,14 @@ class TestValidatePath:
         """Trailing '..' at end of path is traversal."""
         from forma.lecture_preprocessor import validate_path
 
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("data/..")
 
     def test_validate_path_rejects_leading_dotdot(self) -> None:
         """Leading '..' at start of path is traversal."""
         from forma.lecture_preprocessor import validate_path
 
-        with pytest.raises(ValueError, match="경로"):
+        with pytest.raises(ValueError, match="traversal"):
             validate_path("../data/file.txt")
 
 
@@ -345,7 +345,7 @@ class TestPreprocessTranscript:
 
         p = tmp_path / "empty.txt"
         p.write_text("", encoding="utf-8")
-        with pytest.raises(ValueError, match="비어 있습니다"):
+        with pytest.raises(ValueError, match="empty"):
             preprocess_transcript(str(p), "A", 1)
 
     def test_preprocess_transcript_empty_after_cleaning(
