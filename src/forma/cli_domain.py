@@ -495,6 +495,13 @@ def _build_report_parser() -> argparse.ArgumentParser:
         help="차트 해상도 (기본값: 150)",
     )
     parser.add_argument(
+        "--concepts",
+        type=str,
+        default=None,
+        dest="concepts_file",
+        help="개념 목록 YAML 파일 (네트워크 그래프용, 선택적)",
+    )
+    parser.add_argument(
         "--summary",
         type=str,
         default=None,
@@ -550,6 +557,49 @@ def report_main(argv: list[str] | None = None) -> None:
         else:
             logger.warning("요약 파일을 찾을 수 없습니다: %s", args.summary)
 
+    # Build concept network from delivery data (if v2 with concepts)
+    concept_network = None
+    deliveries_by_section = None
+    if is_v2 and hasattr(result, "deliveries") and result.deliveries:
+        try:
+            from forma.concept_network import build_concept_network
+            from forma.domain_concept_extractor import DomainConcept
+
+            # Extract unique concepts from deliveries
+            seen = set()
+            concepts_for_net = []
+            for d in result.deliveries:
+                if d.concept not in seen:
+                    seen.add(d.concept)
+                    concepts_for_net.append(DomainConcept(
+                        concept=d.concept,
+                        description="",
+                        key_terms=getattr(d, "_key_terms", []),
+                    ))
+
+            # Try loading concepts file for richer key_terms
+            if args.concepts_file:
+                from forma.domain_concept_extractor import load_concepts_yaml
+                cby = load_concepts_yaml(args.concepts_file)
+                concept_map = {}
+                for cs in cby.values():
+                    for c in cs:
+                        concept_map[c.concept] = c
+                concepts_for_net = [
+                    concept_map.get(c.concept, c) for c in concepts_for_net
+                ]
+
+            concept_network = build_concept_network(concepts_for_net)
+
+            # Group deliveries by section
+            deliveries_by_section = {}
+            for d in result.deliveries:
+                if d.section_id not in deliveries_by_section:
+                    deliveries_by_section[d.section_id] = []
+                deliveries_by_section[d.section_id].append(d)
+        except Exception:
+            logger.warning("개념 네트워크 구축 실패", exc_info=True)
+
     # Generate PDF
     generator = DomainDeliveryPDFReportGenerator(
         font_path=args.font_path,
@@ -561,6 +611,8 @@ def report_main(argv: list[str] | None = None) -> None:
         output_path=args.output,
         course_name=args.course_name,
         hierarchy=hierarchy,
+        concept_network=concept_network,
+        deliveries_by_section=deliveries_by_section,
     )
 
     logger.info("PDF 보고서 생성 완료: %s", output_path)
