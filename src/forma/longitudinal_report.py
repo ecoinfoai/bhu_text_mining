@@ -92,18 +92,18 @@ RISK_INTERPRETATION_GUIDE: str = (
     "음수(-) → 점수가 주차가 지남에 따라 하락하는 추세\n"
     "0 근처 → 정체 (개선도 악화도 없음)\n\n"
     "■ 중재 우선순위 판단\n\n"
-    "기울기 > +0.05 인 위험군 학생:\n"
-    "  개선 가능성이 관찰되므로 적극적 중재(면담, "
-    "보충학습)로 위험 구간 이탈을 도울 수 있는 "
-    "우선 대상입니다.\n\n"
-    "기울기 < -0.05 인 위험군 학생:\n"
-    "  하락 추세가 지속되고 있어 즉각적인 개입이 "
-    "필요합니다. 면담을 통해 학습 장애 요인을 파악하는 "
-    "것을 권장합니다.\n\n"
-    "기울기 ≈ 0 인 위험군 학생:\n"
-    "  정체 상태이므로 기존 학습 방법의 변화가 "
-    "필요합니다. 멘토링이나 학습 전략 변경을 "
-    "고려하십시오."
+    "기울기 > +0.05 (개선 추세 학생):\n"
+    "  성취도가 점차 향상되고 있습니다. 적극적 "
+    "중재(면담, 보충학습)로 위험 구간 이탈을 "
+    "앞당길 수 있는 우선 지원 대상입니다.\n\n"
+    "기울기 < -0.05 (하락 추세 학생):\n"
+    "  성취도가 지속적으로 하락하고 있어 즉각적인 "
+    "개입이 필요합니다. 면담을 통해 학습 장애 "
+    "요인을 파악하는 것을 권장합니다.\n\n"
+    "기울기 ≈ 0 (정체 학생):\n"
+    "  뚜렷한 변화 없이 낮은 성취도가 유지되고 "
+    "있습니다. 기존 학습 방법의 전환이 필요하며, "
+    "멘토링이나 학습 전략 변경을 고려하십시오."
 )
 
 MASTERY_INTERPRETATION_GUIDE: str = (
@@ -491,47 +491,7 @@ class LongitudinalPDFReportGenerator:
         story.append(Spacer(1, 2 * mm))
 
         if data.persistent_risk_students:
-            # Risk student table
-            header = [
-                Paragraph("학생", self._styles["LongTableHeader"]),
-                Paragraph("최종 주차 점수", self._styles["LongTableHeader"]),
-                Paragraph("추세(기울기)", self._styles["LongTableHeader"]),
-            ]
-            rows = [header]
-
-            for sid in data.persistent_risk_students:
-                traj = next(
-                    (t for t in data.student_trajectories if t.student_id == sid),
-                    None,
-                )
-                if traj is None:
-                    continue
-
-                # Get final week score
-                final_score = "—"
-                if data.period_weeks and traj.weekly_scores:
-                    for w in reversed(data.period_weeks):
-                        if w in traj.weekly_scores:
-                            final_score = f"{traj.weekly_scores[w]:.3f}"
-                            break
-
-                trend_str = f"{traj.overall_trend:+.4f}"
-
-                rows.append([
-                    Paragraph(_esc(sid), self._styles["LongTableData"]),
-                    Paragraph(final_score, self._styles["LongTableData"]),
-                    Paragraph(trend_str, self._styles["LongTableData"]),
-                ])
-
-            table = Table(rows, colWidths=[50 * mm, 50 * mm, 50 * mm])
-            table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#C62828")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]))
-            story.append(table)
+            story.extend(self._build_risk_tables_by_trend(data))
         else:
             story.append(Paragraph(
                 "지속 위험군 학생이 없습니다.",
@@ -540,6 +500,118 @@ class LongitudinalPDFReportGenerator:
 
         story.append(Spacer(1, 5 * mm))
         return story
+
+    def _build_risk_tables_by_trend(
+        self,
+        data: LongitudinalSummaryData,
+    ) -> list:
+        """Build risk tables split by trend category.
+
+        Args:
+            data: Summary data with persistent risk students.
+
+        Returns:
+            List of ReportLab flowables with 3 tables.
+        """
+        improving = []
+        declining = []
+        stagnant = []
+
+        for sid in data.persistent_risk_students:
+            traj = next(
+                (t for t in data.student_trajectories
+                 if t.student_id == sid),
+                None,
+            )
+            if traj is None:
+                continue
+            final_score = "—"
+            if data.period_weeks and traj.weekly_scores:
+                for w in reversed(data.period_weeks):
+                    if w in traj.weekly_scores:
+                        final_score = (
+                            f"{traj.weekly_scores[w]:.3f}"
+                        )
+                        break
+            row = (sid, final_score, traj.overall_trend)
+            if traj.overall_trend > 0.05:
+                improving.append(row)
+            elif traj.overall_trend < -0.05:
+                declining.append(row)
+            else:
+                stagnant.append(row)
+
+        groups = [
+            ("하락 추세 학생", "#C62828", declining),
+            ("정체 학생", "#E65100", stagnant),
+            ("개선 추세 학생", "#2E7D32", improving),
+        ]
+        story: list = []
+        for title, color, rows in groups:
+            story.append(Paragraph(
+                f"{_esc(title)} ({len(rows)}명)",
+                self._styles["LongSection"],
+            ))
+            story.append(Spacer(1, 2 * mm))
+            if not rows:
+                story.append(Paragraph(
+                    "해당 학생 없음",
+                    self._styles["LongBody"],
+                ))
+                story.append(Spacer(1, 3 * mm))
+                continue
+            story.append(
+                self._build_risk_table(rows, color)
+            )
+            story.append(Spacer(1, 4 * mm))
+        return story
+
+    def _build_risk_table(
+        self,
+        rows: list[tuple[str, str, float]],
+        header_color: str,
+    ) -> Table:
+        """Build a single risk group table.
+
+        Args:
+            rows: List of (student_id, final_score, trend).
+            header_color: Hex color for header background.
+
+        Returns:
+            ReportLab Table flowable.
+        """
+        header = [
+            Paragraph("학생", self._styles["LongTableHeader"]),
+            Paragraph("최종 점수",
+                       self._styles["LongTableHeader"]),
+            Paragraph("추세(기울기)",
+                       self._styles["LongTableHeader"]),
+        ]
+        table_rows = [header]
+        for sid, score, trend in rows:
+            table_rows.append([
+                Paragraph(_esc(sid),
+                          self._styles["LongTableData"]),
+                Paragraph(score,
+                          self._styles["LongTableData"]),
+                Paragraph(f"{trend:+.4f}",
+                          self._styles["LongTableData"]),
+            ])
+        tbl = Table(
+            table_rows,
+            colWidths=[50 * mm, 45 * mm, 45 * mm],
+        )
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0),
+             HexColor(header_color)),
+            ("TEXTCOLOR", (0, 0), (-1, 0),
+             HexColor("#FFFFFF")),
+            ("GRID", (0, 0), (-1, -1), 0.5,
+             HexColor("#CCCCCC")),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        return tbl
 
     def _build_concept_mastery_section(
         self,

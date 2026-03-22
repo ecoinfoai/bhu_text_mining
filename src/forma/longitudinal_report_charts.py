@@ -62,21 +62,31 @@ def build_trajectory_line_chart(
 
     weeks = sorted(summary_data.period_weeks)
 
-    # Plot normal students first (background), then risk students on top
+    # Adaptive alpha based on student count
+    n_students = len(summary_data.student_trajectories)
+    normal_alpha = max(0.05, 0.3 - n_students * 0.001)
+    risk_students = [
+        t for t in summary_data.student_trajectories
+        if t.is_persistent_risk
+    ]
+
+    # Plot normal students first (background)
     for traj in summary_data.student_trajectories:
         if traj.is_persistent_risk:
             continue
         ws = sorted(traj.weekly_scores.keys())
         scores = [traj.weekly_scores[w] for w in ws]
-        ax.plot(ws, scores, color="gray", alpha=0.3, linewidth=1)
+        ax.plot(ws, scores, color="gray",
+                alpha=normal_alpha, linewidth=0.8)
 
-    for traj in summary_data.student_trajectories:
-        if not traj.is_persistent_risk:
-            continue
+    # Risk students on top — aggregate legend
+    for i, traj in enumerate(risk_students):
         ws = sorted(traj.weekly_scores.keys())
         scores = [traj.weekly_scores[w] for w in ws]
-        ax.plot(ws, scores, color="red", alpha=0.8, linewidth=1.5,
-                label=traj.student_id)
+        label = (f"지속 위험군 ({len(risk_students)}명)"
+                 if i == 0 else None)
+        ax.plot(ws, scores, color="red", alpha=0.6,
+                linewidth=1.2, label=label)
 
     # Class average line (blue bold)
     if summary_data.class_weekly_averages:
