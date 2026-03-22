@@ -20,6 +20,7 @@ import argparse
 import logging
 import os
 import sys
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,68 @@ __all__ = [
     "_build_summary_parser",
     "batch_main",
     "main",
+    "parse_weeks_arg",
     "summary_main",
 ]
+
+
+def parse_weeks_arg(values: list[str]) -> list[int]:
+    """Parse --weeks argument into a sorted list of week numbers.
+
+    Supports three formats:
+      - Single int: '3' → [1, 2, 3] (weeks 1 through N)
+      - Colon range: '2:5' → [2, 3, 4, 5]
+      - Multiple ints: ['1', '3', '5'] → [1, 3, 5]
+
+    Args:
+        values: Raw string values from argparse nargs="+".
+
+    Returns:
+        Sorted list of week numbers.
+
+    Raises:
+        ValueError: If values cannot be parsed.
+    """
+    if len(values) == 1:
+        val = values[0]
+        if ":" in val:
+            parts = val.split(":")
+            if len(parts) != 2:
+                msg = (
+                    f"Invalid range format: '{val}'. "
+                    "Use 'start:end'."
+                )
+                raise ValueError(msg)
+            try:
+                start, end = int(parts[0]), int(parts[1])
+            except ValueError:
+                msg = (
+                    f"Invalid range values: '{val}'. "
+                    "Use integers."
+                )
+                raise ValueError(msg) from None
+            if start > end:
+                msg = (
+                    f"Invalid range: {start} > {end}. "
+                    "Start must be <= end."
+                )
+                raise ValueError(msg)
+            return list(range(start, end + 1))
+        try:
+            n = int(val)
+        except ValueError:
+            msg = f"Invalid week value: '{val}'"
+            raise ValueError(msg) from None
+        return list(range(1, n + 1))
+
+    result: list[int] = []
+    for v in values:
+        try:
+            result.append(int(v))
+        except ValueError:
+            msg = f"Invalid week value: '{v}'"
+            raise ValueError(msg) from None
+    return sorted(result)
 
 
 def _create_llm_provider():
@@ -106,10 +167,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output", required=True,
         help="Output PDF file path",
     )
-    # Optional args
-    parser.add_argument(
-        "--weeks", type=int, nargs="+", default=None,
-        help="Week list to include (all weeks if omitted)",
+    # Week selection (mutually exclusive)
+    week_group = parser.add_mutually_exclusive_group()
+    week_group.add_argument(
+        "--week", default=None,
+        help="(DEPRECATED) Use --weeks instead.",
+    )
+    week_group.add_argument(
+        "--weeks", nargs="+", default=None,
+        help=(
+            "Week selection: single N (1..N), "
+            "range start:end, or list 1 3 5"
+        ),
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
@@ -177,8 +246,15 @@ def main(argv=None) -> int | None:
     store.load()
 
     # Determine available weeks
-    if args.weeks:
-        weeks = sorted(args.weeks)
+    if args.week is not None:
+        warnings.warn(
+            "Use --weeks instead of --week",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        weeks = parse_weeks_arg([args.week])
+    elif args.weeks:
+        weeks = parse_weeks_arg(args.weeks)
     else:
         all_records = store.get_all_records()
         weeks = sorted({r.week for r in all_records})
@@ -218,7 +294,9 @@ def main(argv=None) -> int | None:
     )
 
     # Evaluate warnings
-    warnings, alert_level = evaluate_warnings(student_data, cohort)
+    student_warnings, alert_level = evaluate_warnings(
+        student_data, cohort,
+    )
 
     # LLM interpretation
     llm_texts = None
@@ -229,7 +307,9 @@ def main(argv=None) -> int | None:
                 generate_interpretation,
             )
 
-            anon_summary = anonymize(student_data, warnings)
+            anon_summary = anonymize(
+                student_data, student_warnings,
+            )
 
             # Try to create LLM provider from config or environment
             provider = _create_llm_provider()
@@ -249,7 +329,8 @@ def main(argv=None) -> int | None:
             font_path=args.font_path, dpi=args.dpi,
         )
         result = gen.generate_pdf(
-            student_data, cohort, warnings, alert_level, args.output,
+            student_data, cohort, student_warnings,
+            alert_level, args.output,
             llm_texts=llm_texts,
         )
         logger.info("Student report generated: %s", result)
@@ -278,9 +359,18 @@ def _build_batch_parser() -> argparse.ArgumentParser:
         "--output-dir", required=True, dest="output_dir",
         help="Output PDF directory path",
     )
-    parser.add_argument(
-        "--weeks", type=int, nargs="+", default=None,
-        help="Week list to include (all weeks if omitted)",
+    # Week selection (mutually exclusive)
+    batch_week_group = parser.add_mutually_exclusive_group()
+    batch_week_group.add_argument(
+        "--week", default=None,
+        help="(DEPRECATED) Use --weeks instead.",
+    )
+    batch_week_group.add_argument(
+        "--weeks", nargs="+", default=None,
+        help=(
+            "Week selection: single N (1..N), "
+            "range start:end, or list 1 3 5"
+        ),
     )
     parser.add_argument(
         "--font-path", default=None, dest="font_path",
@@ -351,8 +441,15 @@ def batch_main(argv=None) -> int | None:
     store.load()
 
     # Determine available weeks
-    if args.weeks:
-        weeks = sorted(args.weeks)
+    if args.week is not None:
+        warnings.warn(
+            "Use --weeks instead of --week",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        weeks = parse_weeks_arg([args.week])
+    elif args.weeks:
+        weeks = parse_weeks_arg(args.weeks)
     else:
         all_records = store.get_all_records()
         weeks = sorted({r.week for r in all_records})
@@ -422,7 +519,9 @@ def batch_main(argv=None) -> int | None:
             )
 
             # Evaluate warnings
-            warnings, alert_level = evaluate_warnings(student_data, cohort)
+            student_warnings, alert_level = evaluate_warnings(
+                student_data, cohort,
+            )
 
             # LLM interpretation
             llm_texts = None
@@ -431,17 +530,24 @@ def batch_main(argv=None) -> int | None:
                     from forma.student_longitudinal_data import anonymize
                     from forma.student_longitudinal_llm import generate_interpretation
 
-                    anon_summary = anonymize(student_data, warnings)
-                    llm_texts = generate_interpretation(anon_summary, llm_provider)
+                    anon_summary = anonymize(
+                        student_data, student_warnings,
+                    )
+                    llm_texts = generate_interpretation(
+                        anon_summary, llm_provider,
+                    )
                 except Exception as exc:
                     logger.warning(
                         "Student %s LLM interpretation failed (continuing): %s", student_id, exc,
                     )
 
             # Generate PDF
-            output_path = os.path.join(args.output_dir, f"{student_id}.pdf")
+            output_path = os.path.join(
+                args.output_dir, f"{student_id}.pdf",
+            )
             gen.generate_pdf(
-                student_data, cohort, warnings, alert_level, output_path,
+                student_data, cohort, student_warnings,
+                alert_level, output_path,
                 llm_texts=llm_texts,
             )
             success += 1
@@ -473,9 +579,18 @@ def _build_summary_parser() -> argparse.ArgumentParser:
         "--output", required=True,
         help="Output PDF file path",
     )
-    parser.add_argument(
-        "--weeks", type=int, nargs="+", default=None,
-        help="Week list to include (all weeks if omitted)",
+    # Week selection (mutually exclusive)
+    summary_week_group = parser.add_mutually_exclusive_group()
+    summary_week_group.add_argument(
+        "--week", default=None,
+        help="(DEPRECATED) Use --weeks instead.",
+    )
+    summary_week_group.add_argument(
+        "--weeks", nargs="+", default=None,
+        help=(
+            "Week selection: single N (1..N), "
+            "range start:end, or list 1 3 5"
+        ),
     )
     parser.add_argument(
         "--course-name", default="", dest="course_name",
@@ -546,8 +661,15 @@ def summary_main(argv=None) -> int | None:
     store.load()
 
     # Determine available weeks
-    if args.weeks:
-        weeks = sorted(args.weeks)
+    if args.week is not None:
+        warnings.warn(
+            "Use --weeks instead of --week",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        weeks = parse_weeks_arg([args.week])
+    elif args.weeks:
+        weeks = parse_weeks_arg(args.weeks)
     else:
         all_records = store.get_all_records()
         weeks = sorted({r.week for r in all_records})

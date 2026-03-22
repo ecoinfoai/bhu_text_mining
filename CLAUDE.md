@@ -44,6 +44,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-11
 - YAML files (concepts, delivery results), PDF (reports), text files (textbook, transcripts) (021-domain-delivery-analysis)
 - Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, networkx >=3.4.2, numpy <2.1.0, scipy >=1.12.0, sentence-transformers (ko-sroberta-multitask), google-genai (Gemini API) (022-domain-delivery-v3)
 - YAML files (concepts, delivery results, config), PNG (charts), PDF (reports) (022-domain-delivery-v3)
+- Python >=3.11, <4 + PyYAML >=6.0, scipy >=1.12.0 (kendalltau, spearmanr), matplotlib >=3.10.0, ReportLab >=4.4.4, numpy <2.1.0 (023-longitudinal-report-overhaul)
+- YAML files (longitudinal store, exam config) (023-longitudinal-report-overhaul)
 
 - Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0 (001-student-pdf-report)
 
@@ -172,10 +174,9 @@ Python >=3.11, <4: Follow standard conventions
 - `week_config.py` — `+lecture_*` fields in `WeekConfiguration`, `+"lecture_transcript_pattern"` in `_CLASS_PATTERN_FIELDS`, lecture section parsing in `load_week_config()`
 
 ## Recent Changes
+- 023-longitudinal-report-overhaul: Added Python >=3.11, <4 + PyYAML >=6.0, scipy >=1.12.0 (kendalltau, spearmanr), matplotlib >=3.10.0, ReportLab >=4.4.4, numpy <2.1.0
 - 022-domain-delivery-v3: Added Python >=3.11, <4 + ReportLab >=4.4.4, matplotlib >=3.10.0, PyYAML >=6.0, networkx >=3.4.2, numpy <2.1.0, scipy >=1.12.0, sentence-transformers (ko-sroberta-multitask), google-genai (Gemini API)
 - 021-domain-delivery-analysis: Added Python >=3.11, <4 + LLM (Gemini Pro/Flash via llm_provider.py), KoNLPy (Okt — network graphs), networkx (network analysis), matplotlib >=3.10.0, ReportLab >=4.4.4, PyYAML >=6.0, numpy, scipy (Spearman), sentence-transformers (v1 fallback)
-- 020-domain-coverage: Added Python >=3.11, <4 + KoNLPy (Okt), sentence-transformers (ko-sroberta), matplotlib >=3.10.0, ReportLab >=4.4.4, PyYAML >=6.0, numpy <2.1.0, scipy (Spearman correlation)
-- 019-student-longitudinal-report: Added Python >=3.11, <4 + ReportLab >=4.4.4 (Platypus API), matplotlib >=3.10.0 (Agg backend), PyYAML >=6.0, numpy <2.1.0, existing `llm_provider.py` (Gemini/Anthropic)
 
 
 <!-- MANUAL ADDITIONS START -->

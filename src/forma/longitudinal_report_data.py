@@ -57,6 +57,44 @@ class ConceptMasteryChange:
 
 
 @dataclass
+class TopicWeekStats:
+    """Per-topic per-week class statistics.
+
+    Args:
+        topic: Topic name (e.g. "개념이해").
+        week: Week number.
+        mean: Class mean score for this topic in this week.
+        std: Class standard deviation for this topic in this week.
+    """
+
+    topic: str
+    week: int
+    mean: float
+    std: float
+
+
+@dataclass
+class TopicTrendResult:
+    """Trend analysis result for one topic across weeks.
+
+    Args:
+        topic: Topic name.
+        kendall_tau: Kendall's tau correlation coefficient.
+        kendall_p: Kendall's tau p-value.
+        spearman_rho: Spearman's rho correlation coefficient.
+        spearman_p: Spearman's rho p-value.
+        n_weeks: Number of weeks used for trend computation.
+    """
+
+    topic: str
+    kendall_tau: float
+    kendall_p: float
+    spearman_rho: float
+    spearman_p: float
+    n_weeks: int
+
+
+@dataclass
 class LongitudinalSummaryData:
     """Container for all data needed to generate the longitudinal summary PDF.
 
@@ -78,6 +116,8 @@ class LongitudinalSummaryData:
     concept_mastery_changes: list[ConceptMasteryChange]
     total_students: int
     risk_predictions: list | None = None
+    topic_statistics: list[TopicWeekStats] | None = None
+    topic_trends: list[TopicTrendResult] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +141,7 @@ def build_longitudinal_summary(
     store: LongitudinalStore,
     weeks: list[int],
     class_name: str,
+    class_ids: list[str] | None = None,
 ) -> LongitudinalSummaryData:
     """Build LongitudinalSummaryData from store for specified weeks.
 
@@ -108,6 +149,8 @@ def build_longitudinal_summary(
         store: LongitudinalStore with loaded records.
         weeks: List of week numbers to include.
         class_name: Class/section identifier.
+        class_ids: Optional filter — only include students
+            whose records have a matching class_id.
 
     Returns:
         LongitudinalSummaryData ready for PDF generation.
@@ -116,6 +159,17 @@ def build_longitudinal_summary(
 
     # Get the weekly matrix: {student_id: {week: avg_ensemble_score}}
     matrix = store.get_class_weekly_matrix("ensemble_score")
+
+    # When class_ids filter is active, restrict to matching students
+    if class_ids is not None:
+        allowed_sids = set()
+        for rec in store.get_all_records():
+            if rec.class_id in class_ids:
+                allowed_sids.add(rec.student_id)
+        matrix = {
+            sid: ws for sid, ws in matrix.items()
+            if sid in allowed_sids
+        }
 
     # Collect all student IDs that have data in the requested weeks
     student_ids = set()
@@ -256,3 +310,123 @@ def _aggregate_concept_scores(
         for concept, values in concept_values.items()
         if values
     }
+
+
+# ---------------------------------------------------------------------------
+# Topic statistics (US7)
+# ---------------------------------------------------------------------------
+
+
+def compute_topic_class_statistics(
+    store: LongitudinalStore,
+    weeks: list[int],
+    class_ids: list[str] | None = None,
+) -> list[TopicWeekStats]:
+    """Compute per-topic per-week class mean and SD.
+
+    Args:
+        store: LongitudinalStore with loaded records.
+        weeks: List of week numbers to include.
+        class_ids: Optional filter by class_id.
+
+    Returns:
+        List of TopicWeekStats, one per (topic, week) pair.
+        Empty list if no topic data exists.
+    """
+    matrix = store.get_topic_weekly_matrix("ensemble_score")
+    if not matrix:
+        return []
+
+    # {topic: {week: [scores]}}
+    topic_week_scores: dict[
+        str, dict[int, list[float]]
+    ] = defaultdict(lambda: defaultdict(list))
+
+    for sid, topics in matrix.items():
+        for topic, week_scores in topics.items():
+            for week, score in week_scores.items():
+                if week in weeks:
+                    topic_week_scores[topic][week].append(
+                        score,
+                    )
+
+    results: list[TopicWeekStats] = []
+    for topic in sorted(topic_week_scores):
+        for week in sorted(weeks):
+            scores = topic_week_scores[topic].get(week, [])
+            if not scores:
+                continue
+            results.append(TopicWeekStats(
+                topic=topic,
+                week=week,
+                mean=float(np.mean(scores)),
+                std=float(np.std(scores, ddof=1))
+                if len(scores) > 1
+                else 0.0,
+            ))
+
+    return results
+
+
+def compute_topic_trends(
+    store: LongitudinalStore,
+    weeks: list[int],
+    class_ids: list[str] | None = None,
+) -> list[TopicTrendResult]:
+    """Compute Kendall tau and Spearman rho trends per topic.
+
+    Requires 3+ weeks of data. Returns empty list if fewer.
+
+    Args:
+        store: LongitudinalStore with loaded records.
+        weeks: List of week numbers to include.
+        class_ids: Optional filter by class_id.
+
+    Returns:
+        List of TopicTrendResult, one per topic.
+        Empty list if < 3 weeks or no topic data.
+    """
+    sorted_weeks = sorted(weeks)
+    if len(sorted_weeks) < 3:
+        return []
+
+    stats = compute_topic_class_statistics(
+        store, sorted_weeks, class_ids,
+    )
+    if not stats:
+        return []
+
+    # Group means by topic → {topic: {week: mean}}
+    topic_means: dict[str, dict[int, float]] = defaultdict(
+        dict,
+    )
+    for s in stats:
+        topic_means[s.topic][s.week] = s.mean
+
+    from scipy.stats import kendalltau, spearmanr
+
+    results: list[TopicTrendResult] = []
+    for topic in sorted(topic_means):
+        wk_means = topic_means[topic]
+        avail_weeks = sorted(
+            w for w in sorted_weeks if w in wk_means
+        )
+        if len(avail_weeks) < 3:
+            continue
+
+        x = list(avail_weeks)
+        y = [wk_means[w] for w in x]
+
+        tau, tau_p = kendalltau(x, y)
+        rho, rho_p = spearmanr(x, y)
+
+        results.append(TopicTrendResult(
+            topic=topic,
+            kendall_tau=float(tau),
+            kendall_p=float(tau_p),
+            spearman_rho=float(rho),
+            spearman_p=float(rho_p),
+            n_weeks=len(avail_weeks),
+        ))
+
+    return results

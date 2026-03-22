@@ -27,6 +27,7 @@ from forma.student_longitudinal_data import (
     CohortDistribution,
     StudentLongitudinalData,
     WarningSignal,
+    compute_topic_trends,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,13 @@ _ALERT_COLORS = {
     AlertLevel.CAUTION: "#F57F17",
     AlertLevel.WARNING: "#C62828",
 }
+
+SCORE_INTERPRETATION_LEGEND = (
+    "점수 해석 기준: 성취도 점수(ensemble_score)는 0.0~1.0 범위이며, "
+    "≥0.70은 '우수'(개념을 정확히 이해하고 적용), "
+    "0.45~0.70은 '보통'(기본 개념은 이해하나 일부 부족), "
+    "<0.45는 '위험'(핵심 개념 미달, 보충 학습 필요)으로 해석합니다."
+)
 
 
 class StudentLongitudinalPDFReportGenerator:
@@ -131,6 +139,8 @@ class StudentLongitudinalPDFReportGenerator:
             student_data, cohort, llm_text=llm_texts.get("position")))
         story.extend(self._build_warning_section(
             warnings, alert_level, llm_text=llm_texts.get("warning")))
+        story.extend(self._build_topic_trend_section(student_data))
+        story.extend(self._build_score_legend())
 
         doc = SimpleDocTemplate(
             output_path,
@@ -325,4 +335,114 @@ class StudentLongitudinalPDFReportGenerator:
             story.append(Paragraph(_esc(llm_text), self._styles["StuBody"]))
 
         story.append(Spacer(1, 5 * mm))
+        return story
+
+    def _build_score_legend(self) -> list:
+        """Build score interpretation legend (1 paragraph)."""
+        story: list = []
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            _esc(SCORE_INTERPRETATION_LEGEND),
+            self._styles["StuSmall"],
+        ))
+        story.append(Spacer(1, 3 * mm))
+        return story
+
+    def _build_topic_trend_section(
+        self,
+        student_data: StudentLongitudinalData,
+    ) -> list:
+        """Build topic-based trend section with table.
+
+        Renders a per-topic trend table with Kendall tau
+        and Spearman rho when topic_scores is available.
+
+        Args:
+            student_data: Student data with topic_scores.
+
+        Returns:
+            List of ReportLab flowables.
+        """
+        story: list = []
+        if not student_data.topic_scores:
+            return story
+
+        story.append(PageBreak())
+        story.append(Paragraph(
+            "5. Topic별 성취도 추세",
+            self._styles["StuSection"],
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+        # Score legend
+        story.extend(self._build_score_legend())
+
+        # Compute trends
+        trends = compute_topic_trends(
+            student_data.topic_scores
+        )
+
+        # Build table
+        from reportlab.platypus import Table, TableStyle
+        from reportlab.lib import colors
+
+        weeks = sorted(
+            set(
+                w
+                for ws in student_data.topic_scores.values()
+                for w in ws
+            )
+        )
+        header = ["Topic", "주차 수"]
+        for w in weeks:
+            header.append(f"{w}주")
+        header.extend(["τ", "ρ", "해석"])
+
+        table_data = [header]
+        for trend in trends:
+            ts = student_data.topic_scores.get(
+                trend.topic, {}
+            )
+            row = [trend.topic, str(trend.n_weeks)]
+            for w in weeks:
+                v = ts.get(w)
+                row.append(
+                    f"{v:.2f}" if v is not None else "—"
+                )
+            if trend.kendall_tau is not None:
+                row.append(f"{trend.kendall_tau:+.2f}")
+                row.append(f"{trend.spearman_rho:+.2f}")
+                if trend.kendall_p < 0.05:
+                    row.append(
+                        "상승↑"
+                        if trend.kendall_tau > 0
+                        else "하강↓"
+                    )
+                else:
+                    row.append("변동 없음")
+            else:
+                row.extend(["—", "—", "3주 이상 필요"])
+            table_data.append(row)
+
+        n_cols = len(header)
+        col_w = 160 * mm / n_cols
+        t = Table(table_data, colWidths=[col_w] * n_cols)
+        t.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+            ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 3 * mm))
+
+        for trend in trends:
+            if trend.interpretation:
+                story.append(Paragraph(
+                    _esc(trend.interpretation),
+                    self._styles["StuSmall"],
+                ))
+
         return story

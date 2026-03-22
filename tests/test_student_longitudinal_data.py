@@ -506,3 +506,161 @@ class TestAnonymize:
         assert hasattr(summary, "alert_level")
         assert hasattr(summary, "triggered_signals")
         assert hasattr(summary, "component_breakdown")
+
+
+# ---------------------------------------------------------------------------
+# US2: Topic-based student tracking (T019–T023)
+# ---------------------------------------------------------------------------
+
+
+class TestBuildStudentDataTopicGrouping:
+    """T019: build_student_data groups by topic when available."""
+
+    def test_groups_by_topic(self, tmp_path):
+        """When records have topic, scores_by_week uses topic keys."""
+        records = [
+            LongitudinalRecord(
+                student_id="s001", week=1, question_sn=1,
+                scores={"ensemble_score": 0.6},
+                tier_level=2, tier_label="P",
+                topic="개념이해", class_id="A",
+            ),
+            LongitudinalRecord(
+                student_id="s001", week=1, question_sn=2,
+                scores={"ensemble_score": 0.8},
+                tier_level=3, tier_label="A",
+                topic="적용", class_id="A",
+            ),
+            LongitudinalRecord(
+                student_id="s001", week=2, question_sn=1,
+                scores={"ensemble_score": 0.7},
+                tier_level=2, tier_label="P",
+                topic="개념이해", class_id="A",
+            ),
+            LongitudinalRecord(
+                student_id="s001", week=2, question_sn=2,
+                scores={"ensemble_score": 0.9},
+                tier_level=3, tier_label="A",
+                topic="적용", class_id="A",
+            ),
+        ]
+        store = _build_store(tmp_path, records)
+        cohort = build_cohort_distribution(store, weeks=[1, 2])
+        data = build_student_data(
+            store, "s001", weeks=[1, 2], cohort=cohort,
+        )
+
+        # topic_scores should be populated
+        assert data.topic_scores is not None
+        assert "개념이해" in data.topic_scores
+        assert "적용" in data.topic_scores
+        assert data.topic_scores["개념이해"] == {
+            1: pytest.approx(0.6),
+            2: pytest.approx(0.7),
+        }
+        assert data.topic_scores["적용"] == {
+            1: pytest.approx(0.8),
+            2: pytest.approx(0.9),
+        }
+
+
+class TestBuildStudentDataFallbackNoTopic:
+    """T020: fallback to question_sn when topic is None."""
+
+    def test_fallback_to_question_sn(self, tmp_path):
+        """Legacy records without topic: topic_scores is None."""
+        records = [
+            _make_record(
+                student_id="s001", week=1, question_sn=1,
+                ensemble_score=0.6,
+            ),
+            _make_record(
+                student_id="s001", week=2, question_sn=1,
+                ensemble_score=0.7,
+            ),
+        ]
+        store = _build_store(tmp_path, records)
+        cohort = build_cohort_distribution(store, weeks=[1, 2])
+        data = build_student_data(
+            store, "s001", weeks=[1, 2], cohort=cohort,
+        )
+
+        assert data.topic_scores is None
+
+
+class TestComputeTopicTrends:
+    """T021–T022: compute_topic_trends with Kendall tau and Spearman rho."""
+
+    def test_3_weeks_produces_stats(self, tmp_path):
+        """3+ weeks of data yields tau, rho, p-values per topic."""
+        from forma.student_longitudinal_data import (
+            compute_topic_trends,
+        )
+
+        topic_scores = {
+            "개념이해": {1: 0.5, 2: 0.6, 3: 0.7},
+            "적용": {1: 0.8, 2: 0.7, 3: 0.6},
+        }
+        results = compute_topic_trends(topic_scores)
+
+        assert len(results) == 2
+        by_topic = {r.topic: r for r in results}
+
+        # 개념이해: increasing → positive tau/rho
+        r1 = by_topic["개념이해"]
+        assert r1.n_weeks == 3
+        assert r1.kendall_tau > 0
+        assert r1.spearman_rho > 0
+
+        # 적용: decreasing → negative tau/rho
+        r2 = by_topic["적용"]
+        assert r2.kendall_tau < 0
+        assert r2.spearman_rho < 0
+
+    def test_2_weeks_no_stats(self, tmp_path):
+        """< 3 weeks: returns results with None stats."""
+        from forma.student_longitudinal_data import (
+            compute_topic_trends,
+        )
+
+        topic_scores = {
+            "개념이해": {1: 0.5, 2: 0.6},
+        }
+        results = compute_topic_trends(topic_scores)
+
+        assert len(results) == 1
+        r = results[0]
+        assert r.n_weeks == 2
+        assert r.kendall_tau is None
+        assert r.spearman_rho is None
+
+
+class TestTopicScoreAveraging:
+    """T023: same-topic questions in one week are averaged."""
+
+    def test_same_topic_averaged(self, tmp_path):
+        """Two questions with same topic in week 1 → averaged."""
+        records = [
+            LongitudinalRecord(
+                student_id="s001", week=1, question_sn=1,
+                scores={"ensemble_score": 0.4},
+                tier_level=1, tier_label="D",
+                topic="개념이해", class_id="A",
+            ),
+            LongitudinalRecord(
+                student_id="s001", week=1, question_sn=2,
+                scores={"ensemble_score": 0.6},
+                tier_level=2, tier_label="P",
+                topic="개념이해", class_id="A",
+            ),
+        ]
+        store = _build_store(tmp_path, records)
+        cohort = build_cohort_distribution(store, weeks=[1])
+        data = build_student_data(
+            store, "s001", weeks=[1], cohort=cohort,
+        )
+
+        assert data.topic_scores is not None
+        assert data.topic_scores["개념이해"][1] == pytest.approx(
+            0.5
+        )

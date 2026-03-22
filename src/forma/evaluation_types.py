@@ -365,6 +365,8 @@ class LongitudinalRecord:
         concept_scores: Per-concept correctness ratio. v2 field.
         exam_file: Exam file basename used for this evaluation. v2 field.
         recorded_at: ISO 8601 timestamp of snapshot creation. v2 field.
+        topic: Question category from exam YAML (e.g. "개념이해").
+        class_id: Section identifier (e.g. "A", "B").
     """
 
     student_id: str
@@ -381,6 +383,8 @@ class LongitudinalRecord:
     recorded_at: Optional[str] = None
     ocr_confidence_mean: Optional[float] = None
     ocr_confidence_min: Optional[float] = None
+    topic: Optional[str] = None
+    class_id: Optional[str] = None
 
 
 @dataclass

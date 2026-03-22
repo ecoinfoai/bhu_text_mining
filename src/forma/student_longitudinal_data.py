@@ -26,10 +26,12 @@ __all__ = [
     "CohortDistribution",
     "CohortWeekStats",
     "StudentLongitudinalData",
+    "TopicTrendResult",
     "WarningSignal",
     "anonymize",
     "build_cohort_distribution",
     "build_student_data",
+    "compute_topic_trends",
     "evaluate_warnings",
     "parse_id_csv",
 ]
@@ -105,6 +107,7 @@ class StudentLongitudinalData:
         trend_slope: OLS slope of ensemble_score across weeks (None if < 2 weeks).
         trend_direction: "상승" / "정체" / "하강" / "데이터 부족".
         percentiles_by_week: {week: percentile_rank} (0-100).
+        topic_scores: {topic: {week: avg_score}} when topic data exists.
     """
 
     student_id: str
@@ -115,6 +118,7 @@ class StudentLongitudinalData:
     trend_slope: float | None = None
     trend_direction: str = "데이터 부족"
     percentiles_by_week: dict[int, float] = field(default_factory=dict)
+    topic_scores: dict[str, dict[int, float]] | None = None
 
 
 @dataclass(frozen=True)
@@ -169,6 +173,94 @@ class AnonymizedStudentSummary:
     alert_level: str = "정상"
     triggered_signals: list[str] = field(default_factory=list)
     component_breakdown: dict[int, dict[str, float]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TopicTrendResult:
+    """Per-topic trend statistics from longitudinal data.
+
+    Args:
+        topic: Topic name (e.g. "개념이해").
+        kendall_tau: Kendall's tau; None if < 3 data points.
+        kendall_p: p-value for tau; None if < 3 data points.
+        spearman_rho: Spearman's rho; None if < 3 data points.
+        spearman_p: p-value for rho; None if < 3 data points.
+        n_weeks: Number of data points used.
+        interpretation: Korean text interpretation.
+    """
+
+    topic: str
+    kendall_tau: float | None
+    kendall_p: float | None
+    spearman_rho: float | None
+    spearman_p: float | None
+    n_weeks: int
+    interpretation: str
+
+
+def compute_topic_trends(
+    topic_scores: dict[str, dict[int, float]],
+) -> list[TopicTrendResult]:
+    """Compute Kendall tau and Spearman rho per topic.
+
+    Args:
+        topic_scores: {topic: {week: avg_score}}.
+
+    Returns:
+        List of TopicTrendResult, one per topic.
+    """
+    from scipy.stats import kendalltau, spearmanr
+
+    results: list[TopicTrendResult] = []
+    for topic, week_scores in sorted(topic_scores.items()):
+        weeks_sorted = sorted(week_scores.keys())
+        values = [week_scores[w] for w in weeks_sorted]
+        n = len(values)
+
+        if n < 3:
+            results.append(TopicTrendResult(
+                topic=topic,
+                kendall_tau=None,
+                kendall_p=None,
+                spearman_rho=None,
+                spearman_p=None,
+                n_weeks=n,
+                interpretation="3주 이상 데이터 필요",
+            ))
+            continue
+
+        tau, tau_p = kendalltau(
+            list(range(n)), values
+        )
+        rho, rho_p = spearmanr(
+            list(range(n)), values
+        )
+
+        # Build interpretation
+        if tau_p < 0.05 and tau > 0:
+            interp = "유의미한 상승 추세"
+        elif tau_p < 0.05 and tau < 0:
+            interp = "유의미한 하강 추세"
+        else:
+            interp = "유의미한 추세 없음"
+
+        interp_str = (
+            f"{topic} τ = {tau:+.2f}, "
+            f"ρ = {rho:+.2f} "
+            f"(p = {tau_p:.3f}): {interp}"
+        )
+
+        results.append(TopicTrendResult(
+            topic=topic,
+            kendall_tau=float(tau),
+            kendall_p=float(tau_p),
+            spearman_rho=float(rho),
+            spearman_p=float(rho_p),
+            n_weeks=n,
+            interpretation=interp_str,
+        ))
+
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -343,6 +435,30 @@ def build_student_data(
                 cohort.weekly_scores[week],
             )
 
+    # Build topic_scores: {topic: {week: avg_score}}
+    topic_scores: dict[str, dict[int, float]] | None = None
+    has_topic = any(
+        rec.topic is not None
+        for rec in history
+        if rec.week in weeks
+    )
+    if has_topic:
+        raw_topic: dict[
+            str, dict[int, list[float]]
+        ] = defaultdict(lambda: defaultdict(list))
+        for rec in history:
+            if rec.week in weeks and rec.topic is not None:
+                val = rec.scores.get("ensemble_score")
+                if val is not None:
+                    raw_topic[rec.topic][rec.week].append(val)
+        topic_scores = {
+            t: {
+                w: sum(vs) / len(vs)
+                for w, vs in sorted(wk_map.items())
+            }
+            for t, wk_map in raw_topic.items()
+        }
+
     return StudentLongitudinalData(
         student_id=student_id,
         student_name=student_name,
@@ -352,6 +468,7 @@ def build_student_data(
         trend_slope=trend_slope,
         trend_direction=trend_direction,
         percentiles_by_week=percentiles_by_week,
+        topic_scores=topic_scores,
     )
 
 

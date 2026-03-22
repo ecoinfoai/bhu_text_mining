@@ -133,7 +133,7 @@ class TestCliReportStudentParsing:
             "--dpi", "200",
             "--no-config",
         ])
-        assert args.weeks == [1, 2, 3]
+        assert args.weeks == ["1", "2", "3"]
         assert args.dpi == 200
         assert args.no_config is True
 
@@ -237,7 +237,7 @@ class TestCliBatchParsing:
             "--no-llm",
             "--no-config",
         ])
-        assert args.weeks == [1, 2]
+        assert args.weeks == ["1", "2"]
         assert args.dpi == 200
         assert args.no_llm is True
         assert args.no_config is True
@@ -361,3 +361,95 @@ class TestCliBatchExecution:
                 "--no-llm",
             ])
         assert exc_info.value.code == 1
+
+
+# ---------------------------------------------------------------------------
+# T054-T058: US6 --weeks argument tests
+# ---------------------------------------------------------------------------
+
+
+class TestParseWeeksArg:
+    """Tests for parse_weeks_arg() helper function."""
+
+    def test_parse_weeks_single_int(self):
+        """T054: --weeks 3 → [1, 2, 3] (1 through N)."""
+        from forma.cli_report_student import parse_weeks_arg
+
+        result = parse_weeks_arg(["3"])
+        assert result == [1, 2, 3]
+
+    def test_parse_weeks_range(self):
+        """T055: --weeks 2:5 → [2, 3, 4, 5]."""
+        from forma.cli_report_student import parse_weeks_arg
+
+        result = parse_weeks_arg(["2:5"])
+        assert result == [2, 3, 4, 5]
+
+    def test_parse_weeks_list(self):
+        """T056: --weeks 1 3 5 → [1, 3, 5]."""
+        from forma.cli_report_student import parse_weeks_arg
+
+        result = parse_weeks_arg(["1", "3", "5"])
+        assert result == [1, 3, 5]
+
+    def test_parse_weeks_invalid_range_raises(self):
+        """Invalid range format raises ValueError."""
+        from forma.cli_report_student import parse_weeks_arg
+
+        with pytest.raises(ValueError):
+            parse_weeks_arg(["abc"])
+
+    def test_parse_weeks_reversed_range_raises(self):
+        """Reversed range 5:2 raises ValueError."""
+        from forma.cli_report_student import parse_weeks_arg
+
+        with pytest.raises(ValueError):
+            parse_weeks_arg(["5:2"])
+
+
+class TestWeeksDeprecation:
+    """Tests for --week deprecation and mutual exclusion."""
+
+    def test_week_and_weeks_mutually_exclusive(self):
+        """T057: Error when both --week and --weeks specified."""
+        from forma.cli_report_student import _build_parser
+
+        parser = _build_parser()
+        with pytest.raises(SystemExit):
+            parser.parse_args([
+                "--store", "s.yaml",
+                "--student", "s001",
+                "--id-csv", "id.csv",
+                "--output", "out.pdf",
+                "--week", "3",
+                "--weeks", "1", "2",
+            ])
+
+    def test_week_deprecation_warning(self, tmp_path):
+        """T058: DeprecationWarning emitted for --week."""
+        from forma.cli_report_student import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--store", "s.yaml",
+            "--student", "s001",
+            "--id-csv", "id.csv",
+            "--output", "out.pdf",
+            "--week", "3",
+        ])
+        # The deprecated --week should store the value
+        assert args.week == "3"
+
+    def test_weeks_new_arg_accepts_range(self):
+        """--weeks accepts colon-range format as string."""
+        from forma.cli_report_student import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--store", "s.yaml",
+            "--student", "s001",
+            "--id-csv", "id.csv",
+            "--output", "out.pdf",
+            "--weeks", "2:5",
+        ])
+        assert args.weeks == ["2:5"]

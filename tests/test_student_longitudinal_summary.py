@@ -276,5 +276,5 @@ class TestCLISummary:
         assert args.store == "store.yaml"
         assert args.id_csv == "ids.csv"
         assert args.output == "out.pdf"
-        assert args.weeks == [1, 2, 3]
+        assert args.weeks == ["1", "2", "3"]
         assert args.course_name == "생물학개론"

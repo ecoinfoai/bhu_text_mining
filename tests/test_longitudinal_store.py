@@ -1190,3 +1190,271 @@ class TestConcurrentSave:
         records = final.get_all_records()
         # At least the last writer's records are present
         assert len(records) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 US1: topic + class_id schema extension (T003–T007)
+# ---------------------------------------------------------------------------
+
+
+class TestTopicClassIdFields:
+    """T003: LongitudinalRecord accepts topic and class_id."""
+
+    def test_topic_and_class_id_default_none(self):
+        """topic and class_id default to None."""
+        rec = _make_record()
+        assert rec.topic is None
+        assert rec.class_id is None
+
+    def test_topic_and_class_id_accept_values(self):
+        """topic and class_id accept explicit string values."""
+        rec = LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.7},
+            tier_level=2, tier_label="Proficient",
+            topic="개념이해", class_id="A",
+        )
+        assert rec.topic == "개념이해"
+        assert rec.class_id == "A"
+
+
+class TestToDictTopicClassId:
+    """T004: _to_dict() serializes topic/class_id when present."""
+
+    def test_to_dict_includes_topic_class_id(self, tmp_path):
+        """_to_dict includes topic and class_id when not None."""
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        rec = LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.7},
+            tier_level=2, tier_label="Proficient",
+            topic="적용", class_id="B",
+        )
+        d = store._to_dict(rec)
+        assert d["topic"] == "적용"
+        assert d["class_id"] == "B"
+
+    def test_to_dict_omits_none_topic_class_id(self, tmp_path):
+        """_to_dict omits topic and class_id when None."""
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        rec = _make_record()
+        d = store._to_dict(rec)
+        assert "topic" not in d
+        assert "class_id" not in d
+
+
+class TestToRecordLegacyCompat:
+    """T005: _to_record loads legacy YAML without topic/class_id."""
+
+    def test_legacy_without_topic_class_id(self, tmp_path):
+        """Loading YAML without topic/class_id sets them to None."""
+        path = str(tmp_path / "store.yaml")
+        import yaml
+        legacy_data = {
+            "records": {
+                "s001_1_1": {
+                    "student_id": "s001",
+                    "week": 1,
+                    "question_sn": 1,
+                    "scores": {"ensemble_score": 0.5},
+                    "tier_level": 1,
+                    "tier_label": "Developing",
+                    "manual_override": False,
+                }
+            }
+        }
+        with open(path, "w") as f:
+            yaml.dump(legacy_data, f)
+
+        store = LongitudinalStore(path)
+        store.load()
+        records = store.get_all_records()
+        assert len(records) == 1
+        assert records[0].topic is None
+        assert records[0].class_id is None
+
+
+class TestSnapshotTopicClassId:
+    """T006: snapshot_from_evaluation stores topic and class_id."""
+
+    def test_snapshot_stores_topic_and_class_id(self, tmp_path):
+        """snapshot_from_evaluation passes topic/class_id to records."""
+        from forma.longitudinal_store import snapshot_from_evaluation
+        from forma.evaluation_types import EnsembleResult
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+
+        ensemble_results = {
+            "s001": {
+                1: EnsembleResult(
+                    student_id="s001", question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
+                    component_scores={"score": 0.70},
+                    weights_used={"score": 1.0},
+                ),
+                2: EnsembleResult(
+                    student_id="s001", question_sn=2,
+                    ensemble_score=0.60,
+                    understanding_level="Developing",
+                    component_scores={"score": 0.60},
+                    weights_used={"score": 1.0},
+                ),
+            },
+        }
+
+        topics = {1: "개념이해", 2: "적용"}
+        snapshot_from_evaluation(
+            store=store,
+            ensemble_results=ensemble_results,
+            graph_metric_results={},
+            graph_comparison_results={},
+            layer1_results=[],
+            week=1,
+            exam_file="test.yaml",
+            topics=topics,
+            class_id="A",
+        )
+
+        records = store.get_all_records()
+        assert len(records) == 2
+        by_qsn = {r.question_sn: r for r in records}
+        assert by_qsn[1].topic == "개념이해"
+        assert by_qsn[1].class_id == "A"
+        assert by_qsn[2].topic == "적용"
+        assert by_qsn[2].class_id == "A"
+
+    def test_snapshot_no_topic_no_class(self, tmp_path):
+        """snapshot without topics/class_id sets them to None."""
+        from forma.longitudinal_store import snapshot_from_evaluation
+        from forma.evaluation_types import EnsembleResult
+
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+
+        ensemble_results = {
+            "s001": {
+                1: EnsembleResult(
+                    student_id="s001", question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
+                    component_scores={"score": 0.70},
+                    weights_used={"score": 1.0},
+                ),
+            },
+        }
+
+        snapshot_from_evaluation(
+            store=store,
+            ensemble_results=ensemble_results,
+            graph_metric_results={},
+            graph_comparison_results={},
+            layer1_results=[],
+            week=1,
+            exam_file="test.yaml",
+        )
+
+        records = store.get_all_records()
+        assert records[0].topic is None
+        assert records[0].class_id is None
+
+
+class TestGetTopicWeeklyMatrix:
+    """T007: get_topic_weekly_matrix groups by (student, topic, week)."""
+
+    def test_basic_topic_matrix(self, tmp_path):
+        """Groups records by topic and averages scores per week."""
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+
+        # Week 1: 2 questions, different topics
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.6},
+            tier_level=2, tier_label="P",
+            topic="개념이해", class_id="A",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=2,
+            scores={"ensemble_score": 0.8},
+            tier_level=3, tier_label="A",
+            topic="적용", class_id="A",
+        ))
+        # Week 2: same topics
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=2, question_sn=1,
+            scores={"ensemble_score": 0.7},
+            tier_level=2, tier_label="P",
+            topic="개념이해", class_id="A",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=2, question_sn=2,
+            scores={"ensemble_score": 0.9},
+            tier_level=3, tier_label="A",
+            topic="적용", class_id="A",
+        ))
+
+        matrix = store.get_topic_weekly_matrix("ensemble_score")
+        assert "s001" in matrix
+        assert matrix["s001"]["개념이해"] == {1: 0.6, 2: 0.7}
+        assert matrix["s001"]["적용"] == {1: 0.8, 2: 0.9}
+
+    def test_same_topic_multiple_questions_averaged(self, tmp_path):
+        """Two questions with same topic in one week are averaged."""
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.4},
+            tier_level=1, tier_label="D",
+            topic="개념이해", class_id="A",
+        ))
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=2,
+            scores={"ensemble_score": 0.6},
+            tier_level=2, tier_label="P",
+            topic="개념이해", class_id="A",
+        ))
+
+        matrix = store.get_topic_weekly_matrix("ensemble_score")
+        avg = matrix["s001"]["개념이해"][1]
+        assert abs(avg - 0.5) < 1e-9
+
+    def test_no_topic_records_excluded(self, tmp_path):
+        """Records without topic are excluded from matrix."""
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.5},
+            tier_level=1, tier_label="D",
+        ))
+
+        matrix = store.get_topic_weekly_matrix("ensemble_score")
+        assert matrix == {}
+
+    def test_topic_roundtrip(self, tmp_path):
+        """topic and class_id survive save/load roundtrip."""
+        path = str(tmp_path / "store.yaml")
+        store = LongitudinalStore(path)
+        store.add_record(LongitudinalRecord(
+            student_id="s001", week=1, question_sn=1,
+            scores={"ensemble_score": 0.6},
+            tier_level=2, tier_label="P",
+            topic="개념이해", class_id="A",
+        ))
+        store.save()
+
+        store2 = LongitudinalStore(path)
+        store2.load()
+        records = store2.get_all_records()
+        assert records[0].topic == "개념이해"
+        assert records[0].class_id == "A"
+
+        matrix = store2.get_topic_weekly_matrix("ensemble_score")
+        assert matrix["s001"]["개념이해"] == {1: 0.6}
