@@ -1160,16 +1160,40 @@ def _save_longitudinal(
     config_data: dict,
     layer1_results: dict | None = None,
     responses_data: dict | list | None = None,
+    class_id: str | None = None,
 ) -> None:
     """Save results to longitudinal store with v2 fields."""
     try:
-        from forma.longitudinal_store import LongitudinalStore, snapshot_from_evaluation
+        from forma.longitudinal_store import (
+            LongitudinalStore,
+            snapshot_from_evaluation,
+            _infer_class_id,
+        )
 
         store = LongitudinalStore(store_path)
         store.load()
 
         week = config_data.get("longitudinal", {}).get("week", 0)
         exam_file = config_data.get("config_path", "")
+
+        # Extract topic mapping from config questions
+        topics: dict[int, str] | None = None
+        questions = config_data.get("questions", [])
+        if questions:
+            topic_map: dict[int, str] = {}
+            for q in questions:
+                sn = q.get("sn")
+                t = q.get("topic")
+                if sn is not None and t is not None:
+                    topic_map[int(sn)] = t
+            if topic_map:
+                topics = topic_map
+
+        # Infer class_id from responses filename if not provided
+        if class_id is None:
+            resp_path = config_data.get("responses_path", "")
+            if resp_path:
+                class_id = _infer_class_id(resp_path)
 
         # Flatten nested dict {student_id: {qsn: [ConceptMatchResult]}} to flat list
         flat_layer1: list = []
@@ -1195,6 +1219,8 @@ def _save_longitudinal(
             exam_file=exam_file,
             ocr_confidence=ocr_confidence,
             id_map=id_map,
+            topics=topics,
+            class_id=class_id,
         )
 
         store.save()

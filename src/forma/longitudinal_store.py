@@ -12,8 +12,26 @@ from typing import Optional  # used by _compute_concept_scores return type
 
 import yaml
 
+import re
+
 from forma.evaluation_io import FormaDumper
 from forma.evaluation_types import LongitudinalRecord
+
+
+def _infer_class_id(path: str) -> str | None:
+    """Extract class_id from directory or filename pattern.
+
+    Matches patterns like ``eval_A``, ``final_BC.yaml``,
+    ``eval_ABC/``. Returns None if no pattern matches.
+
+    Args:
+        path: Directory or file path string.
+
+    Returns:
+        Extracted class identifier or None.
+    """
+    m = re.search(r'[_]([A-Z]{1,3})(?:[_./\\]|$)', path)
+    return m.group(1) if m else None
 
 
 def _record_key(student_id: str, week: int, question_sn: int) -> str:
@@ -71,6 +89,10 @@ class LongitudinalStore:
             d["ocr_confidence_mean"] = record.ocr_confidence_mean
         if record.ocr_confidence_min is not None:
             d["ocr_confidence_min"] = record.ocr_confidence_min
+        if record.topic is not None:
+            d["topic"] = record.topic
+        if record.class_id is not None:
+            d["class_id"] = record.class_id
         return d
 
     def _to_record(self, data: dict) -> LongitudinalRecord:
@@ -90,6 +112,8 @@ class LongitudinalStore:
             recorded_at=data.get("recorded_at", None),
             ocr_confidence_mean=data.get("ocr_confidence_mean", None),
             ocr_confidence_min=data.get("ocr_confidence_min", None),
+            topic=data.get("topic", None),
+            class_id=data.get("class_id", None),
         )
 
     def add_record(self, record: LongitudinalRecord) -> None:
@@ -221,6 +245,49 @@ class LongitudinalStore:
         }
 
 
+    def get_topic_weekly_matrix(
+        self, metric: str
+    ) -> dict[str, dict[str, dict[int, float]]]:
+        """Return {student_id: {topic: {week: avg_score}}}.
+
+        Groups records by topic and averages same-topic questions
+        per week. Records without a topic are excluded.
+
+        Args:
+            metric: Score metric name (e.g. "ensemble_score").
+
+        Returns:
+            Nested dict: student -> topic -> week -> avg score.
+        """
+        # {sid: {topic: {week: [values]}}}
+        raw: dict[
+            str, dict[str, dict[int, list[float]]]
+        ] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )
+        for d in self._records.values():
+            topic = d.get("topic")
+            if topic is None:
+                continue
+            val = d["scores"].get(metric)
+            if val is None:
+                continue
+            sid = d["student_id"]
+            wk = d["week"]
+            raw[sid][topic][wk].append(val)
+
+        return {
+            sid: {
+                topic: {
+                    wk: sum(vs) / len(vs)
+                    for wk, vs in sorted(weeks.items())
+                }
+                for topic, weeks in topics.items()
+            }
+            for sid, topics in raw.items()
+        }
+
+
 def _compute_concept_scores(
     layer1_results: list,
     student_id: str,
@@ -249,6 +316,8 @@ def snapshot_from_evaluation(
     exam_file: str,
     ocr_confidence: dict | None = None,
     id_map: dict[str, str] | None = None,
+    topics: dict[int, str] | None = None,
+    class_id: str | None = None,
 ) -> None:
     """Upsert evaluation results into the store with v2 fields.
 
@@ -264,6 +333,8 @@ def snapshot_from_evaluation(
         id_map: Optional mapping of anonymous ID to real student ID (학번).
             When provided, student_id is replaced with the real ID for
             longitudinal tracking across weeks.
+        topics: Optional mapping of question_sn to topic string.
+        class_id: Optional section identifier (e.g. "A").
     """
     recorded_at = datetime.now(timezone.utc).isoformat()
 
@@ -301,6 +372,8 @@ def snapshot_from_evaluation(
             if hasattr(er, "ensemble_score") and er.ensemble_score is not None:
                 scores_with_ensemble["ensemble_score"] = er.ensemble_score
 
+            topic = topics.get(qsn) if topics else None
+
             record = LongitudinalRecord(
                 student_id=real_id,
                 week=week,
@@ -316,5 +389,7 @@ def snapshot_from_evaluation(
                 recorded_at=recorded_at,
                 ocr_confidence_mean=ocr_mean,
                 ocr_confidence_min=ocr_min,
+                topic=topic,
+                class_id=class_id,
             )
             store.add_record(record)

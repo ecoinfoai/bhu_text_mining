@@ -147,13 +147,42 @@ def main() -> None:
         default=None,
         help="Path to final_X.yaml for OCR confidence (repeatable, optional)",
     )
+    parser.add_argument(
+        "--class",
+        dest="class_id",
+        default=None,
+        help="Class/section ID (e.g. A). Overrides pattern inference.",
+    )
+    parser.add_argument(
+        "--exam-config",
+        default=None,
+        help="Exam config YAML for topic extraction",
+    )
     args = parser.parse_args()
 
-    from forma.longitudinal_store import LongitudinalStore, snapshot_from_evaluation
+    from forma.longitudinal_store import (
+        LongitudinalStore,
+        snapshot_from_evaluation,
+        _infer_class_id,
+    )
 
     store = LongitudinalStore(args.store)
     if os.path.exists(args.store):
         store.load()
+
+    # Extract topic mapping from exam config
+    topics: dict[int, str] | None = None
+    if args.exam_config and os.path.exists(args.exam_config):
+        with open(args.exam_config) as f:
+            exam_data = yaml.safe_load(f) or {}
+        topics = {}
+        for q in exam_data.get("questions", []):
+            sn = q.get("sn") or q.get("question_sn")
+            t = q.get("topic")
+            if sn is not None and t is not None:
+                topics[int(sn)] = t
+        if not topics:
+            topics = None
 
     # Pre-load all responses to build id_map (anonymous ID -> real student ID)
     all_responses: list[dict] = []
@@ -177,7 +206,10 @@ def main() -> None:
 
     for eval_dir in args.eval_dir:
         if not os.path.isdir(eval_dir):
-            print(f"[backfill] WARNING: {eval_dir} is not a directory, skipping", file=sys.stderr)
+            print(
+                f"[backfill] WARNING: {eval_dir} is not a directory, skipping",
+                file=sys.stderr,
+            )
             continue
 
         ensemble_results = _load_ensemble_results(eval_dir)
@@ -186,6 +218,11 @@ def main() -> None:
         if not ensemble_results:
             print(f"[backfill] No ensemble results in {eval_dir}, skipping")
             continue
+
+        # Determine class_id: CLI flag > pattern inference
+        class_id = args.class_id
+        if class_id is None:
+            class_id = _infer_class_id(eval_dir)
 
         n = len(ensemble_results)
         total_students += n
@@ -200,6 +237,8 @@ def main() -> None:
             week=args.week,
             exam_file=args.exam_file,
             id_map=id_map or None,
+            topics=topics,
+            class_id=class_id,
         )
 
     # OCR confidence — patch records using already-loaded responses

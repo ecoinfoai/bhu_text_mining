@@ -461,3 +461,169 @@ class TestBuildLongitudinalSummaryEdgeCases:
         # With only 1 week, student is at risk that week but persistent risk
         # is still technically true (at risk in ALL available weeks)
         assert 1 in traj.risk_weeks
+
+
+# ---------------------------------------------------------------------------
+# T064-T065: US7 Topic Statistics tests
+# ---------------------------------------------------------------------------
+
+
+def _build_topic_store(tmp_path) -> LongitudinalStore:
+    """Build a store with topic data for 3 weeks, 3 students."""
+    store = LongitudinalStore(str(tmp_path / "topic_store.yaml"))
+    # 3 students, 3 weeks, 2 topics per week
+    data = {
+        "S001": {
+            1: {"개념이해": 0.6, "적용": 0.4},
+            2: {"개념이해": 0.65, "적용": 0.45},
+            3: {"개념이해": 0.7, "적용": 0.5},
+        },
+        "S002": {
+            1: {"개념이해": 0.7, "적용": 0.5},
+            2: {"개념이해": 0.75, "적용": 0.55},
+            3: {"개념이해": 0.8, "적용": 0.6},
+        },
+        "S003": {
+            1: {"개념이해": 0.5, "적용": 0.3},
+            2: {"개념이해": 0.55, "적용": 0.35},
+            3: {"개념이해": 0.6, "적용": 0.4},
+        },
+    }
+    for sid, weeks in data.items():
+        for week, topic_scores in weeks.items():
+            for topic, score in topic_scores.items():
+                rec = LongitudinalRecord(
+                    student_id=sid,
+                    week=week,
+                    question_sn=1 if topic == "개념이해" else 2,
+                    scores={"ensemble_score": score},
+                    tier_level=1,
+                    tier_label="Developing",
+                    topic=topic,
+                )
+                store.add_record(rec)
+    return store
+
+
+class TestTopicStatistics:
+    """Tests for compute_topic_class_statistics()."""
+
+    def test_topic_statistics_3_weeks(self, tmp_path):
+        """T064: Topic mean/SD computed per week, tau/rho included for 3+ weeks."""
+        from forma.longitudinal_report_data import (
+            compute_topic_class_statistics,
+        )
+
+        store = _build_topic_store(tmp_path)
+        stats = compute_topic_class_statistics(
+            store, [1, 2, 3],
+        )
+
+        assert len(stats) > 0
+        # Should have entries for both topics
+        topics_found = {s.topic for s in stats}
+        assert "개념이해" in topics_found
+        assert "적용" in topics_found
+
+        # Check mean values are reasonable
+        w1_concept = next(
+            s for s in stats
+            if s.topic == "개념이해" and s.week == 1
+        )
+        # Mean of [0.6, 0.7, 0.5] = 0.6
+        assert w1_concept.mean == pytest.approx(0.6, abs=0.01)
+        assert w1_concept.std >= 0.0
+
+    def test_topic_statistics_no_topic_data(self, tmp_path):
+        """T065: Returns empty when no topic data in store."""
+        from forma.longitudinal_report_data import (
+            compute_topic_class_statistics,
+        )
+
+        store = _build_test_store(tmp_path)  # no topic field
+        stats = compute_topic_class_statistics(
+            store, [1, 2, 3, 4],
+        )
+        assert stats == []
+
+    def test_topic_trends_3_weeks(self, tmp_path):
+        """T064: Trend statistics (tau, rho) computed for 3+ weeks."""
+        from forma.longitudinal_report_data import (
+            compute_topic_trends,
+        )
+
+        store = _build_topic_store(tmp_path)
+        trends = compute_topic_trends(store, [1, 2, 3])
+
+        assert len(trends) > 0
+        concept_trend = next(
+            t for t in trends if t.topic == "개념이해"
+        )
+        # All students improving → positive tau
+        assert concept_trend.kendall_tau > 0
+        assert concept_trend.n_weeks == 3
+
+    def test_topic_trends_2_weeks_empty(self, tmp_path):
+        """Trends return empty when < 3 weeks."""
+        from forma.longitudinal_report_data import (
+            compute_topic_trends,
+        )
+
+        store = _build_topic_store(tmp_path)
+        trends = compute_topic_trends(store, [1, 2])
+        assert trends == []
+
+
+# ---------------------------------------------------------------------------
+# US5: Class-filtered summary (T042)
+# ---------------------------------------------------------------------------
+
+
+class TestFilterByClassIds:
+    """T042: build_longitudinal_summary filters by class_id."""
+
+    def test_filter_by_class_ids(self, tmp_path):
+        """Only students with matching class_id are included."""
+        from forma.longitudinal_report_data import (
+            build_longitudinal_summary,
+        )
+
+        store = LongitudinalStore(str(tmp_path / "s.yaml"))
+        for sid, cls in [("S1", "A"), ("S2", "A"), ("S3", "B")]:
+            for w in [1, 2]:
+                store.add_record(LongitudinalRecord(
+                    student_id=sid, week=w, question_sn=1,
+                    scores={"ensemble_score": 0.6},
+                    tier_level=2, tier_label="P",
+                    class_id=cls,
+                ))
+
+        summary = build_longitudinal_summary(
+            store, [1, 2], "Test",
+            class_ids=["A"],
+        )
+        ids = [t.student_id for t in summary.student_trajectories]
+        assert "S1" in ids
+        assert "S2" in ids
+        assert "S3" not in ids
+        assert summary.total_students == 2
+
+    def test_no_filter_all_students(self, tmp_path):
+        """class_ids=None includes all students."""
+        from forma.longitudinal_report_data import (
+            build_longitudinal_summary,
+        )
+
+        store = LongitudinalStore(str(tmp_path / "s.yaml"))
+        for sid, cls in [("S1", "A"), ("S2", "B")]:
+            store.add_record(LongitudinalRecord(
+                student_id=sid, week=1, question_sn=1,
+                scores={"ensemble_score": 0.6},
+                tier_level=2, tier_label="P",
+                class_id=cls,
+            ))
+
+        summary = build_longitudinal_summary(
+            store, [1], "Test",
+        )
+        assert summary.total_students == 2

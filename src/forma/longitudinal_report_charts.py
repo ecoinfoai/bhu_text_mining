@@ -262,6 +262,112 @@ def build_concept_mastery_bar_chart(
     return _save_fig(fig, dpi=dpi)
 
 
+def build_concept_mastery_heatmap(
+    mastery_data: dict[str, dict[int, float]],
+    weeks: list[int],
+    *,
+    top_n: int | None = None,
+    font_path: str | None = None,
+    dpi: int = 150,
+) -> io.BytesIO:
+    """Build concept x week heatmap for mastery data.
+
+    Used when 5+ weeks of data are available. Replaces
+    bar chart for better visual scalability.
+
+    Args:
+        mastery_data: {concept: {week: ratio}}.
+        weeks: Sorted list of week numbers.
+        top_n: If set, keep only top N concepts by |delta|.
+        font_path: Korean font path.
+        dpi: Image resolution.
+
+    Returns:
+        PNG image as BytesIO buffer.
+    """
+    fp = _get_font_prop(font_path)
+
+    if not mastery_data:
+        fig, ax = plt.subplots(
+            figsize=(160 / 25.4, 60 / 25.4),
+        )
+        ax.text(
+            0.5, 0.5, "개념 마스터리 데이터 없음",
+            ha="center", va="center",
+            fontproperties=fp, fontsize=12,
+        )
+        ax.axis("off")
+        return _save_fig(fig, dpi=dpi)
+
+    sorted_weeks = sorted(weeks)
+
+    # Apply top_n filtering by |delta|
+    concepts = list(mastery_data.keys())
+    if top_n is not None and top_n < len(concepts):
+        deltas = {}
+        for c in concepts:
+            scores = mastery_data[c]
+            avail = [
+                w for w in sorted_weeks if w in scores
+            ]
+            if len(avail) >= 2:
+                deltas[c] = abs(
+                    scores[avail[-1]] - scores[avail[0]]
+                )
+            else:
+                deltas[c] = 0.0
+        concepts = sorted(
+            concepts, key=lambda c: deltas[c],
+            reverse=True,
+        )[:top_n]
+
+    concepts = sorted(concepts)
+
+    # Build matrix (concepts x weeks)
+    n_concepts = len(concepts)
+    n_weeks = len(sorted_weeks)
+    matrix = np.full((n_concepts, n_weeks), np.nan)
+
+    for i, concept in enumerate(concepts):
+        for j, week in enumerate(sorted_weeks):
+            if week in mastery_data[concept]:
+                matrix[i, j] = mastery_data[concept][week]
+
+    fig_height = max(
+        3, n_concepts * 0.4 + 1.5,
+    )
+    fig, ax = plt.subplots(
+        figsize=(160 / 25.4, fig_height),
+    )
+
+    masked = np.ma.masked_invalid(matrix)
+    cmap = plt.cm.RdYlGn
+    cmap.set_bad(color="lightgray")
+
+    im = ax.imshow(
+        masked, aspect="auto", cmap=cmap,
+        vmin=0.0, vmax=1.0,
+    )
+    plt.colorbar(im, ax=ax, fraction=0.02, label="비율")
+
+    ax.set_xticks(range(n_weeks))
+    ax.set_xticklabels(
+        [f"W{w}" for w in sorted_weeks],
+        fontproperties=fp, fontsize=8,
+    )
+    ax.set_yticks(range(n_concepts))
+    ax.set_yticklabels(
+        concepts, fontproperties=fp, fontsize=8,
+    )
+    ax.set_title(
+        "개념별 마스터리 히트맵",
+        fontproperties=fp, fontsize=11,
+    )
+
+    fig.tight_layout()
+    return _save_fig(fig, dpi=dpi)
+
+
 def build_intervention_effect_chart(
     effects: list,
     *,
@@ -429,6 +535,85 @@ def build_ocr_confidence_trend_chart(
     ax.set_xlabel("주차", fontproperties=font_prop)
     ax.set_ylabel("텍스트 인식 신뢰도", fontproperties=font_prop)
     ax.set_title("텍스트 인식 신뢰도 추이", fontproperties=font_prop, fontsize=12)
+
+    fig.tight_layout()
+    return _save_fig(fig, dpi=dpi)
+
+
+def build_class_heatmap_subplots(
+    class_data: dict[str, dict[str, dict[int, float]]],
+    class_ids: list[str],
+    layout: tuple[int, int],
+    font_path: str | None = None,
+    dpi: int = 150,
+) -> io.BytesIO:
+    """Build per-class heatmap subplots in a grid layout.
+
+    Args:
+        class_data: {class_id: {student_id: {week: score}}}.
+        class_ids: Ordered list of class identifiers.
+        layout: (rows, cols) subplot grid dimensions.
+        font_path: Korean font path.
+        dpi: Image resolution.
+
+    Returns:
+        PNG image as BytesIO buffer.
+    """
+    font_prop = _get_font_prop(font_path)
+    rows, cols = layout
+    fig, axes = plt.subplots(
+        rows, cols,
+        figsize=(cols * 4, rows * 3),
+        squeeze=False,
+    )
+
+    for idx, cid in enumerate(class_ids):
+        r, c = divmod(idx, cols)
+        if r >= rows:
+            break
+        ax = axes[r][c]
+        students = class_data.get(cid, {})
+        if not students:
+            ax.set_title(
+                f"반 {cid} (데이터 없음)",
+                fontproperties=font_prop, fontsize=9,
+            )
+            ax.set_xticks([])
+            ax.set_yticks([])
+            continue
+
+        sorted_sids = sorted(students.keys())
+        all_weeks = sorted(
+            {w for ws in students.values() for w in ws},
+        )
+        matrix = []
+        for sid in sorted_sids:
+            row = [
+                students[sid].get(w, float("nan"))
+                for w in all_weeks
+            ]
+            matrix.append(row)
+
+        arr = np.array(matrix)
+        ax.imshow(
+            arr, aspect="auto", cmap="RdYlGn",
+            vmin=0, vmax=1,
+        )
+        ax.set_xticks(range(len(all_weeks)))
+        ax.set_xticklabels(
+            [str(w) for w in all_weeks], fontsize=7,
+        )
+        ax.set_yticks(range(len(sorted_sids)))
+        ax.set_yticklabels(sorted_sids, fontsize=6)
+        ax.set_title(
+            f"반 {cid}",
+            fontproperties=font_prop, fontsize=9,
+        )
+
+    # Hide unused subplots
+    for idx in range(len(class_ids), rows * cols):
+        r, c = divmod(idx, cols)
+        axes[r][c].set_visible(False)
 
     fig.tight_layout()
     return _save_fig(fig, dpi=dpi)

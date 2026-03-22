@@ -276,3 +276,204 @@ class TestLongitudinalPDFReportGeneratorFull:
 
         concept = gen._build_concept_mastery_section(summary)
         assert len(concept) > 0
+
+
+# ---------------------------------------------------------------------------
+# T030-T031: US3 Methods Section tests
+# ---------------------------------------------------------------------------
+
+
+class TestMethodsSection:
+    """Tests for US3 Methods section in professor longitudinal report."""
+
+    def test_methods_section_exists_in_report(self):
+        """T030: _build_methods_section() returns non-empty list of flowables."""
+        from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
+        gen = LongitudinalPDFReportGenerator()
+        flowables = gen._build_methods_section()
+        assert isinstance(flowables, list)
+        assert len(flowables) > 0
+
+    def test_methods_section_contains_key_content(self):
+        """T030: Methods section contains Layer 1, 2, 3 and Ensemble descriptions."""
+        from forma.longitudinal_report import (
+            METHODS_SECTION_TEXT,
+        )
+
+        assert "Layer 1" in METHODS_SECTION_TEXT
+        assert "Layer 2" in METHODS_SECTION_TEXT
+        assert "Layer 3" in METHODS_SECTION_TEXT
+        assert "앙상블" in METHODS_SECTION_TEXT
+
+    def test_methods_section_no_llm_imports(self):
+        """T031: longitudinal_report.py has zero imports from anthropic or google.genai."""
+        import inspect
+        import forma.longitudinal_report as mod
+
+        source = inspect.getsource(mod)
+        assert "import anthropic" not in source
+        assert "from anthropic" not in source
+        assert "import google.genai" not in source
+        assert "from google.genai" not in source
+        assert "from google import genai" not in source
+
+    def test_methods_section_in_generated_pdf(self, tmp_path):
+        """Methods section should appear in generated PDF (after cover, before class trend)."""
+        from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
+        gen = LongitudinalPDFReportGenerator()
+        summary = _make_summary()
+        output_path = str(tmp_path / "methods_report.pdf")
+        gen.generate_pdf(summary, output_path)
+
+        assert os.path.exists(output_path)
+        # PDF should be larger than before due to methods section
+        assert os.path.getsize(output_path) > 10 * 1024
+
+
+# ---------------------------------------------------------------------------
+# T036-T037: US4 Risk Interpretation Guide tests
+# ---------------------------------------------------------------------------
+
+
+class TestRiskInterpretationGuide:
+    """Tests for US4 Risk interpretation guide in professor longitudinal report."""
+
+    def test_risk_interpretation_guide_content(self):
+        """T036: Guide contains selection criterion, column definitions, slope interpretation, intervention guidance."""
+        from forma.longitudinal_report import (
+            RISK_INTERPRETATION_GUIDE,
+        )
+
+        # Selection criterion
+        assert "0.45" in RISK_INTERPRETATION_GUIDE
+        assert "지속 위험군" in RISK_INTERPRETATION_GUIDE
+        # Column definitions
+        assert "학생" in RISK_INTERPRETATION_GUIDE
+        assert "최종 점수" in RISK_INTERPRETATION_GUIDE
+        assert "기울기" in RISK_INTERPRETATION_GUIDE
+        # Slope interpretation
+        assert "양수" in RISK_INTERPRETATION_GUIDE or "+" in RISK_INTERPRETATION_GUIDE
+        assert "음수" in RISK_INTERPRETATION_GUIDE or "-" in RISK_INTERPRETATION_GUIDE
+        # Intervention guidance
+        assert "중재" in RISK_INTERPRETATION_GUIDE or "개입" in RISK_INTERPRETATION_GUIDE
+
+    def test_risk_section_no_students_shows_message(self):
+        """T037: Show 'no risk students' message when empty."""
+        from forma.longitudinal_report import LongitudinalPDFReportGenerator
+        from forma.longitudinal_report_data import (
+            LongitudinalSummaryData,
+        )
+
+        gen = LongitudinalPDFReportGenerator()
+        summary = LongitudinalSummaryData(
+            class_name="1A",
+            period_weeks=[1, 2],
+            student_trajectories=[],
+            class_weekly_averages={},
+            persistent_risk_students=[],
+            concept_mastery_changes=[],
+            total_students=0,
+        )
+        flowables = gen._build_risk_analysis_section(summary)
+        # Should contain the "지속 위험군 없음" message
+        content = " ".join(str(f) for f in flowables)
+        assert "없" in content  # "없습니다" or "없음"
+
+    def test_risk_section_with_students_has_guide(self):
+        """T036: Risk section with students includes interpretation guide before table."""
+        from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
+        gen = LongitudinalPDFReportGenerator()
+        summary = _make_summary()  # has S003 as persistent risk
+        flowables = gen._build_risk_analysis_section(summary)
+        # Should have more flowables due to guide
+        assert len(flowables) > 5  # guide paragraphs + table + spacers
+
+    def test_risk_guide_in_generated_pdf(self, tmp_path):
+        """Risk interpretation guide appears in generated PDF."""
+        from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
+        gen = LongitudinalPDFReportGenerator()
+        summary = _make_summary()
+        output_path = str(tmp_path / "risk_guide_report.pdf")
+        gen.generate_pdf(summary, output_path)
+
+        assert os.path.exists(output_path)
+        assert os.path.getsize(output_path) > 10 * 1024
+
+
+# ---------------------------------------------------------------------------
+# T066: US7 Topic Statistics Section tests
+# ---------------------------------------------------------------------------
+
+
+class TestTopicStatisticsSection:
+    """Tests for _build_topic_statistics_section() in professor report."""
+
+    def test_topic_statistics_section_rendered(self):
+        """T066: _build_topic_statistics_section() returns flowables."""
+        from forma.longitudinal_report import (
+            LongitudinalPDFReportGenerator,
+        )
+        from forma.longitudinal_report_data import (
+            TopicWeekStats,
+            TopicTrendResult,
+        )
+
+        gen = LongitudinalPDFReportGenerator()
+        stats = [
+            TopicWeekStats("개념이해", 1, 0.6, 0.08),
+            TopicWeekStats("개념이해", 2, 0.65, 0.07),
+            TopicWeekStats("개념이해", 3, 0.7, 0.06),
+            TopicWeekStats("적용", 1, 0.4, 0.09),
+            TopicWeekStats("적용", 2, 0.45, 0.08),
+            TopicWeekStats("적용", 3, 0.5, 0.07),
+        ]
+        trends = [
+            TopicTrendResult(
+                "개념이해", 0.67, 0.03,
+                0.72, 0.02, 3,
+            ),
+            TopicTrendResult(
+                "적용", 0.82, 0.01,
+                0.85, 0.01, 3,
+            ),
+        ]
+        flowables = gen._build_topic_statistics_section(
+            stats, trends,
+        )
+        assert isinstance(flowables, list)
+        assert len(flowables) > 0
+
+    def test_topic_statistics_section_empty(self):
+        """Section returns empty list when no data."""
+        from forma.longitudinal_report import (
+            LongitudinalPDFReportGenerator,
+        )
+
+        gen = LongitudinalPDFReportGenerator()
+        flowables = gen._build_topic_statistics_section([], [])
+        assert isinstance(flowables, list)
+        # Should have at least a "no data" message
+        assert len(flowables) >= 1
+
+
+# ---------------------------------------------------------------------------
+# T075: US8 Mastery interpretation guide
+# ---------------------------------------------------------------------------
+
+
+class TestMasteryInterpretationGuide:
+    """T075: Interpretation guide above mastery chart."""
+
+    def test_mastery_interpretation_guide_exists(self):
+        """MASTERY_INTERPRETATION_GUIDE constant exists with key content."""
+        from forma.longitudinal_report import (
+            MASTERY_INTERPRETATION_GUIDE,
+        )
+
+        assert "비율" in MASTERY_INTERPRETATION_GUIDE \
+            or "delta" in MASTERY_INTERPRETATION_GUIDE.lower() \
+            or "변화" in MASTERY_INTERPRETATION_GUIDE

@@ -552,3 +552,174 @@ class TestInterventionEffectChart:
         ]
         result = build_intervention_effect_chart(effects)
         assert result.read()[:4] == PNG_HEADER
+
+
+# ---------------------------------------------------------------------------
+# US5: Class heatmap subplots (T043–T045)
+# ---------------------------------------------------------------------------
+
+
+class TestClassHeatmapSubplots:
+    """T043–T045: Per-class heatmap subplot generation."""
+
+    def _build_summary(self):
+        """Build a test summary with 2 classes."""
+        from forma.longitudinal_report_data import (
+            LongitudinalSummaryData,
+            StudentTrajectory,
+        )
+
+        trajs = [
+            StudentTrajectory(
+                student_id=f"S{i}",
+                weekly_scores={1: 0.5 + i * 0.05, 2: 0.6 + i * 0.05},
+                overall_trend=0.1,
+                is_persistent_risk=False,
+                risk_weeks=[],
+            )
+            for i in range(4)
+        ]
+        return LongitudinalSummaryData(
+            class_name="Test",
+            period_weeks=[1, 2],
+            student_trajectories=trajs,
+            class_weekly_averages={1: 0.55, 2: 0.65},
+            persistent_risk_students=[],
+            concept_mastery_changes=[],
+            total_students=4,
+        )
+
+    def test_subplot_generation(self):
+        """Per-class heatmaps with layout produce PNG."""
+        from forma.longitudinal_report_charts import (
+            build_class_heatmap_subplots,
+        )
+
+        # Class data: {class_id: {student_id: {week: score}}}
+        class_data = {
+            "A": {"S0": {1: 0.5, 2: 0.6}, "S1": {1: 0.55, 2: 0.65}},
+            "B": {"S2": {1: 0.6, 2: 0.7}, "S3": {1: 0.65, 2: 0.75}},
+        }
+        result = build_class_heatmap_subplots(
+            class_data, ["A", "B"], (1, 2),
+        )
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+
+    def test_no_classes_single_heatmap(self):
+        """When class_ids is None, use standard single heatmap."""
+        from forma.longitudinal_report_charts import (
+            build_class_week_heatmap,
+        )
+
+        summary = self._build_summary()
+        result = build_class_week_heatmap(summary)
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+
+    def test_layout_mismatch_empty_subplots(self):
+        """2:3 layout with 4 classes leaves 2 empty subplots."""
+        from forma.longitudinal_report_charts import (
+            build_class_heatmap_subplots,
+        )
+
+        class_data = {
+            c: {f"S{i}": {1: 0.5} for i in range(3)}
+            for c in ["A", "B", "C", "D"]
+        }
+        # 2:3 = 6 slots, 4 classes → 2 empty
+        result = build_class_heatmap_subplots(
+            class_data, ["A", "B", "C", "D"], (2, 3),
+        )
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+
+
+# ---------------------------------------------------------------------------
+# T072-T074: US8 Mastery Chart Complexity tests
+# ---------------------------------------------------------------------------
+
+
+class TestMasteryBarChartUnder5Weeks:
+    """T072: Bar chart used for 2-4 weeks."""
+
+    def test_bar_chart_under_5_weeks(self):
+        """Bar chart returned for 4-week data."""
+        from forma.longitudinal_report_charts import (
+            build_concept_mastery_bar_chart,
+        )
+
+        summary = _make_summary(period_weeks=[1, 2, 3, 4])
+        result = build_concept_mastery_bar_chart(summary)
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+        assert len(data) > 100
+
+
+class TestMasteryHeatmap5PlusWeeks:
+    """T073: concept x week heatmap for 5+ weeks."""
+
+    def test_mastery_heatmap_returns_png(self):
+        """Heatmap generated for 5+ weeks of mastery data."""
+        from forma.longitudinal_report_charts import (
+            build_concept_mastery_heatmap,
+        )
+
+        # mastery_data: {concept: {week: ratio}}
+        mastery_data = {
+            "항상성": {
+                1: 0.6, 2: 0.65, 3: 0.7,
+                4: 0.75, 5: 0.8,
+            },
+            "삼투": {
+                1: 0.4, 2: 0.45, 3: 0.5,
+                4: 0.55, 5: 0.6,
+            },
+            "확산": {
+                1: 0.5, 2: 0.5, 3: 0.55,
+                4: 0.6, 5: 0.65,
+            },
+        }
+        weeks = [1, 2, 3, 4, 5]
+        result = build_concept_mastery_heatmap(
+            mastery_data, weeks,
+        )
+        assert isinstance(result, io.BytesIO)
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+        assert len(data) > 100
+
+    def test_mastery_heatmap_empty_data(self):
+        """Empty mastery data produces placeholder chart."""
+        from forma.longitudinal_report_charts import (
+            build_concept_mastery_heatmap,
+        )
+
+        result = build_concept_mastery_heatmap({}, [1, 2, 3, 4, 5])
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+
+
+class TestMasteryTopNFiltering:
+    """T074: Only top N concepts by |delta| appear."""
+
+    def test_top_n_filtering(self):
+        """Top 2 by |delta| selected from 5 concepts."""
+        from forma.longitudinal_report_charts import (
+            build_concept_mastery_heatmap,
+        )
+
+        mastery_data = {
+            "A": {1: 0.3, 2: 0.4, 3: 0.5, 4: 0.6, 5: 0.7},
+            "B": {1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5, 5: 0.5},
+            "C": {1: 0.8, 2: 0.7, 3: 0.6, 4: 0.5, 5: 0.4},
+            "D": {1: 0.6, 2: 0.6, 3: 0.6, 4: 0.6, 5: 0.6},
+            "E": {1: 0.45, 2: 0.5, 3: 0.55, 4: 0.6, 5: 0.65},
+        }
+        weeks = [1, 2, 3, 4, 5]
+        result = build_concept_mastery_heatmap(
+            mastery_data, weeks, top_n=2,
+        )
+        data = result.read()
+        assert data[:4] == PNG_HEADER
+        assert len(data) > 100

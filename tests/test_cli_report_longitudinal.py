@@ -200,3 +200,103 @@ class TestCLIMainFunction:
 
         assert result is None or result == 0
         assert os.path.exists(output_path)
+
+
+# ---------------------------------------------------------------------------
+# US5: --classes, --heatmap-layout, --risk-threshold, parse_heatmap_layout
+# ---------------------------------------------------------------------------
+
+
+class TestParseHeatmapLayout:
+    """T041: parse_heatmap_layout validates rows:cols format."""
+
+    def test_valid_1_4(self):
+        """'1:4' → (1, 4)."""
+        from forma.cli_report_longitudinal import (
+            parse_heatmap_layout,
+        )
+        assert parse_heatmap_layout("1:4") == (1, 4)
+
+    def test_valid_2_2(self):
+        """'2:2' → (2, 2)."""
+        from forma.cli_report_longitudinal import (
+            parse_heatmap_layout,
+        )
+        assert parse_heatmap_layout("2:2") == (2, 2)
+
+    def test_reject_x_separator(self):
+        """'1x4' → ValueError."""
+        from forma.cli_report_longitudinal import (
+            parse_heatmap_layout,
+        )
+        with pytest.raises(ValueError):
+            parse_heatmap_layout("1x4")
+
+    def test_reject_abc(self):
+        """'abc' → ValueError."""
+        from forma.cli_report_longitudinal import (
+            parse_heatmap_layout,
+        )
+        with pytest.raises(ValueError):
+            parse_heatmap_layout("abc")
+
+    def test_reject_zero(self):
+        """'0:4' → ValueError (non-positive)."""
+        from forma.cli_report_longitudinal import (
+            parse_heatmap_layout,
+        )
+        with pytest.raises(ValueError):
+            parse_heatmap_layout("0:4")
+
+
+class TestClassesArgParsing:
+    """T041 extended: --classes and --heatmap-layout args."""
+
+    def test_classes_arg(self):
+        """--classes A B C D parsed correctly."""
+        from forma.cli_report_longitudinal import _build_parser
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--store", "s.yaml",
+            "--class-name", "1A",
+            "--output", "o.pdf",
+            "--classes", "A", "B", "C", "D",
+        ])
+        assert args.classes == ["A", "B", "C", "D"]
+
+    def test_heatmap_layout_arg(self):
+        """--heatmap-layout 1:4 parsed as string."""
+        from forma.cli_report_longitudinal import _build_parser
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--store", "s.yaml",
+            "--class-name", "1A",
+            "--output", "o.pdf",
+            "--heatmap-layout", "1:4",
+        ])
+        assert args.heatmap_layout == "1:4"
+
+    def test_risk_threshold_arg(self):
+        """--risk-threshold 0.50 parsed as float."""
+        from forma.cli_report_longitudinal import _build_parser
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--store", "s.yaml",
+            "--class-name", "1A",
+            "--output", "o.pdf",
+            "--risk-threshold", "0.50",
+        ])
+        assert args.risk_threshold == 0.50
+
+    def test_defaults(self):
+        """Default values for new optional args."""
+        from forma.cli_report_longitudinal import _build_parser
+        parser = _build_parser()
+        args = parser.parse_args([
+            "--store", "s.yaml",
+            "--class-name", "1A",
+            "--output", "o.pdf",
+        ])
+        assert args.classes is None
+        assert args.heatmap_layout is None
+        assert args.risk_threshold == 0.45
