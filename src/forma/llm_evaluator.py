@@ -373,6 +373,10 @@ class LLMEvaluator:
         misconceptions = parsed.get("misconceptions") or []
         if isinstance(misconceptions, str):
             misconceptions = [misconceptions] if misconceptions else []
+        misconceptions = [
+            str(m) if not isinstance(m, str) else m
+            for m in misconceptions
+        ]
 
         return LLMJudgeResult(
             student_id=student_id,
@@ -380,7 +384,7 @@ class LLMEvaluator:
             rubric_score=int(parsed.get("rubric_score", 1)),
             rubric_label=str(parsed.get("rubric_label", "low")),
             reasoning=str(parsed.get("reasoning", "")),
-            misconceptions=list(misconceptions),
+            misconceptions=misconceptions,
             uncertain=bool(parsed.get("uncertain", False)),
             call_index=call_index,
         )
@@ -513,6 +517,10 @@ class LLMEvaluator:
                 misconceptions = parsed.get("misconceptions") or []
                 if isinstance(misconceptions, str):
                     misconceptions = [misconceptions] if misconceptions else []
+                misconceptions = [
+                    str(m) if not isinstance(m, str) else m
+                    for m in misconceptions
+                ]
 
                 new_result = LLMJudgeResult(
                     student_id=fc.student_id,
@@ -520,7 +528,7 @@ class LLMEvaluator:
                     rubric_score=int(parsed.get("rubric_score", 1)),
                     rubric_label=str(parsed.get("rubric_label", "low")),
                     reasoning=str(parsed.get("reasoning", "")),
-                    misconceptions=list(misconceptions),
+                    misconceptions=misconceptions,
                     uncertain=bool(parsed.get("uncertain", False)),
                     call_index=fc.call_index,
                 )
