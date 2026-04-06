@@ -19,8 +19,13 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor
 from reportlab.platypus import (
-    Image, PageBreak, Paragraph, SimpleDocTemplate,
-    Spacer, Table, TableStyle,
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
@@ -60,53 +65,65 @@ class WarningPDFReportGenerator:
 
         # Define paragraph styles
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "WarnTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "WarnSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "WarnBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "WarnTableHeader",
-            parent=self._styles["Normal"],
-            fontName="NanumGothicBold",
-            fontSize=8,
-            textColor=HexColor("#FFFFFF"),
-            alignment=1,
-        ))
-        self._styles.add(ParagraphStyle(
-            "WarnTableData",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            alignment=1,
-        ))
-        self._styles.add(ParagraphStyle(
-            "WarnNotice",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=9,
-            textColor=HexColor("#C62828"),
-            leading=13,
-            spaceAfter=8,
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "WarnTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "WarnSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "WarnBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "WarnTableHeader",
+                parent=self._styles["Normal"],
+                fontName="NanumGothicBold",
+                fontSize=8,
+                textColor=HexColor("#FFFFFF"),
+                alignment=1,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "WarnTableData",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                alignment=1,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "WarnNotice",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=9,
+                textColor=HexColor("#C62828"),
+                leading=13,
+                spaceAfter=8,
+            )
+        )
 
     def generate_pdf(
         self,
@@ -171,37 +188,45 @@ class WarningPDFReportGenerator:
         """Build cover page with title, confidentiality notice, and summary."""
         story: list = []
         story.append(Spacer(1, 40 * mm))
-        story.append(Paragraph(
-            _esc("조기 경고 보고서"),
-            self._styles["WarnTitle"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("조기 경고 보고서"),
+                self._styles["WarnTitle"],
+            )
+        )
         if class_name:
-            story.append(Paragraph(
-                _esc(f"분반: {class_name}"),
-                self._styles["WarnBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc(f"분반: {class_name}"),
+                    self._styles["WarnBody"],
+                )
+            )
         story.append(Spacer(1, 10 * mm))
 
         # Confidentiality notice
-        story.append(Paragraph(
-            _esc("본 보고서는 교수자 전용이며, 학생 개인정보 보호를 위해 "
-                 "외부 유출을 금합니다."),
-            self._styles["WarnNotice"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("본 보고서는 교수자 전용이며, 학생 개인정보 보호를 위해 외부 유출을 금합니다."),
+                self._styles["WarnNotice"],
+            )
+        )
         # FR-022: General guidance disclaimer
-        story.append(Paragraph(
-            _esc("본 보고서의 모든 개입 권고는 일반적 지침이며, "
-                 "교수자의 전문적 판단을 대체하지 않습니다."),
-            self._styles["WarnNotice"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("본 보고서의 모든 개입 권고는 일반적 지침이며, 교수자의 전문적 판단을 대체하지 않습니다."),
+                self._styles["WarnNotice"],
+            )
+        )
         story.append(Spacer(1, 10 * mm))
 
         # Summary stats
         n_total = len(warning_cards)
-        story.append(Paragraph(
-            _esc(f"위험군 학생 수: {n_total}명"),
-            self._styles["WarnBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"위험군 학생 수: {n_total}명"),
+                self._styles["WarnBody"],
+            )
+        )
 
         if warning_cards:
             # Count by risk type
@@ -213,29 +238,35 @@ class WarningPDFReportGenerator:
             for rt in RiskType:
                 count = risk_counts.get(rt, 0)
                 if count > 0:
-                    story.append(Paragraph(
-                        _esc(f"  - {rt.label}: {count}명"),
-                        self._styles["WarnBody"],
-                    ))
+                    story.append(
+                        Paragraph(
+                            _esc(f"  - {rt.label}: {count}명"),
+                            self._styles["WarnBody"],
+                        )
+                    )
 
             # Detection method summary
             rule_count = sum(1 for c in warning_cards if "rule_based" in c.detection_methods)
             model_count = sum(1 for c in warning_cards if "model_predicted" in c.detection_methods)
             story.append(Spacer(1, 5 * mm))
-            story.append(Paragraph(
-                _esc(f"규칙 기반 감지: {rule_count}명 / 모델 예측 감지: {model_count}명"),
-                self._styles["WarnBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc(f"규칙 기반 감지: {rule_count}명 / 모델 예측 감지: {model_count}명"),
+                    self._styles["WarnBody"],
+                )
+            )
 
         return story
 
     def _build_dashboard(self, warning_cards: list[WarningCard]) -> list:
         """Build dashboard page with charts and risk type summary table."""
         story: list = []
-        story.append(Paragraph(
-            _esc("위험 유형 대시보드"),
-            self._styles["WarnSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("위험 유형 대시보드"),
+                self._styles["WarnSection"],
+            )
+        )
 
         # Risk type distribution chart
         try:
@@ -277,10 +308,12 @@ class WarningPDFReportGenerator:
             logger.warning("Deficit concepts chart generation failed: %s", exc)
 
         # Summary table
-        story.append(Paragraph(
-            _esc("위험 유형 요약표"),
-            self._styles["WarnSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("위험 유형 요약표"),
+                self._styles["WarnSection"],
+            )
+        )
 
         header = [
             Paragraph(_esc("위험 유형"), self._styles["WarnTableHeader"]),
@@ -300,20 +333,26 @@ class WarningPDFReportGenerator:
             count = risk_counts_for_table.get(rt, 0)
             interventions = INTERVENTION_MAP.get(rt.value, [])
             first_intervention = interventions[0] if interventions else "-"
-            table_data.append([
-                Paragraph(_esc(rt.label), self._styles["WarnTableData"]),
-                Paragraph(_esc(str(count)), self._styles["WarnTableData"]),
-                Paragraph(_esc(first_intervention), self._styles["WarnTableData"]),
-            ])
+            table_data.append(
+                [
+                    Paragraph(_esc(rt.label), self._styles["WarnTableData"]),
+                    Paragraph(_esc(str(count)), self._styles["WarnTableData"]),
+                    Paragraph(_esc(first_intervention), self._styles["WarnTableData"]),
+                ]
+            )
 
         table = Table(table_data, colWidths=[40 * mm, 25 * mm, 105 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
         story.append(table)
 
         return story
@@ -321,76 +360,98 @@ class WarningPDFReportGenerator:
     def _build_student_card(self, card: WarningCard) -> list:
         """Build a per-student warning card section."""
         story: list = []
-        story.append(Paragraph(
-            _esc(f"학생 경고 카드: {card.student_id}"),
-            self._styles["WarnSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"학생 경고 카드: {card.student_id}"),
+                self._styles["WarnSection"],
+            )
+        )
 
         # Risk types
         risk_labels = ", ".join(rt.label for rt in card.risk_types)
-        story.append(Paragraph(
-            _esc(f"위험 유형: {risk_labels}"),
-            self._styles["WarnBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"위험 유형: {risk_labels}"),
+                self._styles["WarnBody"],
+            )
+        )
 
         # Detection methods
         methods = ", ".join(card.detection_methods)
-        story.append(Paragraph(
-            _esc(f"감지 방법: {methods}"),
-            self._styles["WarnBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"감지 방법: {methods}"),
+                self._styles["WarnBody"],
+            )
+        )
 
         # Drop probability
         if card.drop_probability is not None:
-            story.append(Paragraph(
-                _esc(f"이탈 확률: {card.drop_probability:.1%}"),
-                self._styles["WarnBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc(f"이탈 확률: {card.drop_probability:.1%}"),
+                    self._styles["WarnBody"],
+                )
+            )
 
         # Risk severity
-        story.append(Paragraph(
-            _esc(f"위험도: {card.risk_severity:.2f}"),
-            self._styles["WarnBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"위험도: {card.risk_severity:.2f}"),
+                self._styles["WarnBody"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Deficit concepts
         if card.deficit_concepts:
-            story.append(Paragraph(
-                _esc("결손 개념:"),
-                self._styles["WarnBody"],
-            ))
-            for concept in card.deficit_concepts:
-                story.append(Paragraph(
-                    _esc(f"  - {concept}"),
+            story.append(
+                Paragraph(
+                    _esc("결손 개념:"),
                     self._styles["WarnBody"],
-                ))
+                )
+            )
+            for concept in card.deficit_concepts:
+                story.append(
+                    Paragraph(
+                        _esc(f"  - {concept}"),
+                        self._styles["WarnBody"],
+                    )
+                )
             story.append(Spacer(1, 3 * mm))
 
         # Misconception patterns
         if card.misconception_patterns:
-            story.append(Paragraph(
-                _esc("오개념 패턴:"),
-                self._styles["WarnBody"],
-            ))
-            for pattern in card.misconception_patterns:
-                story.append(Paragraph(
-                    _esc(f"  - {pattern}"),
+            story.append(
+                Paragraph(
+                    _esc("오개념 패턴:"),
                     self._styles["WarnBody"],
-                ))
+                )
+            )
+            for pattern in card.misconception_patterns:
+                story.append(
+                    Paragraph(
+                        _esc(f"  - {pattern}"),
+                        self._styles["WarnBody"],
+                    )
+                )
             story.append(Spacer(1, 3 * mm))
 
         # Interventions
         if card.interventions:
-            story.append(Paragraph(
-                _esc("권장 중재 방안:"),
-                self._styles["WarnBody"],
-            ))
-            for idx, intervention in enumerate(card.interventions, 1):
-                story.append(Paragraph(
-                    _esc(f"  {idx}. {intervention}"),
+            story.append(
+                Paragraph(
+                    _esc("권장 중재 방안:"),
                     self._styles["WarnBody"],
-                ))
+                )
+            )
+            for idx, intervention in enumerate(card.interventions, 1):
+                story.append(
+                    Paragraph(
+                        _esc(f"  {idx}. {intervention}"),
+                        self._styles["WarnBody"],
+                    )
+                )
 
         return story
 
@@ -398,14 +459,20 @@ class WarningPDFReportGenerator:
         """Build a summary page for when no students are at risk."""
         story: list = []
         story.append(Spacer(1, 40 * mm))
-        story.append(Paragraph(
-            _esc("위험군 학생이 없습니다"),
-            self._styles["WarnSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("위험군 학생이 없습니다"),
+                self._styles["WarnSection"],
+            )
+        )
         story.append(Spacer(1, 10 * mm))
-        story.append(Paragraph(
-            _esc("현재 분석 결과, 조기 경고 대상 학생이 감지되지 않았습니다. "
-                 "모든 학생이 정상적인 학업 진행 상태입니다."),
-            self._styles["WarnBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(
+                    "현재 분석 결과, 조기 경고 대상 학생이 감지되지 않았습니다. "
+                    "모든 학생이 정상적인 학업 진행 상태입니다."
+                ),
+                self._styles["WarnBody"],
+            )
+        )
         return story

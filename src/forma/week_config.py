@@ -194,19 +194,24 @@ def load_week_config(path: Path) -> WeekConfiguration:
     lecture = data.get("lecture", {})
     if isinstance(lecture, dict):
         config.lecture_transcript_pattern = lecture.get(
-            "transcript_pattern", "",
+            "transcript_pattern",
+            "",
         )
         config.lecture_concept_source = lecture.get(
-            "concept_source", "",
+            "concept_source",
+            "",
         )
         config.lecture_output_dir = lecture.get(
-            "output_dir", "",
+            "output_dir",
+            "",
         )
         config.lecture_extra_stopwords = lecture.get(
-            "extra_stopwords", [],
+            "extra_stopwords",
+            [],
         )
         config.lecture_extra_abbreviations = lecture.get(
-            "extra_abbreviations", [],
+            "extra_abbreviations",
+            [],
         )
 
     return config
@@ -293,14 +298,11 @@ def validate_week_config(
             errors.append("'lecture' section must be a mapping")
         else:
             if not lecture.get("transcript_pattern"):
-                errors.append(
-                    "lecture.transcript_pattern is required"
-                )
+                errors.append("lecture.transcript_pattern is required")
 
     if errors:
         raise ValueError(
-            "week.yaml validation errors:\n"
-            + "\n".join(f"  - {e}" for e in errors),
+            "week.yaml validation errors:\n" + "\n".join(f"  - {e}" for e in errors),
         )
 
 
@@ -409,7 +411,8 @@ def save_crop_coords(
     parent_dir = week_yaml_path.parent
     try:
         fd, tmp_path = tempfile.mkstemp(
-            dir=parent_dir, suffix=".yaml.tmp",
+            dir=parent_dir,
+            suffix=".yaml.tmp",
         )
         with open(fd, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
@@ -491,8 +494,7 @@ def warn_if_class_unknown(
     """
     if class_id not in identifiers:
         logger.warning(
-            "Class '%s' is not in classes.identifiers %s. "
-            "Proceeding with ad-hoc class name.",
+            "Class '%s' is not in classes.identifiers %s. Proceeding with ad-hoc class name.",
             class_id,
             identifiers,
         )

@@ -89,8 +89,7 @@ class TestReportChartGenerator:
 
             gen = ReportChartGenerator(font_path=mock_font)
 
-        with patch("forma.report_charts.plt") as mock_plt, \
-             patch("forma.chart_utils.plt") as mock_chart_plt:
+        with patch("forma.report_charts.plt") as mock_plt, patch("forma.chart_utils.plt") as mock_chart_plt:
             # plt.subplots must return a (fig, ax) tuple for the code to work
             mock_fig = MagicMock()
             mock_ax = MagicMock()

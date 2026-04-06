@@ -290,10 +290,7 @@ class TestEdgeCases:
         from forma.concept_dependency import ConceptDependency, build_and_validate_dag
 
         # Linear chain: C0 → C1 → C2 → ... → C119
-        deps = [
-            ConceptDependency(prerequisite=f"C{i}", dependent=f"C{i+1}")
-            for i in range(120)
-        ]
+        deps = [ConceptDependency(prerequisite=f"C{i}", dependent=f"C{i + 1}") for i in range(120)]
         dag = build_and_validate_dag(deps)
         assert len(dag.nodes) == 121
         assert len(dag.edges) == 120
@@ -478,10 +475,7 @@ class TestAdditionalEdgeCases:
         """DAG with many roots converging to single sink."""
         from forma.concept_dependency import ConceptDependency, build_and_validate_dag
 
-        deps = [
-            ConceptDependency(prerequisite=f"R{i}", dependent="SINK")
-            for i in range(50)
-        ]
+        deps = [ConceptDependency(prerequisite=f"R{i}", dependent="SINK") for i in range(50)]
         dag = build_and_validate_dag(deps)
         assert len(dag.nodes) == 51
         assert len(dag.edges) == 50

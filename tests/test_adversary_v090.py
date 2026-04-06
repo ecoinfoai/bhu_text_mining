@@ -33,6 +33,7 @@ import tempfile
 import time
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import numpy as np
@@ -66,8 +67,12 @@ class TestConfigSaboteur:
     def test_malformed_yaml_syntax_error(self):
         """Syntactically invalid YAML should raise yaml.YAMLError."""
         import yaml
+
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
+            encoding="utf-8",
         ) as f:
             f.write(":::not valid yaml::: {{{")
             path = f.name
@@ -80,7 +85,10 @@ class TestConfigSaboteur:
     def test_empty_yaml_file_returns_empty_dict(self):
         """Empty YAML file (yaml.safe_load returns None) should return {}."""
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
+            encoding="utf-8",
         ) as f:
             f.write("")
             path = f.name
@@ -93,7 +101,10 @@ class TestConfigSaboteur:
     def test_scalar_yaml_returns_empty_dict(self):
         """YAML file containing only a scalar string should return {}."""
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
+            encoding="utf-8",
         ) as f:
             f.write('"just a string"')
             path = f.name
@@ -106,7 +117,10 @@ class TestConfigSaboteur:
     def test_list_yaml_returns_empty_dict(self):
         """YAML file containing a list (not a dict) should return {}."""
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
+            encoding="utf-8",
         ) as f:
             f.write("- item1\n- item2\n")
             path = f.name
@@ -119,13 +133,16 @@ class TestConfigSaboteur:
     def test_nonexistent_file_raises_file_not_found(self):
         """Loading a nonexistent file should raise FileNotFoundError."""
         from pathlib import Path
+
         with pytest.raises(FileNotFoundError):
             load_project_config(Path("/nonexistent/path/forma.yaml"))
 
     def test_unicode_bom_in_yaml(self):
         """YAML file with Unicode BOM should parse correctly."""
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="wb",
+            suffix=".yaml",
+            delete=False,
+            mode="wb",
         ) as f:
             # UTF-8 BOM + valid YAML
             f.write(b"\xef\xbb\xbfcurrent_week: 5\n")
@@ -166,27 +183,27 @@ class TestConfigSaboteur:
         """Type mismatches across all sections should be collected, not fail-fast."""
         config = {
             "project": {
-                "course_name": 123,       # should be str
-                "year": "not_int",        # should be int
-                "semester": [1],          # should be int
-                "grade": {"a": 1},        # should be int
+                "course_name": 123,  # should be str
+                "year": "not_int",  # should be int
+                "semester": [1],  # should be int
+                "grade": {"a": 1},  # should be int
             },
             "ocr": {
                 "num_questions": "five",  # should be int
             },
             "evaluation": {
-                "provider": 42,           # should be str
-                "n_calls": False,         # bool is caught as not-int
-                "skip_feedback": "yes",   # should be bool
-                "skip_graph": 1,          # should be bool
-                "skip_statistical": 0,    # should be bool
+                "provider": 42,  # should be str
+                "n_calls": False,  # bool is caught as not-int
+                "skip_feedback": "yes",  # should be bool
+                "skip_graph": 1,  # should be bool
+                "skip_statistical": 0,  # should be bool
             },
             "reports": {
-                "dpi": "high",            # should be int
-                "skip_llm": "true",       # should be bool
-                "aggregate": 1,           # should be bool
+                "dpi": "high",  # should be int
+                "skip_llm": "true",  # should be bool
+                "aggregate": 1,  # should be bool
             },
-            "current_week": "three",      # should be int
+            "current_week": "three",  # should be int
         }
         with pytest.raises(ValueError) as exc_info:
             validate_project_config(config)
@@ -205,21 +222,21 @@ class TestConfigSaboteur:
         """Values outside valid ranges should produce errors."""
         config = {
             "project": {
-                "year": 2019,          # must be >= 2020
-                "semester": 3,         # must be 1 or 2
-                "grade": 0,            # must be >= 1
+                "year": 2019,  # must be >= 2020
+                "semester": 3,  # must be 1 or 2
+                "grade": 0,  # must be >= 1
             },
             "ocr": {
-                "num_questions": 0,    # must be >= 1
+                "num_questions": 0,  # must be >= 1
             },
             "evaluation": {
                 "provider": "openai",  # must be "gemini" or "anthropic"
-                "n_calls": 0,          # must be >= 1
+                "n_calls": 0,  # must be >= 1
             },
             "reports": {
-                "dpi": 71,             # must be 72-600
+                "dpi": 71,  # must be 72-600
             },
-            "current_week": 0,         # must be >= 1
+            "current_week": 0,  # must be >= 1
         }
         with pytest.raises(ValueError) as exc_info:
             validate_project_config(config)
@@ -311,6 +328,7 @@ class TestConfigSaboteur:
     def test_find_config_in_nonexistent_directory(self):
         """find_project_config with nonexistent start_dir should return None."""
         from pathlib import Path
+
         result = find_project_config(Path("/nonexistent/directory/path"))
         assert result is None
 
@@ -318,6 +336,7 @@ class TestConfigSaboteur:
         """find_project_config should stop at .git directory boundary."""
         with tempfile.TemporaryDirectory() as tmpdir:
             from pathlib import Path
+
             base = Path(tmpdir)
             # Create .git sentinel at base
             (base / ".git").mkdir()
@@ -332,6 +351,7 @@ class TestConfigSaboteur:
         """find_project_config should find forma.yaml in parent directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
             from pathlib import Path
+
             base = Path(tmpdir)
             (base / ".git").mkdir()
             # Create forma.yaml at base
@@ -348,9 +368,12 @@ class TestConfigSaboteur:
         project = {"reports": {"dpi": 150}, "current_week": 3}
         system = {}
         result = merge_configs(
-            cli_ns, project, system, explicit_keys={"dpi"},
+            cli_ns,
+            project,
+            system,
+            explicit_keys={"dpi"},
         )
-        assert result["dpi"] == 300       # CLI explicit → wins
+        assert result["dpi"] == 300  # CLI explicit → wins
         assert result["current_week"] == 3  # CLI not explicit → project wins
 
     def test_merge_project_overrides_system(self):
@@ -503,8 +526,7 @@ class TestStatisticalAttacker:
     def test_identical_scores_within_one_section(self):
         """Zero-variance in one section, variance in other: no crash."""
         scores_a = [0.5] * 15
-        scores_b = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.3, 0.4, 0.5, 0.6,
-                     0.7, 0.8, 0.3, 0.4, 0.5]
+        scores_b = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.3, 0.4, 0.5]
         results = compute_pairwise_comparisons({"A": scores_a, "B": scores_b})
         assert len(results) == 1
         comp = results[0]
@@ -545,10 +567,7 @@ class TestStatisticalAttacker:
     def test_4_sections_6_pairs(self):
         """4 sections should produce C(4,2)=6 pairwise comparisons."""
         rng = np.random.RandomState(42)
-        section_scores = {
-            s: rng.uniform(0.2, 0.9, 20).tolist()
-            for s in ["A", "B", "C", "D"]
-        }
+        section_scores = {s: rng.uniform(0.2, 0.9, 20).tolist() for s in ["A", "B", "C", "D"]}
         results = compute_pairwise_comparisons(section_scores)
         assert len(results) == 6
         # All pairs should have Bonferroni correction
@@ -597,17 +616,17 @@ class TestStatisticalAttacker:
         assert math.isfinite(result.std)
         assert result.n_students == 30
 
-    def test_nan_in_scores_propagates(self):
-        """NaN in input scores propagates through statistics.
+    def test_nan_in_scores_filtered(self):
+        """NaN in input scores is filtered out by compute_section_stats.
 
-        This is a known behavior: NaN propagates to mean/median/std.
-        The system does not sanitize NaN inputs — caller is responsible.
+        NaN values are excluded from statistical computations so that
+        mean/median/std remain finite.
         """
         scores = [0.5, float("nan"), 0.7]
         result = compute_section_stats("A", scores, set())
         assert result.n_students == 3
-        # NaN propagates to mean/std
-        assert math.isnan(result.mean)
+        # NaN is filtered — mean computed from valid values only
+        assert math.isfinite(result.mean)
 
     def test_nan_in_pairwise_comparison(self):
         """NaN in section scores: comparison should not crash.
@@ -635,9 +654,11 @@ class TestStatisticalAttacker:
 
     def test_concept_mastery_empty_values_list(self):
         """Concept with empty values list should produce mastery of 0.0."""
-        result = compute_concept_mastery_by_section({
-            "A": {"concept1": [], "concept2": [0.8, 0.9]},
-        })
+        result = compute_concept_mastery_by_section(
+            {
+                "A": {"concept1": [], "concept2": [0.8, 0.9]},
+            }
+        )
         assert result["A"]["concept1"] == 0.0
         assert result["A"]["concept2"] == pytest.approx(0.85)
 
@@ -672,10 +693,7 @@ class TestStatisticalAttacker:
     def test_100_sections_performance(self):
         """100 sections = C(100,2) = 4950 pairs should complete quickly."""
         rng = np.random.RandomState(42)
-        section_scores = {
-            f"S{i:03d}": rng.uniform(0.2, 0.9, 5).tolist()
-            for i in range(100)
-        }
+        section_scores = {f"S{i:03d}": rng.uniform(0.2, 0.9, 5).tolist() for i in range(100)}
         start = time.time()
         results = compute_pairwise_comparisons(section_scores)
         elapsed = time.time() - start
@@ -691,10 +709,14 @@ class TestStatisticalAttacker:
         """is_significant should be True only when p < 0.05 (strict less-than)."""
         # Construct a SectionComparison manually to test the boundary
         comp = SectionComparison(
-            section_a="A", section_b="B",
-            n_a=30, n_b=30,
-            mean_a=0.5, mean_b=0.6,
-            std_a=0.1, std_b=0.1,
+            section_a="A",
+            section_b="B",
+            n_a=30,
+            n_b=30,
+            mean_a=0.5,
+            mean_b=0.6,
+            std_a=0.1,
+            std_b=0.1,
             test_name="welch_t",
             test_statistic=-2.0,
             p_value=0.05,
@@ -718,31 +740,35 @@ class TestStatisticalAttackerCharts:
     def test_box_plot_2_sections(self):
         """Basic 2-section box plot should produce valid PNG."""
         from forma.section_comparison_charts import build_section_box_plot
-        buf = build_section_box_plot({
-            "A": [0.3, 0.5, 0.7, 0.8],
-            "B": [0.4, 0.6, 0.7, 0.9],
-        })
+
+        buf = build_section_box_plot(
+            {
+                "A": [0.3, 0.5, 0.7, 0.8],
+                "B": [0.4, 0.6, 0.7, 0.9],
+            }
+        )
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
 
     def test_box_plot_single_value_sections(self):
         """Sections with single values should produce degenerate box plots."""
         from forma.section_comparison_charts import build_section_box_plot
-        buf = build_section_box_plot({
-            "A": [0.5],
-            "B": [0.7],
-        })
+
+        buf = build_section_box_plot(
+            {
+                "A": [0.5],
+                "B": [0.7],
+            }
+        )
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
 
     def test_box_plot_9_sections_color_wrap(self):
         """9+ sections should wrap color palette without crash."""
         from forma.section_comparison_charts import build_section_box_plot
+
         rng = np.random.RandomState(42)
-        section_scores = {
-            f"S{i}": rng.uniform(0.2, 0.9, 10).tolist()
-            for i in range(9)
-        }
+        section_scores = {f"S{i}": rng.uniform(0.2, 0.9, 10).tolist() for i in range(9)}
         buf = build_section_box_plot(section_scores)
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
@@ -750,18 +776,21 @@ class TestStatisticalAttackerCharts:
     def test_heatmap_empty_data_returns_none(self):
         """Empty concept mastery data should return None (no chart)."""
         from forma.section_comparison_charts import build_concept_mastery_heatmap
+
         result = build_concept_mastery_heatmap({})
         assert result is None
 
     def test_heatmap_no_concepts_returns_none(self):
         """Sections with no concepts should return None."""
         from forma.section_comparison_charts import build_concept_mastery_heatmap
+
         result = build_concept_mastery_heatmap({"A": {}, "B": {}})
         assert result is None
 
     def test_heatmap_25_concepts_truncated(self):
         """25 concepts should be truncated to top 20 by variance."""
         from forma.section_comparison_charts import build_concept_mastery_heatmap
+
         rng = np.random.RandomState(42)
         concept_data = {
             "A": {f"concept_{i}": rng.uniform(0, 1) for i in range(25)},
@@ -774,6 +803,7 @@ class TestStatisticalAttackerCharts:
     def test_heatmap_all_identical_mastery(self):
         """All concepts with identical mastery across sections: zero variance."""
         from forma.section_comparison_charts import build_concept_mastery_heatmap
+
         concept_data = {
             "A": {"c1": 0.5, "c2": 0.5, "c3": 0.5},
             "B": {"c1": 0.5, "c2": 0.5, "c3": 0.5},
@@ -785,16 +815,19 @@ class TestStatisticalAttackerCharts:
     def test_weekly_chart_none_returns_none(self):
         """None weekly data should return None (no chart)."""
         from forma.section_comparison_charts import build_weekly_interaction_chart
+
         assert build_weekly_interaction_chart(None) is None
 
     def test_weekly_chart_empty_returns_none(self):
         """Empty weekly data should return None."""
         from forma.section_comparison_charts import build_weekly_interaction_chart
+
         assert build_weekly_interaction_chart({}) is None
 
     def test_weekly_chart_normal(self):
         """Normal weekly interaction chart with 2 sections."""
         from forma.section_comparison_charts import build_weekly_interaction_chart
+
         data = {
             "A": {1: 0.5, 2: 0.6, 3: 0.7},
             "B": {1: 0.4, 2: 0.5, 3: 0.55},
@@ -806,6 +839,7 @@ class TestStatisticalAttackerCharts:
     def test_weekly_chart_single_week(self):
         """Single week of data should produce valid chart (just a point)."""
         from forma.section_comparison_charts import build_weekly_interaction_chart
+
         data = {"A": {1: 0.5}, "B": {1: 0.6}}
         buf = build_weekly_interaction_chart(data)
         assert isinstance(buf, io.BytesIO)
@@ -814,6 +848,7 @@ class TestStatisticalAttackerCharts:
     def test_heatmap_korean_concept_names(self):
         """Korean concept names in heatmap should render without crash."""
         from forma.section_comparison_charts import build_concept_mastery_heatmap
+
         concept_data = {
             "A": {"세포막": 0.8, "핵": 0.5, "미토콘드리아": 0.3},
             "B": {"세포막": 0.6, "핵": 0.7, "미토콘드리아": 0.4},
@@ -855,10 +890,7 @@ class TestInvariant1000:
         """1000 random 3-section comparisons: corrected p always in [0, 1]."""
         rng = np.random.RandomState(42)
         for _ in range(1000):
-            section_scores = {
-                s: rng.uniform(0, 1, rng.randint(5, 20)).tolist()
-                for s in ["A", "B", "C"]
-            }
+            section_scores = {s: rng.uniform(0, 1, rng.randint(5, 20)).tolist() for s in ["A", "B", "C"]}
             results = compute_pairwise_comparisons(section_scores)
             for comp in results:
                 assert comp.p_value_corrected is not None
@@ -870,10 +902,7 @@ class TestInvariant1000:
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n_sections = rng.randint(2, 8)
-            section_scores = {
-                f"S{i}": rng.uniform(0, 1, rng.randint(3, 20)).tolist()
-                for i in range(n_sections)
-            }
+            section_scores = {f"S{i}": rng.uniform(0, 1, rng.randint(3, 20)).tolist() for i in range(n_sections)}
             results = compute_pairwise_comparisons(section_scores)
             expected_pairs = n_sections * (n_sections - 1) // 2
             assert len(results) == expected_pairs
@@ -903,7 +932,9 @@ class TestInvariant1000:
             n = rng.randint(0, 100)
             scores = rng.uniform(0, 1, n).tolist()
             result = compute_section_stats(
-                "test", scores, set(),
+                "test",
+                scores,
+                set(),
             )
             assert result.n_students == n
 
@@ -919,6 +950,7 @@ class TestModelCorruptor:
     def test_truncated_pkl_file(self):
         """Truncated .pkl file should raise an error on load."""
         from forma.risk_predictor import load_model
+
         with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
             f.write(b"\x80\x05\x95\x00\x00\x00\x00")  # truncated pickle header
             path = f.name
@@ -931,6 +963,7 @@ class TestModelCorruptor:
     def test_zero_byte_pkl_file(self):
         """Zero-byte .pkl file should raise an error on load."""
         from forma.risk_predictor import load_model
+
         with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
             path = f.name
         try:
@@ -942,8 +975,11 @@ class TestModelCorruptor:
     def test_non_pickle_file_with_pkl_extension(self):
         """A YAML text file with .pkl extension should raise on load."""
         from forma.risk_predictor import load_model
+
         with tempfile.NamedTemporaryFile(
-            suffix=".pkl", delete=False, mode="w",
+            suffix=".pkl",
+            delete=False,
+            mode="w",
         ) as f:
             f.write("current_week: 1\nproject:\n  year: 2026\n")
             path = f.name
@@ -957,6 +993,7 @@ class TestModelCorruptor:
         """A .pkl file containing a dict instead of TrainedRiskModel."""
         from forma.risk_predictor import load_model
         import joblib
+
         with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
             path = f.name
         try:
@@ -971,13 +1008,17 @@ class TestModelCorruptor:
     def test_nonexistent_model_file(self):
         """Loading a nonexistent model file should raise FileNotFoundError."""
         from forma.risk_predictor import load_model
+
         with pytest.raises(FileNotFoundError):
             load_model("/nonexistent/path/model.pkl")
 
     def test_save_load_roundtrip(self):
         """TrainedRiskModel roundtrip via save_model/load_model."""
         from forma.risk_predictor import (
-            TrainedRiskModel, save_model, load_model, FEATURE_NAMES,
+            TrainedRiskModel,
+            save_model,
+            load_model,
+            FEATURE_NAMES,
         )
         from sklearn.linear_model import LogisticRegression
         from sklearn.preprocessing import StandardScaler
@@ -987,7 +1028,7 @@ class TestModelCorruptor:
         X = rng.uniform(0, 1, (20, 15))
         scaler.fit(X)
         model = LogisticRegression(max_iter=100, random_state=42)
-        model.fit(scaler.transform(X), np.array([0]*10 + [1]*10))
+        model.fit(scaler.transform(X), np.array([0] * 10 + [1] * 10))
 
         trained = TrainedRiskModel(
             model=model,
@@ -1020,7 +1061,9 @@ class TestModelCorruptor:
     def test_model_predict_with_feature_count_mismatch(self):
         """Predicting with wrong number of features should raise an error."""
         from forma.risk_predictor import (
-            TrainedRiskModel, RiskPredictor, FEATURE_NAMES,
+            TrainedRiskModel,
+            RiskPredictor,
+            FEATURE_NAMES,
         )
         from sklearn.linear_model import LogisticRegression
         from sklearn.preprocessing import StandardScaler
@@ -1030,7 +1073,7 @@ class TestModelCorruptor:
         scaler = StandardScaler()
         scaler.fit(X)
         model = LogisticRegression(max_iter=100, random_state=42)
-        model.fit(scaler.transform(X), np.array([0]*10 + [1]*10))
+        model.fit(scaler.transform(X), np.array([0] * 10 + [1] * 10))
 
         trained = TrainedRiskModel(
             model=model,
@@ -1059,6 +1102,7 @@ class TestDataPoisoner:
     def _make_store_with_records(self, records):
         """Build an in-memory LongitudinalStore with given records."""
         from forma.longitudinal_store import LongitudinalStore
+
         with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
             path = f.name
         store = LongitudinalStore(path)
@@ -1066,9 +1110,9 @@ class TestDataPoisoner:
             store.add_record(r)
         return store
 
-    def _make_record(self, student_id="S001", week=1, question_sn=1,
-                     ensemble_score=0.5, tier_level=1, **kwargs):
+    def _make_record(self, student_id="S001", week=1, question_sn=1, ensemble_score=0.5, tier_level=1, **kwargs):
         from forma.evaluation_types import LongitudinalRecord
+
         scores = {"ensemble_score": ensemble_score}
         if "concept_coverage" in kwargs:
             scores["concept_coverage"] = kwargs.pop("concept_coverage")
@@ -1085,6 +1129,7 @@ class TestDataPoisoner:
     def test_empty_store_extraction(self):
         """Feature extraction from empty store should produce empty matrix."""
         from forma.risk_predictor import FeatureExtractor
+
         store = self._make_store_with_records([])
         ext = FeatureExtractor()
         matrix, names, ids = ext.extract(store, [1, 2, 3])
@@ -1095,6 +1140,7 @@ class TestDataPoisoner:
     def test_single_student_single_week(self):
         """Single student, single week: features extracted, slopes=0.0."""
         from forma.risk_predictor import FeatureExtractor
+
         records = [self._make_record(ensemble_score=0.6)]
         store = self._make_store_with_records(records)
         ext = FeatureExtractor()
@@ -1108,13 +1154,17 @@ class TestDataPoisoner:
     def test_1000_students_stress(self):
         """1000 students should extract features in reasonable time."""
         from forma.risk_predictor import FeatureExtractor
+
         records = []
         for i in range(1000):
             for w in [1, 2, 3]:
-                records.append(self._make_record(
-                    student_id=f"S{i:04d}", week=w,
-                    ensemble_score=random.uniform(0.1, 0.9),
-                ))
+                records.append(
+                    self._make_record(
+                        student_id=f"S{i:04d}",
+                        week=w,
+                        ensemble_score=random.uniform(0.1, 0.9),
+                    )
+                )
         store = self._make_store_with_records(records)
         ext = FeatureExtractor()
         start = time.time()
@@ -1127,13 +1177,17 @@ class TestDataPoisoner:
     def test_all_identical_scores_zero_variance(self):
         """All students identical scores: zero variance features."""
         from forma.risk_predictor import FeatureExtractor
+
         records = []
         for i in range(15):
             for w in [1, 2, 3]:
-                records.append(self._make_record(
-                    student_id=f"S{i:03d}", week=w,
-                    ensemble_score=0.5,
-                ))
+                records.append(
+                    self._make_record(
+                        student_id=f"S{i:03d}",
+                        week=w,
+                        ensemble_score=0.5,
+                    )
+                )
         store = self._make_store_with_records(records)
         ext = FeatureExtractor()
         matrix, names, ids = ext.extract(store, [1, 2, 3])
@@ -1146,6 +1200,7 @@ class TestDataPoisoner:
     def test_all_identical_scores_training(self):
         """Training with all-identical scores: cv_score=0.0 (single class)."""
         from forma.risk_predictor import RiskPredictor
+
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (20, 15))
         # All labels the same -> single class
@@ -1157,6 +1212,7 @@ class TestDataPoisoner:
     def test_insufficient_students_raises(self):
         """Training with fewer than min_students should raise ValueError."""
         from forma.risk_predictor import RiskPredictor
+
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (5, 15))
         labels = np.array([0, 0, 0, 1, 1])
@@ -1167,6 +1223,7 @@ class TestDataPoisoner:
     def test_student_missing_some_weeks(self):
         """Student with data in only some weeks: absence features correct."""
         from forma.risk_predictor import FeatureExtractor
+
         records = [
             self._make_record(student_id="S001", week=1, ensemble_score=0.5),
             # Missing week 2
@@ -1183,6 +1240,7 @@ class TestDataPoisoner:
     def test_mid_semester_enrollment(self):
         """Student appearing only in later weeks: earlier weeks count as absent."""
         from forma.risk_predictor import FeatureExtractor
+
         records = [
             self._make_record(student_id="S001", week=3, ensemble_score=0.6),
         ]
@@ -1195,24 +1253,20 @@ class TestDataPoisoner:
         assert matrix[0, ratio_idx] == pytest.approx(2.0 / 3.0)
 
     def test_negative_ensemble_scores(self):
-        """Negative ensemble scores should not crash feature extraction."""
-        from forma.risk_predictor import FeatureExtractor
-        records = [
-            self._make_record(week=1, ensemble_score=-0.5),
-            self._make_record(week=2, ensemble_score=-1.0),
-            self._make_record(week=3, ensemble_score=-0.3),
-        ]
-        store = self._make_store_with_records(records)
-        ext = FeatureExtractor()
-        matrix, names, ids = ext.extract(store, [1, 2, 3])
-        assert matrix.shape == (1, 15)
-        mean_idx = names.index("score_mean")
-        assert math.isfinite(matrix[0, mean_idx])
-        assert matrix[0, mean_idx] < 0
+        """Negative ensemble scores are rejected by store validation."""
+        rec = self._make_record(week=1, ensemble_score=-0.5)
+        from forma.longitudinal_store import LongitudinalStore
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            path = f.name
+        store = LongitudinalStore(path)
+        with pytest.raises(ValueError, match="negative"):
+            store.add_record(rec)
 
     def test_scores_above_one(self):
         """Scores > 1.0 should not crash feature extraction."""
         from forma.risk_predictor import FeatureExtractor
+
         records = [
             self._make_record(week=1, ensemble_score=1.5),
             self._make_record(week=2, ensemble_score=2.0),
@@ -1227,11 +1281,14 @@ class TestDataPoisoner:
     def test_cold_start_prediction(self):
         """Cold start prediction should produce limited confidence."""
         from forma.risk_predictor import RiskPredictor, FEATURE_NAMES
+
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (5, 15))
         predictor = RiskPredictor()
         preds = predictor.predict_cold_start(
-            matrix, [f"S{i}" for i in range(5)], list(FEATURE_NAMES),
+            matrix,
+            [f"S{i}" for i in range(5)],
+            list(FEATURE_NAMES),
         )
         assert len(preds) == 5
         for p in preds:
@@ -1243,10 +1300,13 @@ class TestDataPoisoner:
     def test_cold_start_with_zero_features(self):
         """Cold start with all-zero feature matrix: valid predictions."""
         from forma.risk_predictor import RiskPredictor, FEATURE_NAMES
+
         matrix = np.zeros((3, 15))
         predictor = RiskPredictor()
         preds = predictor.predict_cold_start(
-            matrix, ["S001", "S002", "S003"], list(FEATURE_NAMES),
+            matrix,
+            ["S001", "S002", "S003"],
+            list(FEATURE_NAMES),
         )
         assert len(preds) == 3
         for p in preds:
@@ -1255,6 +1315,7 @@ class TestDataPoisoner:
     def test_none_v2_fields_fallback_to_zero(self):
         """Records with None v2 fields: edge_f1 and misconception_count -> 0.0."""
         from forma.risk_predictor import FeatureExtractor
+
         records = [
             self._make_record(week=1, edge_f1=None, misconception_count=None),
             self._make_record(week=2, edge_f1=None, misconception_count=None),
@@ -1280,6 +1341,7 @@ class TestBoundaryPusher:
     def test_drop_probability_exactly_0(self):
         """RiskPrediction with drop_probability=0.0 should be valid."""
         from forma.risk_predictor import RiskPrediction
+
         pred = RiskPrediction(student_id="S001", drop_probability=0.0)
         assert pred.drop_probability == 0.0
         assert pred.predicted_tier == 2  # default
@@ -1287,12 +1349,14 @@ class TestBoundaryPusher:
     def test_drop_probability_exactly_1(self):
         """RiskPrediction with drop_probability=1.0 should be valid."""
         from forma.risk_predictor import RiskPrediction
+
         pred = RiskPrediction(student_id="S001", drop_probability=1.0)
         assert pred.drop_probability == 1.0
 
     def test_drop_probability_exactly_05(self):
         """drop_probability=0.5 is the inclusion threshold for warning cards."""
         from forma.risk_predictor import RiskPrediction
+
         pred = RiskPrediction(student_id="S001", drop_probability=0.5)
         assert pred.drop_probability == 0.5
 
@@ -1304,7 +1368,7 @@ class TestBoundaryPusher:
 
         rng = np.random.RandomState(42)
         X = rng.uniform(0, 1, (20, 15))
-        labels = np.array([0]*10 + [1]*10)
+        labels = np.array([0] * 10 + [1] * 10)
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         model = LogisticRegression(max_iter=100, random_state=42)
@@ -1335,9 +1399,10 @@ class TestBoundaryPusher:
     def test_exactly_10_students_training_succeeds(self):
         """Exactly min_students=10 should succeed."""
         from forma.risk_predictor import RiskPredictor
+
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (10, 15))
-        labels = np.array([0]*5 + [1]*5)
+        labels = np.array([0] * 5 + [1] * 5)
         predictor = RiskPredictor()
         model = predictor.train(matrix, labels, list(range(15)), min_students=10)
         assert model.n_students == 10
@@ -1345,9 +1410,10 @@ class TestBoundaryPusher:
     def test_exactly_9_students_training_fails(self):
         """9 students with min_students=10 should raise ValueError."""
         from forma.risk_predictor import RiskPredictor
+
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (9, 15))
-        labels = np.array([0]*5 + [1]*4)
+        labels = np.array([0] * 5 + [1] * 4)
         predictor = RiskPredictor()
         with pytest.raises(ValueError, match="Insufficient students.*9 < 10"):
             predictor.train(matrix, labels, list(range(15)), min_students=10)
@@ -1402,7 +1468,7 @@ class TestBoundaryPusher:
 
         rng = np.random.RandomState(42)
         X = rng.uniform(0, 1, (30, 15))
-        labels = np.array([0]*15 + [1]*15)
+        labels = np.array([0] * 15 + [1] * 15)
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         model = LogisticRegression(max_iter=200, random_state=42)
@@ -1433,11 +1499,16 @@ class TestBoundaryPusher:
             path = f.name
         store = LongitudinalStore(path)
         for w in [1, 2, 3]:
-            store.add_record(LongitudinalRecord(
-                student_id="S001", week=w, question_sn=1,
-                scores={"ensemble_score": 0.5}, tier_level=1,
-                tier_label="Developing",
-            ))
+            store.add_record(
+                LongitudinalRecord(
+                    student_id="S001",
+                    week=w,
+                    question_sn=1,
+                    scores={"ensemble_score": 0.5},
+                    tier_level=1,
+                    tier_label="Developing",
+                )
+            )
         ext = FeatureExtractor()
         matrix, names, ids = ext.extract(store, [1, 2, 3])
         assert matrix.shape[1] == 15
@@ -1456,18 +1527,19 @@ class TestInvariant1000Phase2:
     def test_cold_start_probability_always_bounded(self):
         """1000 random: cold start probability always in [0.0, 1.0]."""
         from forma.risk_predictor import RiskPredictor, FEATURE_NAMES
+
         rng = np.random.RandomState(42)
         predictor = RiskPredictor()
         for _ in range(1000):
             n = rng.randint(1, 10)
             matrix = rng.uniform(-2, 2, (n, 15))
             preds = predictor.predict_cold_start(
-                matrix, [f"S{i}" for i in range(n)], list(FEATURE_NAMES),
+                matrix,
+                [f"S{i}" for i in range(n)],
+                list(FEATURE_NAMES),
             )
             for p in preds:
-                assert 0.0 <= p.drop_probability <= 1.0, (
-                    f"Out of bounds: {p.drop_probability}"
-                )
+                assert 0.0 <= p.drop_probability <= 1.0, f"Out of bounds: {p.drop_probability}"
 
     def test_feature_count_invariant(self):
         """100 random: extraction always produces 15 features."""
@@ -1486,12 +1558,16 @@ class TestInvariant1000Phase2:
             weeks = list(range(1, n_weeks + 1))
             for i in range(n_students):
                 for w in weeks:
-                    store.add_record(LongitudinalRecord(
-                        student_id=f"S{i:03d}", week=w, question_sn=1,
-                        scores={"ensemble_score": rng.uniform(0, 1)},
-                        tier_level=rng.randint(0, 4),
-                        tier_label="Developing",
-                    ))
+                    store.add_record(
+                        LongitudinalRecord(
+                            student_id=f"S{i:03d}",
+                            week=w,
+                            question_sn=1,
+                            scores={"ensemble_score": rng.uniform(0, 1)},
+                            tier_level=rng.randint(0, 4),
+                            tier_label="Developing",
+                        )
+                    )
             matrix, names, ids = ext.extract(store, weeks)
             assert matrix.shape[1] == 15, f"Wrong feature count at iter {iteration}"
             assert len(names) == 15
@@ -1500,6 +1576,7 @@ class TestInvariant1000Phase2:
     def test_ols_slope_finite_invariant(self):
         """1000 random: OLS slope is always finite."""
         from forma.risk_predictor import _ols_slope
+
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n = rng.randint(0, 20)
@@ -1519,6 +1596,7 @@ class TestWarningDataCrasher:
     def _make_pred(self, student_id="S001", drop_prob=0.7, **kwargs):
         """Build a RiskPrediction for test fixtures."""
         from forma.risk_predictor import RiskPrediction
+
         return RiskPrediction(
             student_id=student_id,
             drop_probability=drop_prob,
@@ -1528,15 +1606,19 @@ class TestWarningDataCrasher:
     def test_empty_inputs_returns_empty(self):
         """No at-risk students and no predictions → empty list."""
         from forma.warning_report_data import build_warning_data
+
         result = build_warning_data({}, [], {})
         assert result == []
 
     def test_rule_based_only_no_predictions(self):
         """Rule-based at-risk with no model predictions → cards built."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {"S001": {"is_at_risk": True, "reasons": ["low_score"]}}
         result = build_warning_data(
-            at_risk, [], {},
+            at_risk,
+            [],
+            {},
             score_trajectories={"S001": [0.3, 0.25, 0.2]},
         )
         assert len(result) == 1
@@ -1548,6 +1630,7 @@ class TestWarningDataCrasher:
     def test_model_only_no_rule_based(self):
         """Model-predicted at-risk with no rule-based flags → cards built."""
         from forma.warning_report_data import build_warning_data
+
         pred = self._make_pred("S001", 0.8)
         result = build_warning_data({}, [pred], {})
         assert len(result) == 1
@@ -1557,6 +1640,7 @@ class TestWarningDataCrasher:
     def test_union_inclusion_both_methods(self):
         """Student flagged by both methods → both detection methods listed."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {"S001": {"is_at_risk": True, "reasons": []}}
         pred = self._make_pred("S001", 0.8)
         result = build_warning_data(at_risk, [pred], {})
@@ -1567,6 +1651,7 @@ class TestWarningDataCrasher:
     def test_drop_probability_exactly_at_threshold(self):
         """drop_probability=0.5 is exactly at inclusion threshold → included."""
         from forma.warning_report_data import build_warning_data
+
         pred = self._make_pred("S001", 0.5)
         result = build_warning_data({}, [pred], {})
         assert len(result) == 1
@@ -1574,6 +1659,7 @@ class TestWarningDataCrasher:
     def test_drop_probability_just_below_threshold(self):
         """drop_probability=0.499 → NOT included by model alone."""
         from forma.warning_report_data import build_warning_data
+
         pred = self._make_pred("S001", 0.499)
         result = build_warning_data({}, [pred], {})
         assert len(result) == 0
@@ -1581,11 +1667,15 @@ class TestWarningDataCrasher:
     def test_score_decline_classification(self):
         """Decreasing trajectory → SCORE_DECLINE risk type."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         result = build_warning_data(
-            at_risk, [], {},
+            at_risk,
+            [],
+            {},
             score_trajectories={"S001": [0.8, 0.6, 0.4, 0.2]},
         )
         assert len(result) == 1
@@ -1594,11 +1684,15 @@ class TestWarningDataCrasher:
     def test_persistent_low_classification(self):
         """All scores below 0.45 → PERSISTENT_LOW risk type."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         result = build_warning_data(
-            at_risk, [], {},
+            at_risk,
+            [],
+            {},
             score_trajectories={"S001": [0.3, 0.3, 0.3]},
         )
         assert len(result) == 1
@@ -1607,8 +1701,10 @@ class TestWarningDataCrasher:
     def test_concept_deficit_classification(self):
         """3+ concepts below 0.3 mastery → CONCEPT_DEFICIT."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         concept_scores = {
             "S001": {"c1": 0.1, "c2": 0.2, "c3": 0.25, "c4": 0.8},
@@ -1621,8 +1717,10 @@ class TestWarningDataCrasher:
     def test_concept_deficit_exactly_2_not_triggered(self):
         """Only 2 concepts below threshold → CONCEPT_DEFICIT NOT triggered."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         concept_scores = {
             "S001": {"c1": 0.1, "c2": 0.2, "c3": 0.5, "c4": 0.8},
@@ -1634,11 +1732,15 @@ class TestWarningDataCrasher:
     def test_participation_decline_classification(self):
         """absence_ratio > 0.3 → PARTICIPATION_DECLINE."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         result = build_warning_data(
-            at_risk, [], {},
+            at_risk,
+            [],
+            {},
             absence_ratios={"S001": 0.5},
         )
         assert len(result) == 1
@@ -1647,11 +1749,15 @@ class TestWarningDataCrasher:
     def test_participation_decline_at_exact_threshold(self):
         """absence_ratio=0.3 (strict >) → PARTICIPATION_DECLINE NOT triggered."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         result = build_warning_data(
-            at_risk, [], {},
+            at_risk,
+            [],
+            {},
             absence_ratios={"S001": 0.3},
         )
         assert len(result) == 1
@@ -1660,14 +1766,18 @@ class TestWarningDataCrasher:
     def test_multiple_risk_types_combined(self):
         """Student with declining scores + high absence → multiple risk types."""
         from forma.warning_report_data import (
-            build_warning_data, RiskType,
+            build_warning_data,
+            RiskType,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         concept_scores = {
             "S001": {"c1": 0.1, "c2": 0.1, "c3": 0.1},
         }
         result = build_warning_data(
-            at_risk, [], concept_scores,
+            at_risk,
+            [],
+            concept_scores,
             score_trajectories={"S001": [0.6, 0.4, 0.2]},
             absence_ratios={"S001": 0.5},
         )
@@ -1679,11 +1789,15 @@ class TestWarningDataCrasher:
     def test_interventions_mapped_from_risk_types(self):
         """Interventions should be mapped from INTERVENTION_MAP per risk type."""
         from forma.warning_report_data import (
-            build_warning_data, INTERVENTION_MAP,
+            build_warning_data,
+            INTERVENTION_MAP,
         )
+
         at_risk = {"S001": {"is_at_risk": True}}
         result = build_warning_data(
-            at_risk, [], {},
+            at_risk,
+            [],
+            {},
             score_trajectories={"S001": [0.8, 0.6, 0.4]},
         )
         card = result[0]
@@ -1698,12 +1812,15 @@ class TestWarningDataCrasher:
     def test_no_duplicate_interventions(self):
         """Student with multiple risk types → interventions should be de-duped."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {"S001": {"is_at_risk": True}}
         concept_scores = {
             "S001": {"c1": 0.1, "c2": 0.1, "c3": 0.1},
         }
         result = build_warning_data(
-            at_risk, [], concept_scores,
+            at_risk,
+            [],
+            concept_scores,
             score_trajectories={"S001": [0.3, 0.25, 0.2]},
             absence_ratios={"S001": 0.5},
         )
@@ -1713,6 +1830,7 @@ class TestWarningDataCrasher:
     def test_sorted_by_severity_descending(self):
         """Multiple cards should be sorted by risk_severity descending."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {
             "S001": {"is_at_risk": True},
             "S002": {"is_at_risk": True},
@@ -1732,6 +1850,7 @@ class TestWarningDataCrasher:
     def test_default_risk_type_when_no_classification(self):
         """When no specific risk type matches, a default is assigned."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {"S001": {"is_at_risk": True}}
         # No trajectory, no concepts, no absence → no rule matches
         result = build_warning_data(at_risk, [], {})
@@ -1742,18 +1861,15 @@ class TestWarningDataCrasher:
     def test_50_students_stress(self):
         """50 at-risk students with mixed detection: all produce valid cards."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {f"S{i:03d}": {"is_at_risk": True} for i in range(50)}
         preds = [self._make_pred(f"S{i:03d}", 0.4 + i * 0.01) for i in range(50)]
-        concept_scores = {
-            f"S{i:03d}": {f"c{j}": 0.1 * j for j in range(5)}
-            for i in range(50)
-        }
-        score_trajectories = {
-            f"S{i:03d}": [0.5 - i * 0.005] * 4
-            for i in range(50)
-        }
+        concept_scores = {f"S{i:03d}": {f"c{j}": 0.1 * j for j in range(5)} for i in range(50)}
+        score_trajectories = {f"S{i:03d}": [0.5 - i * 0.005] * 4 for i in range(50)}
         result = build_warning_data(
-            at_risk, preds, concept_scores,
+            at_risk,
+            preds,
+            concept_scores,
             score_trajectories=score_trajectories,
         )
         assert len(result) >= 50
@@ -1765,6 +1881,7 @@ class TestWarningDataCrasher:
     def test_risk_type_korean_labels(self):
         """All RiskType values have valid Korean labels."""
         from forma.warning_report_data import RiskType
+
         for rt in RiskType:
             label = rt.label
             assert isinstance(label, str)
@@ -1773,6 +1890,7 @@ class TestWarningDataCrasher:
     def test_intervention_map_completeness(self):
         """INTERVENTION_MAP covers all RiskType values."""
         from forma.warning_report_data import RiskType, INTERVENTION_MAP
+
         for rt in RiskType:
             assert rt.value in INTERVENTION_MAP
             assert len(INTERVENTION_MAP[rt.value]) >= 1
@@ -1780,6 +1898,7 @@ class TestWarningDataCrasher:
     def test_is_at_risk_false_not_included(self):
         """Student with is_at_risk=False should not be included by rule-based."""
         from forma.warning_report_data import build_warning_data
+
         at_risk = {"S001": {"is_at_risk": False}}
         result = build_warning_data(at_risk, [], {})
         assert len(result) == 0
@@ -1787,16 +1906,18 @@ class TestWarningDataCrasher:
     def test_rule_based_severity_all_zeros(self):
         """Rule-based severity with all-zero inputs → bounded [0, 1]."""
         from forma.warning_report_data import _compute_rule_based_severity
+
         severity = _compute_rule_based_severity({}, [], 0.0)
         assert 0.0 <= severity <= 1.0
 
     def test_rule_based_severity_worst_case(self):
         """Rule-based severity with worst inputs → bounded at 1.0."""
         from forma.warning_report_data import _compute_rule_based_severity
+
         severity = _compute_rule_based_severity(
             {"c1": 0.0, "c2": 0.0, "c3": 0.0},  # all deficit
-            [0.0, 0.0, 0.0],                       # zero scores
-            1.0,                                    # full absence
+            [0.0, 0.0, 0.0],  # zero scores
+            1.0,  # full absence
         )
         assert severity <= 1.0
         assert severity > 0.5  # should be high
@@ -1804,6 +1925,7 @@ class TestWarningDataCrasher:
     def test_single_point_trajectory_no_slope(self):
         """Single-point trajectory: SCORE_DECLINE not triggered (need >=2)."""
         from forma.warning_report_data import _classify_risk_types, RiskType
+
         types = _classify_risk_types({}, [0.3], 0.0)
         assert RiskType.SCORE_DECLINE not in types
 
@@ -1819,6 +1941,7 @@ class TestPDFCrasher:
     def _make_card(self, student_id="S001", **kwargs):
         """Build a WarningCard for test fixtures."""
         from forma.warning_report_data import WarningCard, RiskType
+
         defaults = dict(
             student_id=student_id,
             risk_types=[RiskType.SCORE_DECLINE],
@@ -1835,6 +1958,7 @@ class TestPDFCrasher:
     def test_zero_warning_cards_no_warning_page(self):
         """Zero warning cards should generate a no-warning summary PDF."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
@@ -1847,8 +1971,9 @@ class TestPDFCrasher:
     def test_xml_special_chars_in_student_id(self):
         """Student ID with XML special chars (<>&"') should be escaped."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
-        card = self._make_card(student_id='<S001&"test\'>')
+        card = self._make_card(student_id="<S001&\"test'>")
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
@@ -1860,6 +1985,7 @@ class TestPDFCrasher:
     def test_1000_char_student_id(self):
         """Extremely long student_id (1000 chars) should not crash PDF."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(student_id="S" * 1000)
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
@@ -1873,11 +1999,9 @@ class TestPDFCrasher:
     def test_200_warning_cards_performance(self):
         """200+ warning cards should generate PDF without overflow."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
-        cards = [
-            self._make_card(student_id=f"S{i:04d}", risk_severity=1.0 - i * 0.004)
-            for i in range(200)
-        ]
+        cards = [self._make_card(student_id=f"S{i:04d}", risk_severity=1.0 - i * 0.004) for i in range(200)]
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             path = f.name
         try:
@@ -1892,6 +2016,7 @@ class TestPDFCrasher:
     def test_empty_deficit_concepts_and_interventions(self):
         """Card with empty deficit_concepts and interventions: valid PDF."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(
             deficit_concepts=[],
@@ -1909,6 +2034,7 @@ class TestPDFCrasher:
     def test_intervention_text_with_newlines_and_tabs(self):
         """Intervention text containing newlines/tabs should be escaped."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(
             interventions=[
@@ -1928,6 +2054,7 @@ class TestPDFCrasher:
     def test_null_drop_probability_display(self):
         """Card with drop_probability=None: no crash in PDF rendering."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(drop_probability=None)
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
@@ -1941,6 +2068,7 @@ class TestPDFCrasher:
     def test_korean_hangul_jamo_in_concepts(self):
         """Rare Hangul jamo characters in deficit concepts: no crash."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(
             deficit_concepts=["ㄱㄴㄷ 자음", "ㅏㅓㅗ 모음", "미토콘드리아의 기능"],
@@ -1957,6 +2085,7 @@ class TestPDFCrasher:
         """Card with all 4 risk types: renders all labels + all interventions."""
         from forma.warning_report import WarningPDFReportGenerator
         from forma.warning_report_data import RiskType
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(
             risk_types=list(RiskType),
@@ -1973,6 +2102,7 @@ class TestPDFCrasher:
     def test_class_name_with_special_chars(self):
         """class_name with XML special characters: escaped in cover."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card()
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
@@ -1986,6 +2116,7 @@ class TestPDFCrasher:
     def test_empty_class_name(self):
         """Empty class_name: cover page still renders."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card()
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
@@ -1999,6 +2130,7 @@ class TestPDFCrasher:
     def test_misconception_patterns_displayed(self):
         """Card with misconception_patterns: renders them in PDF."""
         from forma.warning_report import WarningPDFReportGenerator
+
         gen = WarningPDFReportGenerator()
         card = self._make_card(
             misconception_patterns=[
@@ -2017,6 +2149,7 @@ class TestPDFCrasher:
     def test_esc_function_special_chars(self):
         """_esc should escape XML characters: <, >, &, but not crash on others."""
         from forma.warning_report import _esc
+
         assert "&lt;" in _esc("<tag>")
         assert "&gt;" in _esc("<tag>")
         assert "&amp;" in _esc("A & B")
@@ -2033,6 +2166,7 @@ class TestPDFCrasherCharts:
     def test_risk_type_chart_empty_counts(self):
         """Empty risk_type_counts: produces 'no data' chart, not crash."""
         from forma.warning_report_charts import build_risk_type_distribution_chart
+
         buf = build_risk_type_distribution_chart({})
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
@@ -2041,6 +2175,7 @@ class TestPDFCrasherCharts:
         """Single risk type in chart: valid PNG."""
         from forma.warning_report_charts import build_risk_type_distribution_chart
         from forma.warning_report_data import RiskType
+
         buf = build_risk_type_distribution_chart({RiskType.SCORE_DECLINE: 10})
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
@@ -2049,6 +2184,7 @@ class TestPDFCrasherCharts:
         """All 4 risk types with counts: valid chart."""
         from forma.warning_report_charts import build_risk_type_distribution_chart
         from forma.warning_report_data import RiskType
+
         counts = {
             RiskType.SCORE_DECLINE: 15,
             RiskType.PERSISTENT_LOW: 8,
@@ -2062,6 +2198,7 @@ class TestPDFCrasherCharts:
     def test_deficit_chart_empty_counts(self):
         """Empty concept_counts: produces 'no data' chart, not crash."""
         from forma.warning_report_charts import build_deficit_concepts_chart
+
         buf = build_deficit_concepts_chart({})
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
@@ -2069,6 +2206,7 @@ class TestPDFCrasherCharts:
     def test_deficit_chart_50_concepts_top_10(self):
         """50 concepts: only top 10 displayed."""
         from forma.warning_report_charts import build_deficit_concepts_chart
+
         concepts = {f"concept_{i}": 50 - i for i in range(50)}
         buf = build_deficit_concepts_chart(concepts)
         assert isinstance(buf, io.BytesIO)
@@ -2077,6 +2215,7 @@ class TestPDFCrasherCharts:
     def test_deficit_chart_korean_concept_names(self):
         """Korean concept names in deficit chart: renders without crash."""
         from forma.warning_report_charts import build_deficit_concepts_chart
+
         concepts = {
             "세포막의 구조": 8,
             "미토콘드리아": 6,
@@ -2090,6 +2229,7 @@ class TestPDFCrasherCharts:
     def test_deficit_chart_single_concept(self):
         """Single concept: valid chart."""
         from forma.warning_report_charts import build_deficit_concepts_chart
+
         buf = build_deficit_concepts_chart({"세포막": 10})
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
@@ -2098,6 +2238,7 @@ class TestPDFCrasherCharts:
         """Very high counts (10000+): valid chart without overflow."""
         from forma.warning_report_charts import build_risk_type_distribution_chart
         from forma.warning_report_data import RiskType
+
         counts = {RiskType.SCORE_DECLINE: 10000, RiskType.PERSISTENT_LOW: 8000}
         buf = build_risk_type_distribution_chart(counts)
         assert isinstance(buf, io.BytesIO)
@@ -2115,7 +2256,10 @@ class TestConcurrentChaos:
     def test_concurrent_model_save_load(self):
         """Save and load model from same path concurrently: no corruption."""
         from forma.risk_predictor import (
-            TrainedRiskModel, save_model, load_model, FEATURE_NAMES,
+            TrainedRiskModel,
+            save_model,
+            load_model,
+            FEATURE_NAMES,
         )
         from sklearn.linear_model import LogisticRegression
         from sklearn.preprocessing import StandardScaler
@@ -2126,7 +2270,7 @@ class TestConcurrentChaos:
         scaler = StandardScaler()
         scaler.fit(X)
         model = LogisticRegression(max_iter=100, random_state=42)
-        model.fit(scaler.transform(X), np.array([0]*10 + [1]*10))
+        model.fit(scaler.transform(X), np.array([0] * 10 + [1] * 10))
 
         trained = TrainedRiskModel(
             model=model,
@@ -2187,11 +2331,16 @@ class TestConcurrentChaos:
         def writer():
             for i in range(20):
                 try:
-                    store.add_record(LongitudinalRecord(
-                        student_id=f"S{i:03d}", week=1, question_sn=1,
-                        scores={"ensemble_score": 0.5}, tier_level=1,
-                        tier_label="Developing",
-                    ))
+                    store.add_record(
+                        LongitudinalRecord(
+                            student_id=f"S{i:03d}",
+                            week=1,
+                            question_sn=1,
+                            scores={"ensemble_score": 0.5},
+                            tier_level=1,
+                            tier_label="Developing",
+                        )
+                    )
                 except Exception as e:
                     errors.append(e)
 
@@ -2218,9 +2367,7 @@ class TestConcurrentChaos:
 
     def test_rapid_config_validation(self):
         """1000 rapid config validations: no state leakage between calls."""
-        configs = [
-            {"current_week": i} for i in range(1, 1001)
-        ]
+        configs = [{"current_week": i} for i in range(1, 1001)]
         for config in configs:
             validate_project_config(config)  # Should not raise
 
@@ -2240,11 +2387,16 @@ class TestConcurrentChaos:
                 store = LongitudinalStore(store_path)
                 for i in range(n_students):
                     for w in weeks:
-                        store.add_record(LongitudinalRecord(
-                            student_id=f"S{i:03d}", week=w, question_sn=1,
-                            scores={"ensemble_score": random.uniform(0.1, 0.9)},
-                            tier_level=1, tier_label="Developing",
-                        ))
+                        store.add_record(
+                            LongitudinalRecord(
+                                student_id=f"S{i:03d}",
+                                week=w,
+                                question_sn=1,
+                                scores={"ensemble_score": random.uniform(0.1, 0.9)},
+                                tier_level=1,
+                                tier_label="Developing",
+                            )
+                        )
                 matrix, names, ids = ext.extract(store, weeks)
                 results.append((matrix.shape, len(ids)))
             except Exception as e:
@@ -2281,8 +2433,11 @@ class TestConcurrentChaos:
     def test_yaml_file_removed_mid_load(self):
         """Removing YAML file mid-load: FileNotFoundError handled."""
         from pathlib import Path
+
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
         ) as f:
             f.write("current_week: 5\n")
             path = f.name
@@ -2302,12 +2457,11 @@ class TestInvariant1000Phase3:
     def test_risk_classification_always_deterministic(self):
         """1000 random: same input always produces same risk classification."""
         from forma.warning_report_data import _classify_risk_types
+
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n_concepts = rng.randint(0, 10)
-            concept_scores = {
-                f"c{i}": rng.uniform(0, 1) for i in range(n_concepts)
-            }
+            concept_scores = {f"c{i}": rng.uniform(0, 1) for i in range(n_concepts)}
             n_weeks = rng.randint(0, 8)
             trajectory = rng.uniform(0, 1, n_weeks).tolist()
             absence = rng.uniform(0, 1)
@@ -2319,52 +2473,37 @@ class TestInvariant1000Phase3:
     def test_severity_always_bounded(self):
         """1000 random: rule-based severity always in [0.0, 1.0]."""
         from forma.warning_report_data import _compute_rule_based_severity
+
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n_concepts = rng.randint(0, 10)
-            concept_scores = {
-                f"c{i}": rng.uniform(0, 1) for i in range(n_concepts)
-            }
+            concept_scores = {f"c{i}": rng.uniform(0, 1) for i in range(n_concepts)}
             n_weeks = rng.randint(0, 8)
             trajectory = rng.uniform(0, 1, n_weeks).tolist()
             absence = rng.uniform(0, 1)
             severity = _compute_rule_based_severity(
-                concept_scores, trajectory, absence,
+                concept_scores,
+                trajectory,
+                absence,
             )
-            assert 0.0 <= severity <= 1.0, (
-                f"Severity {severity} out of bounds"
-            )
+            assert 0.0 <= severity <= 1.0, f"Severity {severity} out of bounds"
 
     def test_warning_cards_always_sorted(self):
         """100 random: build_warning_data always returns sorted cards."""
         from forma.warning_report_data import build_warning_data
+
         rng = np.random.RandomState(42)
         for _ in range(100):
             n_students = rng.randint(1, 20)
-            at_risk = {
-                f"S{i:03d}": {"is_at_risk": True}
-                for i in range(n_students)
-            }
-            preds = [
-                self._make_pred(f"S{i:03d}", rng.uniform(0, 1))
-                for i in range(n_students)
-            ]
-            concept_scores = {
-                f"S{i:03d}": {
-                    f"c{j}": rng.uniform(0, 1) for j in range(5)
-                }
-                for i in range(n_students)
-            }
-            trajectories = {
-                f"S{i:03d}": rng.uniform(0, 1, rng.randint(1, 6)).tolist()
-                for i in range(n_students)
-            }
-            absences = {
-                f"S{i:03d}": rng.uniform(0, 1)
-                for i in range(n_students)
-            }
+            at_risk = {f"S{i:03d}": {"is_at_risk": True} for i in range(n_students)}
+            preds = [self._make_pred(f"S{i:03d}", rng.uniform(0, 1)) for i in range(n_students)]
+            concept_scores = {f"S{i:03d}": {f"c{j}": rng.uniform(0, 1) for j in range(5)} for i in range(n_students)}
+            trajectories = {f"S{i:03d}": rng.uniform(0, 1, rng.randint(1, 6)).tolist() for i in range(n_students)}
+            absences = {f"S{i:03d}": rng.uniform(0, 1) for i in range(n_students)}
             cards = build_warning_data(
-                at_risk, preds, concept_scores,
+                at_risk,
+                preds,
+                concept_scores,
                 score_trajectories=trajectories,
                 absence_ratios=absences,
             )
@@ -2373,6 +2512,7 @@ class TestInvariant1000Phase3:
 
     def _make_pred(self, student_id, drop_prob):
         from forma.risk_predictor import RiskPrediction
+
         return RiskPrediction(
             student_id=student_id,
             drop_probability=drop_prob,

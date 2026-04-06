@@ -18,18 +18,64 @@ logger = logging.getLogger(__name__)
 # Constants
 # ------------------------------------------------------------------
 
-KOREAN_FILLERS: frozenset[str] = frozenset({
-    "어", "음", "그", "저", "뭐", "아", "예", "네", "응",
-    "어어", "음음", "그그", "저저", "뭐뭐",
-})
+KOREAN_FILLERS: frozenset[str] = frozenset(
+    {
+        "어",
+        "음",
+        "그",
+        "저",
+        "뭐",
+        "아",
+        "예",
+        "네",
+        "응",
+        "어어",
+        "음음",
+        "그그",
+        "저저",
+        "뭐뭐",
+    }
+)
 
-BIOLOGY_ABBREVIATIONS: frozenset[str] = frozenset({
-    "ATP", "ADP", "AMP", "DNA", "RNA", "mRNA", "tRNA",
-    "rRNA", "pH", "Ca", "Na", "K", "Cl", "Fe", "O2",
-    "CO2", "H2O", "ECG", "EEG", "MRI", "CT", "IgG",
-    "IgE", "NK", "T세포", "B세포", "ACh", "GABA", "CNS",
-    "PNS", "ANS", "GFR", "ADH", "FSH", "LH",
-})
+BIOLOGY_ABBREVIATIONS: frozenset[str] = frozenset(
+    {
+        "ATP",
+        "ADP",
+        "AMP",
+        "DNA",
+        "RNA",
+        "mRNA",
+        "tRNA",
+        "rRNA",
+        "pH",
+        "Ca",
+        "Na",
+        "K",
+        "Cl",
+        "Fe",
+        "O2",
+        "CO2",
+        "H2O",
+        "ECG",
+        "EEG",
+        "MRI",
+        "CT",
+        "IgG",
+        "IgE",
+        "NK",
+        "T세포",
+        "B세포",
+        "ACh",
+        "GABA",
+        "CNS",
+        "PNS",
+        "ANS",
+        "GFR",
+        "ADH",
+        "FSH",
+        "LH",
+    }
+)
 
 MAX_TRANSCRIPT_LENGTH: int = 50_000
 
@@ -43,68 +89,280 @@ _LATIN = r"A-Za-z0-9"
 # ------------------------------------------------------------------
 # Korean grammar stopwords (~70 items)
 # ------------------------------------------------------------------
-_KOREAN_GRAMMAR: frozenset[str] = frozenset({
-    "은", "는", "이", "가", "을", "를", "에", "에서", "의",
-    "와", "과", "로", "으로", "도", "만", "까지", "부터",
-    "다", "라", "야", "하고", "하면", "하는", "하여",
-    "한", "할", "함", "합", "했", "하다", "있다", "없다",
-    "것", "수", "등", "및", "또", "더", "그리고", "그래서",
-    "그러나", "그런데", "또한", "하지만", "그렇지만",
-    "때문에", "위해", "통해", "대해", "따라", "관한",
-    "된", "되는", "되어", "되었다", "되면", "되고",
-    "인", "인데", "이런", "저런", "그런",
-    "안", "못", "잘", "매우", "아주", "정말", "진짜",
-    "좀", "약간", "거의", "이미", "아직", "바로", "다시",
-})
+_KOREAN_GRAMMAR: frozenset[str] = frozenset(
+    {
+        "은",
+        "는",
+        "이",
+        "가",
+        "을",
+        "를",
+        "에",
+        "에서",
+        "의",
+        "와",
+        "과",
+        "로",
+        "으로",
+        "도",
+        "만",
+        "까지",
+        "부터",
+        "다",
+        "라",
+        "야",
+        "하고",
+        "하면",
+        "하는",
+        "하여",
+        "한",
+        "할",
+        "함",
+        "합",
+        "했",
+        "하다",
+        "있다",
+        "없다",
+        "것",
+        "수",
+        "등",
+        "및",
+        "또",
+        "더",
+        "그리고",
+        "그래서",
+        "그러나",
+        "그런데",
+        "또한",
+        "하지만",
+        "그렇지만",
+        "때문에",
+        "위해",
+        "통해",
+        "대해",
+        "따라",
+        "관한",
+        "된",
+        "되는",
+        "되어",
+        "되었다",
+        "되면",
+        "되고",
+        "인",
+        "인데",
+        "이런",
+        "저런",
+        "그런",
+        "안",
+        "못",
+        "잘",
+        "매우",
+        "아주",
+        "정말",
+        "진짜",
+        "좀",
+        "약간",
+        "거의",
+        "이미",
+        "아직",
+        "바로",
+        "다시",
+    }
+)
 
 # ------------------------------------------------------------------
 # Lecture discourse markers
 # ------------------------------------------------------------------
-_LECTURE_DISCOURSE: frozenset[str] = frozenset({
-    "여기서", "자", "그래서", "그러면", "그런데",
-    "이렇게", "저렇게", "봅시다", "보겠습니다",
-    "말씀드리겠습니다", "넘어가겠습니다",
-    "살펴보겠습니다", "다음으로", "먼저",
-    "마지막으로", "정리하면", "요약하면",
-    "결론적으로", "따라서", "즉",
-    "okay", "right", "well", "basically",
-    "actually", "so", "like", "just",
-    "um", "uh", "you", "know",
-})
+_LECTURE_DISCOURSE: frozenset[str] = frozenset(
+    {
+        "여기서",
+        "자",
+        "그래서",
+        "그러면",
+        "그런데",
+        "이렇게",
+        "저렇게",
+        "봅시다",
+        "보겠습니다",
+        "말씀드리겠습니다",
+        "넘어가겠습니다",
+        "살펴보겠습니다",
+        "다음으로",
+        "먼저",
+        "마지막으로",
+        "정리하면",
+        "요약하면",
+        "결론적으로",
+        "따라서",
+        "즉",
+        "okay",
+        "right",
+        "well",
+        "basically",
+        "actually",
+        "so",
+        "like",
+        "just",
+        "um",
+        "uh",
+        "you",
+        "know",
+    }
+)
 
 # ------------------------------------------------------------------
 # English function words (~180 items, common subset)
 # ------------------------------------------------------------------
-_ENGLISH_STOPWORDS: frozenset[str] = frozenset({
-    "the", "a", "an", "of", "to", "in", "is", "are",
-    "was", "were", "be", "been", "being", "have", "has",
-    "had", "do", "does", "did", "will", "would", "shall",
-    "should", "may", "might", "must", "can", "could",
-    "and", "but", "or", "nor", "not", "no", "for",
-    "with", "at", "by", "from", "on", "as", "into",
-    "through", "during", "before", "after", "above",
-    "below", "between", "out", "off", "over", "under",
-    "again", "further", "then", "once", "here", "there",
-    "when", "where", "why", "how", "all", "each",
-    "every", "both", "few", "more", "most", "other",
-    "some", "such", "only", "own", "same", "than",
-    "too", "very", "just", "because", "about", "up",
-    "down", "if", "while", "until", "that", "which",
-    "who", "whom", "this", "these", "those", "what",
-    "it", "its", "he", "she", "they", "them", "we",
-    "us", "i", "me", "my", "your", "his", "her",
-    "our", "their", "him", "also", "any", "many",
-    "much", "still", "already", "even", "ever", "never",
-    "now", "often", "since", "yet", "however",
-    "therefore", "thus", "hence", "although", "though",
-    "either", "neither", "whether", "whereas",
-    "while", "unless", "per", "via", "among",
-})
+_ENGLISH_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "of",
+        "to",
+        "in",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "shall",
+        "should",
+        "may",
+        "might",
+        "must",
+        "can",
+        "could",
+        "and",
+        "but",
+        "or",
+        "nor",
+        "not",
+        "no",
+        "for",
+        "with",
+        "at",
+        "by",
+        "from",
+        "on",
+        "as",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "out",
+        "off",
+        "over",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "here",
+        "there",
+        "when",
+        "where",
+        "why",
+        "how",
+        "all",
+        "each",
+        "every",
+        "both",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "only",
+        "own",
+        "same",
+        "than",
+        "too",
+        "very",
+        "just",
+        "because",
+        "about",
+        "up",
+        "down",
+        "if",
+        "while",
+        "until",
+        "that",
+        "which",
+        "who",
+        "whom",
+        "this",
+        "these",
+        "those",
+        "what",
+        "it",
+        "its",
+        "he",
+        "she",
+        "they",
+        "them",
+        "we",
+        "us",
+        "i",
+        "me",
+        "my",
+        "your",
+        "his",
+        "her",
+        "our",
+        "their",
+        "him",
+        "also",
+        "any",
+        "many",
+        "much",
+        "still",
+        "already",
+        "even",
+        "ever",
+        "never",
+        "now",
+        "often",
+        "since",
+        "yet",
+        "however",
+        "therefore",
+        "thus",
+        "hence",
+        "although",
+        "though",
+        "either",
+        "neither",
+        "whether",
+        "whereas",
+        "while",
+        "unless",
+        "per",
+        "via",
+        "among",
+    }
+)
 
 
 # ------------------------------------------------------------------
 # Dataclass
 # ------------------------------------------------------------------
+
 
 @dataclass
 class CleanedTranscript:
@@ -135,6 +393,7 @@ class CleanedTranscript:
 # Public functions
 # ------------------------------------------------------------------
 
+
 def validate_path(path: str) -> None:
     """Validate file path for security.
 
@@ -146,15 +405,10 @@ def validate_path(path: str) -> None:
     Raises:
         ValueError: If path contains traversal sequences or null bytes.
     """
-    if '\x00' in path:
-        raise ValueError(
-            f"Path contains null byte: {path!r}"
-        )
-    if re.search(r'(?:^|[/\\])\.\.(?:[/\\]|$)', path):
-        raise ValueError(
-            f"Path contains directory traversal sequence "
-            f"(not allowed for security): {path}"
-        )
+    if "\x00" in path:
+        raise ValueError(f"Path contains null byte: {path!r}")
+    if re.search(r"(?:^|[/\\])\.\.(?:[/\\]|$)", path):
+        raise ValueError(f"Path contains directory traversal sequence (not allowed for security): {path}")
 
 
 def load_and_decode(path: str) -> tuple[str, str]:
@@ -175,7 +429,8 @@ def load_and_decode(path: str) -> tuple[str, str]:
             return f.read(), "utf-8"
     except UnicodeDecodeError:
         logger.warning(
-            "UTF-8 decoding failed, retrying with EUC-KR: %s", path,
+            "UTF-8 decoding failed, retrying with EUC-KR: %s",
+            path,
         )
         with open(path, encoding="euc-kr") as f:
             return f.read(), "euc-kr"
@@ -221,11 +476,15 @@ def _split_at_boundary(word: str) -> str:
     """
     # Latin -> Korean boundary
     word = re.sub(
-        rf"([{_LATIN}])([{_HANGUL}])", r"\1 \2", word,
+        rf"([{_LATIN}])([{_HANGUL}])",
+        r"\1 \2",
+        word,
     )
     # Korean -> Latin boundary
     word = re.sub(
-        rf"([{_HANGUL}])([{_LATIN}])", r"\1 \2", word,
+        rf"([{_HANGUL}])([{_LATIN}])",
+        r"\1 \2",
+        word,
     )
     return word
 
@@ -262,7 +521,8 @@ def split_mixed_tokens(
 
 
 def _starts_with_preserved(
-    word: str, preserve: frozenset[str],
+    word: str,
+    preserve: frozenset[str],
 ) -> bool:
     """Check if word starts with a preserved abbreviation.
 
@@ -328,10 +588,7 @@ def filter_stopwords(
     Returns:
         Filtered word list.
     """
-    return [
-        w for w in words
-        if w in abbreviations or w not in stopwords
-    ]
+    return [w for w in words if w in abbreviations or w not in stopwords]
 
 
 def preprocess_transcript(
@@ -376,16 +633,11 @@ def preprocess_transcript(
 
     # Check empty file
     if not raw_text.strip():
-        raise ValueError(
-            f"File is empty: {path}"
-        )
+        raise ValueError(f"File is empty: {path}")
 
     # Step 3: length check
     if len(raw_text) > MAX_TRANSCRIPT_LENGTH:
-        raise ValueError(
-            f"File exceeds maximum length ({MAX_TRANSCRIPT_LENGTH} chars): "
-            f"{len(raw_text)} chars ({path})"
-        )
+        raise ValueError(f"File exceeds maximum length ({MAX_TRANSCRIPT_LENGTH} chars): {len(raw_text)} chars ({path})")
 
     # Step 4: remove fillers
     text = remove_fillers(raw_text)
@@ -409,9 +661,7 @@ def preprocess_transcript(
 
     # Step 8: validate non-empty after cleaning
     if not cleaned_text.strip():
-        raise ValueError(
-            f"Text is empty after preprocessing: {path}"
-        )
+        raise ValueError(f"Text is empty after preprocessing: {path}")
 
     return CleanedTranscript(
         class_id=class_id,

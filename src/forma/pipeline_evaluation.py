@@ -37,6 +37,7 @@ import warnings
 from typing import Optional
 
 from forma.concept_checker import check_all_concepts
+from forma.io_utils import safe_filename
 from forma.config_validator import validate_exam_config
 from forma.ensemble_scorer import EnsembleScorer
 from forma.evaluation_io import (
@@ -73,10 +74,7 @@ def _load_question_config(config_data: dict, question_sn: int) -> dict:
     for q in questions:
         if q.get("sn") == question_sn:
             return q
-    raise KeyError(
-        f"Question sn={question_sn} not found in exam config. "
-        f"Available: {[q.get('sn') for q in questions]}"
-    )
+    raise KeyError(f"Question sn={question_sn} not found in exam config. Available: {[q.get('sn') for q in questions]}")
 
 
 def _is_v2_question(q: dict) -> bool:
@@ -154,9 +152,9 @@ def _run_layer1(
         concepts = q["keywords"]
         text = student_responses[student_id][qsn]
         print(
-            f"\r[pipeline] Concept check: {idx}/{total} "
-            f"({student_id}, q{qsn}) …",
-            end="", flush=True,
+            f"\r[pipeline] Concept check: {idx}/{total} ({student_id}, q{qsn}) …",
+            end="",
+            flush=True,
         )
         cr = check_all_concepts(
             student_text=text,
@@ -265,7 +263,10 @@ def _run_layer2_v1(
     from forma.llm_evaluator import LLMEvaluator
 
     evaluator = LLMEvaluator(
-        api_key=api_key, provider=provider, model=model, n_calls=n_calls,
+        api_key=api_key,
+        provider=provider,
+        model=model,
+        n_calls=n_calls,
     )
     results: dict[str, dict[int, AggregatedLLMResult]] = {}
 
@@ -284,9 +285,9 @@ def _run_layer2_v1(
         rubric = q.get("rubric", {})
         text = student_responses[student_id][qsn]
         print(
-            f"\r[pipeline] LLM eval: {idx}/{total} "
-            f"({student_id}, q{qsn}) …",
-            end="", flush=True,
+            f"\r[pipeline] LLM eval: {idx}/{total} ({student_id}, q{qsn}) …",
+            end="",
+            flush=True,
         )
         agg = evaluator.evaluate_response(
             student_id=student_id,
@@ -358,9 +359,9 @@ def _run_feedback(
         coverage = er.component_scores.get("concept_coverage", 0.0)
 
         print(
-            f"\r[pipeline] Feedback: {idx}/{total} "
-            f"({student_id}, q{qsn}) …",
-            end="", flush=True,
+            f"\r[pipeline] Feedback: {idx}/{total} ({student_id}, q{qsn}) …",
+            end="",
+            flush=True,
         )
         fr = gen.generate(
             student_id=student_id,
@@ -392,16 +393,32 @@ def _build_counseling_summary(
     llm_results: Optional[dict[str, dict[int, AggregatedLLMResult]]],
     feedback_results: Optional[dict[str, dict[int, FeedbackResult]]] = None,
 ) -> dict:
-    """Build professor-facing counseling summary."""
+    """Build professor-facing counseling summary.
+
+    Returns:
+        Dict with the following structure::
+
+            {
+                "students": list[dict] — each entry contains:
+                    "student_id": str,
+                    "questions": list[dict] — each entry contains:
+                        "question_sn": int,
+                        "understanding_level": str,
+                        "concept_coverage": float,
+                        "support_guidance": str,
+                        "misconceptions": list[str],
+                        "feedback": str (optional, present when feedback_results provided),
+                        "tier_level": int (optional),
+                        "tier_label": str (optional),
+            }
+    """
     summary: dict = {"students": []}
     questions = config_data.get("questions", [])
 
     for student_id, q_results in ensemble_results.items():
         student_entry: dict = {"student_id": student_id, "questions": []}
         for qsn, er in sorted(q_results.items()):
-            q_cfg = next(
-                (q for q in questions if q.get("sn") == qsn), {}
-            )
+            q_cfg = next((q for q in questions if q.get("sn") == qsn), {})
             support = q_cfg.get("support", {})
             level_key = er.understanding_level.lower()
 
@@ -414,9 +431,7 @@ def _build_counseling_summary(
             q_entry: dict = {
                 "question_sn": qsn,
                 "understanding_level": er.understanding_level,
-                "concept_coverage": round(
-                    er.component_scores.get("concept_coverage", 0.0), 2
-                ),
+                "concept_coverage": round(er.component_scores.get("concept_coverage", 0.0), 2),
                 "support_guidance": support.get(level_key, ""),
                 "misconceptions": misconceptions,
             }
@@ -442,7 +457,33 @@ def _build_technical_report(
     stat_results: Optional[dict[str, dict[int, StatisticalResult]]],
     graph_results: Optional[dict[str, dict[int, GraphComparisonResult]]] = None,
 ) -> dict:
-    """Build technical report with all parameters."""
+    """Build technical report with all layer parameters.
+
+    Returns:
+        Dict with the following structure::
+
+            {
+                "students": list[dict] — each entry contains:
+                    "student_id": str,
+                    "questions": list[dict] — each entry contains:
+                        "question_sn": int,
+                        "ensemble_score": float,
+                        "understanding_level": str,
+                        "component_scores": dict[str, float],
+                        "weights_used": dict[str, float],
+                        "concept_details": list[dict] — keys: concept, is_present,
+                            similarity, threshold (all float except concept: str,
+                            is_present: bool),
+                        "llm_evaluation": dict (optional) — keys: median_score,
+                            label, reasoning, misconceptions, uncertain, icc_value,
+                        "statistical_analysis": dict (optional) — keys: rasch_theta,
+                            rasch_theta_se, lca_class, lca_class_probability,
+                            lca_exploratory_warning,
+                        "graph_comparison": dict (optional) — keys: precision,
+                            recall, f1, matched_count, missing_count, extra_count,
+                            wrong_direction_count, fuzzy_matched,
+            }
+    """
     report: dict = {"students": []}
 
     for student_id, q_results in ensemble_results.items():
@@ -455,12 +496,8 @@ def _build_technical_report(
                 "question_sn": qsn,
                 "ensemble_score": round(er.ensemble_score, 2),
                 "understanding_level": er.understanding_level,
-                "component_scores": {
-                    k: round(v, 2) for k, v in er.component_scores.items()
-                },
-                "weights_used": {
-                    k: round(v, 2) for k, v in er.weights_used.items()
-                },
+                "component_scores": {k: round(v, 2) for k, v in er.component_scores.items()},
+                "weights_used": {k: round(v, 2) for k, v in er.weights_used.items()},
             }
 
             # Layer 1 detail
@@ -497,8 +534,7 @@ def _build_technical_report(
                         "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
                         "lca_class": sr.lca_class,
                         "lca_class_probability": (
-                            round(sr.lca_class_probability, 2)
-                            if sr.lca_class_probability is not None else None
+                            round(sr.lca_class_probability, 2) if sr.lca_class_probability is not None else None
                         ),
                         "lca_exploratory_warning": sr.lca_exploratory_warning,
                     }
@@ -535,77 +571,76 @@ def _serialize_layer1(results: dict[str, dict[int, list]]) -> dict:
     for sid, q_results in results.items():
         entry = {"student_id": sid, "questions": []}
         for qsn, concepts in sorted(q_results.items()):
-            entry["questions"].append({
-                "question_sn": qsn,
-                "concepts": [
-                    {
-                        "concept": r.concept,
-                        "is_present": r.is_present,
-                        "similarity": round(r.similarity_score, 2),
-                        "threshold": round(r.threshold_used, 2),
-                    }
-                    for r in concepts
-                ],
-            })
+            entry["questions"].append(
+                {
+                    "question_sn": qsn,
+                    "concepts": [
+                        {
+                            "concept": r.concept,
+                            "is_present": r.is_present,
+                            "similarity": round(r.similarity_score, 2),
+                            "threshold": round(r.threshold_used, 2),
+                        }
+                        for r in concepts
+                    ],
+                }
+            )
         out["students"].append(entry)
     return out
 
 
-def _serialize_graph_comparison(
-    results: dict[str, dict[int, GraphComparisonResult]]
-) -> dict:
+def _serialize_graph_comparison(results: dict[str, dict[int, GraphComparisonResult]]) -> dict:
     """Serialize graph comparison results for YAML output."""
     out: dict = {"students": []}
     for sid, q_results in results.items():
         entry = {"student_id": sid, "questions": []}
         for qsn, gcr in sorted(q_results.items()):
-            entry["questions"].append({
-                "question_sn": qsn,
-                "precision": round(gcr.precision, 2),
-                "recall": round(gcr.recall, 2),
-                "f1": round(gcr.f1, 2),
-                "matched_count": len(gcr.matched_edges),
-                "missing_count": len(gcr.missing_edges),
-                "extra_count": len(gcr.extra_edges),
-                "wrong_direction_count": len(gcr.wrong_direction_edges),
-                "fuzzy_matched": gcr.fuzzy_matched,
-                "matched_edges": [
-                    {"subject": e.subject, "relation": e.relation, "object": e.object}
-                    for e in gcr.matched_edges
-                ],
-                "missing_edges": [
-                    {"subject": e.subject, "relation": e.relation, "object": e.object}
-                    for e in gcr.missing_edges
-                ],
-                "extra_edges": [
-                    {"subject": e.subject, "relation": e.relation, "object": e.object}
-                    for e in gcr.extra_edges
-                ],
-                "wrong_direction_edges": [
-                    {"subject": e.subject, "relation": e.relation, "object": e.object}
-                    for e in gcr.wrong_direction_edges
-                ],
-            })
+            entry["questions"].append(
+                {
+                    "question_sn": qsn,
+                    "precision": round(gcr.precision, 2),
+                    "recall": round(gcr.recall, 2),
+                    "f1": round(gcr.f1, 2),
+                    "matched_count": len(gcr.matched_edges),
+                    "missing_count": len(gcr.missing_edges),
+                    "extra_count": len(gcr.extra_edges),
+                    "wrong_direction_count": len(gcr.wrong_direction_edges),
+                    "fuzzy_matched": gcr.fuzzy_matched,
+                    "matched_edges": [
+                        {"subject": e.subject, "relation": e.relation, "object": e.object} for e in gcr.matched_edges
+                    ],
+                    "missing_edges": [
+                        {"subject": e.subject, "relation": e.relation, "object": e.object} for e in gcr.missing_edges
+                    ],
+                    "extra_edges": [
+                        {"subject": e.subject, "relation": e.relation, "object": e.object} for e in gcr.extra_edges
+                    ],
+                    "wrong_direction_edges": [
+                        {"subject": e.subject, "relation": e.relation, "object": e.object}
+                        for e in gcr.wrong_direction_edges
+                    ],
+                }
+            )
         out["students"].append(entry)
     return out
 
 
-def _serialize_feedback(
-    results: dict[str, dict[int, FeedbackResult]]
-) -> dict:
+def _serialize_feedback(results: dict[str, dict[int, FeedbackResult]]) -> dict:
     """Serialize feedback results for YAML output."""
     out: dict = {"students": []}
     for sid, q_results in results.items():
         entry = {"student_id": sid, "questions": []}
         for qsn, fr in sorted(q_results.items()):
-            entry["questions"].append({
-                "question_sn": qsn,
-                "feedback_text": fr.feedback_text,
-                "char_count": fr.char_count,
-                "tier_level": fr.tier_level,
-                "tier_label": fr.tier_label,
-                "data_sources_used": fr.data_sources_used,
-            })
+            entry["questions"].append(
+                {
+                    "question_sn": qsn,
+                    "feedback_text": fr.feedback_text,
+                    "char_count": fr.char_count,
+                    "tier_level": fr.tier_level,
+                    "tier_label": fr.tier_label,
+                    "data_sources_used": fr.data_sources_used,
+                }
+            )
         out["students"].append(entry)
     return out
 
@@ -616,15 +651,17 @@ def _serialize_layer2(results: dict[str, dict[int, AggregatedLLMResult]]) -> dic
     for sid, q_results in results.items():
         entry = {"student_id": sid, "questions": []}
         for qsn, agg in sorted(q_results.items()):
-            entry["questions"].append({
-                "question_sn": qsn,
-                "median_score": round(agg.median_rubric_score, 2),
-                "label": agg.rubric_label,
-                "reasoning": agg.reasoning,
-                "misconceptions": agg.misconceptions,
-                "uncertain": agg.uncertain,
-                "icc_value": round(agg.icc_value, 2) if agg.icc_value is not None else None,
-            })
+            entry["questions"].append(
+                {
+                    "question_sn": qsn,
+                    "median_score": round(agg.median_rubric_score, 2),
+                    "label": agg.rubric_label,
+                    "reasoning": agg.reasoning,
+                    "misconceptions": agg.misconceptions,
+                    "uncertain": agg.uncertain,
+                    "icc_value": round(agg.icc_value, 2) if agg.icc_value is not None else None,
+                }
+            )
         out["students"].append(entry)
     return out
 
@@ -635,16 +672,17 @@ def _serialize_layer3(results: dict[str, dict[int, StatisticalResult]]) -> dict:
     for sid, q_results in results.items():
         entry = {"student_id": sid, "questions": []}
         for qsn, sr in sorted(q_results.items()):
-            entry["questions"].append({
-                "question_sn": qsn,
-                "rasch_theta": round(sr.rasch_theta, 2) if sr.rasch_theta is not None else None,
-                "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
-                "lca_class": sr.lca_class,
-                "lca_class_probability": (
-                    round(sr.lca_class_probability, 2)
-                    if sr.lca_class_probability is not None else None
-                ),
-            })
+            entry["questions"].append(
+                {
+                    "question_sn": qsn,
+                    "rasch_theta": round(sr.rasch_theta, 2) if sr.rasch_theta is not None else None,
+                    "rasch_theta_se": round(sr.rasch_theta_se, 2) if sr.rasch_theta_se is not None else None,
+                    "lca_class": sr.lca_class,
+                    "lca_class_probability": (
+                        round(sr.lca_class_probability, 2) if sr.lca_class_probability is not None else None
+                    ),
+                }
+            )
         out["students"].append(entry)
     return out
 
@@ -655,14 +693,14 @@ def _serialize_ensemble(results: dict[str, dict[int, EnsembleResult]]) -> dict:
     for sid, q_results in results.items():
         entry = {"student_id": sid, "questions": []}
         for qsn, er in sorted(q_results.items()):
-            entry["questions"].append({
-                "question_sn": qsn,
-                "ensemble_score": round(er.ensemble_score, 2),
-                "understanding_level": er.understanding_level,
-                "component_scores": {
-                    k: round(v, 2) for k, v in er.component_scores.items()
-                },
-            })
+            entry["questions"].append(
+                {
+                    "question_sn": qsn,
+                    "ensemble_score": round(er.ensemble_score, 2),
+                    "understanding_level": er.understanding_level,
+                    "component_scores": {k: round(v, 2) for k, v in er.component_scores.items()},
+                }
+            )
         out["students"].append(entry)
     return out
 
@@ -745,10 +783,7 @@ def run_evaluation_pipeline(
     if questions_used:
         # Filter exam config to selected questions and renumber sn → 1, 2, ...
         config_data = filter_exam_config(config_data, questions_used)
-        print(
-            f"[pipeline] questions_used={questions_used} → "
-            f"sn {[q['sn'] for q in config_data['questions']]}"
-        )
+        print(f"[pipeline] questions_used={questions_used} → sn {[q['sn'] for q in config_data['questions']]}")
 
         # Load OCR join output — q_num already matches renumbered sn (1, 2, ...)
         import yaml
@@ -804,9 +839,7 @@ def run_evaluation_pipeline(
             if _is_v2_question(q):
                 all_master_nodes.extend(_get_master_nodes(q))
         if all_master_nodes:
-            lecture_covered_concepts = extract_lecture_covered_concepts(
-                lecture_text, list(set(all_master_nodes))
-            )
+            lecture_covered_concepts = extract_lecture_covered_concepts(lecture_text, list(set(all_master_nodes)))
             print(
                 f"[pipeline] Lecture covers {len(lecture_covered_concepts)} "
                 f"of {len(set(all_master_nodes))} master concepts"
@@ -817,10 +850,12 @@ def run_evaluation_pipeline(
     # don't interfere with progress bars.
     print("[pipeline] Phase 1: loading models …", end="", flush=True)
     from forma.embedding_cache import get_encoder, _suppress_noisy_output
+
     get_encoder()  # warm up — suppresses LOAD REPORT
     with _suppress_noisy_output():
         try:
             import kss as _kss  # noqa: F811
+
             _kss.split_sentences("_")  # triggers kss backend detection message
         except Exception as exc:
             logger.debug("kss warm-up skipped: %s", exc)
@@ -834,19 +869,23 @@ def run_evaluation_pipeline(
     if has_v2 and not skip_graph:
         print(f"[pipeline] Phase 1: triplet extraction ({provider}, {n_calls}-call) …")
         triplet_results = _run_triplet_extraction(
-            student_responses, config_data, api_key,
-            provider=provider, model=model, n_calls=n_calls,
+            student_responses,
+            config_data,
+            api_key,
+            provider=provider,
+            model=model,
+            n_calls=n_calls,
         )
         print("[pipeline] Phase 1: graph comparison …")
-        graph_results = _run_graph_comparison(
-            triplet_results, config_data, lecture_covered_concepts
-        )
+        graph_results = _run_graph_comparison(triplet_results, config_data, lecture_covered_concepts)
 
     # === Phase 2: Statistical analysis (Rasch IRT) ===
     stat_results: Optional[dict] = None
     if not skip_statistical:
         from forma.statistical_analysis import (
-            RaschAnalyzer, LCAAnalyzer, compute_concept_matrix,
+            RaschAnalyzer,
+            LCAAnalyzer,
+            compute_concept_matrix,
         )
 
         print("[pipeline] Phase 2: statistical analysis …")
@@ -857,14 +896,11 @@ def run_evaluation_pipeline(
             concepts = q["keywords"]
             print(
                 f"\r[pipeline]   Rasch IRT: q{qsn} ({qi}/{len(stat_questions)}) …",
-                end="", flush=True,
+                end="",
+                flush=True,
             )
             student_ids = list(student_responses.keys())
-            flat = [
-                r
-                for sid in student_ids
-                for r in (layer1_results.get(sid) or {}).get(qsn, [])
-            ]
+            flat = [r for sid in student_ids for r in (layer1_results.get(sid) or {}).get(qsn, [])]
             if not flat or not concepts:
                 continue
             mat, sids, _ = compute_concept_matrix(flat, student_ids, concepts)
@@ -883,10 +919,7 @@ def run_evaluation_pipeline(
                     lca = LCAAnalyzer(max_classes=max_k)
                     lca_labels, lca_probs = lca.fit_predict(mat)
                 except Exception as lca_exc:
-                    print(
-                        f"\n[pipeline]   LCA skipped for q{qsn}: "
-                        f"{type(lca_exc).__name__}: {lca_exc}"
-                    )
+                    print(f"\n[pipeline]   LCA skipped for q{qsn}: {type(lca_exc).__name__}: {lca_exc}")
 
                 for i, sid in enumerate(sids):
                     sr = StatisticalResult(
@@ -897,9 +930,7 @@ def run_evaluation_pipeline(
                     )
                     if lca_labels is not None:
                         sr.lca_class = int(lca_labels[i])
-                        sr.lca_class_probability = float(
-                            lca_probs[i, lca_labels[i]]
-                        )
+                        sr.lca_class_probability = float(lca_probs[i, lca_labels[i]])
                     stat_results.setdefault(sid, {})[qsn] = sr
             except Exception as exc:
                 print(f"\n[pipeline]   Rasch failed for q{qsn}: {exc}")
@@ -913,8 +944,12 @@ def run_evaluation_pipeline(
     if has_v1 and not skip_feedback:
         print(f"[pipeline] Phase 3: LLM rubric evaluation ({provider}) …")
         llm_results, llm_evaluator = _run_layer2_v1(
-            student_responses, config_data, api_key,
-            provider=provider, model=model, n_calls=n_calls,
+            student_responses,
+            config_data,
+            api_key,
+            provider=provider,
+            model=model,
+            n_calls=n_calls,
         )
 
     # --- Post-LLM: compute per-question ICC(2,1) across students ---
@@ -947,16 +982,12 @@ def run_evaluation_pipeline(
     scorer = EnsembleScorer()
     ensemble_results: dict[str, dict[int, EnsembleResult]] = {}
 
-    ensemble_work = [
-        (sid, qsn)
-        for sid, q_responses in student_responses.items()
-        for qsn in q_responses
-    ]
+    ensemble_work = [(sid, qsn) for sid, q_responses in student_responses.items() for qsn in q_responses]
     for idx, (student_id, qsn) in enumerate(ensemble_work, 1):
         print(
-            f"\r[pipeline]   Ensemble: {idx}/{len(ensemble_work)} "
-            f"({student_id}, q{qsn}) …",
-            end="", flush=True,
+            f"\r[pipeline]   Ensemble: {idx}/{len(ensemble_work)} ({student_id}, q{qsn}) …",
+            end="",
+            flush=True,
         )
         q_cfg = _load_question_config(config_data, qsn)
         cr = (layer1_results.get(student_id) or {}).get(qsn, [])
@@ -985,9 +1016,13 @@ def run_evaluation_pipeline(
     if not skip_feedback:
         print(f"[pipeline] Phase 5: feedback generation ({provider}) …")
         feedback_results = _run_feedback(
-            student_responses, config_data, ensemble_results,
-            graph_results, api_key,
-            provider=provider, model=model,
+            student_responses,
+            config_data,
+            ensemble_results,
+            graph_results,
+            api_key,
+            provider=provider,
+            model=model,
             lecture_tone=lecture_tone,
         )
 
@@ -1002,10 +1037,7 @@ def run_evaluation_pipeline(
                     results_map[(sid, qsn)] = agg
         retried = llm_evaluator.retry_failed_calls(results_map)
         still_failed = len(llm_evaluator.failed_calls)
-        print(
-            f"[pipeline] Retry complete: {retried} recovered, "
-            f"{still_failed} still failed."
-        )
+        print(f"[pipeline] Retry complete: {retried} recovered, {still_failed} still failed.")
 
     # === Phase 6: Output ===
     print("[pipeline] Phase 6: writing results …")
@@ -1047,11 +1079,12 @@ def run_evaluation_pipeline(
 
     # Layer 4
     l4_dir = os.path.join(output_dir, "res_lvl4")
-    counseling = _build_counseling_summary(
-        ensemble_results, config_data, llm_results, feedback_results
-    )
+    counseling = _build_counseling_summary(ensemble_results, config_data, llm_results, feedback_results)
     technical = _build_technical_report(
-        ensemble_results, layer1_results, llm_results, stat_results,
+        ensemble_results,
+        layer1_results,
+        llm_results,
+        stat_results,
         graph_results,
     )
     save_evaluation_yaml(
@@ -1063,22 +1096,28 @@ def run_evaluation_pipeline(
 
     # Graph visualizations (v2)
     if graph_results and triplet_results:
-        _generate_graph_visualizations(
-            config_data, triplet_results, graph_results, output_dir
-        )
+        _generate_graph_visualizations(config_data, triplet_results, graph_results, output_dir)
 
     # Longitudinal data
     if longitudinal_store:
         _save_longitudinal(
-            longitudinal_store, ensemble_results, graph_results, config_data,
-            layer1_results, responses_data=raw_responses,
+            longitudinal_store,
+            ensemble_results,
+            graph_results,
+            config_data,
+            layer1_results,
+            responses_data=raw_responses,
         )
 
     # PDF reports
     if generate_reports:
         _generate_pdf_reports(
-            output_dir, config_data, counseling, graph_results,
-            config_path=config_path, responses_path=responses_path,
+            output_dir,
+            config_data,
+            counseling,
+            graph_results,
+            config_path=config_path,
+            responses_path=responses_path,
         )
 
     print(f"[pipeline] Done. Results written to: {output_dir}")
@@ -1104,9 +1143,7 @@ def _generate_graph_visualizations(
                 ter = (triplet_results.get(student_id) or {}).get(qsn)
                 student_edges = ter.triplets if ter else []
 
-                output_path = os.path.join(
-                    graphs_dir, f"{student_id}_q{qsn}.png"
-                )
+                output_path = os.path.join(graphs_dir, f"{safe_filename(student_id)}_q{qsn}.png")
                 viz.visualize_comparison(
                     master_edges=master_edges,
                     student_edges=student_edges,
@@ -1249,7 +1286,9 @@ def _generate_pdf_reports(
         from forma.student_report import StudentPDFReportGenerator
 
         students, distributions = load_all_student_data(
-            responses_path, config_path, output_dir,
+            responses_path,
+            config_path,
+            output_dir,
         )
         generator = StudentPDFReportGenerator()
         os.makedirs(reports_dir, exist_ok=True)
@@ -1258,7 +1297,8 @@ def _generate_pdf_reports(
         for idx, student in enumerate(students, 1):
             print(
                 f"\r[pipeline] Report: {idx}/{total} ({student.student_id}) ...",
-                end="", flush=True,
+                end="",
+                flush=True,
             )
             generator.generate_pdf(
                 student_data=student,
@@ -1301,8 +1341,7 @@ def _load_eval_config(path: str) -> dict:
 
     # Resolve relative paths against the YAML file's directory
     base = os.path.dirname(os.path.abspath(path))
-    for key in ("config", "responses", "output", "lecture_transcript",
-                "longitudinal_store"):
+    for key in ("config", "responses", "output", "lecture_transcript", "longitudinal_store"):
         val = cfg.get(key)
         if val and not os.path.isabs(val):
             cfg[key] = os.path.join(base, val)
@@ -1327,18 +1366,21 @@ def main() -> None:
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     # Suppress sentence-transformers / RobertaModel LOAD REPORT noise
     import logging
+
     logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
     logging.getLogger("transformers").setLevel(logging.WARNING)
 
-    parser = argparse.ArgumentParser(
-        description="Multi-layer concept evaluation pipeline (v2)"
-    )
+    parser = argparse.ArgumentParser(description="Multi-layer concept evaluation pipeline (v2)")
     parser.add_argument(
-        "--class", dest="class_id", default=None,
+        "--class",
+        dest="class_id",
+        default=None,
         help="Class section identifier (replaces {class} pattern in week.yaml)",
     )
     parser.add_argument(
-        "--week-config", dest="week_config", default=None,
+        "--week-config",
+        dest="week_config",
+        default=None,
         help="week.yaml path (default: auto-search in current directory)",
     )
     parser.add_argument(
@@ -1346,58 +1388,63 @@ def main() -> None:
         default=None,
         help="Evaluation config YAML (all options in a single file)",
     )
+    parser.add_argument("--config", default=None, help="Exam YAML config path")
+    parser.add_argument("--responses", default=None, help="Student responses YAML path")
+    parser.add_argument("--output", default=None, help="Output directory")
+    parser.add_argument("--api-key", default=None, help="LLM API key (overrides env var)")
+    parser.add_argument("--provider", default=None, help="LLM provider: gemini | anthropic")
+    parser.add_argument("--model", default=None, help="LLM model ID override")
     parser.add_argument(
-        "--config", default=None, help="Exam YAML config path"
-    )
-    parser.add_argument(
-        "--responses", default=None, help="Student responses YAML path"
-    )
-    parser.add_argument(
-        "--output", default=None, help="Output directory"
-    )
-    parser.add_argument(
-        "--api-key", default=None, help="LLM API key (overrides env var)"
-    )
-    parser.add_argument(
-        "--provider", default=None, help="LLM provider: gemini | anthropic"
-    )
-    parser.add_argument(
-        "--model", default=None, help="LLM model ID override"
-    )
-    parser.add_argument(
-        "--skip-feedback", action="store_true", default=None,
+        "--skip-feedback",
+        action="store_true",
+        default=None,
         help="Skip feedback generation",
     )
     parser.add_argument(
-        "--skip-llm", action="store_true", default=None,
+        "--skip-llm",
+        action="store_true",
+        default=None,
         help="Deprecated: use --skip-feedback instead",
     )
     parser.add_argument(
-        "--skip-graph", action="store_true", default=None,
+        "--skip-graph",
+        action="store_true",
+        default=None,
         help="Skip triplet extraction and graph comparison",
     )
     parser.add_argument(
-        "--skip-stats", action="store_true", default=None,
+        "--skip-stats",
+        action="store_true",
+        default=None,
         help="Skip Layer 3 statistical analysis",
     )
     parser.add_argument(
-        "--lecture-transcript", default=None,
+        "--lecture-transcript",
+        default=None,
         help="Path to lecture transcript file",
     )
     parser.add_argument(
-        "--longitudinal-store", default=None,
+        "--longitudinal-store",
+        default=None,
         help="Path to longitudinal data store",
     )
     parser.add_argument(
-        "--generate-reports", action="store_true", default=None,
+        "--generate-reports",
+        action="store_true",
+        default=None,
         help="Generate student PDF reports",
     )
     parser.add_argument(
-        "--questions-used", nargs="+", type=int, default=None,
+        "--questions-used",
+        nargs="+",
+        type=int,
+        default=None,
         help="Exam sn numbers in q order (e.g., 1 3)",
     )
     parser.add_argument(
-        "--n-calls", type=int, default=None,
+        "--n-calls",
+        type=int,
+        default=None,
         help="Number of LLM calls (default 3, use 2 to reduce cost)",
     )
     args = parser.parse_args()
@@ -1418,6 +1465,7 @@ def main() -> None:
 
         if args.week_config:
             from pathlib import Path as _Path
+
             week_yaml_path = _Path(args.week_config)
         else:
             week_yaml_path = find_week_config()
@@ -1439,14 +1487,16 @@ def main() -> None:
         # Build flat week config dict for merge
         wcfg = {
             "config": (
-                resolve_paths_relative_to(week_config.eval_config, week_dir)
-                if week_config.eval_config else None
+                resolve_paths_relative_to(week_config.eval_config, week_dir) if week_config.eval_config else None
             ),
             "responses": (
                 resolve_paths_relative_to(week_config.eval_responses_pattern, week_dir)
-                if week_config.eval_responses_pattern else None
+                if week_config.eval_responses_pattern
+                else None
             ),
-            "output": resolve_paths_relative_to(week_config.eval_output_pattern, week_dir) if week_config.eval_output_pattern else None,
+            "output": resolve_paths_relative_to(week_config.eval_output_pattern, week_dir)
+            if week_config.eval_output_pattern
+            else None,
             "questions_used": week_config.eval_questions_used or None,
             "skip_feedback": week_config.eval_skip_feedback,
             "skip_graph": week_config.eval_skip_graph,
@@ -1481,9 +1531,7 @@ def main() -> None:
     output_dir = _resolve(args.output, "output")
 
     if not config_path or not responses_path or not output_dir:
-        parser.error(
-            "Specify --eval-config or --config/--responses/--output."
-        )
+        parser.error("Specify --eval-config or --config/--responses/--output.")
 
     run_evaluation_pipeline(
         config_path=config_path,

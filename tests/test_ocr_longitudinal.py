@@ -32,8 +32,12 @@ class TestLongitudinalRecordConfidence:
     def test_default_is_none(self):
         """ocr_confidence_mean/min default to None."""
         rec = LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
+            student_id="S001",
+            week=1,
+            question_sn=1,
+            scores={"ensemble": 0.7},
+            tier_level=2,
+            tier_label="Proficient",
         )
         assert rec.ocr_confidence_mean is None
         assert rec.ocr_confidence_min is None
@@ -41,9 +45,14 @@ class TestLongitudinalRecordConfidence:
     def test_accepts_float_values(self):
         """ocr_confidence_mean/min accept float values."""
         rec = LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-            ocr_confidence_mean=0.87, ocr_confidence_min=0.62,
+            student_id="S001",
+            week=1,
+            question_sn=1,
+            scores={"ensemble": 0.7},
+            tier_level=2,
+            tier_label="Proficient",
+            ocr_confidence_mean=0.87,
+            ocr_confidence_min=0.62,
         )
         assert rec.ocr_confidence_mean == 0.87
         assert rec.ocr_confidence_min == 0.62
@@ -51,9 +60,14 @@ class TestLongitudinalRecordConfidence:
     def test_backward_compat_existing_code(self):
         """Existing code creating LongitudinalRecord without confidence still works."""
         rec = LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-            node_recall=0.8, edge_f1=0.6,
+            student_id="S001",
+            week=1,
+            question_sn=1,
+            scores={"ensemble": 0.7},
+            tier_level=2,
+            tier_label="Proficient",
+            node_recall=0.8,
+            edge_f1=0.6,
         )
         assert rec.node_recall == 0.8
         assert rec.ocr_confidence_mean is None
@@ -73,9 +87,14 @@ class TestLongitudinalStoreConfidenceRoundTrip:
 
         store = LongitudinalStore(str(tmp_path / "store.yaml"))
         rec = LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-            ocr_confidence_mean=0.85, ocr_confidence_min=0.60,
+            student_id="S001",
+            week=1,
+            question_sn=1,
+            scores={"ensemble": 0.7},
+            tier_level=2,
+            tier_label="Proficient",
+            ocr_confidence_mean=0.85,
+            ocr_confidence_min=0.60,
         )
         d = store._to_dict(rec)
         assert d["ocr_confidence_mean"] == 0.85
@@ -87,8 +106,12 @@ class TestLongitudinalStoreConfidenceRoundTrip:
 
         store = LongitudinalStore(str(tmp_path / "store.yaml"))
         rec = LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
+            student_id="S001",
+            week=1,
+            question_sn=1,
+            scores={"ensemble": 0.7},
+            tier_level=2,
+            tier_label="Proficient",
         )
         d = store._to_dict(rec)
         assert "ocr_confidence_mean" not in d
@@ -100,9 +123,14 @@ class TestLongitudinalStoreConfidenceRoundTrip:
 
         store = LongitudinalStore(str(tmp_path / "store.yaml"))
         d = {
-            "student_id": "S001", "week": 1, "question_sn": 1,
-            "scores": {"ensemble": 0.7}, "tier_level": 2, "tier_label": "Proficient",
-            "ocr_confidence_mean": 0.85, "ocr_confidence_min": 0.60,
+            "student_id": "S001",
+            "week": 1,
+            "question_sn": 1,
+            "scores": {"ensemble": 0.7},
+            "tier_level": 2,
+            "tier_label": "Proficient",
+            "ocr_confidence_mean": 0.85,
+            "ocr_confidence_min": 0.60,
         }
         rec = store._to_record(d)
         assert rec.ocr_confidence_mean == 0.85
@@ -114,8 +142,12 @@ class TestLongitudinalStoreConfidenceRoundTrip:
 
         store = LongitudinalStore(str(tmp_path / "store.yaml"))
         d = {
-            "student_id": "S001", "week": 1, "question_sn": 1,
-            "scores": {"ensemble": 0.7}, "tier_level": 2, "tier_label": "Proficient",
+            "student_id": "S001",
+            "week": 1,
+            "question_sn": 1,
+            "scores": {"ensemble": 0.7},
+            "tier_level": 2,
+            "tier_label": "Proficient",
         }
         rec = store._to_record(d)
         assert rec.ocr_confidence_mean is None
@@ -138,8 +170,12 @@ class TestGetStudentTrajectoryConfidence:
 
         for week, conf in [(1, 0.85), (2, 0.78), (3, 0.90)]:
             rec = LongitudinalRecord(
-                student_id="S001", week=week, question_sn=1,
-                scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
+                student_id="S001",
+                week=week,
+                question_sn=1,
+                scores={"ensemble": 0.7},
+                tier_level=2,
+                tier_label="Proficient",
                 ocr_confidence_mean=conf,
             )
             store.add_record(rec)
@@ -154,15 +190,27 @@ class TestGetStudentTrajectoryConfidence:
         store = LongitudinalStore(str(tmp_path / "store.yaml"))
 
         # Week 1: has confidence, Week 2: no confidence
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-            ocr_confidence_mean=0.85,
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=2, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble": 0.7},
+                tier_level=2,
+                tier_label="Proficient",
+                ocr_confidence_mean=0.85,
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=2,
+                question_sn=1,
+                scores={"ensemble": 0.7},
+                tier_level=2,
+                tier_label="Proficient",
+            )
+        )
 
         traj = store.get_student_trajectory("S001", "ocr_confidence_mean")
         assert traj == [(1, 0.85)]
@@ -173,16 +221,28 @@ class TestGetStudentTrajectoryConfidence:
 
         store = LongitudinalStore(str(tmp_path / "store.yaml"))
 
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-            ocr_confidence_mean=0.80,
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=1, question_sn=2,
-            scores={"ensemble": 0.7}, tier_level=2, tier_label="Proficient",
-            ocr_confidence_mean=0.90,
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble": 0.7},
+                tier_level=2,
+                tier_label="Proficient",
+                ocr_confidence_mean=0.80,
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=1,
+                question_sn=2,
+                scores={"ensemble": 0.7},
+                tier_level=2,
+                tier_label="Proficient",
+                ocr_confidence_mean=0.90,
+            )
+        )
 
         traj = store.get_student_trajectory("S001", "ocr_confidence_mean")
         assert len(traj) == 1
@@ -228,7 +288,8 @@ class TestOcrConfidenceTrendChart:
             "S001": [(1, 0.60), (2, 0.55), (3, 0.50)],  # 3 weeks < 0.75
         }
         buf = build_ocr_confidence_trend_chart(
-            trajectories, threshold=0.75,
+            trajectories,
+            threshold=0.75,
         )
         assert isinstance(buf, io.BytesIO)
         buf.seek(0)
@@ -274,7 +335,8 @@ class TestLongitudinalReportOcrSection:
         gen = LongitudinalPDFReportGenerator()
         out = str(tmp_path / "report.pdf")
         result = gen.generate_pdf(
-            data, out,
+            data,
+            out,
             ocr_confidence_trajectories=ocr_trajectories,
         )
         assert os.path.exists(result)

@@ -11,6 +11,7 @@ from forma.naver_ocr import extract_raw_ocr_data
 # Mock OCR response fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_field(
     infer_text: str = "hello",
     infer_confidence: float = 0.95,
@@ -64,8 +65,10 @@ class TestExtractRawOcrData:
                 infer_text="세포",
                 infer_confidence=0.98,
                 bounding_poly=[
-                    {"x": 0, "y": 0}, {"x": 100, "y": 0},
-                    {"x": 100, "y": 50}, {"x": 0, "y": 50},
+                    {"x": 0, "y": 0},
+                    {"x": 100, "y": 0},
+                    {"x": 100, "y": 50},
+                    {"x": 0, "y": 50},
                 ],
                 field_type="NORMAL",
                 line_break=True,
@@ -86,8 +89,10 @@ class TestExtractRawOcrData:
         assert f["infer_text"] == "세포"
         assert f["infer_confidence"] == pytest.approx(0.98)
         assert f["bounding_poly"] == [
-            {"x": 0, "y": 0}, {"x": 100, "y": 0},
-            {"x": 100, "y": 50}, {"x": 0, "y": 50},
+            {"x": 0, "y": 0},
+            {"x": 100, "y": 0},
+            {"x": 100, "y": 50},
+            {"x": 0, "y": 50},
         ]
         assert f["type"] == "NORMAL"
         assert f["line_break"] is True

@@ -4,6 +4,7 @@ Tests GradeMapping loading, validation (A/B/C/D/F only), semester grouping,
 student_id mismatch warnings, GradeFeatureExtractor, GradePredictor, and
 model persistence.
 """
+
 from __future__ import annotations
 
 import logging
@@ -297,20 +298,22 @@ def _make_mock_store(n_students=10, n_weeks=4):
 
     store = MagicMock()
     records = []
-    student_ids = [f"S{i+1:03d}" for i in range(n_students)]
+    student_ids = [f"S{i + 1:03d}" for i in range(n_students)]
 
     for idx, sid in enumerate(student_ids):
         base = 0.3 + (idx / n_students) * 0.5
         for w in range(1, n_weeks + 1):
             score = max(0.0, min(1.0, base + (w - 2) * 0.05))
-            records.append(LongitudinalRecord(
-                student_id=sid,
-                week=w,
-                question_sn=1,
-                scores={"ensemble_score": score, "concept_coverage": score * 0.9},
-                tier_level=2 if score >= 0.45 else 0,
-                tier_label="Proficient" if score >= 0.45 else "Beginning",
-            ))
+            records.append(
+                LongitudinalRecord(
+                    student_id=sid,
+                    week=w,
+                    question_sn=1,
+                    scores={"ensemble_score": score, "concept_coverage": score * 0.9},
+                    tier_level=2 if score >= 0.45 else 0,
+                    tier_label="Proficient" if score >= 0.45 else "Beginning",
+                )
+            )
 
     store.get_all_records.return_value = records
 
@@ -336,7 +339,9 @@ class TestGradeFeatureExtractor:
 
         extractor = GradeFeatureExtractor()
         matrix, feat_names, sids = extractor.extract(
-            store, weeks=[1, 2, 3, 4], grade_history=grade_history,
+            store,
+            weeks=[1, 2, 3, 4],
+            grade_history=grade_history,
         )
         assert matrix.shape == (10, 21)
         assert len(feat_names) == 21
@@ -357,7 +362,9 @@ class TestGradeFeatureExtractor:
 
         extractor = GradeFeatureExtractor()
         matrix, feat_names, sids = extractor.extract(
-            store, weeks=[1, 2, 3, 4], grade_history=grade_history,
+            store,
+            weeks=[1, 2, 3, 4],
+            grade_history=grade_history,
         )
         prior_idx = feat_names.index("prior_grade_ordinal")
         s001_idx = sids.index("S001")
@@ -370,7 +377,9 @@ class TestGradeFeatureExtractor:
         store, _ = _make_mock_store(n_students=3)
         extractor = GradeFeatureExtractor()
         matrix, feat_names, sids = extractor.extract(
-            store, weeks=[1, 2, 3, 4], grade_history={},
+            store,
+            weeks=[1, 2, 3, 4],
+            grade_history={},
         )
         prior_idx = feat_names.index("prior_grade_ordinal")
         # All should be 0 (no prior grades)
@@ -383,7 +392,9 @@ class TestGradeFeatureExtractor:
         grade_history = {"S001": [2, 3, 4]}
         extractor = GradeFeatureExtractor()
         matrix, feat_names, sids = extractor.extract(
-            store, weeks=[1, 2, 3, 4], grade_history=grade_history,
+            store,
+            weeks=[1, 2, 3, 4],
+            grade_history=grade_history,
         )
         trend_idx = feat_names.index("grade_trend")
         s001_idx = sids.index("S001")
@@ -395,7 +406,9 @@ class TestGradeFeatureExtractor:
         grade_history = {"S001": [4, 3, 2], "S002": [3]}
         extractor = GradeFeatureExtractor()
         matrix, feat_names, sids = extractor.extract(
-            store, weeks=[1, 2, 3, 4], grade_history=grade_history,
+            store,
+            weeks=[1, 2, 3, 4],
+            grade_history=grade_history,
         )
         n_idx = feat_names.index("n_prior_semesters")
         s001_idx = sids.index("S001")
@@ -417,13 +430,12 @@ class TestGradePredictorTrain:
         rng = np.random.RandomState(42)
         X = rng.rand(n, 21)
         # Label: based on feature[0] score_mean
-        labels = np.array([
-            4 if X[i, 0] > 0.8 else
-            3 if X[i, 0] > 0.6 else
-            2 if X[i, 0] > 0.4 else
-            1 if X[i, 0] > 0.2 else 0
-            for i in range(n)
-        ])
+        labels = np.array(
+            [
+                4 if X[i, 0] > 0.8 else 3 if X[i, 0] > 0.6 else 2 if X[i, 0] > 0.4 else 1 if X[i, 0] > 0.2 else 0
+                for i in range(n)
+            ]
+        )
         return X, labels
 
     def test_train_returns_model(self):
@@ -431,7 +443,9 @@ class TestGradePredictorTrain:
         X, labels = self._make_training_data()
         predictor = GradePredictor()
         model = predictor.train(
-            X, labels, list(GRADE_FEATURE_NAMES),
+            X,
+            labels,
+            list(GRADE_FEATURE_NAMES),
             n_weeks=4,
         )
         assert isinstance(model, TrainedGradeModel)
@@ -482,13 +496,12 @@ class TestGradePredictorPredict:
         """Train a model for prediction tests."""
         rng = np.random.RandomState(42)
         X = rng.rand(30, 21)
-        labels = np.array([
-            4 if X[i, 0] > 0.8 else
-            3 if X[i, 0] > 0.6 else
-            2 if X[i, 0] > 0.4 else
-            1 if X[i, 0] > 0.2 else 0
-            for i in range(30)
-        ])
+        labels = np.array(
+            [
+                4 if X[i, 0] > 0.8 else 3 if X[i, 0] > 0.6 else 2 if X[i, 0] > 0.4 else 1 if X[i, 0] > 0.2 else 0
+                for i in range(30)
+            ]
+        )
         predictor = GradePredictor()
         model = predictor.train(X, labels, list(GRADE_FEATURE_NAMES))
         return predictor, model
@@ -584,11 +597,12 @@ class TestGradeModelPersistence:
         """Train a model for persistence tests."""
         rng = np.random.RandomState(42)
         X = rng.rand(20, 21)
-        labels = np.array([
-            4 if X[i, 0] > 0.8 else 3 if X[i, 0] > 0.6 else
-            2 if X[i, 0] > 0.4 else 1 if X[i, 0] > 0.2 else 0
-            for i in range(20)
-        ])
+        labels = np.array(
+            [
+                4 if X[i, 0] > 0.8 else 3 if X[i, 0] > 0.6 else 2 if X[i, 0] > 0.4 else 1 if X[i, 0] > 0.2 else 0
+                for i in range(20)
+            ]
+        )
         predictor = GradePredictor()
         return predictor.train(X, labels, list(GRADE_FEATURE_NAMES))
 

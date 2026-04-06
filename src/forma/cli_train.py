@@ -28,27 +28,38 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Train drop risk prediction model",
     )
     parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Longitudinal store YAML file path",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="Output model file path (.pkl)",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.45,
+        "--threshold",
+        type=float,
+        default=0.45,
         help="Drop score threshold (default: 0.45)",
     )
     parser.add_argument(
-        "--min-weeks", type=int, default=3, dest="min_weeks",
+        "--min-weeks",
+        type=int,
+        default=3,
+        dest="min_weeks",
         help="Minimum number of weeks (default: 3)",
     )
     parser.add_argument(
-        "--min-students", type=int, default=10, dest="min_students",
+        "--min-students",
+        type=int,
+        default=10,
+        dest="min_students",
         help="Minimum number of students (default: 10)",
     )
     parser.add_argument(
-        "--verbose", action="store_true",
+        "--verbose",
+        action="store_true",
         help="Enable verbose logging",
     )
     return parser
@@ -75,7 +86,10 @@ def main() -> None:
 
     all_records = store.get_all_records()
     if not all_records:
-        print("Error: Store contains no records", file=sys.stderr)
+        print(
+            "Error: Store contains no records. Run forma-backfill-longitudinal first to populate the store.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Determine weeks
@@ -118,7 +132,9 @@ def main() -> None:
     predictor = RiskPredictor()
     try:
         model = predictor.train(
-            matrix, labels, feature_names,
+            matrix,
+            labels,
+            feature_names,
             min_students=args.min_students,
             n_weeks=n_weeks,
             target_threshold=args.threshold,

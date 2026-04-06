@@ -150,11 +150,7 @@ def render_rubric_prompt(
         >>> "rubric_score" in prompt
         True
     """
-    concepts_str = (
-        "\n".join(f"- {c}" for c in concepts)
-        if concepts
-        else "- (개념 목록 없음)"
-    )
+    concepts_str = "\n".join(f"- {c}" for c in concepts) if concepts else "- (개념 목록 없음)"
     return RUBRIC_EVALUATION_TEMPLATE.substitute(
         question=question,
         student_response=student_response,
@@ -269,11 +265,7 @@ def render_triplet_extraction_prompt(
     Returns:
         Formatted prompt string.
     """
-    nodes_str = (
-        "\n".join(f"- {n}" for n in master_nodes)
-        if master_nodes
-        else "- (노드 목록 없음)"
-    )
+    nodes_str = "\n".join(f"- {n}" for n in master_nodes) if master_nodes else "- (노드 목록 없음)"
     return TRIPLET_EXTRACTION_TEMPLATE.substitute(
         question=question,
         student_response=student_response,

@@ -131,7 +131,8 @@ class TestHighMissOverlap:
 
         student_missing_rates = {"C": 0.60, "D": 0.40, "A": 0.10}
         result = compute_lecture_gap(
-            master, lecture,
+            master,
+            lecture,
             student_missing_rates=student_missing_rates,
         )
         # C missed in lecture and student_missing_rate >= 0.50 → overlap
@@ -146,7 +147,8 @@ class TestHighMissOverlap:
 
         student_missing_rates = {"A": 0.80, "B": 0.90}
         result = compute_lecture_gap(
-            master, lecture,
+            master,
+            lecture,
             student_missing_rates=student_missing_rates,
         )
         assert result.high_miss_overlap == []
@@ -176,11 +178,15 @@ class TestCrossClassEmphasisVariance:
         class_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A": 0.9, "B": 0.5, "C": 0.3},
-                threshold_used=0.65, n_sentences=10, n_concepts=3,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=3,
             ),
             "1B": InstructionalEmphasisMap(
                 concept_scores={"A": 0.7, "B": 0.8, "C": 0.2},
-                threshold_used=0.65, n_sentences=10, n_concepts=3,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=3,
             ),
         }
         result = compute_cross_class_emphasis_variance(class_maps, top_n=5)
@@ -213,7 +219,9 @@ class TestCrossClassEmphasisVariance:
         class_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A": 0.9, "B": 0.5},
-                threshold_used=0.65, n_sentences=10, n_concepts=2,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=2,
             ),
         }
         result = compute_cross_class_emphasis_variance(class_maps)
@@ -226,11 +234,15 @@ class TestCrossClassEmphasisVariance:
         class_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A": 0.9, "B": 0.7, "C": 0.5, "D": 0.3, "E": 0.1},
-                threshold_used=0.65, n_sentences=10, n_concepts=5,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=5,
             ),
             "1B": InstructionalEmphasisMap(
                 concept_scores={"A": 0.8, "B": 0.6, "C": 0.4, "D": 0.2, "E": 0.0},
-                threshold_used=0.65, n_sentences=10, n_concepts=5,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=5,
             ),
         }
         result = compute_cross_class_emphasis_variance(class_maps, top_n=2)

@@ -1,5 +1,6 @@
 # tests/test_google_sheets.py
 """Tests for src/google_sheets.py."""
+
 from __future__ import annotations
 
 import json
@@ -51,9 +52,7 @@ def _make_mock_gc(records=None):
     if records is None:
         records = []
     mock_gc = MagicMock()
-    mock_gc.open_by_url.return_value.sheet1.get_all_records.return_value = (
-        records
-    )
+    mock_gc.open_by_url.return_value.sheet1.get_all_records.return_value = records
     return mock_gc
 
 
@@ -185,7 +184,9 @@ class TestTokenCaching:
 
 class TestFetchFailure:
     def test_network_error_raises_runtime_error(
-        self, credentials_file, token_cache_dir,
+        self,
+        credentials_file,
+        token_cache_dir,
     ):
         mock_creds = _make_valid_creds()
 

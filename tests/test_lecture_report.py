@@ -85,10 +85,10 @@ class TestLectureReportGenerator:
         # Create a valid minimal PNG
         png_path = tmp_path / "network.png"
         png_path.write_bytes(
-            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
-            b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00'
-            b'\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00'
-            b'\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82'
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+            b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00"
+            b"\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00"
+            b"\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
         )
 
         gen = _make_generator()
@@ -97,6 +97,7 @@ class TestLectureReportGenerator:
         assert len(flowables) > 0
         # Should contain an Image flowable
         from reportlab.platypus import Image as RLImage
+
         has_image = any(isinstance(f, RLImage) for f in flowables)
         assert has_image
 

@@ -1,4 +1,5 @@
 """pytest 전역 설정 — JAVA_HOME 자동 탐지 (NixOS 지원) + v0.10 shared fixtures."""
+
 import os
 import subprocess
 
@@ -14,7 +15,9 @@ def _find_jvm_home() -> str | None:
     try:
         result = subprocess.run(
             ["nix", "develop", "--command", "bash", "-c", "echo $JAVA_HOME"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
             cwd=os.path.dirname(os.path.dirname(__file__)),
         )
         java_home = result.stdout.strip()
@@ -93,16 +96,12 @@ def mock_longitudinal_store():
                     question_sn=1,
                     scores={"ensemble_score": score, "concept_coverage": score * 0.9},
                     tier_level=3 if score >= 0.65 else (2 if score >= 0.45 else 1),
-                    tier_label="Advanced" if score >= 0.65 else (
-                        "Proficient" if score >= 0.45 else "Developing"
-                    ),
+                    tier_label="Advanced" if score >= 0.65 else ("Proficient" if score >= 0.45 else "Developing"),
                 )
             )
 
     store.get_all_records.return_value = records
-    store.get_student_history.side_effect = lambda sid: [
-        r for r in records if r.student_id == sid
-    ]
+    store.get_student_history.side_effect = lambda sid: [r for r in records if r.student_id == sid]
     return store
 
 

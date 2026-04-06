@@ -31,11 +31,15 @@ def _mock_google_genai():
     mock_types = MagicMock()
     mock_google = MagicMock()
     mock_google.genai = mock_genai
-    return {
-        "google": mock_google,
-        "google.genai": mock_genai,
-        "google.genai.types": mock_types,
-    }, mock_genai, mock_types
+    return (
+        {
+            "google": mock_google,
+            "google.genai": mock_genai,
+            "google.genai.types": mock_types,
+        },
+        mock_genai,
+        mock_types,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -71,9 +75,7 @@ class TestGeminiProviderVision:
         modules, mock_genai, mock_types = _mock_google_genai()
         mock_response = MagicMock()
         mock_response.text = "I see a cat"
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
@@ -86,7 +88,11 @@ class TestGeminiProviderVision:
         call_args = mock_genai.Client.return_value.models.generate_content.call_args
         assert call_args is not None
         # contents should be a list containing text and image part
-        contents = call_args.kwargs.get("contents") or call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("contents")
+        contents = (
+            call_args.kwargs.get("contents") or call_args.args[1]
+            if len(call_args.args) > 1
+            else call_args.kwargs.get("contents")
+        )
         assert contents is not None
 
     def test_generate_with_image_png(self, tmp_path):
@@ -97,14 +103,13 @@ class TestGeminiProviderVision:
         modules, mock_genai, mock_types = _mock_google_genai()
         mock_response = MagicMock()
         mock_response.text = "PNG content"
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
             result = provider.generate_with_image(
-                prompt="Describe", image_path=str(img_file),
+                prompt="Describe",
+                image_path=str(img_file),
             )
 
         assert result == "PNG content"
@@ -117,9 +122,7 @@ class TestGeminiProviderVision:
         modules, mock_genai, mock_types = _mock_google_genai()
         mock_response = MagicMock()
         mock_response.text = "response"
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
@@ -143,7 +146,8 @@ class TestGeminiProviderVision:
             provider = GeminiProvider(api_key="k")
             with pytest.raises(ValueError, match="Unsupported image format"):
                 provider.generate_with_image(
-                    prompt="Read", image_path=str(img_file),
+                    prompt="Read",
+                    image_path=str(img_file),
                 )
 
     def test_generate_with_image_file_not_found(self):
@@ -153,7 +157,8 @@ class TestGeminiProviderVision:
             provider = GeminiProvider(api_key="k")
             with pytest.raises(FileNotFoundError):
                 provider.generate_with_image(
-                    prompt="Read", image_path="/nonexistent/path.jpg",
+                    prompt="Read",
+                    image_path="/nonexistent/path.jpg",
                 )
 
     def test_generate_with_image_retries_on_429(self, tmp_path):
@@ -174,7 +179,8 @@ class TestGeminiProviderVision:
             with patch("forma.llm_provider.time.sleep"):
                 provider = GeminiProvider(api_key="k")
                 result = provider.generate_with_image(
-                    prompt="Read", image_path=str(img_file),
+                    prompt="Read",
+                    image_path=str(img_file),
                 )
 
         assert result == "ok"
@@ -229,15 +235,14 @@ class TestAnthropicProviderVision:
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
             provider = AnthropicProvider(api_key="k")
             result = provider.generate_with_image(
-                prompt="Read", image_path=str(img_file),
+                prompt="Read",
+                image_path=str(img_file),
             )
 
         assert result == "PNG text"
         call_kwargs = mock_anthropic.Anthropic.return_value.messages.create.call_args.kwargs
         messages = call_kwargs["messages"]
-        image_block = [
-            b for b in messages[0]["content"] if b["type"] == "image"
-        ][0]
+        image_block = [b for b in messages[0]["content"] if b["type"] == "image"][0]
         assert image_block["source"]["media_type"] == "image/png"
 
     def test_generate_with_image_system_instruction(self, tmp_path):
@@ -271,7 +276,8 @@ class TestAnthropicProviderVision:
             provider = AnthropicProvider(api_key="k")
             with pytest.raises(ValueError, match="Unsupported image format"):
                 provider.generate_with_image(
-                    prompt="Read", image_path=str(img_file),
+                    prompt="Read",
+                    image_path=str(img_file),
                 )
 
     def test_generate_with_image_retries_on_429(self, tmp_path):
@@ -292,7 +298,8 @@ class TestAnthropicProviderVision:
             with patch("forma.llm_provider.time.sleep"):
                 provider = AnthropicProvider(api_key="k")
                 result = provider.generate_with_image(
-                    prompt="Read", image_path=str(img_file),
+                    prompt="Read",
+                    image_path=str(img_file),
                 )
 
         assert result == "ok"
@@ -313,14 +320,12 @@ class TestAnthropicProviderVision:
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
             provider = AnthropicProvider(api_key="k")
             provider.generate_with_image(
-                prompt="Read", image_path=str(img_file),
+                prompt="Read",
+                image_path=str(img_file),
             )
 
         call_kwargs = mock_anthropic.Anthropic.return_value.messages.create.call_args.kwargs
-        image_block = [
-            b for b in call_kwargs["messages"][0]["content"]
-            if b["type"] == "image"
-        ][0]
+        image_block = [b for b in call_kwargs["messages"][0]["content"] if b["type"] == "image"][0]
         # Verify data is valid base64
         decoded = base64.b64decode(image_block["source"]["data"])
         assert decoded == FAKE_JPG_BYTES
@@ -434,9 +439,7 @@ class TestGeminiGenerateWithImageFull:
 
         modules, mock_genai, mock_types = _mock_google_genai()
         mock_response = self._make_gemini_response()
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
@@ -459,16 +462,16 @@ class TestGeminiGenerateWithImageFull:
         # Track kwargs passed to GenerateContentConfig via the genai.types attr
         config_kwargs_log = []
         orig_config_cls = mock_genai.types.GenerateContentConfig
+
         def capturing_config(**kwargs):
             config_kwargs_log.append(kwargs)
             return orig_config_cls(**kwargs)
+
         mock_genai.types.GenerateContentConfig = capturing_config
 
         fake_logprobs = MagicMock()
         mock_response = self._make_gemini_response(logprobs_result=fake_logprobs)
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
@@ -493,15 +496,15 @@ class TestGeminiGenerateWithImageFull:
         modules, mock_genai, mock_types = _mock_google_genai()
         config_kwargs_log = []
         orig_config_cls = mock_genai.types.GenerateContentConfig
+
         def capturing_config(**kwargs):
             config_kwargs_log.append(kwargs)
             return orig_config_cls(**kwargs)
+
         mock_genai.types.GenerateContentConfig = capturing_config
 
         mock_response = self._make_gemini_response()
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
@@ -523,9 +526,7 @@ class TestGeminiGenerateWithImageFull:
         modules, mock_genai, mock_types = _mock_google_genai()
         fake_ratings = [MagicMock()]
         mock_response = self._make_gemini_response(safety_ratings=fake_ratings)
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
@@ -553,7 +554,8 @@ class TestGeminiGenerateWithImageFull:
             with patch("forma.llm_provider.time.sleep"):
                 provider = GeminiProvider(api_key="k")
                 result = provider.generate_with_image_full(
-                    prompt="Read", image_path=str(img_file),
+                    prompt="Read",
+                    image_path=str(img_file),
                 )
 
         assert isinstance(result, LLMFullResponse)
@@ -568,14 +570,13 @@ class TestGeminiGenerateWithImageFull:
         modules, mock_genai, _ = _mock_google_genai()
         mock_response = MagicMock()
         mock_response.text = "just a string"
-        mock_genai.Client.return_value.models.generate_content.return_value = (
-            mock_response
-        )
+        mock_genai.Client.return_value.models.generate_content.return_value = mock_response
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
             result = provider.generate_with_image(
-                prompt="Read text", image_path=str(img_file),
+                prompt="Read text",
+                image_path=str(img_file),
             )
 
         assert isinstance(result, str)
@@ -658,7 +659,8 @@ class TestAnthropicGenerateWithImageFull:
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
             provider = AnthropicProvider(api_key="k")
             result = provider.generate_with_image_full(
-                prompt="Read", image_path=str(img_file),
+                prompt="Read",
+                image_path=str(img_file),
             )
 
         assert result.safety_ratings is None
@@ -680,7 +682,8 @@ class TestAnthropicGenerateWithImageFull:
             with patch("forma.llm_provider.time.sleep"):
                 provider = AnthropicProvider(api_key="k")
                 result = provider.generate_with_image_full(
-                    prompt="Read", image_path=str(img_file),
+                    prompt="Read",
+                    image_path=str(img_file),
                 )
 
         assert isinstance(result, LLMFullResponse)
@@ -699,7 +702,8 @@ class TestAnthropicGenerateWithImageFull:
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
             provider = AnthropicProvider(api_key="k")
             result = provider.generate_with_image(
-                prompt="Read text", image_path=str(img_file),
+                prompt="Read text",
+                image_path=str(img_file),
             )
 
         assert isinstance(result, str)

@@ -92,7 +92,7 @@ class TestComputeEmphasisMap:
         all_texts_embs = np.array(sentence_embs + [concept_a_emb, concept_b_emb])
 
         def side_effect(texts, model_name=None):
-            return all_texts_embs[:len(texts)]
+            return all_texts_embs[: len(texts)]
 
         mock_encode.side_effect = side_effect
 
@@ -248,14 +248,22 @@ class TestEnsembleScorerEmphasisIntegration:
         scorer = EnsembleScorer()
         concepts = [
             ConceptMatchResult(
-                concept="A", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="A",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
             ConceptMatchResult(
-                concept="B", student_id="s001", question_sn=1,
-                is_present=False, similarity_score=0.3,
-                top_k_mean_similarity=0.3, threshold_used=0.5,
+                concept="B",
+                student_id="s001",
+                question_sn=1,
+                is_present=False,
+                similarity_score=0.3,
+                top_k_mean_similarity=0.3,
+                threshold_used=0.5,
             ),
         ]
         result_without = scorer.compute_score(
@@ -287,14 +295,22 @@ class TestEnsembleScorerEmphasisIntegration:
         scorer = EnsembleScorer()
         concepts = [
             ConceptMatchResult(
-                concept="A", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="A",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
             ConceptMatchResult(
-                concept="B", student_id="s001", question_sn=1,
-                is_present=False, similarity_score=0.3,
-                top_k_mean_similarity=0.3, threshold_used=0.5,
+                concept="B",
+                student_id="s001",
+                question_sn=1,
+                is_present=False,
+                similarity_score=0.3,
+                top_k_mean_similarity=0.3,
+                threshold_used=0.5,
             ),
         ]
         emphasis = InstructionalEmphasisMap(
@@ -406,5 +422,6 @@ class TestLargeConceptSet:
         )
         mock_encode.assert_called_once()
         call_kwargs = mock_encode.call_args
-        assert call_kwargs[1].get("model_name") == "custom-model" or \
-            (len(call_kwargs[0]) > 1 and call_kwargs[0][1] == "custom-model")
+        assert call_kwargs[1].get("model_name") == "custom-model" or (
+            len(call_kwargs[0]) > 1 and call_kwargs[0][1] == "custom-model"
+        )

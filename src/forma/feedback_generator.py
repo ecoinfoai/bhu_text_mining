@@ -45,10 +45,7 @@ NEGATIVE_EXPRESSIONS: dict[str, str] = {
     "틀렸습니다": "다시 확인해보면 좋겠습니다",
 }
 
-EMPTY_RESPONSE_FEEDBACK: str = (
-    "답변이 제출되지 않았습니다. "
-    "담당 교수님과 학습내용에 대해 꼭 상의하세요."
-)
+EMPTY_RESPONSE_FEEDBACK: str = "답변이 제출되지 않았습니다. 담당 교수님과 학습내용에 대해 꼭 상의하세요."
 
 FALLBACK_TEMPLATES: dict[int, str] = {
     0: (
@@ -237,19 +234,9 @@ class FeedbackGenerator:
         graph_f1 = graph_comparison.f1 if graph_comparison else 0.0
         matched_count = len(graph_comparison.matched_edges) if graph_comparison else 0
         missing_count = len(graph_comparison.missing_edges) if graph_comparison else 0
-        wrong_count = (
-            len(graph_comparison.wrong_direction_edges) if graph_comparison else 0
-        )
-        missing_text = (
-            _format_edges(graph_comparison.missing_edges)
-            if graph_comparison
-            else "(없음)"
-        )
-        wrong_text = (
-            _format_edges(graph_comparison.wrong_direction_edges)
-            if graph_comparison
-            else "(없음)"
-        )
+        wrong_count = len(graph_comparison.wrong_direction_edges) if graph_comparison else 0
+        missing_text = _format_edges(graph_comparison.missing_edges) if graph_comparison else "(없음)"
+        wrong_text = _format_edges(graph_comparison.wrong_direction_edges) if graph_comparison else "(없음)"
 
         # Length guidance by tier
         target_len = TIER_LENGTH_TARGETS.get(tier_level, self._max_chars)
@@ -292,7 +279,10 @@ class FeedbackGenerator:
             except ValueError as ve:
                 logger.warning(
                     "Feedback for %s q%d attempt %d structural failure: %s",
-                    student_id, question_sn, attempt + 1, ve,
+                    student_id,
+                    question_sn,
+                    attempt + 1,
+                    ve,
                 )
                 continue
             except Exception as exc:
@@ -303,7 +293,9 @@ class FeedbackGenerator:
         if feedback is None:
             logger.warning(
                 "Feedback for %s q%d using fallback template after %d failed attempts",
-                student_id, question_sn, max_attempts,
+                student_id,
+                question_sn,
+                max_attempts,
             )
             feedback = FALLBACK_TEMPLATES.get(tier_level, FALLBACK_TEMPLATES[0])
 

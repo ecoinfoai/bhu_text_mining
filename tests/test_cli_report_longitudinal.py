@@ -29,11 +29,16 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "/path/to/store.yaml",
-            "--class-name", "1A",
-            "--output", "/path/to/output.pdf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "/path/to/store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "/path/to/output.pdf",
+            ]
+        )
         assert args.store == "/path/to/store.yaml"
         assert args.class_name == "1A"
         assert args.output == "/path/to/output.pdf"
@@ -43,12 +48,21 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--class-name", "1A",
-            "--output", "out.pdf",
-            "--weeks", "1", "2", "3", "4",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "out.pdf",
+                "--weeks",
+                "1",
+                "2",
+                "3",
+                "4",
+            ]
+        )
         assert args.weeks == [1, 2, 3, 4]
 
     def test_weeks_default_none(self):
@@ -56,11 +70,16 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--class-name", "1A",
-            "--output", "out.pdf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "out.pdf",
+            ]
+        )
         assert args.weeks is None
 
     def test_optional_exam_file(self):
@@ -68,12 +87,18 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--class-name", "1A",
-            "--output", "out.pdf",
-            "--exam-file", "exam.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "out.pdf",
+                "--exam-file",
+                "exam.yaml",
+            ]
+        )
         assert args.exam_file == "exam.yaml"
 
     def test_exam_file_default_none(self):
@@ -81,11 +106,16 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--class-name", "1A",
-            "--output", "out.pdf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "out.pdf",
+            ]
+        )
         assert args.exam_file is None
 
     def test_optional_font_path(self):
@@ -93,12 +123,18 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--class-name", "1A",
-            "--output", "out.pdf",
-            "--font-path", "/path/to/font.ttf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "out.pdf",
+                "--font-path",
+                "/path/to/font.ttf",
+            ]
+        )
         assert args.font_path == "/path/to/font.ttf"
 
     def test_font_path_default_none(self):
@@ -106,11 +142,16 @@ class TestCLIArgumentParsing:
         from forma.cli_report_longitudinal import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--class-name", "1A",
-            "--output", "out.pdf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "out.pdf",
+            ]
+        )
         assert args.font_path is None
 
     def test_missing_required_store(self):
@@ -119,10 +160,14 @@ class TestCLIArgumentParsing:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--class-name", "1A",
-                "--output", "out.pdf",
-            ])
+            parser.parse_args(
+                [
+                    "--class-name",
+                    "1A",
+                    "--output",
+                    "out.pdf",
+                ]
+            )
 
     def test_missing_required_class_name(self):
         """Missing --class-name → parser error."""
@@ -130,10 +175,14 @@ class TestCLIArgumentParsing:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--store", "store.yaml",
-                "--output", "out.pdf",
-            ])
+            parser.parse_args(
+                [
+                    "--store",
+                    "store.yaml",
+                    "--output",
+                    "out.pdf",
+                ]
+            )
 
     def test_missing_required_output(self):
         """Missing --output → parser error."""
@@ -141,10 +190,14 @@ class TestCLIArgumentParsing:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--store", "store.yaml",
-                "--class-name", "1A",
-            ])
+            parser.parse_args(
+                [
+                    "--store",
+                    "store.yaml",
+                    "--class-name",
+                    "1A",
+                ]
+            )
 
 
 class TestCLIMainFunction:
@@ -157,12 +210,18 @@ class TestCLIMainFunction:
         fake_store = str(tmp_path / "nonexistent.yaml")
         fake_output = str(tmp_path / "out.pdf")
 
-        with patch("sys.argv", [
-            "forma-report-longitudinal",
-            "--store", fake_store,
-            "--class-name", "1A",
-            "--output", fake_output,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "forma-report-longitudinal",
+                "--store",
+                fake_store,
+                "--class-name",
+                "1A",
+                "--output",
+                fake_output,
+            ],
+        ):
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 1
@@ -178,24 +237,32 @@ class TestCLIMainFunction:
         store = LongitudinalStore(store_path)
         for week in range(1, 4):
             for sid in ["S001", "S002", "S003"]:
-                store.add_record(LongitudinalRecord(
-                    student_id=sid,
-                    week=week,
-                    question_sn=1,
-                    scores={"ensemble_score": 0.5 + week * 0.05},
-                    tier_level=1,
-                    tier_label="Developing",
-                    concept_scores={"항상성": 0.6 + week * 0.05},
-                ))
+                store.add_record(
+                    LongitudinalRecord(
+                        student_id=sid,
+                        week=week,
+                        question_sn=1,
+                        scores={"ensemble_score": 0.5 + week * 0.05},
+                        tier_level=1,
+                        tier_label="Developing",
+                        concept_scores={"항상성": 0.6 + week * 0.05},
+                    )
+                )
         store.save()
 
         output_path = str(tmp_path / "report.pdf")
-        with patch("sys.argv", [
-            "forma-report-longitudinal",
-            "--store", store_path,
-            "--class-name", "1A",
-            "--output", output_path,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "forma-report-longitudinal",
+                "--store",
+                store_path,
+                "--class-name",
+                "1A",
+                "--output",
+                output_path,
+            ],
+        ):
             result = main()
 
         assert result is None or result == 0
@@ -215,6 +282,7 @@ class TestParseHeatmapLayout:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         assert parse_heatmap_layout("1:4") == (1, 4)
 
     def test_valid_2_2(self):
@@ -222,6 +290,7 @@ class TestParseHeatmapLayout:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         assert parse_heatmap_layout("2:2") == (2, 2)
 
     def test_reject_x_separator(self):
@@ -229,6 +298,7 @@ class TestParseHeatmapLayout:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError):
             parse_heatmap_layout("1x4")
 
@@ -237,6 +307,7 @@ class TestParseHeatmapLayout:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError):
             parse_heatmap_layout("abc")
 
@@ -245,6 +316,7 @@ class TestParseHeatmapLayout:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError):
             parse_heatmap_layout("0:4")
 
@@ -255,48 +327,78 @@ class TestClassesArgParsing:
     def test_classes_arg(self):
         """--classes A B C D parsed correctly."""
         from forma.cli_report_longitudinal import _build_parser
+
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--class-name", "1A",
-            "--output", "o.pdf",
-            "--classes", "A", "B", "C", "D",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "o.pdf",
+                "--classes",
+                "A",
+                "B",
+                "C",
+                "D",
+            ]
+        )
         assert args.classes == ["A", "B", "C", "D"]
 
     def test_heatmap_layout_arg(self):
         """--heatmap-layout 1:4 parsed as string."""
         from forma.cli_report_longitudinal import _build_parser
+
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--class-name", "1A",
-            "--output", "o.pdf",
-            "--heatmap-layout", "1:4",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "o.pdf",
+                "--heatmap-layout",
+                "1:4",
+            ]
+        )
         assert args.heatmap_layout == "1:4"
 
     def test_risk_threshold_arg(self):
         """--risk-threshold 0.50 parsed as float."""
         from forma.cli_report_longitudinal import _build_parser
+
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--class-name", "1A",
-            "--output", "o.pdf",
-            "--risk-threshold", "0.50",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "o.pdf",
+                "--risk-threshold",
+                "0.50",
+            ]
+        )
         assert args.risk_threshold == 0.50
 
     def test_defaults(self):
         """Default values for new optional args."""
         from forma.cli_report_longitudinal import _build_parser
+
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--class-name", "1A",
-            "--output", "o.pdf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--class-name",
+                "1A",
+                "--output",
+                "o.pdf",
+            ]
+        )
         assert args.classes is None
         assert args.heatmap_layout is None
         assert args.risk_threshold == 0.45

@@ -96,9 +96,7 @@ class TestGraphComparator:
 
     def test_node_aliases(self):
         """Node aliases resolve to canonical names."""
-        gc = GraphComparator(
-            node_aliases={"항상성": ["homeostasis", "호메오스타시스"]}
-        )
+        gc = GraphComparator(node_aliases={"항상성": ["homeostasis", "호메오스타시스"]})
         master = [_e("항상성", "유지", "체온")]
         student = [_e("homeostasis", "유지", "체온")]
 
@@ -118,7 +116,10 @@ class TestGraphComparator:
         gc = GraphComparator()
         with patch("forma.graph_comparator.encode_texts", side_effect=Exception):
             result = gc.compare(
-                "s001", 1, master, student,
+                "s001",
+                1,
+                master,
+                student,
                 lecture_covered_concepts=["A", "B"],
             )
 

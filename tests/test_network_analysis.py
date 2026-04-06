@@ -66,9 +66,7 @@ def test_create_network():
 
 
 def test_build_network_from_keywords():
-    keywords_dict = {
-        "sample.txt": ["Python", "키워드", "네트워크", "생성", "Python"]
-    }
+    keywords_dict = {"sample.txt": ["Python", "키워드", "네트워크", "생성", "Python"]}
     G = build_network_from_keywords(keywords_dict, "sample.txt", window_size=2)
     assert isinstance(G, nx.Graph)
     assert ("Python", "키워드") in G.edges
@@ -79,9 +77,7 @@ def test_build_network_from_keywords():
 def test_node_sizes(sample_graph):
     frequencies = nx.get_node_attributes(sample_graph, "frequency")
     max_frequency = max(frequencies.values())
-    node_sizes = [
-        1000 * (freq / max_frequency) for freq in frequencies.values()
-    ]
+    node_sizes = [1000 * (freq / max_frequency) for freq in frequencies.values()]
 
     assert len(node_sizes) == len(frequencies)
     assert max(node_sizes) == 1000
@@ -91,9 +87,7 @@ def test_node_sizes(sample_graph):
 def test_font_sizes(sample_graph):
     frequencies = nx.get_node_attributes(sample_graph, "frequency")
     max_frequency = max(frequencies.values())
-    font_sizes = [
-        10 + 15 * (freq / max_frequency) for freq in frequencies.values()
-    ]
+    font_sizes = [10 + 15 * (freq / max_frequency) for freq in frequencies.values()]
 
     assert len(font_sizes) == len(frequencies)
     assert max(font_sizes) > 10

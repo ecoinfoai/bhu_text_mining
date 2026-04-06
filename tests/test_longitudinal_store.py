@@ -331,6 +331,7 @@ class TestV1BackwardCompat:
         path = str(tmp_path / "store.yaml")
         # Write a v1-format store file directly (no v2 keys)
         import yaml
+
         v1_data = {
             "records": {
                 "s001_1_1": {
@@ -370,6 +371,7 @@ class TestV1BackwardCompat:
         """A store with both v1 and v2 records should load all correctly."""
         path = str(tmp_path / "store.yaml")
         import yaml
+
         mixed_data = {
             "records": {
                 "s001_1_1": {
@@ -431,6 +433,7 @@ class TestV1BackwardCompat:
         """Upserting a v2 record over a v1 record should update to v2."""
         path = str(tmp_path / "store.yaml")
         import yaml
+
         v1_data = {
             "records": {
                 "s001_1_1": {
@@ -452,8 +455,12 @@ class TestV1BackwardCompat:
 
         # Upsert with v2 record
         v2_rec = _make_v2_record(
-            student_id="s001", week=1, question_sn=1,
-            node_recall=0.70, edge_f1=0.65, misconception_count=3,
+            student_id="s001",
+            week=1,
+            question_sn=1,
+            node_recall=0.70,
+            edge_f1=0.65,
+            misconception_count=3,
         )
         store.add_record(v2_rec)
         store.save()
@@ -484,10 +491,16 @@ def _populate_multi_week_store(store: LongitudinalStore) -> None:
         ("s002", 3, 1, {"ensemble_score": 0.60}, 2, "Proficient"),
     ]
     for sid, wk, qsn, scores, tier, label in data:
-        store.add_record(LongitudinalRecord(
-            student_id=sid, week=wk, question_sn=qsn,
-            scores=scores, tier_level=tier, tier_label=label,
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id=sid,
+                week=wk,
+                question_sn=qsn,
+                scores=scores,
+                tier_level=tier,
+                tier_label=label,
+            )
+        )
 
 
 class TestGetClassSnapshot:
@@ -571,18 +584,36 @@ class TestGetStudentTrajectory:
         """Non-contiguous weeks (1, 3, 5) should still sort correctly."""
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=5, question_sn=1,
-            scores={"score": 0.9}, tier_level=3, tier_label="A",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"score": 0.3}, tier_level=1, tier_label="B",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=3, question_sn=1,
-            scores={"score": 0.6}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=5,
+                question_sn=1,
+                scores={"score": 0.9},
+                tier_level=3,
+                tier_label="A",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"score": 0.3},
+                tier_level=1,
+                tier_label="B",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=3,
+                question_sn=1,
+                scores={"score": 0.6},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         trajectory = store.get_student_trajectory("s001", "score")
         assert trajectory == [(1, 0.3), (3, 0.6), (5, 0.9)]
@@ -591,14 +622,26 @@ class TestGetStudentTrajectory:
         """When a student has multiple questions in a week, use average score per week."""
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"score": 0.4}, tier_level=1, tier_label="D",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=2,
-            scores={"score": 0.6}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"score": 0.4},
+                tier_level=1,
+                tier_label="D",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=2,
+                scores={"score": 0.6},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         trajectory = store.get_student_trajectory("s001", "score")
         # Should average the two question scores: (0.4 + 0.6) / 2 = 0.5
@@ -635,18 +678,36 @@ class TestGetClassWeeklyMatrix:
         """Students with different week coverage should still work."""
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"score": 0.5}, tier_level=1, tier_label="D",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=1,
-            scores={"score": 0.7}, tier_level=2, tier_label="P",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s002", week=2, question_sn=1,
-            scores={"score": 0.6}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"score": 0.5},
+                tier_level=1,
+                tier_label="D",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=1,
+                scores={"score": 0.7},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s002",
+                week=2,
+                question_sn=1,
+                scores={"score": 0.6},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         matrix = store.get_class_weekly_matrix("score")
         assert matrix["s001"] == {1: 0.5, 2: 0.7}
@@ -668,7 +729,9 @@ class TestSnapshotFromEvaluation:
         """snapshot_from_evaluation should create records with v2 fields."""
         from forma.longitudinal_store import snapshot_from_evaluation
         from forma.evaluation_types import (
-            EnsembleResult, GraphComparisonResult, GraphMetricResult,
+            EnsembleResult,
+            GraphComparisonResult,
+            GraphMetricResult,
         )
 
         path = str(tmp_path / "store.yaml")
@@ -677,8 +740,10 @@ class TestSnapshotFromEvaluation:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.72, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.72,
+                    understanding_level="Proficient",
                     component_scores={"concept_coverage": 0.65, "graph_f1": 0.78},
                     weights_used={"concept_coverage": 0.4, "graph_f1": 0.6},
                 )
@@ -687,19 +752,27 @@ class TestSnapshotFromEvaluation:
         graph_metric_results = {
             "s001": {
                 1: GraphMetricResult(
-                    student_id="s001", question_sn=1,
-                    node_recall=0.80, edge_jaccard=0.5,
-                    centrality_deviation=0.3, normalized_ged=0.4,
+                    student_id="s001",
+                    question_sn=1,
+                    node_recall=0.80,
+                    edge_jaccard=0.5,
+                    centrality_deviation=0.3,
+                    normalized_ged=0.4,
                 )
             }
         }
         graph_comparison_results = {
             "s001": {
                 1: GraphComparisonResult(
-                    student_id="s001", question_sn=1,
-                    precision=0.8, recall=0.7, f1=0.75,
-                    matched_edges=[], missing_edges=[],
-                    extra_edges=[], wrong_direction_edges=[
+                    student_id="s001",
+                    question_sn=1,
+                    precision=0.8,
+                    recall=0.7,
+                    f1=0.75,
+                    matched_edges=[],
+                    missing_edges=[],
+                    extra_edges=[],
+                    wrong_direction_edges=[
                         # 2 wrong-direction edges
                         type("E", (), {"subject": "A", "relation": "r", "object": "B"})(),
                         type("E", (), {"subject": "C", "relation": "r", "object": "D"})(),
@@ -749,8 +822,10 @@ class TestSnapshotFromEvaluation:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.90, understanding_level="Advanced",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.90,
+                    understanding_level="Advanced",
                     component_scores={"concept_coverage": 0.95},
                     weights_used={"concept_coverage": 1.0},
                 )
@@ -782,22 +857,28 @@ class TestSnapshotFromEvaluation:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.70, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
                 2: EnsembleResult(
-                    student_id="s001", question_sn=2,
-                    ensemble_score=0.60, understanding_level="Developing",
+                    student_id="s001",
+                    question_sn=2,
+                    ensemble_score=0.60,
+                    understanding_level="Developing",
                     component_scores={"score": 0.60},
                     weights_used={"score": 1.0},
                 ),
             },
             "s002": {
                 1: EnsembleResult(
-                    student_id="s002", question_sn=1,
-                    ensemble_score=0.80, understanding_level="Advanced",
+                    student_id="s002",
+                    question_sn=1,
+                    ensemble_score=0.80,
+                    understanding_level="Advanced",
                     component_scores={"score": 0.80},
                     weights_used={"score": 1.0},
                 ),
@@ -828,8 +909,10 @@ class TestSnapshotFromEvaluation:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.70, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
@@ -860,7 +943,8 @@ class TestConceptScoresExtraction:
         """concept_scores should aggregate per-concept is_present ratio."""
         from forma.longitudinal_store import snapshot_from_evaluation
         from forma.evaluation_types import (
-            EnsembleResult, ConceptMatchResult,
+            EnsembleResult,
+            ConceptMatchResult,
         )
 
         path = str(tmp_path / "store.yaml")
@@ -869,8 +953,10 @@ class TestConceptScoresExtraction:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.70, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
@@ -879,19 +965,31 @@ class TestConceptScoresExtraction:
 
         layer1_results = [
             ConceptMatchResult(
-                concept="세포막", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="세포막",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
             ConceptMatchResult(
-                concept="세포질", student_id="s001", question_sn=1,
-                is_present=False, similarity_score=0.3,
-                top_k_mean_similarity=0.3, threshold_used=0.5,
+                concept="세포질",
+                student_id="s001",
+                question_sn=1,
+                is_present=False,
+                similarity_score=0.3,
+                top_k_mean_similarity=0.3,
+                threshold_used=0.5,
             ),
             ConceptMatchResult(
-                concept="핵", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.9,
-                top_k_mean_similarity=0.9, threshold_used=0.5,
+                concept="핵",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.9,
+                top_k_mean_similarity=0.9,
+                threshold_used=0.5,
             ),
         ]
 
@@ -923,8 +1021,10 @@ class TestConceptScoresExtraction:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.70, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
@@ -948,7 +1048,8 @@ class TestConceptScoresExtraction:
         """Multiple ConceptMatchResult entries for same concept should average."""
         from forma.longitudinal_store import snapshot_from_evaluation
         from forma.evaluation_types import (
-            EnsembleResult, ConceptMatchResult,
+            EnsembleResult,
+            ConceptMatchResult,
         )
 
         path = str(tmp_path / "store.yaml")
@@ -957,8 +1058,10 @@ class TestConceptScoresExtraction:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.70, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
@@ -968,19 +1071,31 @@ class TestConceptScoresExtraction:
         # Same concept, 3 judgments: 2 present, 1 absent → ratio = 2/3
         layer1_results = [
             ConceptMatchResult(
-                concept="세포막", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="세포막",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
             ConceptMatchResult(
-                concept="세포막", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.7,
-                top_k_mean_similarity=0.7, threshold_used=0.5,
+                concept="세포막",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.7,
+                top_k_mean_similarity=0.7,
+                threshold_used=0.5,
             ),
             ConceptMatchResult(
-                concept="세포막", student_id="s001", question_sn=1,
-                is_present=False, similarity_score=0.3,
-                top_k_mean_similarity=0.3, threshold_used=0.5,
+                concept="세포막",
+                student_id="s001",
+                question_sn=1,
+                is_present=False,
+                similarity_score=0.3,
+                top_k_mean_similarity=0.3,
+                threshold_used=0.5,
             ),
         ]
 
@@ -1003,7 +1118,8 @@ class TestConceptScoresExtraction:
         """concept_scores should only use ConceptMatchResult for matching student+question."""
         from forma.longitudinal_store import snapshot_from_evaluation
         from forma.evaluation_types import (
-            EnsembleResult, ConceptMatchResult,
+            EnsembleResult,
+            ConceptMatchResult,
         )
 
         path = str(tmp_path / "store.yaml")
@@ -1012,8 +1128,10 @@ class TestConceptScoresExtraction:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
-                    ensemble_score=0.70, understanding_level="Proficient",
+                    student_id="s001",
+                    question_sn=1,
+                    ensemble_score=0.70,
+                    understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
@@ -1023,21 +1141,33 @@ class TestConceptScoresExtraction:
         layer1_results = [
             # s001 q1 — should be included
             ConceptMatchResult(
-                concept="A", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="A",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
             # s001 q2 — should NOT be included (different question)
             ConceptMatchResult(
-                concept="B", student_id="s001", question_sn=2,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="B",
+                student_id="s001",
+                question_sn=2,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
             # s002 q1 — should NOT be included (different student)
             ConceptMatchResult(
-                concept="C", student_id="s002", question_sn=1,
-                is_present=True, similarity_score=0.8,
-                top_k_mean_similarity=0.8, threshold_used=0.5,
+                concept="C",
+                student_id="s002",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.8,
+                top_k_mean_similarity=0.8,
+                threshold_used=0.5,
             ),
         ]
 
@@ -1092,18 +1222,27 @@ class TestEdgeCaseNonContiguousWeeks:
         """Build store with weeks 1, 3, 7 for student s001."""
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(_make_record(
-            student_id="s001", week=1,
-            scores={"ensemble_score": 0.4},
-        ))
-        store.add_record(_make_record(
-            student_id="s001", week=3,
-            scores={"ensemble_score": 0.6},
-        ))
-        store.add_record(_make_record(
-            student_id="s001", week=7,
-            scores={"ensemble_score": 0.9},
-        ))
+        store.add_record(
+            _make_record(
+                student_id="s001",
+                week=1,
+                scores={"ensemble_score": 0.4},
+            )
+        )
+        store.add_record(
+            _make_record(
+                student_id="s001",
+                week=3,
+                scores={"ensemble_score": 0.6},
+            )
+        )
+        store.add_record(
+            _make_record(
+                student_id="s001",
+                week=7,
+                scores={"ensemble_score": 0.9},
+            )
+        )
         return store
 
     def test_trajectory_sparse_weeks(self, tmp_path):
@@ -1128,14 +1267,20 @@ class TestEdgeCaseNonContiguousWeeks:
         """get_class_weekly_matrix with non-contiguous weeks → correct sparse matrix."""
         store = self._build_sparse_store(tmp_path)
         # Add another student with different sparse weeks
-        store.add_record(_make_record(
-            student_id="s002", week=1,
-            scores={"ensemble_score": 0.5},
-        ))
-        store.add_record(_make_record(
-            student_id="s002", week=7,
-            scores={"ensemble_score": 0.8},
-        ))
+        store.add_record(
+            _make_record(
+                student_id="s002",
+                week=1,
+                scores={"ensemble_score": 0.5},
+            )
+        )
+        store.add_record(
+            _make_record(
+                student_id="s002",
+                week=7,
+                scores={"ensemble_score": 0.8},
+            )
+        )
 
         matrix = store.get_class_weekly_matrix("ensemble_score")
 
@@ -1146,7 +1291,6 @@ class TestEdgeCaseNonContiguousWeeks:
         # s002 has weeks 1, 7 only (no week 3)
         assert set(matrix["s002"].keys()) == {1, 7}
         assert 3 not in matrix["s002"]
-
 
     def test_matrix_missing_student_weeks(self, tmp_path):
         """Students with different week coverage produce correct sparse matrix."""
@@ -1172,10 +1316,13 @@ class TestConcurrentSave:
         def _save(student_id: str, week: int):
             s = LongitudinalStore(path)
             s.load()
-            s.add_record(_make_record(
-                student_id=student_id, week=week,
-                scores={"ensemble_score": 0.7},
-            ))
+            s.add_record(
+                _make_record(
+                    student_id=student_id,
+                    week=week,
+                    scores={"ensemble_score": 0.7},
+                )
+            )
             s.save()
 
         t1 = threading.Thread(target=_save, args=("S001", 1))
@@ -1209,10 +1356,14 @@ class TestTopicClassIdFields:
     def test_topic_and_class_id_accept_values(self):
         """topic and class_id accept explicit string values."""
         rec = LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
+            student_id="s001",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.7},
-            tier_level=2, tier_label="Proficient",
-            topic="개념이해", class_id="A",
+            tier_level=2,
+            tier_label="Proficient",
+            topic="개념이해",
+            class_id="A",
         )
         assert rec.topic == "개념이해"
         assert rec.class_id == "A"
@@ -1226,10 +1377,14 @@ class TestToDictTopicClassId:
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
         rec = LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
+            student_id="s001",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.7},
-            tier_level=2, tier_label="Proficient",
-            topic="적용", class_id="B",
+            tier_level=2,
+            tier_label="Proficient",
+            topic="적용",
+            class_id="B",
         )
         d = store._to_dict(rec)
         assert d["topic"] == "적용"
@@ -1252,6 +1407,7 @@ class TestToRecordLegacyCompat:
         """Loading YAML without topic/class_id sets them to None."""
         path = str(tmp_path / "store.yaml")
         import yaml
+
         legacy_data = {
             "records": {
                 "s001_1_1": {
@@ -1290,14 +1446,16 @@ class TestSnapshotTopicClassId:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
+                    student_id="s001",
+                    question_sn=1,
                     ensemble_score=0.70,
                     understanding_level="Proficient",
                     component_scores={"score": 0.70},
                     weights_used={"score": 1.0},
                 ),
                 2: EnsembleResult(
-                    student_id="s001", question_sn=2,
+                    student_id="s001",
+                    question_sn=2,
                     ensemble_score=0.60,
                     understanding_level="Developing",
                     component_scores={"score": 0.60},
@@ -1338,7 +1496,8 @@ class TestSnapshotTopicClassId:
         ensemble_results = {
             "s001": {
                 1: EnsembleResult(
-                    student_id="s001", question_sn=1,
+                    student_id="s001",
+                    question_sn=1,
                     ensemble_score=0.70,
                     understanding_level="Proficient",
                     component_scores={"score": 0.70},
@@ -1371,31 +1530,55 @@ class TestGetTopicWeeklyMatrix:
         store = LongitudinalStore(path)
 
         # Week 1: 2 questions, different topics
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.6},
-            tier_level=2, tier_label="P",
-            topic="개념이해", class_id="A",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=2,
-            scores={"ensemble_score": 0.8},
-            tier_level=3, tier_label="A",
-            topic="적용", class_id="A",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.6},
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=2,
+                scores={"ensemble_score": 0.8},
+                tier_level=3,
+                tier_label="A",
+                topic="적용",
+                class_id="A",
+            )
+        )
         # Week 2: same topics
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=1,
-            scores={"ensemble_score": 0.7},
-            tier_level=2, tier_label="P",
-            topic="개념이해", class_id="A",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=2,
-            scores={"ensemble_score": 0.9},
-            tier_level=3, tier_label="A",
-            topic="적용", class_id="A",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=1,
+                scores={"ensemble_score": 0.7},
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=2,
+                scores={"ensemble_score": 0.9},
+                tier_level=3,
+                tier_label="A",
+                topic="적용",
+                class_id="A",
+            )
+        )
 
         matrix = store.get_topic_weekly_matrix("ensemble_score")
         assert "s001" in matrix
@@ -1407,18 +1590,30 @@ class TestGetTopicWeeklyMatrix:
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
 
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.4},
-            tier_level=1, tier_label="D",
-            topic="개념이해", class_id="A",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=2,
-            scores={"ensemble_score": 0.6},
-            tier_level=2, tier_label="P",
-            topic="개념이해", class_id="A",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.4},
+                tier_level=1,
+                tier_label="D",
+                topic="개념이해",
+                class_id="A",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=2,
+                scores={"ensemble_score": 0.6},
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
+            )
+        )
 
         matrix = store.get_topic_weekly_matrix("ensemble_score")
         avg = matrix["s001"]["개념이해"][1]
@@ -1429,11 +1624,16 @@ class TestGetTopicWeeklyMatrix:
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
 
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.5},
-            tier_level=1, tier_label="D",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.5},
+                tier_level=1,
+                tier_label="D",
+            )
+        )
 
         matrix = store.get_topic_weekly_matrix("ensemble_score")
         assert matrix == {}
@@ -1442,12 +1642,18 @@ class TestGetTopicWeeklyMatrix:
         """topic and class_id survive save/load roundtrip."""
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.6},
-            tier_level=2, tier_label="P",
-            topic="개념이해", class_id="A",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.6},
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
+            )
+        )
         store.save()
 
         store2 = LongitudinalStore(path)

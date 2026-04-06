@@ -63,16 +63,14 @@ def _build_store(tmp_path) -> LongitudinalStore:
                 noise = random.uniform(-0.04, 0.04)
                 score = max(0.0, min(1.0, base + week_bonus + noise))
 
-                tier_level = (
-                    3 if score >= 0.85
-                    else 2 if score >= 0.65
-                    else 1 if score >= 0.45
-                    else 0
-                )
+                tier_level = 3 if score >= 0.85 else 2 if score >= 0.65 else 1 if score >= 0.45 else 0
                 tier_label = (
-                    "Advanced" if tier_level == 3
-                    else "Proficient" if tier_level == 2
-                    else "Developing" if tier_level == 1
+                    "Advanced"
+                    if tier_level == 3
+                    else "Proficient"
+                    if tier_level == 2
+                    else "Developing"
+                    if tier_level == 1
                     else "Beginning"
                 )
 
@@ -103,19 +101,31 @@ def _build_intervention_log(tmp_path):
     log_path = str(tmp_path / "intervention_log.yaml")
     records = [
         {
-            "id": 1, "student_id": "S001", "week": 2,
-            "intervention_type": "면담", "description": "1:1 상담",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
+            "id": 1,
+            "student_id": "S001",
+            "week": 2,
+            "intervention_type": "면담",
+            "description": "1:1 상담",
+            "recorded_at": "2026-01-01T00:00:00+00:00",
+            "outcome": None,
         },
         {
-            "id": 2, "student_id": "S002", "week": 2,
-            "intervention_type": "보충학습", "description": "추가 학습",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
+            "id": 2,
+            "student_id": "S002",
+            "week": 2,
+            "intervention_type": "보충학습",
+            "description": "추가 학습",
+            "recorded_at": "2026-01-01T00:00:00+00:00",
+            "outcome": None,
         },
         {
-            "id": 3, "student_id": "S003", "week": 3,
-            "intervention_type": "면담", "description": "상담",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
+            "id": 3,
+            "student_id": "S003",
+            "week": 3,
+            "intervention_type": "면담",
+            "description": "상담",
+            "recorded_at": "2026-01-01T00:00:00+00:00",
+            "outcome": None,
         },
     ]
     data = {
@@ -123,7 +133,8 @@ def _build_intervention_log(tmp_path):
         "records": records,
     }
     Path(log_path).write_text(
-        yaml.dump(data, allow_unicode=True), encoding="utf-8",
+        yaml.dump(data, allow_unicode=True),
+        encoding="utf-8",
     )
     log = InterventionLog(log_path)
     log.load()
@@ -154,10 +165,7 @@ def _build_grade_mapping(tmp_path):
     """Build grade mapping YAML for grade prediction tests."""
     random.seed(99)
     mapping = {
-        "2025-2": {
-            sid: random.choice(["A", "B", "C", "D", "F"])
-            for sid in _STUDENTS
-        },
+        "2025-2": {sid: random.choice(["A", "B", "C", "D", "F"]) for sid in _STUDENTS},
     }
     path = tmp_path / "grade_mapping.yaml"
     path.write_text(yaml.dump(mapping, allow_unicode=True), encoding="utf-8")
@@ -205,8 +213,7 @@ class TestInterventionPipeline:
         assert len(effects) == 3
         for eff in effects:
             assert eff.sufficient_data is True, (
-                f"Student {eff.student_id} at week {eff.intervention_week} "
-                f"should have sufficient data with window=2"
+                f"Student {eff.student_id} at week {eff.intervention_week} should have sufficient data with window=2"
             )
             assert eff.pre_mean is not None
             assert eff.post_mean is not None
@@ -417,7 +424,9 @@ class TestGradePredictionPipeline:
         matrix[3, 2] = -0.05
 
         predictions = predictor.predict_cold_start(
-            matrix, student_ids, GRADE_FEATURE_NAMES,
+            matrix,
+            student_ids,
+            GRADE_FEATURE_NAMES,
         )
 
         assert len(predictions) == 4
@@ -489,7 +498,9 @@ class TestGradePredictionPipeline:
 
         # Cold start fallback should still work
         predictions = predictor.predict_cold_start(
-            matrix, student_ids, GRADE_FEATURE_NAMES,
+            matrix,
+            student_ids,
+            GRADE_FEATURE_NAMES,
         )
         assert len(predictions) == 3
         for pred in predictions:
@@ -528,14 +539,13 @@ class TestBackwardCompatibility:
             class_ensemble_q1=0.4,
             class_ensemble_q3=0.6,
             overall_level_distribution={
-                "Advanced": 0, "Proficient": 1,
-                "Developing": 1, "Beginning": 1,
+                "Advanced": 0,
+                "Proficient": 1,
+                "Developing": 1,
+                "Beginning": 1,
             },
             question_stats=[QuestionClassStats(question_sn=1)],
-            student_rows=[
-                StudentSummaryRow(student_id=f"S{i:03d}")
-                for i in range(1, 4)
-            ],
+            student_rows=[StudentSummaryRow(student_id=f"S{i:03d}") for i in range(1, 4)],
             n_at_risk=1,
             pct_at_risk=33.3,
         )
@@ -636,24 +646,37 @@ class TestCLIEntryPoints:
         parser = _build_parser()
 
         # Without --intervention-log: defaults to None
-        args_no_flag = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--no-config",
-        ])
+        args_no_flag = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--no-config",
+            ]
+        )
         assert args_no_flag.intervention_log is None
 
         # With --intervention-log: accepted but value is captured (ignored at runtime)
-        args_with_flag = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--intervention-log", "log.yaml",
-            "--no-config",
-        ])
+        args_with_flag = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--intervention-log",
+                "log.yaml",
+                "--no-config",
+            ]
+        )
         assert args_with_flag.intervention_log == "log.yaml"
 
 

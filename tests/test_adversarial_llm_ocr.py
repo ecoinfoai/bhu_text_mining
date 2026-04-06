@@ -4,6 +4,7 @@
 implementation for edge cases, failure modes, and misuse scenarios.
 All LLM API calls are mocked — no real API keys required.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,11 +29,15 @@ def _mock_google_genai():
     mock_types = MagicMock()
     mock_google = MagicMock()
     mock_google.genai = mock_genai
-    return {
-        "google": mock_google,
-        "google.genai": mock_genai,
-        "google.genai.types": mock_types,
-    }, mock_genai, mock_types
+    return (
+        {
+            "google": mock_google,
+            "google.genai": mock_genai,
+            "google.genai.types": mock_types,
+        },
+        mock_genai,
+        mock_types,
+    )
 
 
 def _make_gemini_response(
@@ -130,9 +135,7 @@ class TestAdversaryImpatientProfessor:
                 "recognition_engine": "llm",
             },
         ]
-        output_yaml.write_text(
-            yaml.dump(partial_results, allow_unicode=True), encoding="utf-8"
-        )
+        output_yaml.write_text(yaml.dump(partial_results, allow_unicode=True), encoding="utf-8")
 
         # Verify the partial YAML is valid
         loaded = yaml.safe_load(output_yaml.read_text(encoding="utf-8"))
@@ -225,9 +228,7 @@ class TestAdversaryCorruptImageUploader:
         _make_full_response(text="")
         with patch("forma.llm_provider.create_provider") as mock_provider:
             mock_prov_inst = MagicMock()
-            mock_prov_inst.generate_with_image_full.side_effect = Exception(
-                "Invalid image data"
-            )
+            mock_prov_inst.generate_with_image_full.side_effect = Exception("Invalid image data")
             mock_prov_inst.model_name = "gemini-2.5-flash"
             mock_provider.return_value = mock_prov_inst
 
@@ -281,9 +282,7 @@ class TestAdversaryCorruptImageUploader:
 
         with patch("forma.llm_provider.create_provider") as mock_provider:
             mock_prov_inst = MagicMock()
-            mock_prov_inst.generate_with_image_full.side_effect = FileNotFoundError(
-                "No such file"
-            )
+            mock_prov_inst.generate_with_image_full.side_effect = FileNotFoundError("No such file")
             mock_prov_inst.model_name = "gemini-2.5-flash"
             mock_provider.return_value = mock_prov_inst
 
@@ -409,9 +408,7 @@ class TestAdversaryAnthropicLoyalist:
             "recognition_model": "claude-sonnet-4-6",
         }
         yaml_path = tmp_path / "scan.yaml"
-        yaml_path.write_text(
-            yaml.dump([result_record], allow_unicode=True), encoding="utf-8"
-        )
+        yaml_path.write_text(yaml.dump([result_record], allow_unicode=True), encoding="utf-8")
 
         loaded = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
         assert loaded[0]["ocr_confidence_mean"] is None
@@ -443,9 +440,7 @@ class TestAdversaryLegacyDataArchaeologist:
             }
         ]
         yaml_path = tmp_path / "legacy_scan.yaml"
-        yaml_path.write_text(
-            yaml.dump(legacy_data, allow_unicode=True), encoding="utf-8"
-        )
+        yaml_path.write_text(yaml.dump(legacy_data, allow_unicode=True), encoding="utf-8")
 
         loaded = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
         record = loaded[0]
@@ -472,9 +467,7 @@ class TestAdversaryLegacyDataArchaeologist:
             }
         ]
         yaml_path = tmp_path / "legacy.yaml"
-        yaml_path.write_text(
-            yaml.dump(legacy_data, allow_unicode=True), encoding="utf-8"
-        )
+        yaml_path.write_text(yaml.dump(legacy_data, allow_unicode=True), encoding="utf-8")
 
         loaded = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
         record = loaded[0]
@@ -527,8 +520,7 @@ class TestAdversaryHallucinationInducer:
 
         # Should flag hallucination warning
         assert not result["valid"] or any(
-            "환각" in w or "hallucin" in w.lower() or "200" in w
-            for w in result.get("warnings", [])
+            "환각" in w or "hallucin" in w.lower() or "200" in w for w in result.get("warnings", [])
         ), f"Expected hallucination warning, got: {result}"
 
     def test_exactly_200_chars_no_warning(self, single_image):
@@ -545,9 +537,7 @@ class TestAdversaryHallucinationInducer:
 
         # 200 chars is the boundary — should be valid
         hallucination_warnings = [
-            w
-            for w in result.get("warnings", [])
-            if "환각" in w or "hallucin" in w.lower() or "200" in w
+            w for w in result.get("warnings", []) if "환각" in w or "hallucin" in w.lower() or "200" in w
         ]
         assert len(hallucination_warnings) == 0
 
@@ -569,9 +559,7 @@ class TestAdversaryNetworkSaboteur:
         with patch("forma.llm_provider.create_provider") as mock_provider:
             mock_prov_inst = MagicMock()
             # After llm_provider's own retries are exhausted, it raises
-            mock_prov_inst.generate_with_image_full.side_effect = Exception(
-                "429 Too Many Requests"
-            )
+            mock_prov_inst.generate_with_image_full.side_effect = Exception("429 Too Many Requests")
             mock_prov_inst.model_name = "gemini-2.5-flash"
             mock_provider.return_value = mock_prov_inst
 
@@ -590,9 +578,7 @@ class TestAdversaryNetworkSaboteur:
         with patch("forma.llm_provider.create_provider") as mock_provider:
             mock_prov_inst = MagicMock()
             # All calls fail
-            mock_prov_inst.generate_with_image_full.side_effect = Exception(
-                "Connection timeout"
-            )
+            mock_prov_inst.generate_with_image_full.side_effect = Exception("Connection timeout")
             mock_prov_inst.model_name = "gemini-2.5-flash"
             mock_provider.return_value = mock_prov_inst
 
@@ -610,9 +596,7 @@ class TestAdversaryNetworkSaboteur:
 
         with patch("forma.llm_provider.create_provider") as mock_provider:
             mock_prov_inst = MagicMock()
-            mock_prov_inst.generate_with_image_full.side_effect = TimeoutError(
-                "Request timed out"
-            )
+            mock_prov_inst.generate_with_image_full.side_effect = TimeoutError("Request timed out")
             mock_prov_inst.model_name = "gemini-2.5-flash"
             mock_provider.return_value = mock_prov_inst
 
@@ -646,18 +630,22 @@ class TestAdversaryUnicodeTerrorist:
         "\t\n",  # tabs and newlines
     ]
 
-    @pytest.mark.parametrize("text", UNICODE_TEXTS, ids=[
-        "korean_english_mix",
-        "chemistry_subscript",
-        "greek_letters",
-        "math_integral",
-        "emoji_biology",
-        "superscript_pump",
-        "comparison_ph",
-        "empty_string",
-        "whitespace_only",
-        "tabs_newlines",
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        UNICODE_TEXTS,
+        ids=[
+            "korean_english_mix",
+            "chemistry_subscript",
+            "greek_letters",
+            "math_integral",
+            "emoji_biology",
+            "superscript_pump",
+            "comparison_ph",
+            "empty_string",
+            "whitespace_only",
+            "tabs_newlines",
+        ],
+    )
     def test_unicode_text_roundtrips_through_yaml(self, text, tmp_path):
         """Any Unicode text from LLM should survive YAML serialization."""
         record = {
@@ -667,9 +655,7 @@ class TestAdversaryUnicodeTerrorist:
             "source_file": "test.jpg",
         }
         yaml_path = tmp_path / "test.yaml"
-        yaml_path.write_text(
-            yaml.dump([record], allow_unicode=True), encoding="utf-8"
-        )
+        yaml_path.write_text(yaml.dump([record], allow_unicode=True), encoding="utf-8")
 
         loaded = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
         # YAML may normalize whitespace-only strings to None
@@ -758,9 +744,7 @@ class TestAdversaryConcurrentRunner:
         path_b = tmp_path / "scan_B.yaml"
 
         def write_yaml(data, path):
-            path.write_text(
-                yaml.dump(data, allow_unicode=True), encoding="utf-8"
-            )
+            path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
 
         t1 = threading.Thread(target=write_yaml, args=(results_a, path_a))
         t2 = threading.Thread(target=write_yaml, args=(results_b, path_b))
@@ -789,30 +773,45 @@ class TestAdversaryConfigOverrider:
         """--provider CLI arg should override any config file settings."""
         from forma.cli_ocr import _parse_args
 
-        args = _parse_args([
-            "scan", "--class", "A",
-            "--provider", "anthropic",
-        ])
+        args = _parse_args(
+            [
+                "scan",
+                "--class",
+                "A",
+                "--provider",
+                "anthropic",
+            ]
+        )
         assert args.provider == "anthropic"
 
     def test_cli_model_overrides_config(self):
         """--model CLI arg should override config file model."""
         from forma.cli_ocr import _parse_args
 
-        args = _parse_args([
-            "scan", "--class", "A",
-            "--model", "gemini-2.5-pro",
-        ])
+        args = _parse_args(
+            [
+                "scan",
+                "--class",
+                "A",
+                "--model",
+                "gemini-2.5-pro",
+            ]
+        )
         assert args.model == "gemini-2.5-pro"
 
     def test_cli_review_threshold_overrides_default(self):
         """--ocr-review-threshold CLI arg should override default 0.75."""
         from forma.cli_ocr import _parse_args
 
-        args = _parse_args([
-            "scan", "--class", "A",
-            "--ocr-review-threshold", "0.5",
-        ])
+        args = _parse_args(
+            [
+                "scan",
+                "--class",
+                "A",
+                "--ocr-review-threshold",
+                "0.5",
+            ]
+        )
         assert args.ocr_review_threshold == 0.5
 
 
@@ -894,10 +893,9 @@ class TestAdversaryMaxTokensEdge:
             confidence_mean=0.2,
         )
 
-        assert any(
-            "review" in w.lower() or "검토" in w or "0.3" in w
-            for w in result.get("warnings", [])
-        ), f"Expected review warning for low confidence, got: {result}"
+        assert any("review" in w.lower() or "검토" in w or "0.3" in w for w in result.get("warnings", [])), (
+            f"Expected review warning for low confidence, got: {result}"
+        )
 
     def test_valid_response_passes_validation(self):
         """A normal response should pass validation cleanly."""

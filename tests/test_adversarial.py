@@ -422,7 +422,10 @@ class TestPersona6ConfigMess:
         f = tmp_path / "test.txt"
         f.write_text("CRISPR 기술은 DNA를 편집합니다.", encoding="utf-8")
         result = preprocess_transcript(
-            str(f), "A", 1, extra_abbreviations=["CRISPR"],
+            str(f),
+            "A",
+            1,
+            extra_abbreviations=["CRISPR"],
         )
         assert "CRISPR" in result.cleaned_text
 
@@ -472,7 +475,8 @@ class TestPersona7RerunConsistency:
         """Running preprocess twice gives the same result."""
         f = tmp_path / "test.txt"
         f.write_text(
-            "세포 분열 과정에서 어 음 그 ATP가 소모됩니다.", encoding="utf-8",
+            "세포 분열 과정에서 어 음 그 ATP가 소모됩니다.",
+            encoding="utf-8",
         )
         result1 = preprocess_transcript(str(f), "A", 1)
         result2 = preprocess_transcript(str(f), "A", 1)
@@ -525,11 +529,16 @@ class TestPersona2CLIAttacks:
         from forma.cli_lecture import main_analyze
 
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--input", "../../etc/passwd",
-                "--output", str(tmp_path),
-                "--class", "A",
-            ])
+            main_analyze(
+                [
+                    "--input",
+                    "../../etc/passwd",
+                    "--output",
+                    str(tmp_path),
+                    "--class",
+                    "A",
+                ]
+            )
 
     def test_cli_analyze_traversal_concepts(self, tmp_path):
         """CLI rejects path traversal in --concepts."""
@@ -538,23 +547,34 @@ class TestPersona2CLIAttacks:
         f = tmp_path / "test.txt"
         f.write_text("세포 분열", encoding="utf-8")
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--input", str(f),
-                "--output", str(tmp_path),
-                "--class", "A",
-                "--concepts", "../../etc/passwd",
-            ])
+            main_analyze(
+                [
+                    "--input",
+                    str(f),
+                    "--output",
+                    str(tmp_path),
+                    "--class",
+                    "A",
+                    "--concepts",
+                    "../../etc/passwd",
+                ]
+            )
 
     def test_cli_analyze_nonexistent_input(self, tmp_path):
         """CLI with nonexistent --input file."""
         from forma.cli_lecture import main_analyze
 
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--input", str(tmp_path / "nope.txt"),
-                "--output", str(tmp_path),
-                "--class", "A",
-            ])
+            main_analyze(
+                [
+                    "--input",
+                    str(tmp_path / "nope.txt"),
+                    "--output",
+                    str(tmp_path),
+                    "--class",
+                    "A",
+                ]
+            )
 
     def test_cli_analyze_empty_input(self, tmp_path):
         """CLI with empty --input file."""
@@ -563,11 +583,16 @@ class TestPersona2CLIAttacks:
         f = tmp_path / "empty.txt"
         f.write_text("", encoding="utf-8")
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--input", str(f),
-                "--output", str(tmp_path),
-                "--class", "A",
-            ])
+            main_analyze(
+                [
+                    "--input",
+                    str(f),
+                    "--output",
+                    str(tmp_path),
+                    "--class",
+                    "A",
+                ]
+            )
 
     def test_cli_analyze_missing_output(self, tmp_path):
         """CLI missing required --output raises SystemExit."""
@@ -668,16 +693,21 @@ class TestPersona6AnalyzerEdgeCases:
         from forma.lecture_analyzer import analyze_transcript
 
         cleaned = CleanedTranscript(
-            class_id="A", week=1,
+            class_id="A",
+            week=1,
             source_path=str(tmp_path / "test.txt"),
             raw_text="세포 분열 과정 설명 미토콘드리아 에너지 생산",
             cleaned_text="세포 분열 과정 설명 미토콘드리아 에너지 생산",
             encoding_used="utf-8",
-            char_count_raw=30, char_count_cleaned=30,
+            char_count_raw=30,
+            char_count_cleaned=30,
         )
         result = analyze_transcript(
-            cleaned, concepts=None, top_n=10,
-            no_triplets=True, provider=None,
+            cleaned,
+            concepts=None,
+            top_n=10,
+            no_triplets=True,
+            provider=None,
         )
         assert result.concept_coverage is None
         assert result.emphasis_scores is None
@@ -687,16 +717,21 @@ class TestPersona6AnalyzerEdgeCases:
         from forma.lecture_analyzer import analyze_transcript
 
         cleaned = CleanedTranscript(
-            class_id="A", week=1,
+            class_id="A",
+            week=1,
             source_path=str(tmp_path / "test.txt"),
             raw_text="세포 분열 과정",
             cleaned_text="세포 분열 과정",
             encoding_used="utf-8",
-            char_count_raw=7, char_count_cleaned=7,
+            char_count_raw=7,
+            char_count_cleaned=7,
         )
         result = analyze_transcript(
-            cleaned, concepts=[], top_n=10,
-            no_triplets=True, provider=None,
+            cleaned,
+            concepts=[],
+            top_n=10,
+            no_triplets=True,
+            provider=None,
         )
         # Empty list is falsy, so concept analysis should be skipped
         assert result.concept_coverage is None
@@ -706,16 +741,21 @@ class TestPersona6AnalyzerEdgeCases:
         from forma.lecture_analyzer import analyze_transcript
 
         cleaned = CleanedTranscript(
-            class_id="A", week=1,
+            class_id="A",
+            week=1,
             source_path=str(tmp_path / "test.txt"),
             raw_text="세포 분열",
             cleaned_text="세포 분열",
             encoding_used="utf-8",
-            char_count_raw=5, char_count_cleaned=5,
+            char_count_raw=5,
+            char_count_cleaned=5,
         )
         result = analyze_transcript(
-            cleaned, concepts=None, top_n=10,
-            no_triplets=True, provider=None,
+            cleaned,
+            concepts=None,
+            top_n=10,
+            no_triplets=True,
+            provider=None,
         )
         assert result.triplets is None
         assert "skipped" in result.triplet_skipped_reason
@@ -725,16 +765,21 @@ class TestPersona6AnalyzerEdgeCases:
         from forma.lecture_analyzer import analyze_transcript
 
         cleaned = CleanedTranscript(
-            class_id="A", week=1,
+            class_id="A",
+            week=1,
             source_path=str(tmp_path / "test.txt"),
             raw_text="세포 분열",
             cleaned_text="세포 분열",
             encoding_used="utf-8",
-            char_count_raw=5, char_count_cleaned=5,
+            char_count_raw=5,
+            char_count_cleaned=5,
         )
         result = analyze_transcript(
-            cleaned, concepts=None, top_n=10,
-            no_triplets=False, provider=None,
+            cleaned,
+            concepts=None,
+            top_n=10,
+            no_triplets=False,
+            provider=None,
         )
         assert result.triplets is None
         assert "No LLM provider" in result.triplet_skipped_reason
@@ -755,7 +800,8 @@ class TestPersona7YAMLRoundTrip:
         )
 
         result = AnalysisResult(
-            class_id="B", week=3,
+            class_id="B",
+            week=3,
             keyword_frequencies={"세포": 10, "분열": 5},
             top_keywords=["세포", "분열"],
             network_image_path=None,

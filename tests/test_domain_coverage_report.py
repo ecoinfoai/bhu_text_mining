@@ -140,12 +140,16 @@ class MockAssessmentData:
     """Mock assessment correlation data for testing."""
 
     correlation: float = 0.65
-    well_explained_poor: list[str] = field(default_factory=lambda: [
-        "표피의 4층 구조",
-    ])
-    under_explained_poor: list[str] = field(default_factory=lambda: [
-        "진피의 구조와 기능",
-    ])
+    well_explained_poor: list[str] = field(
+        default_factory=lambda: [
+            "표피의 4층 구조",
+        ]
+    )
+    under_explained_poor: list[str] = field(
+        default_factory=lambda: [
+            "진피의 구조와 기능",
+        ]
+    )
 
 
 # ----------------------------------------------------------------
@@ -167,7 +171,8 @@ class TestDomainDeliveryPDFReport:
 
         gen = DomainDeliveryPDFReportGenerator()
         path = gen.generate_pdf(
-            result, output,
+            result,
+            output,
             course_name="인체구조와기능",
             pedagogy=pedagogy,
             assessment_data=assessment,
@@ -191,7 +196,8 @@ class TestDomainDeliveryPDFReport:
 
         gen = DomainDeliveryPDFReportGenerator()
         path = gen.generate_pdf(
-            result, output,
+            result,
+            output,
             assessment_data=assessment,
         )
 
@@ -213,7 +219,8 @@ class TestDomainDeliveryPDFReport:
 
         gen = DomainDeliveryPDFReportGenerator()
         path = gen.generate_pdf(
-            result, output,
+            result,
+            output,
             course_name="인체구조와기능",
         )
 
@@ -231,7 +238,8 @@ class TestDomainDeliveryPDFReport:
 
         gen = DomainDeliveryPDFReportGenerator()
         path = gen.generate_pdf(
-            result, output,
+            result,
+            output,
             course_name="인체구조와기능",
             pedagogy=pedagogy,
             assessment_data=assessment,
@@ -298,7 +306,8 @@ class TestFeedbackConceptLevel:
     """Tests that feedback uses concept-level language, not word frequency."""
 
     def test_feedback_concept_names_not_word_counts(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Feedback section shows concept names, not word frequency stats."""
         from forma.domain_coverage_report import DomainDeliveryPDFReportGenerator
@@ -350,7 +359,8 @@ class TestHierarchyFallback:
         gen = DomainDeliveryPDFReportGenerator()
         # generate_pdf without hierarchy kwarg should succeed
         path = gen.generate_pdf(
-            result, output,
+            result,
+            output,
             course_name="인체구조와기능",
         )
 

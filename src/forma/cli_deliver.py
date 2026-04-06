@@ -43,11 +43,16 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Report email delivery automation",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
 
@@ -56,63 +61,114 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- prepare subcommand ---
     prepare_parser = subparsers.add_parser(
-        "prepare", help="Collect student reports and create zip archives",
+        "prepare",
+        help="Collect student reports and create zip archives",
     )
     prepare_parser.add_argument(
-        "--manifest", required=True,
+        "--manifest",
+        required=True,
         help="Delivery manifest YAML file path",
     )
     prepare_parser.add_argument(
-        "--roster", required=True,
+        "--roster",
+        required=True,
         help="Student roster YAML file path",
     )
     prepare_parser.add_argument(
-        "--output-dir", required=True, dest="output_dir",
+        "--output-dir",
+        required=True,
+        dest="output_dir",
         help="Staging folder output path",
     )
     prepare_parser.add_argument(
-        "--force", action="store_true", default=False,
+        "--force",
+        action="store_true",
+        default=False,
         help="Overwrite existing staging folder",
+    )
+    prepare_parser.add_argument(
+        "--no-config",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        dest="no_config",
+        help="Skip forma.yaml config file",
+    )
+    prepare_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Enable verbose logging",
     )
 
     # --- send subcommand ---
     send_parser = subparsers.add_parser(
-        "send", help="Send emails",
+        "send",
+        help="Send emails",
     )
     send_parser.add_argument(
-        "--staged", required=True,
+        "--staged",
+        required=True,
         help="Staging folder path from prepare step",
     )
     send_parser.add_argument(
-        "--template", required=True,
+        "--template",
+        required=True,
         help="Email template YAML file path",
     )
     send_parser.add_argument(
-        "--smtp-config", required=False, default=None, dest="smtp_config",
+        "--smtp-config",
+        required=False,
+        default=None,
+        dest="smtp_config",
         help="SMTP config YAML file path (uses config.json smtp section if not specified)",
     )
     send_parser.add_argument(
-        "--dry-run", action="store_true", default=False, dest="dry_run",
+        "--dry-run",
+        action="store_true",
+        default=False,
+        dest="dry_run",
         help="Preview only (no actual delivery)",
     )
     send_parser.add_argument(
-        "--retry-failed", action="store_true", default=False, dest="retry_failed",
+        "--retry-failed",
+        action="store_true",
+        default=False,
+        dest="retry_failed",
         help="Resend previously failed items only",
     )
     send_parser.add_argument(
-        "--force", action="store_true", default=False,
+        "--force",
+        action="store_true",
+        default=False,
         help="Ignore previously sent records and resend all",
     )
     send_parser.add_argument(
-        "--notify-sender", action="store_true", default=False, dest="notify_sender",
+        "--notify-sender",
+        action="store_true",
+        default=False,
+        dest="notify_sender",
         help="Send result summary email to instructor",
     )
     send_parser.add_argument(
-        "--password-from-stdin", action="store_true", default=False,
+        "--password-from-stdin",
+        action="store_true",
+        default=False,
         dest="password_from_stdin",
         help="Read SMTP password from stdin",
     )
-
+    send_parser.add_argument(
+        "--no-config",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        dest="no_config",
+        help="Skip forma.yaml config file",
+    )
+    send_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Enable verbose logging",
+    )
     return parser
 
 
@@ -222,8 +278,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
             _config_password: str | None = get_smtp_password(config)
         except (FileNotFoundError, KeyError, ValueError):
             print(
-                "Error: SMTP config not found. "
-                "Configure --smtp-config or config.json smtp section.",
+                "Error: SMTP config not found. Configure --smtp-config or config.json smtp section.",
                 file=sys.stderr,
             )
             sys.exit(2)
@@ -260,10 +315,7 @@ def _cmd_send(args: argparse.Namespace) -> None:
 
     # Console summary output (FR-018)
     prefix = "[DRY-RUN] " if log.dry_run else ""
-    print(
-        f"{prefix}Total: {log.success}/{log.total} succeeded, "
-        f"{log.failed} failed"
-    )
+    print(f"{prefix}Total: {log.success}/{log.total} succeeded, {log.failed} failed")
 
     # Notify sender summary email (FR-019)
     if getattr(args, "notify_sender", False) and not log.dry_run:
@@ -289,6 +341,38 @@ def _cmd_send(args: argparse.Namespace) -> None:
         sys.exit(3)
 
 
+def _normalize_argv(argv: list[str]) -> list[str]:
+    """Move --no-config and --verbose before subcommand to after it.
+
+    Argparse subcommands don't inherit parent flags reliably, so we
+    normalize the argv so these flags always appear after the subcommand.
+
+    Args:
+        argv: Raw argument list.
+
+    Returns:
+        Normalized argument list.
+    """
+    hoisted = []
+    remaining = []
+    subcommand_seen = False
+    for arg in argv:
+        if arg in ("prepare", "send"):
+            subcommand_seen = True
+            remaining.append(arg)
+            # Insert hoisted flags right after the subcommand
+            remaining.extend(hoisted)
+            hoisted.clear()
+        elif not subcommand_seen and arg in ("--no-config", "--verbose"):
+            hoisted.append(arg)
+        else:
+            remaining.append(arg)
+    # If no subcommand was found, put hoisted flags back
+    if hoisted:
+        remaining.extend(hoisted)
+    return remaining
+
+
 def main(argv=None) -> None:
     """Entry point for forma-deliver CLI.
 
@@ -297,24 +381,26 @@ def main(argv=None) -> None:
     """
     parser = _build_parser()
 
+    raw = argv if argv is not None else sys.argv[1:]
+    normalized = _normalize_argv(list(raw))
+
     try:
-        args = parser.parse_args(argv)
+        args = parser.parse_args(normalized)
     except SystemExit as e:
         # Re-raise argparse exits (missing required args, etc.)
         # Map argparse's default exit code 2 to our exit code 1 for no subcommand
-        if e.code == 2 and argv is not None and not any(
-            s in argv for s in ("prepare", "send")
-        ):
+        if e.code == 2 and argv is not None and not any(s in argv for s in ("prepare", "send")):
             sys.exit(1)
         raise
 
     # Apply project config (three-layer merge)
     if not getattr(args, "no_config", False):
         from forma.project_config import apply_project_config
+
         raw_argv = argv if argv is not None else sys.argv[1:]
         apply_project_config(args, argv=raw_argv)
 
-    if getattr(args, "verbose", False):
+    if args.verbose:
         logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
     else:
         logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

@@ -22,6 +22,7 @@ import random
 import tempfile
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import pytest
@@ -99,21 +100,16 @@ class TestDataCorruptor:
     """Persona 1: Corrupt and malformed data attacks."""
 
     def test_nan_in_scores_dict(self):
-        """NaN values in scores dict should survive round-trip without crash."""
+        """NaN values in scores dict are rejected by store validation."""
         r = _make_record(scores={"ensemble_score": float("nan"), "x": float("inf")})
-        store = _make_store([r])
-        history = store.get_student_history("S001")
-        assert len(history) == 1
-        assert math.isnan(history[0].scores["ensemble_score"])
-        assert math.isinf(history[0].scores["x"])
+        with pytest.raises(ValueError, match="NaN"):
+            _make_store([r])
 
     def test_negative_scores(self):
-        """Negative scores should be stored and retrieved faithfully."""
+        """Negative scores are rejected by store validation."""
         r = _make_record(scores={"ensemble_score": -999.0, "a": -0.001})
-        store = _make_store([r])
-        traj = store.get_student_trajectory("S001", "ensemble_score")
-        assert len(traj) == 1
-        assert traj[0][1] == -999.0
+        with pytest.raises(ValueError, match="negative"):
+            _make_store([r])
 
     def test_empty_scores_dict(self):
         """Empty scores dict should not cause KeyError on trajectory query."""
@@ -218,27 +214,33 @@ class TestBoundaryBreaker:
 
     def test_delta_threshold_boundary_exact(self):
         """compute_weekly_delta boundary: |delta| == 0.02 should produce dash symbol."""
-        store = _make_store([
-            _make_record(student_id="S001", week=1, scores={"ensemble_score": 0.50}),
-        ])
+        store = _make_store(
+            [
+                _make_record(student_id="S001", week=1, scores={"ensemble_score": 0.50}),
+            ]
+        )
         # delta = 0.52 - 0.50 = 0.02 exactly
         wd = compute_weekly_delta("S001", 2, 0.52, store, "ensemble_score")
         assert wd.delta_symbol == "─"
 
     def test_delta_threshold_boundary_just_above(self):
         """delta = 0.021 should produce up arrow."""
-        store = _make_store([
-            _make_record(student_id="S001", week=1, scores={"ensemble_score": 0.50}),
-        ])
+        store = _make_store(
+            [
+                _make_record(student_id="S001", week=1, scores={"ensemble_score": 0.50}),
+            ]
+        )
         wd = compute_weekly_delta("S001", 2, 0.521, store, "ensemble_score")
         # delta = 0.021, > 0.02 + 1e-9, so should be up
         assert wd.delta_symbol == "↑"
 
     def test_delta_threshold_boundary_just_below_negative(self):
         """delta = -0.021 should produce down arrow."""
-        store = _make_store([
-            _make_record(student_id="S001", week=1, scores={"ensemble_score": 0.50}),
-        ])
+        store = _make_store(
+            [
+                _make_record(student_id="S001", week=1, scores={"ensemble_score": 0.50}),
+            ]
+        )
         wd = compute_weekly_delta("S001", 2, 0.479, store, "ensemble_score")
         assert wd.delta_symbol == "↓"
 
@@ -252,10 +254,7 @@ class TestBoundaryBreaker:
 
     def test_class_weekly_matrix_thousand_students(self):
         """1000 students should not crash get_class_weekly_matrix."""
-        records = [
-            _make_record(student_id=f"S{i:04d}", week=1, scores={"es": float(i)/1000})
-            for i in range(1000)
-        ]
+        records = [_make_record(student_id=f"S{i:04d}", week=1, scores={"es": float(i) / 1000}) for i in range(1000)]
         store = _make_store(records)
         matrix = store.get_class_weekly_matrix("es")
         assert len(matrix) == 1000
@@ -280,10 +279,14 @@ class TestConcurrencyAssassin:
         """Rapid sequential inserts must all be stored."""
         store = _make_store()
         for i in range(500):
-            store.add_record(_make_record(
-                student_id=f"S{i:04d}", week=1, question_sn=1,
-                scores={"es": random.random()},
-            ))
+            store.add_record(
+                _make_record(
+                    student_id=f"S{i:04d}",
+                    week=1,
+                    question_sn=1,
+                    scores={"es": random.random()},
+                )
+            )
         assert len(store.get_all_records()) == 500
 
     def test_manual_override_flip_flop(self):
@@ -316,10 +319,14 @@ class TestConcurrencyAssassin:
         store = _make_store()
         for i in range(100):
             for w in range(1, 101):
-                store.add_record(_make_record(
-                    student_id=f"S{i:03d}", week=w, question_sn=1,
-                    scores={"es": random.random()},
-                ))
+                store.add_record(
+                    _make_record(
+                        student_id=f"S{i:03d}",
+                        week=w,
+                        question_sn=1,
+                        scores={"es": random.random()},
+                    )
+                )
         assert len(store.get_all_records()) == 10000
         traj = store.get_student_trajectory("S050", "es")
         assert len(traj) == 100
@@ -344,10 +351,14 @@ class TestConcurrencyAssassin:
         """Sequential save operations produce valid YAML each time."""
         store = _make_store()
         for i in range(50):
-            store.add_record(_make_record(
-                student_id=f"S{i:03d}", week=1, question_sn=1,
-                scores={"es": random.random()},
-            ))
+            store.add_record(
+                _make_record(
+                    student_id=f"S{i:03d}",
+                    week=1,
+                    question_sn=1,
+                    scores={"es": random.random()},
+                )
+            )
         store.save()
 
         # Load back
@@ -589,10 +600,12 @@ class TestRegressionHunter:
 
     def test_single_week_longitudinal_summary(self):
         """Single-week summary: OLS with 1 point should produce trend=0.0."""
-        store = _make_store([
-            _make_record(student_id="S001", week=3, scores={"ensemble_score": 0.5}),
-            _make_record(student_id="S002", week=3, scores={"ensemble_score": 0.3}),
-        ])
+        store = _make_store(
+            [
+                _make_record(student_id="S001", week=3, scores={"ensemble_score": 0.5}),
+                _make_record(student_id="S002", week=3, scores={"ensemble_score": 0.3}),
+            ]
+        )
         result = build_longitudinal_summary(store, [3], "1A")
         assert len(result.student_trajectories) == 2
         for traj in result.student_trajectories:
@@ -636,6 +649,7 @@ class TestRegressionHunter:
         )
 
         from forma.longitudinal_report_charts import build_class_week_heatmap
+
         font_path = find_korean_font()
         # Should not crash on zero variance
         buf = build_class_week_heatmap(data, font_path=font_path)
@@ -644,10 +658,12 @@ class TestRegressionHunter:
 
     def test_weekly_delta_previous_week_not_immediately_prior(self):
         """Previous week should be the MOST RECENT before current, not current-1."""
-        store = _make_store([
-            _make_record(week=1, scores={"es": 0.3}),
-            _make_record(week=5, scores={"es": 0.6}),
-        ])
+        store = _make_store(
+            [
+                _make_record(week=1, scores={"es": 0.3}),
+                _make_record(week=5, scores={"es": 0.6}),
+            ]
+        )
         # Query for week 10 — previous should be week 5, not week 9
         wd = compute_weekly_delta("S001", 10, 0.8, store, "es")
         assert wd.previous_score == 0.6
@@ -684,6 +700,7 @@ class TestInvariant1000:
     def test_record_key_uniqueness_invariant(self):
         """1000 random records: each unique (sid, week, qsn) produces unique key."""
         from forma.longitudinal_store import _record_key
+
         keys = set()
         for _ in range(1000):
             sid = f"S{random.randint(0, 100):03d}"
@@ -739,10 +756,7 @@ class TestInvariant1000:
         for _ in range(1000):
             n_weeks = random.randint(1, 20)
             weeks = random.sample(range(1, 100), n_weeks)
-            records = [
-                _make_record(week=w, scores={"es": random.random()})
-                for w in weeks
-            ]
+            records = [_make_record(week=w, scores={"es": random.random()}) for w in weeks]
             store = _make_store(records)
             traj = store.get_student_trajectory("S001", "es")
             result_weeks = [t[0] for t in traj]
@@ -771,10 +785,7 @@ class TestInvariant1000:
         for _ in range(1000):
             n_weeks = random.randint(2, 10)
             weeks = sorted(random.sample(range(1, 50), n_weeks))
-            records = [
-                _make_record(week=w, scores={"ensemble_score": random.random()})
-                for w in weeks
-            ]
+            records = [_make_record(week=w, scores={"ensemble_score": random.random()}) for w in weeks]
             store = _make_store(records)
             result = build_longitudinal_summary(store, weeks, "1A")
             for traj in result.student_trajectories:
@@ -799,9 +810,12 @@ class TestSnapshotFromEvaluationAttacks:
         """Missing graph metrics/comparisons should produce None v2 fields."""
         store = _make_store()
         er = EnsembleResult(
-            student_id="S001", question_sn=1, ensemble_score=0.5,
+            student_id="S001",
+            question_sn=1,
+            ensemble_score=0.5,
             understanding_level="Developing",
-            component_scores={"es": 0.5}, weights_used={"es": 1.0},
+            component_scores={"es": 0.5},
+            weights_used={"es": 1.0},
         )
         snapshot_from_evaluation(
             store,
@@ -822,25 +836,40 @@ class TestSnapshotFromEvaluationAttacks:
         """Snapshot with all data sources populated produces complete records."""
         store = _make_store()
         er = EnsembleResult(
-            student_id="S001", question_sn=1, ensemble_score=0.7,
+            student_id="S001",
+            question_sn=1,
+            ensemble_score=0.7,
             understanding_level="Proficient",
-            component_scores={"es": 0.7}, weights_used={"es": 1.0},
+            component_scores={"es": 0.7},
+            weights_used={"es": 1.0},
         )
         gmr = GraphMetricResult(
-            student_id="S001", question_sn=1,
-            node_recall=0.8, edge_jaccard=0.5,
-            centrality_deviation=0.1, normalized_ged=0.3,
+            student_id="S001",
+            question_sn=1,
+            node_recall=0.8,
+            edge_jaccard=0.5,
+            centrality_deviation=0.1,
+            normalized_ged=0.3,
         )
         gcr = GraphComparisonResult(
-            student_id="S001", question_sn=1,
-            precision=0.9, recall=0.8, f1=0.85,
-            matched_edges=[], missing_edges=[], extra_edges=[],
+            student_id="S001",
+            question_sn=1,
+            precision=0.9,
+            recall=0.8,
+            f1=0.85,
+            matched_edges=[],
+            missing_edges=[],
+            extra_edges=[],
             wrong_direction_edges=[TripletEdge("A", "r", "B"), TripletEdge("C", "r", "D")],
         )
         cmr = ConceptMatchResult(
-            concept="세포막", student_id="S001", question_sn=1,
-            is_present=True, similarity_score=0.8,
-            top_k_mean_similarity=0.8, threshold_used=0.5,
+            concept="세포막",
+            student_id="S001",
+            question_sn=1,
+            is_present=True,
+            similarity_score=0.8,
+            top_k_mean_similarity=0.8,
+            threshold_used=0.5,
         )
         snapshot_from_evaluation(
             store,
@@ -868,12 +897,21 @@ class TestSnapshotFromEvaluationAttacks:
             ensemble_results[sid] = {}
             for qsn in [1, 2]:
                 ensemble_results[sid][qsn] = EnsembleResult(
-                    student_id=sid, question_sn=qsn, ensemble_score=0.5,
+                    student_id=sid,
+                    question_sn=qsn,
+                    ensemble_score=0.5,
                     understanding_level="Developing",
-                    component_scores={"es": 0.5}, weights_used={"es": 1.0},
+                    component_scores={"es": 0.5},
+                    weights_used={"es": 1.0},
                 )
         snapshot_from_evaluation(
-            store, ensemble_results, {}, {}, [], week=1, exam_file="e.yaml",
+            store,
+            ensemble_results,
+            {},
+            {},
+            [],
+            week=1,
+            exam_file="e.yaml",
         )
         assert len(store.get_all_records()) == 6  # 3 students * 2 questions
 
@@ -885,9 +923,13 @@ class TestSnapshotFromEvaluationAttacks:
     def test_compute_concept_scores_no_matching_student(self):
         """_compute_concept_scores with non-matching student returns None."""
         cmr = ConceptMatchResult(
-            concept="A", student_id="S999", question_sn=1,
-            is_present=True, similarity_score=0.8,
-            top_k_mean_similarity=0.8, threshold_used=0.5,
+            concept="A",
+            student_id="S999",
+            question_sn=1,
+            is_present=True,
+            similarity_score=0.8,
+            top_k_mean_similarity=0.8,
+            threshold_used=0.5,
         )
         result = _compute_concept_scores([cmr], "S001", 1)
         assert result is None
@@ -905,6 +947,7 @@ class TestChartAttacks:
         """Empty weekly_scores dict should produce a placeholder chart."""
         from forma.font_utils import find_korean_font
         from forma.report_charts import ReportChartGenerator
+
         gen = ReportChartGenerator(font_path=find_korean_font())
         buf = gen.build_trajectory_bar_chart({}, current_week=1)
         assert isinstance(buf, io.BytesIO)
@@ -914,6 +957,7 @@ class TestChartAttacks:
         """Single week in trajectory chart should work."""
         from forma.font_utils import find_korean_font
         from forma.report_charts import ReportChartGenerator
+
         gen = ReportChartGenerator(font_path=find_korean_font())
         buf = gen.build_trajectory_bar_chart({5: 0.7}, current_week=5)
         assert isinstance(buf, io.BytesIO)
@@ -924,6 +968,7 @@ class TestChartAttacks:
         """50 weeks in trajectory chart should not overflow."""
         from forma.font_utils import find_korean_font
         from forma.report_charts import ReportChartGenerator
+
         gen = ReportChartGenerator(font_path=find_korean_font())
         scores = {w: random.random() for w in range(1, 51)}
         buf = gen.build_trajectory_bar_chart(scores, current_week=25)
@@ -935,9 +980,12 @@ class TestChartAttacks:
         from forma.longitudinal_report_charts import build_trajectory_line_chart
 
         data = LongitudinalSummaryData(
-            class_name="1A", period_weeks=[1, 2, 3],
-            student_trajectories=[], class_weekly_averages={},
-            persistent_risk_students=[], concept_mastery_changes=[],
+            class_name="1A",
+            period_weeks=[1, 2, 3],
+            student_trajectories=[],
+            class_weekly_averages={},
+            persistent_risk_students=[],
+            concept_mastery_changes=[],
             total_students=0,
         )
         buf = build_trajectory_line_chart(data, font_path=find_korean_font())
@@ -949,8 +997,10 @@ class TestChartAttacks:
         from forma.longitudinal_report_charts import build_concept_mastery_bar_chart
 
         data = LongitudinalSummaryData(
-            class_name="1A", period_weeks=[1, 2],
-            student_trajectories=[], class_weekly_averages={},
+            class_name="1A",
+            period_weeks=[1, 2],
+            student_trajectories=[],
+            class_weekly_averages={},
             persistent_risk_students=[],
             concept_mastery_changes=[],
             total_students=0,
@@ -974,7 +1024,8 @@ class TestChartAttacks:
             for i in range(150)
         ]
         data = LongitudinalSummaryData(
-            class_name="1A", period_weeks=[1, 2],
+            class_name="1A",
+            period_weeks=[1, 2],
             student_trajectories=trajs,
             class_weekly_averages={1: 0.5, 2: 0.55},
             persistent_risk_students=[],
@@ -1098,9 +1149,11 @@ class TestBuildLongitudinalSummaryEdgeCases:
 
     def test_student_only_in_unrequested_weeks(self):
         """Student with data only in weeks not in the requested list: excluded."""
-        store = _make_store([
-            _make_record(week=99, scores={"ensemble_score": 0.5}),
-        ])
+        store = _make_store(
+            [
+                _make_record(week=99, scores={"ensemble_score": 0.5}),
+            ]
+        )
         result = build_longitudinal_summary(store, [1, 2, 3], "1A")
         assert result.total_students == 0
         assert result.student_trajectories == []

@@ -64,7 +64,9 @@ class TestComparisonResult:
             concept_gaps={"A": ["세포"], "B": []},
             emphasis_variance=[
                 EmphasisVarianceEntry(
-                    concept="세포", variance=0.5, per_section_scores={"A": 1.0, "B": 0.0},
+                    concept="세포",
+                    variance=0.5,
+                    per_section_scores={"A": 1.0, "B": 0.0},
                 ),
             ],
             comparison_timestamp="2026-01-01T00:00:00",

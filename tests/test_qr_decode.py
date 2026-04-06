@@ -1,5 +1,6 @@
 # tests/test_qr_decode.py
 """Tests for src/qr_decode.py QR code decoding utilities."""
+
 import os
 import tempfile
 
@@ -8,12 +9,14 @@ import qrcode
 
 try:
     import cv2  # noqa: F401
+
     _HAS_CV2 = True
 except ImportError:
     _HAS_CV2 = False
 
 try:
     from pyzbar.pyzbar import decode as _pyzbar_decode  # noqa: F401
+
     _HAS_PYZBAR = True
 except ImportError:
     _HAS_PYZBAR = False
@@ -40,10 +43,12 @@ def _write_qr_png(content: str) -> str:
     qr.add_data(content)
     qr.make(fit=True)
     pil_img = qr.make_image(
-        fill_color="black", back_color="white",
+        fill_color="black",
+        back_color="white",
     ).convert("RGB")
     with tempfile.NamedTemporaryFile(
-        suffix=".png", delete=False,
+        suffix=".png",
+        delete=False,
     ) as f:
         path = f.name
     pil_img.save(path)
@@ -68,10 +73,7 @@ class TestDecodeQrFromImage:
             os.unlink(path)
 
     def test_decode_url_qr(self):
-        content = (
-            "https://docs.google.com/forms/d/e/FORM/viewform"
-            "?entry.1064397072=S002&q=2"
-        )
+        content = "https://docs.google.com/forms/d/e/FORM/viewform?entry.1064397072=S002&q=2"
         path = _write_qr_png(content)
         try:
             result = decode_qr_from_image(path)
@@ -85,7 +87,8 @@ class TestDecodeQrFromImage:
 
         img = Image.new("RGB", (300, 300), "white")
         with tempfile.NamedTemporaryFile(
-            suffix=".png", delete=False,
+            suffix=".png",
+            delete=False,
         ) as f:
             path = f.name
         try:
@@ -175,10 +178,7 @@ class TestParseQrContentURL:
     """parse_qr_content() with URL-formatted content."""
 
     def test_parse_url_with_entry_and_q(self):
-        url = (
-            "https://docs.google.com/forms/d/e/FORM/viewform"
-            "?entry.1064397072=S001&entry.2=%EA%B0%90%EC%97%BC&q=1"
-        )
+        url = "https://docs.google.com/forms/d/e/FORM/viewform?entry.1064397072=S001&entry.2=%EA%B0%90%EC%97%BC&q=1"
         result = parse_qr_content(url)
         assert result["student_id"] == "S001"
         assert result["q_num"] == 1

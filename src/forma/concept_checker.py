@@ -29,9 +29,7 @@ from forma.evaluation_types import ConceptMatchResult
 # ---------------------------------------------------------------------------
 
 
-def _select_particle(
-    word: str, with_final: str, without_final: str
-) -> str:
+def _select_particle(word: str, with_final: str, without_final: str) -> str:
     """Select Korean post-positional particle based on final consonant.
 
     Korean particles alternate between two forms depending on whether
@@ -239,14 +237,10 @@ def check_concept_presence(
     """
     if not student_text or not student_text.strip():
         raise ValueError(
-            "student_text is empty in check_concept_presence(). "
-            "Provide a non-empty student response string."
+            "student_text is empty in check_concept_presence(). Provide a non-empty student response string."
         )
     if not concept or not concept.strip():
-        raise ValueError(
-            "concept is empty in check_concept_presence(). "
-            "Provide a non-empty concept term."
-        )
+        raise ValueError("concept is empty in check_concept_presence(). Provide a non-empty concept term.")
 
     sentences = split_student_response(student_text)
     concept_template = build_concept_template(concept)
@@ -258,9 +252,7 @@ def check_concept_presence(
     concept_embedding = all_embeddings[-1]
 
     k_actual = min(k, len(sentences))
-    top_k_sim = compute_top_k_mean_similarity(
-        sentence_embeddings, concept_embedding, k=k_actual
-    )
+    top_k_sim = compute_top_k_mean_similarity(sentence_embeddings, concept_embedding, k=k_actual)
 
     threshold = adaptive_threshold(base_threshold, n_concepts, alpha)
     is_present = top_k_sim >= threshold

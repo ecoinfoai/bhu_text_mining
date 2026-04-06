@@ -81,6 +81,7 @@ def generator(mock_font):
         with patch("forma.report_generator.pdfmetrics.registerFont"):
             with patch("forma.report_generator.TTFont"):
                 from forma.report_generator import StudentReportGenerator
+
                 return StudentReportGenerator(font_path=mock_font)
 
 
@@ -228,9 +229,7 @@ class TestReportGeneratorXmlEscape:
                     # Check that no Paragraph call contains raw '<script>'
                     for call_args in mock_para.call_args_list:
                         text = call_args[0][0] if call_args[0] else ""
-                        assert "<script>" not in text, (
-                            f"Unescaped XML in Paragraph: {text}"
-                        )
+                        assert "<script>" not in text, f"Unescaped XML in Paragraph: {text}"
 
     def test_generate_report_escapes_misconceptions(self, generator, tmp_path):
         """Misconception text with & and < is escaped."""

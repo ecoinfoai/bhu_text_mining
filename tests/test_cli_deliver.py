@@ -8,6 +8,7 @@ T014: RED tests for `forma-deliver send` subcommand.
 
 Covers CLI contract: exit codes 0/1/2/3, console summary output.
 """
+
 from __future__ import annotations
 
 import os
@@ -30,12 +31,17 @@ class TestCliDeliverPrepareParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "prepare",
-            "--manifest", "manifest.yaml",
-            "--roster", "roster.yaml",
-            "--output-dir", "/tmp/staging",
-        ])
+        args = parser.parse_args(
+            [
+                "prepare",
+                "--manifest",
+                "manifest.yaml",
+                "--roster",
+                "roster.yaml",
+                "--output-dir",
+                "/tmp/staging",
+            ]
+        )
         assert args.subcommand == "prepare"
         assert args.manifest == "manifest.yaml"
         assert args.roster == "roster.yaml"
@@ -46,13 +52,18 @@ class TestCliDeliverPrepareParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "prepare",
-            "--manifest", "m.yaml",
-            "--roster", "r.yaml",
-            "--output-dir", "/tmp/out",
-            "--force",
-        ])
+        args = parser.parse_args(
+            [
+                "prepare",
+                "--manifest",
+                "m.yaml",
+                "--roster",
+                "r.yaml",
+                "--output-dir",
+                "/tmp/out",
+                "--force",
+            ]
+        )
         assert args.force is True
 
     def test_prepare_force_default_false(self):
@@ -60,12 +71,17 @@ class TestCliDeliverPrepareParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "prepare",
-            "--manifest", "m.yaml",
-            "--roster", "r.yaml",
-            "--output-dir", "/tmp/out",
-        ])
+        args = parser.parse_args(
+            [
+                "prepare",
+                "--manifest",
+                "m.yaml",
+                "--roster",
+                "r.yaml",
+                "--output-dir",
+                "/tmp/out",
+            ]
+        )
         assert args.force is False
 
     def test_no_config_flag(self):
@@ -73,13 +89,18 @@ class TestCliDeliverPrepareParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--no-config",
-            "prepare",
-            "--manifest", "m.yaml",
-            "--roster", "r.yaml",
-            "--output-dir", "/tmp/out",
-        ])
+        args = parser.parse_args(
+            [
+                "--no-config",
+                "prepare",
+                "--manifest",
+                "m.yaml",
+                "--roster",
+                "r.yaml",
+                "--output-dir",
+                "/tmp/out",
+            ]
+        )
         assert args.no_config is True
 
     def test_verbose_flag(self):
@@ -87,13 +108,18 @@ class TestCliDeliverPrepareParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--verbose",
-            "prepare",
-            "--manifest", "m.yaml",
-            "--roster", "r.yaml",
-            "--output-dir", "/tmp/out",
-        ])
+        args = parser.parse_args(
+            [
+                "--verbose",
+                "prepare",
+                "--manifest",
+                "m.yaml",
+                "--roster",
+                "r.yaml",
+                "--output-dir",
+                "/tmp/out",
+            ]
+        )
         assert args.verbose is True
 
     def test_no_subcommand_exits(self):
@@ -110,11 +136,15 @@ class TestCliDeliverPrepareParser:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "prepare",
-                "--roster", "r.yaml",
-                "--output-dir", "/tmp/out",
-            ])
+            parser.parse_args(
+                [
+                    "prepare",
+                    "--roster",
+                    "r.yaml",
+                    "--output-dir",
+                    "/tmp/out",
+                ]
+            )
 
     def test_prepare_missing_roster_exits(self):
         """prepare without --roster exits with argparse error."""
@@ -122,11 +152,15 @@ class TestCliDeliverPrepareParser:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "prepare",
-                "--manifest", "m.yaml",
-                "--output-dir", "/tmp/out",
-            ])
+            parser.parse_args(
+                [
+                    "prepare",
+                    "--manifest",
+                    "m.yaml",
+                    "--output-dir",
+                    "/tmp/out",
+                ]
+            )
 
     def test_prepare_missing_output_dir_exits(self):
         """prepare without --output-dir exits with argparse error."""
@@ -134,11 +168,15 @@ class TestCliDeliverPrepareParser:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "prepare",
-                "--manifest", "m.yaml",
-                "--roster", "r.yaml",
-            ])
+            parser.parse_args(
+                [
+                    "prepare",
+                    "--manifest",
+                    "m.yaml",
+                    "--roster",
+                    "r.yaml",
+                ]
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -207,13 +245,18 @@ class TestCliDeliverPrepareHappyPath:
 
         # main() should not raise SystemExit or should raise SystemExit(0)
         try:
-            _result = main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            _result = main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -231,13 +274,18 @@ class TestCliDeliverPrepareHappyPath:
         output_dir = str(tmp_path / "staging")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -258,13 +306,18 @@ class TestCliDeliverPrepareHappyPath:
         output_dir = str(tmp_path / "staging")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -291,13 +344,18 @@ class TestCliDeliverPrepareHappyPath:
         output_dir = str(tmp_path / "staging")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -322,13 +380,18 @@ class TestCliDeliverPrepareHappyPath:
         output_dir = str(tmp_path / "staging")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -353,13 +416,18 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", str(tmp_path / "nonexistent_manifest.yaml"),
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    str(tmp_path / "nonexistent_manifest.yaml"),
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_missing_roster_file_exit_2(self, tmp_path):
@@ -372,13 +440,18 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", str(tmp_path / "nonexistent_roster.yaml"),
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    str(tmp_path / "nonexistent_roster.yaml"),
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_missing_report_directory_exit_2(self, tmp_path):
@@ -399,13 +472,18 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", str(mf),
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    str(mf),
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         # Exit 1 or 2 depending on implementation (directory validation in manifest)
         assert exc_info.value.code in (1, 2)
 
@@ -417,20 +495,28 @@ class TestCliDeliverPrepareErrors:
         report_dir.mkdir()
         manifest_path = _write_manifest(tmp_path, str(report_dir))
 
-        roster_path = _write_roster(tmp_path, students=[
-            {"student_id": "s001", "name": "홍길동", "email": "hong@u.kr"},
-            {"student_id": "s001", "name": "홍길동복제", "email": "dup@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            students=[
+                {"student_id": "s001", "name": "홍길동", "email": "hong@u.kr"},
+                {"student_id": "s001", "name": "홍길동복제", "email": "dup@u.kr"},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_prepare_with_partial_match_still_exit_0(self, tmp_path):
@@ -451,13 +537,18 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         try:
-            _result = main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            _result = main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit as e:
             # prepare succeeds even if some students have errors
             assert e.code == 0
@@ -476,13 +567,18 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -510,13 +606,18 @@ class TestCliDeliverPrepareErrors:
         output_dir = str(tmp_path / "staging")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -525,9 +626,7 @@ class TestCliDeliverPrepareErrors:
             summary = yaml.safe_load(f)
 
         details = summary.get("details", [])
-        assert len(details) == 3, (
-            "details must include ALL students (ready + warning + error)"
-        )
+        assert len(details) == 3, "details must include ALL students (ready + warning + error)"
         detail_ids = {d["student_id"] for d in details}
         assert detail_ids == {"s001", "s002", "s003"}
 
@@ -553,22 +652,30 @@ class TestCliDeliverPrepareOverwrite:
         _create_student_pdf(report_dir, "s001")
 
         manifest_path = _write_manifest(tmp_path, str(report_dir))
-        roster_path = _write_roster(tmp_path, students=[
-            {"student_id": "s001", "name": "홍길동", "email": "hong@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            students=[
+                {"student_id": "s001", "name": "홍길동", "email": "hong@u.kr"},
+            ],
+        )
         output_dir = tmp_path / "staging"
         output_dir.mkdir()
         # Create a marker file to prove staging exists
         (output_dir / "marker.txt").write_text("existing", encoding="utf-8")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", str(output_dir),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    str(output_dir),
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_existing_staging_with_force_succeeds(self, tmp_path):
@@ -580,22 +687,30 @@ class TestCliDeliverPrepareOverwrite:
         _create_student_pdf(report_dir, "s001")
 
         manifest_path = _write_manifest(tmp_path, str(report_dir))
-        roster_path = _write_roster(tmp_path, students=[
-            {"student_id": "s001", "name": "홍길동", "email": "hong@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            students=[
+                {"student_id": "s001", "name": "홍길동", "email": "hong@u.kr"},
+            ],
+        )
         output_dir = tmp_path / "staging"
         output_dir.mkdir()
         (output_dir / "old_file.txt").write_text("old", encoding="utf-8")
 
         try:
-            main([
-                "--no-config",
-                "prepare",
-                "--manifest", manifest_path,
-                "--roster", roster_path,
-                "--output-dir", str(output_dir),
-                "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    manifest_path,
+                    "--roster",
+                    roster_path,
+                    "--output-dir",
+                    str(output_dir),
+                    "--force",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -664,28 +779,32 @@ def _create_staged_folder(tmp_path, n_students=3, with_errors=0):
             zip_path = student_dir / f"{name}_{sid}.zip"
             with zipfile.ZipFile(str(zip_path), "w") as zf:
                 zf.writestr(f"{sid}_report.pdf", f"PDF content for {sid}")
-            details.append({
-                "student_id": sid,
-                "name": name,
-                "email": email,
-                "status": "ready",
-                "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": os.path.getsize(str(zip_path)),
-                "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": name,
+                    "email": email,
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": os.path.getsize(str(zip_path)),
+                    "message": "",
+                }
+            )
         else:
             # Error student with no zip
-            details.append({
-                "student_id": sid,
-                "name": name,
-                "email": email,
-                "status": "error",
-                "matched_files": [],
-                "zip_path": None,
-                "zip_size_bytes": 0,
-                "message": "매칭 파일 없음",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": name,
+                    "email": email,
+                    "status": "error",
+                    "matched_files": [],
+                    "zip_path": None,
+                    "zip_size_bytes": 0,
+                    "message": "매칭 파일 없음",
+                }
+            )
 
     ready_count = n_students - with_errors
     summary = {
@@ -716,12 +835,17 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "template.yaml",
-            "--smtp-config", "smtp.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "template.yaml",
+                "--smtp-config",
+                "smtp.yaml",
+            ]
+        )
         assert args.subcommand == "send"
         assert args.staged == "/tmp/staged"
         assert args.template == "template.yaml"
@@ -732,13 +856,18 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "s.yaml",
-            "--dry-run",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "s.yaml",
+                "--dry-run",
+            ]
+        )
         assert args.dry_run is True
 
     def test_send_retry_failed_flag(self):
@@ -746,13 +875,18 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "s.yaml",
-            "--retry-failed",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "s.yaml",
+                "--retry-failed",
+            ]
+        )
         assert args.retry_failed is True
 
     def test_send_force_flag(self):
@@ -760,13 +894,18 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "s.yaml",
-            "--force",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "s.yaml",
+                "--force",
+            ]
+        )
         assert args.force is True
 
     def test_send_notify_sender_flag(self):
@@ -774,13 +913,18 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "s.yaml",
-            "--notify-sender",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "s.yaml",
+                "--notify-sender",
+            ]
+        )
         assert args.notify_sender is True
 
     def test_send_password_from_stdin_flag(self):
@@ -788,13 +932,18 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "s.yaml",
-            "--password-from-stdin",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "s.yaml",
+                "--password-from-stdin",
+            ]
+        )
         assert args.password_from_stdin is True
 
     def test_send_all_flags_default_false(self):
@@ -802,12 +951,17 @@ class TestCliDeliverSendParser:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "s.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "s.yaml",
+            ]
+        )
         assert args.dry_run is False
         assert args.retry_failed is False
         assert args.force is False
@@ -820,11 +974,15 @@ class TestCliDeliverSendParser:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "send",
-                "--template", "t.yaml",
-                "--smtp-config", "s.yaml",
-            ])
+            parser.parse_args(
+                [
+                    "send",
+                    "--template",
+                    "t.yaml",
+                    "--smtp-config",
+                    "s.yaml",
+                ]
+            )
 
     def test_send_missing_template_exits(self):
         """send without --template exits with argparse error."""
@@ -832,22 +990,30 @@ class TestCliDeliverSendParser:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "send",
-                "--staged", "/tmp/staged",
-                "--smtp-config", "s.yaml",
-            ])
+            parser.parse_args(
+                [
+                    "send",
+                    "--staged",
+                    "/tmp/staged",
+                    "--smtp-config",
+                    "s.yaml",
+                ]
+            )
 
     def test_send_without_smtp_config_defaults_none(self):
         """send without --smtp-config defaults to None (optional since US1)."""
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+            ]
+        )
         assert args.smtp_config is None
 
 
@@ -871,17 +1037,23 @@ class TestCliDeliverSendHappyPath:
 
         # Mock smtplib.SMTP so no real connection is made
         import unittest.mock
+
         mock_smtp = unittest.mock.MagicMock()
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -896,17 +1068,23 @@ class TestCliDeliverSendHappyPath:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "test_password")
 
         import unittest.mock
+
         mock_smtp = unittest.mock.MagicMock()
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -934,13 +1112,18 @@ class TestCliDeliverSendErrors:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_missing_staged_dir_exit_2(self, tmp_path, monkeypatch):
@@ -952,13 +1135,18 @@ class TestCliDeliverSendErrors:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", str(tmp_path / "nonexistent_staged"),
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    str(tmp_path / "nonexistent_staged"),
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_missing_template_exit_2(self, tmp_path, monkeypatch):
@@ -970,13 +1158,18 @@ class TestCliDeliverSendErrors:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", str(tmp_path / "nonexistent.yaml"),
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    str(tmp_path / "nonexistent.yaml"),
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_missing_smtp_config_exit_2(self, tmp_path, monkeypatch):
@@ -988,13 +1181,18 @@ class TestCliDeliverSendErrors:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", str(tmp_path / "nonexistent.yaml"),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    str(tmp_path / "nonexistent.yaml"),
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_resend_without_force_exit_1(self, tmp_path, monkeypatch):
@@ -1014,28 +1212,35 @@ class TestCliDeliverSendErrors:
             "total": 1,
             "success": 1,
             "failed": 0,
-            "results": [{
-                "student_id": "s000",
-                "email": "s000@u.kr",
-                "status": "success",
-                "sent_at": "2026-03-11T10:00:01+09:00",
-                "attachment": "학생0_s000.zip",
-                "size_bytes": 100,
-                "error": "",
-            }],
+            "results": [
+                {
+                    "student_id": "s000",
+                    "email": "s000@u.kr",
+                    "status": "success",
+                    "sent_at": "2026-03-11T10:00:01+09:00",
+                    "attachment": "학생0_s000.zip",
+                    "size_bytes": 100,
+                    "error": "",
+                }
+            ],
         }
         log_path = os.path.join(staged_dir, "delivery_log.yaml")
         with open(log_path, "w", encoding="utf-8") as f:
             yaml.dump(log_data, f, allow_unicode=True)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         # Should refuse to resend without --force
         assert exc_info.value.code == 1
 
@@ -1063,18 +1268,24 @@ class TestCliDeliverSendErrors:
             yaml.dump(log_data, f, allow_unicode=True)
 
         import unittest.mock
+
         mock_smtp = unittest.mock.MagicMock()
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--force",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -1103,13 +1314,18 @@ class TestCliDeliverSendErrors:
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                ]
+            )
         assert exc_info.value.code == 3
 
 
@@ -1133,14 +1349,19 @@ class TestCliDeliverSendDryRun:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -1154,14 +1375,19 @@ class TestCliDeliverSendDryRun:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit:
             pass
 
@@ -1180,14 +1406,19 @@ class TestCliDeliverSendDryRun:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit:
             pass
 
@@ -1213,14 +1444,19 @@ class TestCliDeliverSendDryRun:
         monkeypatch.setattr("smtplib.SMTP", FailSMTP)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit:
             pass
 
@@ -1257,28 +1493,32 @@ class TestCliDeliverSendRetryFailed:
             with zipfile.ZipFile(str(zip_path), "w") as zf:
                 zf.writestr(f"{sid}_report.pdf", f"content-{sid}")
 
-            details.append({
-                "student_id": sid,
-                "name": name,
-                "email": f"{sid}@u.kr",
-                "status": "ready",
-                "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": os.path.getsize(str(zip_path)),
-                "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": name,
+                    "email": f"{sid}@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": os.path.getsize(str(zip_path)),
+                    "message": "",
+                }
+            )
 
             status = "failed" if sid in failed_ids else "success"
             error = "SMTP error" if status == "failed" else ""
-            log_results.append({
-                "student_id": sid,
-                "email": f"{sid}@u.kr",
-                "status": status,
-                "sent_at": "2026-03-11T10:00:00",
-                "attachment": f"{name}_{sid}.zip",
-                "size_bytes": os.path.getsize(str(zip_path)),
-                "error": error,
-            })
+            log_results.append(
+                {
+                    "student_id": sid,
+                    "email": f"{sid}@u.kr",
+                    "status": status,
+                    "sent_at": "2026-03-11T10:00:00",
+                    "attachment": f"{name}_{sid}.zip",
+                    "size_bytes": os.path.getsize(str(zip_path)),
+                    "error": error,
+                }
+            )
 
         summary = {
             "prepared_at": "2026-03-11T10:00:00",
@@ -1315,18 +1555,24 @@ class TestCliDeliverSendRetryFailed:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         import unittest.mock
+
         mock_smtp = unittest.mock.MagicMock()
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--retry-failed",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--retry-failed",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -1340,15 +1586,20 @@ class TestCliDeliverSendRetryFailed:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--retry-failed",
-                "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--retry-failed",
+                    "--force",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_retry_failed_dry_run_combined(self, tmp_path, monkeypatch):
@@ -1361,15 +1612,20 @@ class TestCliDeliverSendRetryFailed:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--dry-run",
-                "--retry-failed",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--dry-run",
+                    "--retry-failed",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -1394,11 +1650,15 @@ class TestCliDeliverSendSmtpConfigOptional:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+            ]
+        )
         assert args.subcommand == "send"
         assert args.smtp_config is None
 
@@ -1407,12 +1667,17 @@ class TestCliDeliverSendSmtpConfigOptional:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/staged",
-            "--template", "t.yaml",
-            "--smtp-config", "smtp.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/staged",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "smtp.yaml",
+            ]
+        )
         assert args.smtp_config == "smtp.yaml"
 
     def test_send_fallback_to_forma_json(self, tmp_path, monkeypatch):
@@ -1425,15 +1690,20 @@ class TestCliDeliverSendSmtpConfigOptional:
 
         # Create forma.json with smtp section
         forma_json = tmp_path / "forma.json"
-        forma_json.write_text(json.dumps({
-            "smtp": {
-                "server": "json.smtp.com",
-                "port": 587,
-                "sender_email": "json@test.com",
-                "use_tls": True,
-                "send_interval_sec": 0,
-            }
-        }), encoding="utf-8")
+        forma_json.write_text(
+            json.dumps(
+                {
+                    "smtp": {
+                        "server": "json.smtp.com",
+                        "port": 587,
+                        "sender_email": "json@test.com",
+                        "use_tls": True,
+                        "send_interval_sec": 0,
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
 
         # Mock load_config to return our config
         monkeypatch.setattr(
@@ -1443,13 +1713,17 @@ class TestCliDeliverSendSmtpConfigOptional:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -1469,18 +1743,20 @@ class TestCliDeliverSendSmtpConfigOptional:
         # Mock load_config to raise FileNotFoundError (no forma.json)
         monkeypatch.setattr(
             "forma.config.load_config",
-            lambda config_path=None: (_ for _ in ()).throw(
-                FileNotFoundError("No config")
-            ),
+            lambda config_path=None: (_ for _ in ()).throw(FileNotFoundError("No config")),
         )
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_send_forma_json_no_smtp_section_exit_2(self, tmp_path, monkeypatch):
@@ -1497,12 +1773,16 @@ class TestCliDeliverSendSmtpConfigOptional:
         )
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_send_error_message_korean(self, tmp_path, monkeypatch, capsys):
@@ -1514,18 +1794,20 @@ class TestCliDeliverSendSmtpConfigOptional:
 
         monkeypatch.setattr(
             "forma.config.load_config",
-            lambda config_path=None: (_ for _ in ()).throw(
-                FileNotFoundError("No config")
-            ),
+            lambda config_path=None: (_ for _ in ()).throw(FileNotFoundError("No config")),
         )
 
         with pytest.raises(SystemExit):
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                ]
+            )
 
         captured = capsys.readouterr()
         assert "SMTP config not found" in captured.err
@@ -1551,14 +1833,19 @@ class TestCliDeliverSendSmtpConfigOptional:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staged_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -1590,23 +1877,27 @@ class TestCliDeliverSendDeprecation:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config",
-                    "send",
-                    "--staged", staged_dir,
-                    "--template", template_path,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged_dir,
+                        "--template",
+                        template_path,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
-            deprecation_warnings = [
-                x for x in w if issubclass(x.category, DeprecationWarning)
-            ]
+            deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
             assert len(deprecation_warnings) >= 1
-            assert "smtp-config" in str(deprecation_warnings[0].message).lower() or \
-                   "--smtp-config" in str(deprecation_warnings[0].message)
+            assert "smtp-config" in str(deprecation_warnings[0].message).lower() or "--smtp-config" in str(
+                deprecation_warnings[0].message
+            )
 
     def test_deprecation_warning_message_korean(self, tmp_path, monkeypatch):
         """Deprecation warning message is in Korean."""
@@ -1621,20 +1912,23 @@ class TestCliDeliverSendDeprecation:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config",
-                    "send",
-                    "--staged", staged_dir,
-                    "--template", template_path,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged_dir,
+                        "--template",
+                        template_path,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
-            deprecation_warnings = [
-                x for x in w if issubclass(x.category, DeprecationWarning)
-            ]
+            deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
             msg = str(deprecation_warnings[0].message)
             assert "config.json" in msg
             assert "Migrate" in msg
@@ -1662,19 +1956,21 @@ class TestCliDeliverSendDeprecation:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config",
-                    "send",
-                    "--staged", staged_dir,
-                    "--template", template_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged_dir,
+                        "--template",
+                        template_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
-            deprecation_warnings = [
-                x for x in w if issubclass(x.category, DeprecationWarning)
-            ]
+            deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
             assert len(deprecation_warnings) == 0
 
     def test_smtp_config_flag_still_works(self, tmp_path, monkeypatch):
@@ -1690,14 +1986,19 @@ class TestCliDeliverSendDeprecation:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config",
-                    "send",
-                    "--staged", staged_dir,
-                    "--template", template_path,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged_dir,
+                        "--template",
+                        template_path,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit as e:
                 assert e.code == 0
 

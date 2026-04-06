@@ -30,48 +30,68 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     # Required args
     parser.add_argument(
-        "--final", required=True,
+        "--final",
+        required=True,
         help="Final result YAML file path",
     )
     parser.add_argument(
-        "--config", required=True,
+        "--config",
+        required=True,
         help="Exam config YAML file path",
     )
     parser.add_argument(
-        "--eval-dir", required=True, dest="eval_dir",
+        "--eval-dir",
+        required=True,
+        dest="eval_dir",
         help="Evaluation results directory path",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="Output PDF file path",
     )
     # Optional args
     parser.add_argument(
-        "--longitudinal-store", default=None, dest="longitudinal_store",
+        "--longitudinal-store",
+        default=None,
+        dest="longitudinal_store",
         help="Longitudinal store YAML file path (for prediction model)",
     )
     parser.add_argument(
-        "--week", type=int, default=None,
+        "--week",
+        type=int,
+        default=None,
         help="Current week number",
     )
     parser.add_argument(
-        "--model", default=None, dest="model_path",
+        "--model",
+        default=None,
+        dest="model_path",
         help="Pre-trained prediction model file path (.pkl)",
     )
     parser.add_argument(
-        "--font-path", default=None, dest="font_path",
+        "--font-path",
+        default=None,
+        dest="font_path",
         help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--dpi", type=int, default=150,
+        "--dpi",
+        type=int,
+        default=150,
         help="Chart DPI (default: 150)",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     return parser
@@ -91,6 +111,7 @@ def main(argv=None) -> int | None:
 
     # Apply project config (three-layer merge)
     from forma.project_config import apply_project_config
+
     raw_argv = argv if argv is not None else sys.argv[1:]
     apply_project_config(args, argv=raw_argv)
 
@@ -126,7 +147,8 @@ def main(argv=None) -> int | None:
 
     # Build professor report data to get at-risk identification
     report_data = build_professor_report_data(
-        students, distributions,
+        students,
+        distributions,
         class_name="warning",
         week_num=args.week or 1,
         subject="",
@@ -173,12 +195,15 @@ def main(argv=None) -> int | None:
                 weeks = list(range(1, (args.week or 1) + 1))
                 extractor = FeatureExtractor()
                 feature_matrix, feature_names, student_ids = extractor.extract(
-                    store, weeks,
+                    store,
+                    weeks,
                 )
 
                 predictor = RiskPredictor()
                 risk_predictions = predictor.predict(
-                    trained_model, feature_matrix, student_ids,
+                    trained_model,
+                    feature_matrix,
+                    student_ids,
                 )
                 logger.info("Model prediction complete: %d students", len(risk_predictions))
         except Exception as exc:
@@ -203,7 +228,8 @@ def main(argv=None) -> int | None:
     try:
         gen = WarningPDFReportGenerator(font_path=args.font_path, dpi=args.dpi)
         gen.generate_pdf(
-            warning_cards, args.output,
+            warning_cards,
+            args.output,
             class_name=report_data.class_name or "",
         )
     except FileNotFoundError as exc:

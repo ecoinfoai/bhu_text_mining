@@ -143,19 +143,31 @@ def _make_three_students() -> list:
     """Return 3 StudentReportData objects for standard tests."""
     return [
         _make_student(
-            "SA", "Alice", "2026001",
-            _STUDENT_A_Q1_SCORE, "Advanced",
-            _STUDENT_A_Q2_SCORE, "Proficient",
+            "SA",
+            "Alice",
+            "2026001",
+            _STUDENT_A_Q1_SCORE,
+            "Advanced",
+            _STUDENT_A_Q2_SCORE,
+            "Proficient",
         ),
         _make_student(
-            "SB", "Bob", "2026002",
-            _STUDENT_B_Q1_SCORE, "Developing",
-            _STUDENT_B_Q2_SCORE, "Developing",
+            "SB",
+            "Bob",
+            "2026002",
+            _STUDENT_B_Q1_SCORE,
+            "Developing",
+            _STUDENT_B_Q2_SCORE,
+            "Developing",
         ),
         _make_student(
-            "SC", "Carol", "2026003",
-            _STUDENT_C_Q1_SCORE, "Beginning",
-            _STUDENT_C_Q2_SCORE, "Beginning",
+            "SC",
+            "Carol",
+            "2026003",
+            _STUDENT_C_Q1_SCORE,
+            "Beginning",
+            _STUDENT_C_Q2_SCORE,
+            "Beginning",
         ),
     ]
 
@@ -705,8 +717,8 @@ class TestBuildProfessorReportDataLevelDistribution:
         # Student C: both questions Beginning  → overall=Beginning
         students = [
             _make_student("SA", "Alice", "001", 0.60, "Developing", 0.50, "Developing"),
-            _make_student("SB", "Bob",   "002", 0.60, "Developing", 0.50, "Developing"),
-            _make_student("SC", "Carol", "003", 0.30, "Beginning",  0.20, "Beginning"),
+            _make_student("SB", "Bob", "002", 0.60, "Developing", 0.50, "Developing"),
+            _make_student("SC", "Carol", "003", 0.30, "Beginning", 0.20, "Beginning"),
         ]
         dists = _make_distributions(students)
         report = build_professor_report_data(
@@ -824,9 +836,9 @@ class TestBuildProfessorReportDataStudentRows:
         # Student A: Q1=Advanced,  Q2=Proficient → tie → lower=Proficient
         # Student B: Q1=Developing, Q2=Developing → mode=Developing
         students = [
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",   0.70, "Proficient"),
-            _make_student("SB", "Bob",   "002", 0.60, "Developing", 0.50, "Developing"),
-            _make_student("SC", "Carol", "003", 0.30, "Beginning",  0.20, "Beginning"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.70, "Proficient"),
+            _make_student("SB", "Bob", "002", 0.60, "Developing", 0.50, "Developing"),
+            _make_student("SC", "Carol", "003", 0.30, "Beginning", 0.20, "Beginning"),
         ]
         dists = _make_distributions(students)
         report = build_professor_report_data(
@@ -881,7 +893,7 @@ class TestBuildProfessorReportDataZScore:
         # All students score 0.65 on both questions → std=0
         students = [
             _make_student("SA", "Alice", "001", 0.65, "Proficient", 0.65, "Proficient"),
-            _make_student("SB", "Bob",   "002", 0.65, "Proficient", 0.65, "Proficient"),
+            _make_student("SB", "Bob", "002", 0.65, "Proficient", 0.65, "Proficient"),
             _make_student("SC", "Carol", "003", 0.65, "Proficient", 0.65, "Proficient"),
         ]
         dists = _make_distributions(students)
@@ -905,8 +917,8 @@ class TestBuildProfessorReportDataAtRisk:
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.80, "Advanced",  0.80, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.80, "Advanced",  0.80, "Advanced"),
+            _make_student("SA", "Alice", "001", 0.80, "Advanced", 0.80, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.80, "Advanced", 0.80, "Advanced"),
             # SC mean = 0.25 < 0.45 → at-risk
             _make_student("SC", "Carol", "003", 0.30, "Beginning", 0.20, "Beginning"),
         ]
@@ -928,10 +940,9 @@ class TestBuildProfessorReportDataAtRisk:
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.80, "Advanced",  0.80, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.80, "Advanced",  0.80, "Advanced"),
-            _make_student("SC", "Carol", "003", 0.20, "Beginning", 0.10, "Beginning",
-                          q1_coverage=0.0, q2_coverage=0.0),
+            _make_student("SA", "Alice", "001", 0.80, "Advanced", 0.80, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.80, "Advanced", 0.80, "Advanced"),
+            _make_student("SC", "Carol", "003", 0.20, "Beginning", 0.10, "Beginning", q1_coverage=0.0, q2_coverage=0.0),
         ]
         dists = _make_distributions(students)
         report = build_professor_report_data(
@@ -945,17 +956,15 @@ class TestBuildProfessorReportDataAtRisk:
         _rows_by_id = {r.student_id: r for r in report.student_rows}
         at_risk_rows = [r for r in report.student_rows if r.is_at_risk]
         for row in at_risk_rows:
-            assert len(row.at_risk_reasons) > 0, (
-                f"at_risk_reasons empty for at-risk student {row.student_id}"
-            )
+            assert len(row.at_risk_reasons) > 0, f"at_risk_reasons empty for at-risk student {row.student_id}"
 
     def test_not_at_risk_safe_student(self):
         """Student with high score is not flagged as at-risk."""
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",  0.85, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.50, "Developing", 0.45, "Developing"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.85, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.50, "Developing", 0.45, "Developing"),
             _make_student("SC", "Carol", "003", 0.48, "Developing", 0.46, "Developing"),
         ]
         dists = _make_distributions(students)
@@ -976,8 +985,8 @@ class TestBuildProfessorReportDataAtRisk:
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",  0.85, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.90, "Advanced",  0.85, "Advanced"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.85, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.90, "Advanced", 0.85, "Advanced"),
             # SC will be at-risk: score < 0.45
             _make_student("SC", "Carol", "003", 0.20, "Beginning", 0.10, "Beginning"),
         ]
@@ -1001,8 +1010,8 @@ class TestBuildProfessorReportDataAtRisk:
 
         students = [
             # High-scoring classmates to avoid z-score being the only trigger
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",  0.85, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.90, "Advanced",  0.85, "Advanced"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.85, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.90, "Advanced", 0.85, "Advanced"),
             # SC just above score threshold but all Beginning levels
             _make_student("SC", "Carol", "003", 0.46, "Beginning", 0.46, "Beginning"),
         ]
@@ -1024,11 +1033,12 @@ class TestBuildProfessorReportDataAtRisk:
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",  0.85, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.90, "Advanced",  0.85, "Advanced"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.85, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.90, "Advanced", 0.85, "Advanced"),
             # SC has zero coverage on Q1
-            _make_student("SC", "Carol", "003", 0.65, "Proficient", 0.65, "Proficient",
-                          q1_coverage=0.0, q2_coverage=0.80),
+            _make_student(
+                "SC", "Carol", "003", 0.65, "Proficient", 0.65, "Proficient", q1_coverage=0.0, q2_coverage=0.80
+            ),
         ]
         dists = _make_distributions(students)
         report = build_professor_report_data(
@@ -1047,12 +1057,17 @@ class TestBuildProfessorReportDataAtRisk:
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",  0.85, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.90, "Advanced",  0.85, "Advanced"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.85, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.90, "Advanced", 0.85, "Advanced"),
             # SC has 3 misconceptions across questions and level=Developing
             _make_student(
-                "SC", "Carol", "003",
-                0.65, "Proficient", 0.65, "Proficient",
+                "SC",
+                "Carol",
+                "003",
+                0.65,
+                "Proficient",
+                0.65,
+                "Proficient",
                 q1_misconceptions=["M1", "M2"],
                 q2_misconceptions=["M3"],
             ),
@@ -1075,11 +1090,12 @@ class TestBuildProfessorReportDataAtRisk:
         from forma.professor_report_data import build_professor_report_data
 
         students = [
-            _make_student("SA", "Alice", "001", 0.90, "Advanced",  0.85, "Advanced"),
-            _make_student("SB", "Bob",   "002", 0.90, "Advanced",  0.85, "Advanced"),
+            _make_student("SA", "Alice", "001", 0.90, "Advanced", 0.85, "Advanced"),
+            _make_student("SB", "Bob", "002", 0.90, "Advanced", 0.85, "Advanced"),
             # SC mean coverage = (0.10 + 0.20) / 2 = 0.15 < 0.30
-            _make_student("SC", "Carol", "003", 0.65, "Proficient", 0.65, "Proficient",
-                          q1_coverage=0.10, q2_coverage=0.20),
+            _make_student(
+                "SC", "Carol", "003", 0.65, "Proficient", 0.65, "Proficient", q1_coverage=0.10, q2_coverage=0.20
+            ),
         ]
         dists = _make_distributions(students)
         report = build_professor_report_data(
@@ -1258,6 +1274,7 @@ class TestComputeConditionalIndicatorAugmented:
         from forma.professor_report_data import compute_conditional_indicator
 
         import sys
+
         # mean=0.5, std=0.2 → upper=0.6; score = 0.6 - epsilon → ''
         eps = sys.float_info.epsilon * 1000  # small positive
         result = compute_conditional_indicator(score=0.6 - eps, mean=0.5, std=0.2)
@@ -1268,6 +1285,7 @@ class TestComputeConditionalIndicatorAugmented:
         from forma.professor_report_data import compute_conditional_indicator
 
         import sys
+
         # mean=0.5, std=0.2 → lower=0.4; score = 0.4 + epsilon → ''
         eps = sys.float_info.epsilon * 1000
         result = compute_conditional_indicator(score=0.4 + eps, mean=0.5, std=0.2)
@@ -1292,14 +1310,14 @@ def _make_at_risk_row(**overrides):
         "student_id": "S001",
         "student_number": "2026001",
         "real_name": "테스트",
-        "overall_ensemble_mean": 0.60,   # safe: not < 0.45
-        "overall_level": "Proficient",   # safe: not all-Beginning, not Advanced (for misc criterion)
+        "overall_ensemble_mean": 0.60,  # safe: not < 0.45
+        "overall_level": "Proficient",  # safe: not all-Beginning, not Advanced (for misc criterion)
         "per_question_scores": {1: 0.60, 2: 0.60},
-        "per_question_levels": {1: "Proficient", 2: "Proficient"},   # safe: not all Beginning
-        "per_question_coverages": {1: 0.80, 2: 0.80},               # safe: no zeros, avg=0.80
+        "per_question_levels": {1: "Proficient", 2: "Proficient"},  # safe: not all Beginning
+        "per_question_coverages": {1: 0.80, 2: 0.80},  # safe: no zeros, avg=0.80
         "is_at_risk": False,
         "at_risk_reasons": [],
-        "z_score": 0.0,                  # safe: not < -1.0
+        "z_score": 0.0,  # safe: not < -1.0
     }
     defaults.update(overrides)
     return StudentSummaryRow(**defaults)
@@ -1329,9 +1347,7 @@ class TestIdentifyAtRisk:
             misconception_counts={},
         )
         assert is_risk is True
-        assert any("전체 점수" in r for r in reasons), (
-            f"Expected '전체 점수' in reasons, got: {reasons}"
-        )
+        assert any("전체 점수" in r for r in reasons), f"Expected '전체 점수' in reasons, got: {reasons}"
 
     def test_score_above_threshold_not_at_risk(self):
         """score=0.50 with all other criteria safe → (False, [])."""
@@ -1363,9 +1379,7 @@ class TestIdentifyAtRisk:
             misconception_counts={},
         )
         assert is_risk is True
-        assert any("Z-점수" in r for r in reasons), (
-            f"Expected 'Z-점수' in reasons, got: {reasons}"
-        )
+        assert any("Z-점수" in r for r in reasons), f"Expected 'Z-점수' in reasons, got: {reasons}"
 
     def test_z_score_above_minus_one_not_at_risk(self):
         """score=0.50, z=-0.5 with all other criteria safe → (False, [])."""
@@ -1401,9 +1415,7 @@ class TestIdentifyAtRisk:
             misconception_counts={},
         )
         assert is_risk is True
-        assert any("모든 문항" in r for r in reasons), (
-            f"Expected '모든 문항' in reasons, got: {reasons}"
-        )
+        assert any("모든 문항" in r for r in reasons), f"Expected '모든 문항' in reasons, got: {reasons}"
 
     def test_not_all_beginning_not_at_risk_for_criterion_3(self):
         """Mixed levels (Beginning + Proficient) → criterion 3 does NOT fire."""
@@ -1445,9 +1457,7 @@ class TestIdentifyAtRisk:
             misconception_counts={},
         )
         assert is_risk is True
-        assert any("커버리지 0%" in r for r in reasons), (
-            f"Expected '커버리지 0%' in reasons, got: {reasons}"
-        )
+        assert any("커버리지 0%" in r for r in reasons), f"Expected '커버리지 0%' in reasons, got: {reasons}"
 
     def test_no_zero_coverage_not_at_risk_for_criterion_4(self):
         """All coverages > 0 → criterion 4 does NOT fire."""
@@ -1489,9 +1499,7 @@ class TestIdentifyAtRisk:
             misconception_counts={1: 2, 2: 1},
         )
         assert is_risk is True
-        assert any("오개념" in r for r in reasons), (
-            f"Expected '오개념' in reasons, got: {reasons}"
-        )
+        assert any("오개념" in r for r in reasons), f"Expected '오개념' in reasons, got: {reasons}"
 
     def test_misconceptions_3_advanced_not_at_risk_for_criterion_5(self):
         """total >= 3 but level='Advanced' → criterion 5 does NOT fire."""
@@ -1508,9 +1516,7 @@ class TestIdentifyAtRisk:
             class_std=0.10,
             misconception_counts={1: 2, 2: 1},
         )
-        assert not any("오개념" in r for r in reasons), (
-            f"Criterion 5 must not fire for Advanced level, got: {reasons}"
-        )
+        assert not any("오개념" in r for r in reasons), f"Criterion 5 must not fire for Advanced level, got: {reasons}"
 
     def test_misconceptions_below_3_not_at_risk_for_criterion_5(self):
         """total=2, non-Advanced → criterion 5 does NOT fire (below threshold)."""
@@ -1525,11 +1531,9 @@ class TestIdentifyAtRisk:
             row,
             class_mean=0.60,
             class_std=0.10,
-            misconception_counts={1: 1, 2: 1},   # total=2 < 3
+            misconception_counts={1: 1, 2: 1},  # total=2 < 3
         )
-        assert not any("오개념" in r for r in reasons), (
-            f"Criterion 5 must not fire when total < 3, got: {reasons}"
-        )
+        assert not any("오개념" in r for r in reasons), f"Criterion 5 must not fire when total < 3, got: {reasons}"
 
     # ------------------------------------------------------------------
     # Criterion 6: average of per_question_coverage < 0.30
@@ -1551,9 +1555,7 @@ class TestIdentifyAtRisk:
             misconception_counts={},
         )
         assert is_risk is True
-        assert any("평균 커버리지" in r for r in reasons), (
-            f"Expected '평균 커버리지' in reasons, got: {reasons}"
-        )
+        assert any("평균 커버리지" in r for r in reasons), f"Expected '평균 커버리지' in reasons, got: {reasons}"
 
     def test_avg_coverage_above_30pct_not_at_risk_for_criterion_6(self):
         """avg coverage=0.50 >= 0.30 → criterion 6 does NOT fire."""
@@ -1584,7 +1586,7 @@ class TestIdentifyAtRisk:
 
         row = _make_at_risk_row(
             overall_ensemble_mean=0.40,  # criterion 1
-            z_score=-1.5,               # criterion 2
+            z_score=-1.5,  # criterion 2
         )
         is_risk, reasons = identify_at_risk(
             row,
@@ -1593,12 +1595,8 @@ class TestIdentifyAtRisk:
             misconception_counts={},
         )
         assert is_risk is True
-        assert any("전체 점수" in r for r in reasons), (
-            f"Expected criterion-1 reason '전체 점수', got: {reasons}"
-        )
-        assert any("Z-점수" in r for r in reasons), (
-            f"Expected criterion-2 reason 'Z-점수', got: {reasons}"
-        )
+        assert any("전체 점수" in r for r in reasons), f"Expected criterion-1 reason '전체 점수', got: {reasons}"
+        assert any("Z-점수" in r for r in reasons), f"Expected criterion-2 reason 'Z-점수', got: {reasons}"
 
     def test_std_zero_skips_z_score_criterion(self):
         """class_std=0 → z criterion is skipped; score=0.60, all safe → (False, [])."""
@@ -1611,7 +1609,7 @@ class TestIdentifyAtRisk:
         is_risk, reasons = identify_at_risk(
             row,
             class_mean=0.60,
-            class_std=0.0,     # zero std → z criterion skipped
+            class_std=0.0,  # zero std → z criterion skipped
             misconception_counts={},
         )
         assert is_risk is False
@@ -1713,15 +1711,23 @@ class TestBuildProfessorReportDataEdgeCases:
         for i in range(200):
             score = round((i % 10) * 0.1, 1)  # 0.0, 0.1, ..., 0.9 repeated
             level = (
-                "Advanced" if score >= 0.85
-                else "Proficient" if score >= 0.65
-                else "Developing" if score >= 0.45
+                "Advanced"
+                if score >= 0.85
+                else "Proficient"
+                if score >= 0.65
+                else "Developing"
+                if score >= 0.45
                 else "Beginning"
             )
             students.append(
                 _make_student(
-                    f"S{i:03d}", f"Student{i}", f"202600{i:03d}",
-                    score, level, score, level,
+                    f"S{i:03d}",
+                    f"Student{i}",
+                    f"202600{i:03d}",
+                    score,
+                    level,
+                    score,
+                    level,
                 )
             )
 
@@ -1771,27 +1777,29 @@ class TestBuildProfessorReportDataEdgeCases:
         nan = float("nan")
         students = []
         for i in range(3):
-            students.append(StudentReportData(
-                student_id=f"S{i}",
-                real_name=f"Student{i}",
-                student_number=f"2026{i:03d}",
-                class_name="1A",
-                course_name="Biology",
-                chapter_name="Chapter 1",
-                week_num=1,
-                questions=[
-                    QuestionReportData(
-                        question_sn=1,
-                        question_text="Q1",
-                        ensemble_score=nan if i == 0 else 0.6,
-                        understanding_level="Developing",
-                        concept_coverage=nan if i == 0 else 0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=[],
-                    ),
-                ],
-            ))
+            students.append(
+                StudentReportData(
+                    student_id=f"S{i}",
+                    real_name=f"Student{i}",
+                    student_number=f"2026{i:03d}",
+                    class_name="1A",
+                    course_name="Biology",
+                    chapter_name="Chapter 1",
+                    week_num=1,
+                    questions=[
+                        QuestionReportData(
+                            question_sn=1,
+                            question_text="Q1",
+                            ensemble_score=nan if i == 0 else 0.6,
+                            understanding_level="Developing",
+                            concept_coverage=nan if i == 0 else 0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=[],
+                        ),
+                    ],
+                )
+            )
 
         dists = compute_class_distributions(students)
         # Must not raise
@@ -1815,27 +1823,29 @@ class TestBuildProfessorReportDataEdgeCases:
 
         students = []
         for i in range(3):
-            students.append(StudentReportData(
-                student_id=f"S{i}",
-                real_name=f"Student{i}",
-                student_number=f"2026{i:03d}",
-                class_name="1A",
-                course_name="Biology",
-                chapter_name="Chapter 1",
-                week_num=1,
-                questions=[
-                    QuestionReportData(
-                        question_sn=1,
-                        question_text="Q1",
-                        ensemble_score=0.6 + i * 0.1,
-                        understanding_level="Developing",
-                        concept_coverage=0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=[],  # empty
-                    ),
-                ],
-            ))
+            students.append(
+                StudentReportData(
+                    student_id=f"S{i}",
+                    real_name=f"Student{i}",
+                    student_number=f"2026{i:03d}",
+                    class_name="1A",
+                    course_name="Biology",
+                    chapter_name="Chapter 1",
+                    week_num=1,
+                    questions=[
+                        QuestionReportData(
+                            question_sn=1,
+                            question_text="Q1",
+                            ensemble_score=0.6 + i * 0.1,
+                            understanding_level="Developing",
+                            concept_coverage=0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=[],  # empty
+                        ),
+                    ],
+                )
+            )
 
         dists = compute_class_distributions(students)
         report = build_professor_report_data(
@@ -1866,27 +1876,29 @@ class TestBuildProfessorReportDataEdgeCases:
         ]
 
         # Build a student who only answered Q1
-        students.append(StudentReportData(
-            student_id="SB",
-            real_name="Bob",
-            student_number="002",
-            class_name="1A",
-            course_name="Biology",
-            chapter_name="Chapter 1",
-            week_num=1,
-            questions=[
-                QuestionReportData(
-                    question_sn=1,
-                    question_text="Q1",
-                    ensemble_score=0.5,
-                    understanding_level="Developing",
-                    concept_coverage=0.4,
-                    llm_median_score=2.0,
-                    rasch_theta=0.0,
-                    misconceptions=[],
-                ),
-            ],
-        ))
+        students.append(
+            StudentReportData(
+                student_id="SB",
+                real_name="Bob",
+                student_number="002",
+                class_name="1A",
+                course_name="Biology",
+                chapter_name="Chapter 1",
+                week_num=1,
+                questions=[
+                    QuestionReportData(
+                        question_sn=1,
+                        question_text="Q1",
+                        ensemble_score=0.5,
+                        understanding_level="Developing",
+                        concept_coverage=0.4,
+                        llm_median_score=2.0,
+                        rasch_theta=0.0,
+                        misconceptions=[],
+                    ),
+                ],
+            )
+        )
 
         dists = compute_class_distributions(students)
         # Must not crash even with unequal question sets
@@ -1929,8 +1941,13 @@ def _make_report_for_section(
     for sid, name, num in student_specs:
         students.append(
             _make_student(
-                sid, name, num,
-                0.70, "Proficient", 0.60, "Proficient",
+                sid,
+                name,
+                num,
+                0.70,
+                "Proficient",
+                0.60,
+                "Proficient",
             )
         )
     dists = compute_class_distributions(students)
@@ -1955,15 +1972,21 @@ class TestMergeProfessorReportData:
         """Merge 2 reports with 2+3 students → 5 total student_rows."""
         from forma.professor_report_data import merge_professor_report_data
 
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-            ("A2", "Aaron", "002"),
-        ])
-        report_b = _make_report_for_section("B", [
-            ("B1", "Bob", "003"),
-            ("B2", "Barbara", "004"),
-            ("B3", "Brian", "005"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+                ("A2", "Aaron", "002"),
+            ],
+        )
+        report_b = _make_report_for_section(
+            "B",
+            [
+                ("B1", "Bob", "003"),
+                ("B2", "Barbara", "004"),
+                ("B3", "Brian", "005"),
+            ],
+        )
 
         merged = merge_professor_report_data([report_a, report_b])
 
@@ -1973,12 +1996,18 @@ class TestMergeProfessorReportData:
         """Merged class_name == 'A+B' and section_names == ['A', 'B']."""
         from forma.professor_report_data import merge_professor_report_data
 
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-        ])
-        report_b = _make_report_for_section("B", [
-            ("B1", "Bob", "002"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+            ],
+        )
+        report_b = _make_report_for_section(
+            "B",
+            [
+                ("B1", "Bob", "002"),
+            ],
+        )
 
         merged = merge_professor_report_data([report_a, report_b])
 
@@ -1989,13 +2018,19 @@ class TestMergeProfessorReportData:
         """Each student_row.section is set to the source class_name."""
         from forma.professor_report_data import merge_professor_report_data
 
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-            ("A2", "Aaron", "002"),
-        ])
-        report_b = _make_report_for_section("B", [
-            ("B1", "Bob", "003"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+                ("A2", "Aaron", "002"),
+            ],
+        )
+        report_b = _make_report_for_section(
+            "B",
+            [
+                ("B1", "Bob", "003"),
+            ],
+        )
 
         merged = merge_professor_report_data([report_a, report_b])
 
@@ -2008,12 +2043,18 @@ class TestMergeProfessorReportData:
         """Merged report has is_multi_class=True."""
         from forma.professor_report_data import merge_professor_report_data
 
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-        ])
-        report_b = _make_report_for_section("B", [
-            ("B1", "Bob", "002"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+            ],
+        )
+        report_b = _make_report_for_section(
+            "B",
+            [
+                ("B1", "Bob", "002"),
+            ],
+        )
 
         merged = merge_professor_report_data([report_a, report_b])
 
@@ -2027,15 +2068,21 @@ class TestMergeProfessorReportData:
         """
         from forma.professor_report_data import merge_professor_report_data
 
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-            ("A2", "Aaron", "002"),
-        ])
-        report_b = _make_report_for_section("B", [
-            ("B1", "Bob", "003"),
-            ("B2", "Barbara", "004"),
-            ("B3", "Brian", "005"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+                ("A2", "Aaron", "002"),
+            ],
+        )
+        report_b = _make_report_for_section(
+            "B",
+            [
+                ("B1", "Bob", "003"),
+                ("B2", "Barbara", "004"),
+                ("B3", "Brian", "005"),
+            ],
+        )
 
         merged = merge_professor_report_data([report_a, report_b])
 
@@ -2046,8 +2093,7 @@ class TestMergeProfessorReportData:
         for qstat in merged.question_stats:
             level_sum = sum(qstat.level_distribution.values())
             assert level_sum == total_students, (
-                f"Question {qstat.question_sn} level_distribution sums to "
-                f"{level_sum}, expected {total_students}"
+                f"Question {qstat.question_sn} level_distribution sums to {level_sum}, expected {total_students}"
             )
 
     def test_merge_at_risk_re_identified(self):
@@ -2058,13 +2104,19 @@ class TestMergeProfessorReportData:
         """
         from forma.professor_report_data import merge_professor_report_data
 
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-            ("A2", "Aaron", "002"),
-        ])
-        report_b = _make_report_for_section("B", [
-            ("B1", "Bob", "003"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+                ("A2", "Aaron", "002"),
+            ],
+        )
+        report_b = _make_report_for_section(
+            "B",
+            [
+                ("B1", "Bob", "003"),
+            ],
+        )
 
         merged = merge_professor_report_data([report_a, report_b])
 
@@ -2088,27 +2140,45 @@ class TestMergeProfessorReportData:
         students_a = [student_a1]
         dists_a = compute_class_distributions(students_a)
         report_a = build_professor_report_data(
-            students=students_a, distributions=dists_a,
-            class_name="A", week_num=1, subject="Bio", exam_title="Test",
+            students=students_a,
+            distributions=dists_a,
+            class_name="A",
+            week_num=1,
+            subject="Bio",
+            exam_title="Test",
         )
 
         # Section B: student with only Q1
         student_b1 = StudentReportData(
-            student_id="B1", real_name="Bob", student_number="003",
-            class_name="B", course_name="Bio", chapter_name="Ch1", week_num=1,
+            student_id="B1",
+            real_name="Bob",
+            student_number="003",
+            class_name="B",
+            course_name="Bio",
+            chapter_name="Ch1",
+            week_num=1,
             questions=[
                 QuestionReportData(
-                    question_sn=1, question_text="Q1", ensemble_score=0.5,
-                    understanding_level="Developing", concept_coverage=0.4,
-                    llm_median_score=2.0, rasch_theta=0.0, misconceptions=[],
+                    question_sn=1,
+                    question_text="Q1",
+                    ensemble_score=0.5,
+                    understanding_level="Developing",
+                    concept_coverage=0.4,
+                    llm_median_score=2.0,
+                    rasch_theta=0.0,
+                    misconceptions=[],
                 ),
             ],
         )
         students_b = [student_b1]
         dists_b = compute_class_distributions(students_b)
         report_b = build_professor_report_data(
-            students=students_b, distributions=dists_b,
-            class_name="B", week_num=1, subject="Bio", exam_title="Test",
+            students=students_b,
+            distributions=dists_b,
+            class_name="B",
+            week_num=1,
+            subject="Bio",
+            exam_title="Test",
         )
 
         # Must not crash
@@ -2133,17 +2203,24 @@ class TestMergeProfessorReportData:
         from forma.report_data_loader import compute_class_distributions
 
         # Section A with students
-        report_a = _make_report_for_section("A", [
-            ("A1", "Alice", "001"),
-            ("A2", "Aaron", "002"),
-        ])
+        report_a = _make_report_for_section(
+            "A",
+            [
+                ("A1", "Alice", "001"),
+                ("A2", "Aaron", "002"),
+            ],
+        )
 
         # Section B with no students — build an empty report manually
         students_b = []
         dists_b = compute_class_distributions(students_b)
         report_b = build_professor_report_data(
-            students=students_b, distributions=dists_b,
-            class_name="B", week_num=1, subject="Bio", exam_title="Test",
+            students=students_b,
+            distributions=dists_b,
+            class_name="B",
+            week_num=1,
+            subject="Bio",
+            exam_title="Test",
         )
 
         # Must not crash
@@ -2318,9 +2395,7 @@ class TestRiskMovement:
         """All lists in RiskMovement should be sorted by student_id."""
         from forma.professor_report_data import compute_risk_movement
 
-        movement = compute_risk_movement(
-            {"s003", "s001", "s005"}, {"s005", "s002", "s004"}
-        )
+        movement = compute_risk_movement({"s003", "s001", "s005"}, {"s005", "s002", "s004"})
         assert movement.newly_at_risk == sorted(movement.newly_at_risk)
         assert movement.exited_risk == sorted(movement.exited_risk)
         assert movement.persistent_risk == sorted(movement.persistent_risk)

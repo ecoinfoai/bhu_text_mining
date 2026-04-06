@@ -22,6 +22,7 @@ from forma.longitudinal_store import LongitudinalStore
 # Helpers
 # -------------------------------------------------------------------
 
+
 def _make_record(
     student_id: str = "S001",
     week: int = 1,
@@ -72,9 +73,7 @@ def _run_cli(
         capture_output=True,
         text=True,
         timeout=timeout,
-        cwd=str(
-            Path(__file__).resolve().parent.parent
-        ),
+        cwd=str(Path(__file__).resolve().parent.parent),
     )
 
 
@@ -89,11 +88,16 @@ class TestPersona01ComputerBeginner:
 
     def test_missing_required_store(self):
         """Missing --store should give clear error, not traceback."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--class-name", "A반",
-            "--output", "/tmp/out.pdf",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--class-name",
+                "A반",
+                "--output",
+                "/tmp/out.pdf",
+            ]
+        )
         assert result.returncode != 0
         # Should mention --store in the error
         combined = result.stdout + result.stderr
@@ -101,26 +105,34 @@ class TestPersona01ComputerBeginner:
 
     def test_missing_required_class_name(self):
         """Missing --class-name should give clear error."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--output", "/tmp/out.pdf",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--output",
+                "/tmp/out.pdf",
+            ]
+        )
         assert result.returncode != 0
         combined = result.stdout + result.stderr
-        assert (
-            "class" in combined.lower()
-            or "required" in combined.lower()
-        )
+        assert "class" in combined.lower() or "required" in combined.lower()
 
     def test_wrong_arg_name_typo(self):
         """--stores (typo) should fail gracefully."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--stores", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--stores",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+            ]
+        )
         assert result.returncode != 0
         combined = result.stdout + result.stderr
         # Should NOT produce a Python traceback
@@ -128,12 +140,18 @@ class TestPersona01ComputerBeginner:
 
     def test_nonexistent_store_file(self, tmp_path):
         """Store file that doesn't exist should fail with clear message."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", str(tmp_path / "nonexistent.yaml"),
-            "--class-name", "A",
-            "--output", str(tmp_path / "out.pdf"),
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                str(tmp_path / "nonexistent.yaml"),
+                "--class-name",
+                "A",
+                "--output",
+                str(tmp_path / "out.pdf"),
+            ]
+        )
         assert result.returncode != 0
         combined = result.stdout + result.stderr
         assert "not found" in combined.lower() or "no such" in combined.lower()
@@ -156,14 +174,16 @@ class TestPersona02LargeScale:
             for stu in range(50):
                 sid = f"S{cls_idx * 50 + stu + 1:04d}"
                 for week in range(1, 5):
-                    records.append(_make_record(
-                        student_id=sid,
-                        week=week,
-                        question_sn=1,
-                        ensemble_score=random.uniform(0.2, 0.9),
-                        class_id=cls,
-                        topic="개념이해",
-                    ))
+                    records.append(
+                        _make_record(
+                            student_id=sid,
+                            week=week,
+                            question_sn=1,
+                            ensemble_score=random.uniform(0.2, 0.9),
+                            class_id=cls,
+                            topic="개념이해",
+                        )
+                    )
         _build_store_with_records(tmp_path, records)
         # Reload and verify count
         store2 = LongitudinalStore(str(tmp_path / "store.yaml"))
@@ -177,21 +197,26 @@ class TestPersona02LargeScale:
         for stu in range(500):
             sid = f"S{stu + 1:04d}"
             for week in range(1, 5):
-                records.append(_make_record(
-                    student_id=sid,
-                    week=week,
-                    question_sn=1,
-                    ensemble_score=random.uniform(0.2, 0.9),
-                    class_id="A",
-                    topic="개념이해",
-                ))
+                records.append(
+                    _make_record(
+                        student_id=sid,
+                        week=week,
+                        question_sn=1,
+                        ensemble_score=random.uniform(0.2, 0.9),
+                        class_id="A",
+                        topic="개념이해",
+                    )
+                )
         store = _build_store_with_records(tmp_path, records)
         store.load()
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1, 2, 3, 4], "대규모 강좌",
+            store,
+            [1, 2, 3, 4],
+            "대규모 강좌",
         )
         assert summary.total_students == 500
 
@@ -411,6 +436,7 @@ class TestPersona06SingleWeek:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1], "A반")
         assert summary.total_students == 10
         # With 1 week, trend should be 0 or NaN-safe
@@ -436,6 +462,7 @@ class TestPersona06SingleWeek:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1], "A반")
         # This student should be marked as persistent risk
         assert "S001" in summary.persistent_risk_students
@@ -457,24 +484,24 @@ class TestPersona07FifteenWeeks:
             for stu in range(20):
                 sid = f"S{stu + 1:03d}"
                 # Generate many concepts
-                concepts = {
-                    f"concept_{c}": random.uniform(0, 1)
-                    for c in range(10)
-                }
-                records.append(_make_record(
-                    student_id=sid,
-                    week=week,
-                    question_sn=1,
-                    ensemble_score=random.uniform(0.3, 0.9),
-                    concept_scores=concepts,
-                    topic="개념이해" if week % 2 == 0 else "적용",
-                    class_id="A",
-                ))
+                concepts = {f"concept_{c}": random.uniform(0, 1) for c in range(10)}
+                records.append(
+                    _make_record(
+                        student_id=sid,
+                        week=week,
+                        question_sn=1,
+                        ensemble_score=random.uniform(0.3, 0.9),
+                        concept_scores=concepts,
+                        topic="개념이해" if week % 2 == 0 else "적용",
+                        class_id="A",
+                    )
+                )
         store = _build_store_with_records(tmp_path, records)
         store.load()
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         weeks = list(range(1, 16))
         summary = build_longitudinal_summary(store, weeks, "장기추적")
         assert summary.total_students == 20
@@ -485,26 +512,28 @@ class TestPersona07FifteenWeeks:
         records = []
         for week in [1, 2, 3]:
             for stu in range(5):
-                concepts = {
-                    f"concept_{c:03d}": random.uniform(0, 1)
-                    for c in range(120)
-                }
-                records.append(_make_record(
-                    student_id=f"S{stu + 1:03d}",
-                    week=week,
-                    question_sn=1,
-                    ensemble_score=0.6,
-                    concept_scores=concepts,
-                    topic="개념이해",
-                    class_id="A",
-                ))
+                concepts = {f"concept_{c:03d}": random.uniform(0, 1) for c in range(120)}
+                records.append(
+                    _make_record(
+                        student_id=f"S{stu + 1:03d}",
+                        week=week,
+                        question_sn=1,
+                        ensemble_score=0.6,
+                        concept_scores=concepts,
+                        topic="개념이해",
+                        class_id="A",
+                    )
+                )
         store = _build_store_with_records(tmp_path, records)
         store.load()
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1, 2, 3], "많은개념",
+            store,
+            [1, 2, 3],
+            "많은개념",
         )
         # Should have mastery changes for all 120 concepts
         assert len(summary.concept_mastery_changes) > 0
@@ -537,6 +566,7 @@ class TestPersona08NoTopicExam:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "무토픽")
         assert summary.total_students == 5
         # Should fall back to per-question tracking without error
@@ -557,7 +587,8 @@ class TestPersona08NoTopicExam:
         store = _build_store_with_records(tmp_path, records)
         store.load()
         traj = store.get_student_trajectory(
-            "S001", "ensemble_score",
+            "S001",
+            "ensemble_score",
         )
         assert len(traj) == 3  # 3 weeks, averaged per week
 
@@ -580,11 +611,13 @@ class TestPersona09ConcurrentAccess:
             store = LongitudinalStore(path)
             if os.path.exists(path):
                 store.load()
-            store.add_record(_make_record(
-                student_id=f"S{i:03d}",
-                week=1,
-                ensemble_score=0.5,
-            ))
+            store.add_record(
+                _make_record(
+                    student_id=f"S{i:03d}",
+                    week=1,
+                    ensemble_score=0.5,
+                )
+            )
             store.save()
 
         # Final load should have all 10 records
@@ -625,9 +658,7 @@ class TestPersona10KoreanClassNames:
         store = _build_store_with_records(tmp_path, records)
         store.load()
         recs = store.get_all_records()
-        class_ids = {
-            getattr(r, "class_id", None) for r in recs
-        }
+        class_ids = {getattr(r, "class_id", None) for r in recs}
         # If class_id is supported, verify Korean values
         if None not in class_ids:
             assert "가" in class_ids
@@ -652,6 +683,7 @@ class TestPersona10KoreanClassNames:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "가반")
         assert summary.total_students == 5
 
@@ -671,18 +703,21 @@ class TestPersona11HighOCRFailure:
         for i in range(50):
             score = 0.0 if i < 40 else random.uniform(0.5, 0.9)
             for w in range(1, 4):
-                records.append(_make_record(
-                    student_id=f"S{i + 1:03d}",
-                    week=w,
-                    ensemble_score=score,
-                    topic="개념이해",
-                    class_id="A",
-                ))
+                records.append(
+                    _make_record(
+                        student_id=f"S{i + 1:03d}",
+                        week=w,
+                        ensemble_score=score,
+                        topic="개념이해",
+                        class_id="A",
+                    )
+                )
         store = _build_store_with_records(tmp_path, records)
         store.load()
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "OCR실패")
         assert summary.total_students == 50
         # Most students should be persistent risk
@@ -706,6 +741,7 @@ class TestPersona11HighOCRFailure:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "전원0점")
         assert summary.total_students == 10
         # All should be persistent risk
@@ -744,6 +780,7 @@ class TestPersona12SingleTopic:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "단일토픽")
         assert summary.total_students == 5
 
@@ -765,6 +802,7 @@ class TestPersona12SingleTopic:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3, 4], "추세")
         # Student should have positive trend
         assert len(summary.student_trajectories) == 1
@@ -858,12 +896,10 @@ class TestEdgeCaseAttacks:
         assert recs[0].scores["ensemble_score"] == 999.99
 
     def test_nan_ensemble_score(self, tmp_path):
-        """NaN score should not crash."""
+        """NaN score is rejected by store validation."""
         rec = _make_record(ensemble_score=float("nan"))
-        store = _build_store_with_records(tmp_path, [rec])
-        store.load()
-        recs = store.get_all_records()
-        assert len(recs) == 1
+        with pytest.raises(ValueError, match="NaN"):
+            _build_store_with_records(tmp_path, [rec])
 
     def test_missing_weeks_in_trajectory(self, tmp_path):
         """Student absent in week 2 but present in 1 and 3."""
@@ -885,7 +921,8 @@ class TestEdgeCaseAttacks:
         store = _build_store_with_records(tmp_path, records)
         store.load()
         traj = store.get_student_trajectory(
-            "S001", "ensemble_score",
+            "S001",
+            "ensemble_score",
         )
         assert len(traj) == 2
         assert traj[0] == (1, 0.4)
@@ -903,6 +940,7 @@ class TestParseWeeksArgAttacks:
     def test_single_int_zero(self):
         """--weeks 0 should produce empty list or raise."""
         from forma.cli_report_student import parse_weeks_arg
+
         result = parse_weeks_arg(["0"])
         # range(1, 1) = empty
         assert result == []
@@ -910,6 +948,7 @@ class TestParseWeeksArgAttacks:
     def test_single_int_negative(self):
         """--weeks -1 should produce empty or raise."""
         from forma.cli_report_student import parse_weeks_arg
+
         result = parse_weeks_arg(["-1"])
         # range(1, 0) = empty
         assert result == []
@@ -917,42 +956,49 @@ class TestParseWeeksArgAttacks:
     def test_range_reversed(self):
         """--weeks 5:2 (reversed range) should raise ValueError."""
         from forma.cli_report_student import parse_weeks_arg
+
         with pytest.raises(ValueError, match="Start must be"):
             parse_weeks_arg(["5:2"])
 
     def test_range_same_start_end(self):
         """--weeks 3:3 should produce [3]."""
         from forma.cli_report_student import parse_weeks_arg
+
         result = parse_weeks_arg(["3:3"])
         assert result == [3]
 
     def test_colon_only(self):
         """--weeks ':' should raise ValueError."""
         from forma.cli_report_student import parse_weeks_arg
+
         with pytest.raises(ValueError):
             parse_weeks_arg([":"])
 
     def test_double_colon(self):
         """--weeks '1:2:3' should raise ValueError."""
         from forma.cli_report_student import parse_weeks_arg
+
         with pytest.raises(ValueError, match="Invalid range"):
             parse_weeks_arg(["1:2:3"])
 
     def test_float_week(self):
         """--weeks 2.5 should raise ValueError."""
         from forma.cli_report_student import parse_weeks_arg
+
         with pytest.raises(ValueError):
             parse_weeks_arg(["2.5"])
 
     def test_non_numeric(self):
         """--weeks abc should raise ValueError."""
         from forma.cli_report_student import parse_weeks_arg
+
         with pytest.raises(ValueError):
             parse_weeks_arg(["abc"])
 
     def test_very_large_range(self):
         """--weeks 1:1000 should produce 1000 weeks."""
         from forma.cli_report_student import parse_weeks_arg
+
         result = parse_weeks_arg(["1:1000"])
         assert len(result) == 1000
         assert result[0] == 1
@@ -961,6 +1007,7 @@ class TestParseWeeksArgAttacks:
     def test_list_with_duplicates(self):
         """--weeks 1 1 2 2 should deduplicate or keep all."""
         from forma.cli_report_student import parse_weeks_arg
+
         result = parse_weeks_arg(["1", "1", "2", "2"])
         # sorted list, may have dupes
         assert 1 in result
@@ -969,6 +1016,7 @@ class TestParseWeeksArgAttacks:
     def test_empty_string(self):
         """--weeks '' should raise ValueError."""
         from forma.cli_report_student import parse_weeks_arg
+
         with pytest.raises(ValueError):
             parse_weeks_arg([""])
 
@@ -986,6 +1034,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         assert parse_heatmap_layout("1:4") == (1, 4)
 
     def test_layout_with_x(self):
@@ -993,6 +1042,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="rows:cols"):
             parse_heatmap_layout("1x4")
 
@@ -1001,6 +1051,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="rows:cols"):
             parse_heatmap_layout("2*3")
 
@@ -1009,6 +1060,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="positive"):
             parse_heatmap_layout("0:4")
 
@@ -1017,6 +1069,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="positive"):
             parse_heatmap_layout("1:0")
 
@@ -1025,6 +1078,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="positive"):
             parse_heatmap_layout("-1:4")
 
@@ -1033,6 +1087,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="non-integer"):
             parse_heatmap_layout("1.5:2")
 
@@ -1041,6 +1096,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="non-integer"):
             parse_heatmap_layout("abc:def")
 
@@ -1049,6 +1105,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError, match="one ':'"):
             parse_heatmap_layout("1:2:3")
 
@@ -1057,6 +1114,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         with pytest.raises(ValueError):
             parse_heatmap_layout("")
 
@@ -1065,6 +1123,7 @@ class TestParseHeatmapLayoutAttacks:
         from forma.cli_report_longitudinal import (
             parse_heatmap_layout,
         )
+
         assert parse_heatmap_layout("100:100") == (100, 100)
 
 
@@ -1091,6 +1150,7 @@ class TestTopicStatisticsAttacks:
         from forma.longitudinal_report_data import (
             compute_topic_class_statistics,
         )
+
         stats = compute_topic_class_statistics(store, [1, 2, 3])
         assert stats == []
 
@@ -1111,6 +1171,7 @@ class TestTopicStatisticsAttacks:
         from forma.longitudinal_report_data import (
             compute_topic_class_statistics,
         )
+
         stats = compute_topic_class_statistics(store, [1, 2, 3])
         assert len(stats) > 0
         for s in stats:
@@ -1133,6 +1194,7 @@ class TestTopicStatisticsAttacks:
         from forma.longitudinal_report_data import (
             compute_topic_trends,
         )
+
         trends = compute_topic_trends(store, [1, 2])
         assert trends == []
 
@@ -1154,6 +1216,7 @@ class TestTopicStatisticsAttacks:
         from forma.longitudinal_report_data import (
             compute_topic_trends,
         )
+
         trends = compute_topic_trends(store, [1, 2, 3])
         assert len(trends) == 1
         assert trends[0].topic == "개념이해"
@@ -1179,14 +1242,11 @@ class TestTopicStatisticsAttacks:
         from forma.longitudinal_report_data import (
             compute_topic_trends,
         )
+
         trends = compute_topic_trends(store, [1, 2, 3, 4])
         if trends:
-            # All same scores = no correlation
-            import math
-            assert (
-                trends[0].kendall_tau == 0.0
-                or math.isnan(trends[0].kendall_tau)
-            )
+            # All same scores = no correlation; scipy returns NaN → converted to None
+            assert trends[0].kendall_tau is None or trends[0].kendall_tau == 0.0
 
 
 # ===================================================================
@@ -1212,8 +1272,12 @@ class TestClassFilteringAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1], "Z반", class_ids=["Z"],
+            store,
+            [1],
+            "Z반",
+            class_ids=["Z"],
         )
         assert summary.total_students == 0
 
@@ -1234,8 +1298,12 @@ class TestClassFilteringAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1], "AB반", class_ids=["A", "B"],
+            store,
+            [1],
+            "AB반",
+            class_ids=["A", "B"],
         )
         assert summary.total_students == 6
 
@@ -1260,8 +1328,12 @@ class TestClassFilteringAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1], "A반", class_ids=["A"],
+            store,
+            [1],
+            "A반",
+            class_ids=["A"],
         )
         assert summary.total_students == 1
 
@@ -1280,8 +1352,11 @@ class TestClassFilteringAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1], "전체",
+            store,
+            [1],
+            "전체",
         )
         assert summary.total_students == 4
 
@@ -1381,6 +1456,7 @@ class TestRiskThresholdAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "경계")
         # 0.45 is NOT < 0.45, so not at risk
         assert "S001" not in summary.persistent_risk_students
@@ -1401,6 +1477,7 @@ class TestRiskThresholdAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(store, [1, 2, 3], "경계")
         assert "S001" in summary.persistent_risk_students
 
@@ -1429,8 +1506,11 @@ class TestRiskThresholdAttacks:
         from forma.longitudinal_report_data import (
             build_longitudinal_summary,
         )
+
         summary = build_longitudinal_summary(
-            store, [1, 2, 3], "경계",
+            store,
+            [1, 2, 3],
+            "경계",
         )
         # NOT at_risk because 0.45 is not < 0.45
         assert "S001" not in summary.persistent_risk_students
@@ -1446,73 +1526,116 @@ class TestCLINewArgsAttacks:
 
     def test_heatmap_layout_invalid_format(self):
         """--heatmap-layout with invalid format should fail."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-            "--heatmap-layout", "abc",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+                "--heatmap-layout",
+                "abc",
+            ]
+        )
         assert result.returncode != 0
 
     def test_mastery_top_n_zero(self):
         """--mastery-top-n 0 should be accepted or error gracefully."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-            "--mastery-top-n", "0",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+                "--mastery-top-n",
+                "0",
+            ]
+        )
         # Should fail because store doesn't exist, not crash
         combined = result.stdout + result.stderr
         assert "Traceback" not in combined
 
     def test_mastery_top_n_negative(self):
         """--mastery-top-n -5 should not crash."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-            "--mastery-top-n", "-5",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+                "--mastery-top-n",
+                "-5",
+            ]
+        )
         combined = result.stdout + result.stderr
         assert "Traceback" not in combined
 
     def test_risk_threshold_zero(self):
         """--risk-threshold 0.0 should not crash."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-            "--risk-threshold", "0.0",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+                "--risk-threshold",
+                "0.0",
+            ]
+        )
         combined = result.stdout + result.stderr
         assert "Traceback" not in combined
 
     def test_risk_threshold_one(self):
         """--risk-threshold 1.0 means everyone is at risk."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-            "--risk-threshold", "1.0",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+                "--risk-threshold",
+                "1.0",
+            ]
+        )
         combined = result.stdout + result.stderr
         assert "Traceback" not in combined
 
     def test_classes_with_heatmap_no_layout(self):
         """--classes A B without --heatmap-layout should use default."""
-        result = _run_cli([
-            "report", "longitudinal",
-            "--store", "/tmp/fake.yaml",
-            "--class-name", "A",
-            "--output", "/tmp/out.pdf",
-            "--classes", "A", "B",
-        ])
+        result = _run_cli(
+            [
+                "report",
+                "longitudinal",
+                "--store",
+                "/tmp/fake.yaml",
+                "--class-name",
+                "A",
+                "--output",
+                "/tmp/out.pdf",
+                "--classes",
+                "A",
+                "B",
+            ]
+        )
         combined = result.stdout + result.stderr
         # Should fail because store doesn't exist, not crash
         assert "Traceback" not in combined

@@ -4,6 +4,7 @@ T013: US1 batch mode CLI tests (argparse, file validation, batch generation).
 T027: US2 --student filter tests (single student, student not found).
 T011: v0.9.0 US1 backward compatibility + --no-config tests.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -70,7 +71,8 @@ def cli_env(tmp_path):
     res_lvl4 = eval_dir / "res_lvl4"
     res_lvl4.mkdir(parents=True)
     (res_lvl4 / "ensemble_results.yaml").write_text(
-        "students: []", encoding="utf-8",
+        "students: []",
+        encoding="utf-8",
     )
 
     # --output-dir
@@ -88,10 +90,14 @@ def cli_env(tmp_path):
 def _base_argv(cli_env: dict) -> list[str]:
     """Build a complete argv list from cli_env fixture."""
     return [
-        "--final", cli_env["final"],
-        "--config", cli_env["config"],
-        "--eval-dir", cli_env["eval_dir"],
-        "--output-dir", cli_env["output_dir"],
+        "--final",
+        cli_env["final"],
+        "--config",
+        cli_env["config"],
+        "--eval-dir",
+        cli_env["eval_dir"],
+        "--output-dir",
+        cli_env["output_dir"],
     ]
 
 
@@ -107,12 +113,18 @@ class TestT013BatchMode:
 
     def test_main_requires_final_arg(self, cli_env, monkeypatch):
         """Missing --final exits with code 1 (argparse SystemExit)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+            ],
+        )
         from forma.cli_report import main
 
         with pytest.raises(SystemExit) as exc_info:
@@ -123,12 +135,18 @@ class TestT013BatchMode:
 
     def test_main_requires_config_arg(self, cli_env, monkeypatch):
         """Missing --config exits with code 1."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", cli_env["final"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                cli_env["final"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+            ],
+        )
         from forma.cli_report import main
 
         with pytest.raises(SystemExit) as exc_info:
@@ -137,12 +155,18 @@ class TestT013BatchMode:
 
     def test_main_requires_eval_dir_arg(self, cli_env, monkeypatch):
         """Missing --eval-dir exits with code 1."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--output-dir", cli_env["output_dir"],
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--output-dir",
+                cli_env["output_dir"],
+            ],
+        )
         from forma.cli_report import main
 
         with pytest.raises(SystemExit) as exc_info:
@@ -151,12 +175,18 @@ class TestT013BatchMode:
 
     def test_main_requires_output_dir_arg(self, cli_env, monkeypatch):
         """Missing --output-dir exits with code 1."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+            ],
+        )
         from forma.cli_report import main
 
         with pytest.raises(SystemExit) as exc_info:
@@ -167,13 +197,20 @@ class TestT013BatchMode:
 
     def test_main_file_not_found_exits_1(self, cli_env, monkeypatch):
         """--final pointing to nonexistent file exits with code 1."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", "/nonexistent/path/to/anp_final.yaml",
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                "/nonexistent/path/to/anp_final.yaml",
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+            ],
+        )
         from forma.cli_report import main
 
         with pytest.raises(SystemExit) as exc_info:
@@ -182,13 +219,20 @@ class TestT013BatchMode:
 
     def test_main_eval_dir_not_found_exits_1(self, cli_env, monkeypatch):
         """--eval-dir pointing to nonexistent directory exits with code 1."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", "/nonexistent/eval_dir",
-            "--output-dir", cli_env["output_dir"],
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                "/nonexistent/eval_dir",
+                "--output-dir",
+                cli_env["output_dir"],
+            ],
+        )
         from forma.cli_report import main
 
         with pytest.raises(SystemExit) as exc_info:
@@ -199,19 +243,26 @@ class TestT013BatchMode:
 
     def test_main_batch_generates_all_pdfs(self, cli_env, monkeypatch):
         """With 2 students, generate_pdf is called twice. Exit code 0."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report", *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
 
@@ -233,19 +284,26 @@ class TestT013BatchMode:
 
     def test_main_progress_output(self, cli_env, monkeypatch, capsys):
         """Verify stdout contains student count message."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report", *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
 
@@ -266,21 +324,28 @@ class TestT027StudentFilter:
 
     def test_student_filter_single(self, cli_env, monkeypatch):
         """--student S015 with 2 students data: generate_pdf called once for S015."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            *_base_argv(cli_env),
-            "--student", "S015",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+                "--student",
+                "S015",
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
 
@@ -291,29 +356,33 @@ class TestT027StudentFilter:
 
         # Verify the call was for S015
         call = mock_generator_instance.generate_pdf.call_args
-        student_arg = (
-            call.args[0] if call.args else
-            call.kwargs.get("student_data", call.kwargs.get("student"))
-        )
+        student_arg = call.args[0] if call.args else call.kwargs.get("student_data", call.kwargs.get("student"))
         assert student_arg.student_id == "S015"
 
     def test_student_not_found_exits_2(self, cli_env, monkeypatch, capsys):
         """--student S999 when not in data: exit code 2, error message in Korean."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            *_base_argv(cli_env),
-            "--student", "S999",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+                "--student",
+                "S999",
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
 
@@ -340,67 +409,90 @@ class TestT011BackwardCompat:
 
     def test_no_config_flag_accepted(self, cli_env, monkeypatch):
         """--no-config flag is accepted without error."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            *_base_argv(cli_env),
-            "--no-config",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+                "--no-config",
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
+
             main()
 
         assert mock_generator_instance.generate_pdf.call_count == 2
 
     def test_works_without_config_file(self, cli_env, monkeypatch):
         """Works identically when no forma.yaml exists (backward compat)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report", *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
+
             main()
 
         assert mock_generator_instance.generate_pdf.call_count == 2
 
     def test_dpi_flag_still_works(self, cli_env, monkeypatch):
         """Explicit --dpi flag is respected."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            *_base_argv(cli_env),
-            "--dpi", "300",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+                "--dpi",
+                "300",
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
+
             main()
 
         # Verify DPI was passed to generator constructor
@@ -426,14 +518,16 @@ MOCK_STUDENTS_WITH_CONCEPTS = [
         class_name="A반",
         course_name="인체구조와기능",
         week_num=1,
-        questions=[QuestionReportData(
-            question_sn=1,
-            ensemble_score=0.5,
-            concepts=[
-                ConceptDetail(concept="세포막 구조", is_present=True, similarity=0.8, threshold=0.5),
-                ConceptDetail(concept="물질 이동", is_present=False, similarity=0.2, threshold=0.5),
-            ],
-        )],
+        questions=[
+            QuestionReportData(
+                question_sn=1,
+                ensemble_score=0.5,
+                concepts=[
+                    ConceptDetail(concept="세포막 구조", is_present=True, similarity=0.8, threshold=0.5),
+                    ConceptDetail(concept="물질 이동", is_present=False, similarity=0.2, threshold=0.5),
+                ],
+            )
+        ],
     ),
     StudentReportData(
         student_id="S039",
@@ -442,14 +536,16 @@ MOCK_STUDENTS_WITH_CONCEPTS = [
         class_name="B반",
         course_name="인체구조와기능",
         week_num=1,
-        questions=[QuestionReportData(
-            question_sn=1,
-            ensemble_score=0.8,
-            concepts=[
-                ConceptDetail(concept="세포막 구조", is_present=True, similarity=0.9, threshold=0.5),
-                ConceptDetail(concept="물질 이동", is_present=True, similarity=0.7, threshold=0.5),
-            ],
-        )],
+        questions=[
+            QuestionReportData(
+                question_sn=1,
+                ensemble_score=0.8,
+                concepts=[
+                    ConceptDetail(concept="세포막 구조", is_present=True, similarity=0.9, threshold=0.5),
+                    ConceptDetail(concept="물질 이동", is_present=True, similarity=0.7, threshold=0.5),
+                ],
+            )
+        ],
     ),
 ]
 
@@ -462,13 +558,19 @@ class TestT047ConceptDeps:
         from forma.cli_report import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--concept-deps",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--concept-deps",
+            ]
+        )
         assert args.concept_deps is True
 
     def test_concept_deps_default_false(self, cli_env):
@@ -476,16 +578,25 @@ class TestT047ConceptDeps:
         from forma.cli_report import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+            ]
+        )
         assert args.concept_deps is False
 
     def test_concept_deps_passes_learning_path_to_generate_pdf(
-        self, cli_env, monkeypatch, tmp_path,
+        self,
+        cli_env,
+        monkeypatch,
+        tmp_path,
     ):
         """With --concept-deps and valid YAML, generate_pdf receives learning_path kwarg."""
         import yaml
@@ -500,26 +611,37 @@ class TestT047ConceptDeps:
         }
         config_file.write_text(yaml.dump(config_data, allow_unicode=True), encoding="utf-8")
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", cli_env["final"],
-            "--config", str(config_file),
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--concept-deps",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                cli_env["final"],
+                "--config",
+                str(config_file),
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--concept-deps",
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS_WITH_CONCEPTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS_WITH_CONCEPTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
+
             main()
 
         # Verify generate_pdf was called with learning_path kwarg
@@ -530,21 +652,29 @@ class TestT047ConceptDeps:
 
     def test_without_concept_deps_no_learning_path(self, cli_env, monkeypatch):
         """Without --concept-deps, learning_path is None in generate_pdf call."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report", *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
+
             main()
 
         # learning_path should be None when --concept-deps not provided
@@ -552,7 +682,10 @@ class TestT047ConceptDeps:
             assert call.kwargs.get("learning_path") is None
 
     def test_concept_deps_no_dependencies_in_yaml_omits_silently(
-        self, cli_env, monkeypatch, tmp_path,
+        self,
+        cli_env,
+        monkeypatch,
+        tmp_path,
     ):
         """--concept-deps with YAML lacking concept_dependencies → learning_path is None (FR-023)."""
         import yaml
@@ -560,26 +693,37 @@ class TestT047ConceptDeps:
         config_file = tmp_path / "exam_no_deps.yaml"
         config_file.write_text(yaml.dump({"questions": []}, allow_unicode=True), encoding="utf-8")
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", cli_env["final"],
-            "--config", str(config_file),
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--concept-deps",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                cli_env["final"],
+                "--config",
+                str(config_file),
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--concept-deps",
+            ],
+        )
 
         mock_generator_instance = MagicMock()
         mock_generator_cls = MagicMock(return_value=mock_generator_instance)
 
-        with patch(
-            "forma.cli_report.load_all_student_data",
-            return_value=(MOCK_STUDENTS, MOCK_DISTS),
-        ), patch(
-            "forma.cli_report.StudentPDFReportGenerator",
-            mock_generator_cls,
+        with (
+            patch(
+                "forma.cli_report.load_all_student_data",
+                return_value=(MOCK_STUDENTS, MOCK_DISTS),
+            ),
+            patch(
+                "forma.cli_report.StudentPDFReportGenerator",
+                mock_generator_cls,
+            ),
         ):
             from forma.cli_report import main
+
             main()
 
         for call in mock_generator_instance.generate_pdf.call_args_list:

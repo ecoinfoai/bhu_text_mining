@@ -121,6 +121,7 @@ def main() -> None:
 
     # Apply project config (three-layer merge)
     from forma.project_config import apply_project_config
+
     apply_project_config(args, argv=sys.argv[1:])
 
     # Configure logging
@@ -244,7 +245,9 @@ def main() -> None:
     if getattr(args, "grade_model_path", None) and long_store is not None:
         try:
             from forma.grade_predictor import (
-                GradeFeatureExtractor, GradePredictor, load_grade_model,
+                GradeFeatureExtractor,
+                GradePredictor,
+                load_grade_model,
             )
 
             trained = load_grade_model(args.grade_model_path)
@@ -291,9 +294,7 @@ def main() -> None:
             generator._make_output_filename(student, args.output_dir),
         )
         print(
-            f"  [{idx:>{len(str(total))}}/{total}] "
-            f"{student.student_id} ({display_name}) "
-            f"→ {filename} ...",
+            f"  [{idx:>{len(str(total))}}/{total}] {student.student_id} ({display_name}) → {filename} ...",
             end="",
         )
         try:
@@ -305,9 +306,7 @@ def main() -> None:
 
                 weekly_deltas = {}
                 # Overall ensemble score delta
-                overall_scores = [
-                    q.ensemble_score for q in student.questions
-                ]
+                overall_scores = [q.ensemble_score for q in student.questions]
                 if overall_scores:
                     overall_mean = sum(overall_scores) / len(overall_scores)
                     weekly_deltas["overall"] = compute_weekly_delta(
@@ -328,7 +327,8 @@ def main() -> None:
                     )
                 # Trajectory chart
                 trajectory = long_store.get_student_trajectory(
-                    student.student_id, "ensemble_score",
+                    student.student_id,
+                    "ensemble_score",
                 )
                 if trajectory:
                     weekly_scores = dict(trajectory)
@@ -336,7 +336,8 @@ def main() -> None:
                     if args.week not in weekly_scores and overall_scores:
                         weekly_scores[args.week] = overall_mean
                     trajectory_chart = generator.chart_builder.build_trajectory_bar_chart(
-                        weekly_scores, args.week,
+                        weekly_scores,
+                        args.week,
                     )
 
             # Compute learning path if concept DAG available (FR-020, FR-023)
@@ -355,21 +356,27 @@ def main() -> None:
                             student_scores[c.concept] = c.similarity
 
                 learning_path = generate_learning_path(
-                    student.student_id, student_scores, concept_dag,
+                    student.student_id,
+                    student_scores,
+                    concept_dag,
                 )
                 if learning_path.ordered_path:
                     try:
                         learning_path_chart = build_learning_path_chart(
-                            learning_path, concept_dag,
+                            learning_path,
+                            concept_dag,
                         )
                     except Exception as chart_exc:
                         logger.warning(
-                            "Learning path chart generation failed (continuing): %s", chart_exc,
+                            "Learning path chart generation failed (continuing): %s",
+                            chart_exc,
                         )
 
             grade_trend = grade_trend_map.get(student.student_id)
             generator.generate_pdf(
-                student, distributions, args.output_dir,
+                student,
+                distributions,
+                args.output_dir,
                 weekly_deltas=weekly_deltas,
                 trajectory_chart=trajectory_chart,
                 grade_trend=grade_trend,

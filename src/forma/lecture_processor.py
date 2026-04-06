@@ -36,10 +36,7 @@ def load_transcript(path: str) -> str:
     with open(path, encoding="utf-8") as f:
         text = f.read()
     if len(text) > MAX_TRANSCRIPT_LENGTH:
-        raise ValueError(
-            f"Transcript length {len(text)} exceeds maximum "
-            f"{MAX_TRANSCRIPT_LENGTH} characters."
-        )
+        raise ValueError(f"Transcript length {len(text)} exceeds maximum {MAX_TRANSCRIPT_LENGTH} characters.")
     return text
 
 
@@ -83,9 +80,7 @@ def segment_text(text: str, max_chars: int = 1000) -> list[str]:
     return segments
 
 
-def extract_triplets_from_lecture(
-    text: str, provider: LLMProvider
-) -> list[TripletEdge]:
+def extract_triplets_from_lecture(text: str, provider: LLMProvider) -> list[TripletEdge]:
     """Use LLM to extract triplets from lecture text.
 
     Args:
@@ -152,9 +147,7 @@ def extract_lecture_covered_concepts(
         concept_norm = np.linalg.norm(concept_vec)
         if concept_norm == 0:
             continue
-        similarity = float(
-            np.dot(lecture_vec, concept_vec) / (lecture_norm * concept_norm)
-        )
+        similarity = float(np.dot(lecture_vec, concept_vec) / (lecture_norm * concept_norm))
         if similarity >= threshold:
             covered.append(concept)
 

@@ -57,12 +57,14 @@ def _make_n_classified(n: int, seed: int = 42) -> list[ClassifiedMisconception]:
     for i in range(n):
         p = patterns[i % len(patterns)]
         me = None if p == MisconceptionPattern.CONCEPT_ABSENCE else TripletEdge(f"S{i}", "R", f"O{i}")
-        items.append(_make_classified(
-            pattern=p,
-            description=f"오류 설명 {i}: 패턴={p.value}",
-            master_edge=me,
-            concept=f"Concept{i}" if p == MisconceptionPattern.CONCEPT_ABSENCE else None,
-        ))
+        items.append(
+            _make_classified(
+                pattern=p,
+                description=f"오류 설명 {i}: 패턴={p.value}",
+                master_edge=me,
+                concept=f"Concept{i}" if p == MisconceptionPattern.CONCEPT_ABSENCE else None,
+            )
+        )
     return items
 
 
@@ -130,10 +132,7 @@ class TestClusterEdgeCaseHunter:
     @patch("forma.misconception_clustering.encode_texts", side_effect=_mock_encode_texts)
     def test_all_same_description(self, mock_enc):
         """All items have identical description -> clustering still works."""
-        items = [
-            _make_classified(description="동일한 오류")
-            for _ in range(5)
-        ]
+        items = [_make_classified(description="동일한 오류") for _ in range(5)]
         result = cluster_misconceptions(items, n_clusters=2)
         total = sum(c.member_count for c in result)
         assert total == 5
@@ -295,9 +294,7 @@ class TestLLMCorrectionPDFKiller:
         provider.generate.return_value = "학생들이 인과 방향을 혼동합니다."
         provider.model_name = "test-model"
 
-        result = generate_cluster_correction(
-            cluster, TripletEdge("A", "R", "B"), provider
-        )
+        result = generate_cluster_correction(cluster, TripletEdge("A", "R", "B"), provider)
         assert isinstance(result, str)
         assert len(result) > 0
         provider.generate.assert_called_once()
@@ -349,9 +346,7 @@ class TestLLMCorrectionPDFKiller:
         provider.generate.return_value = "   "
         provider.model_name = "test-model"
 
-        result = generate_cluster_correction(
-            cluster, TripletEdge("A", "R", "B"), provider
-        )
+        result = generate_cluster_correction(cluster, TripletEdge("A", "R", "B"), provider)
         assert result == ""
 
     def test_generate_cluster_correction_llm_returns_whitespace_only(self):
@@ -367,9 +362,7 @@ class TestLLMCorrectionPDFKiller:
         provider.generate.return_value = "\n\t  \n"
         provider.model_name = "test-model"
 
-        result = generate_cluster_correction(
-            cluster, TripletEdge("X", "Y", "Z"), provider
-        )
+        result = generate_cluster_correction(cluster, TripletEdge("X", "Y", "Z"), provider)
         assert result == ""
 
     def test_generate_cluster_correction_called_once_per_cluster(self):
@@ -385,9 +378,7 @@ class TestLLMCorrectionPDFKiller:
         provider.generate.return_value = "correction text"
         provider.model_name = "test-model"
 
-        generate_cluster_correction(
-            cluster, TripletEdge("A", "R", "B"), provider
-        )
+        generate_cluster_correction(cluster, TripletEdge("A", "R", "B"), provider)
         assert provider.generate.call_count == 1
 
     def test_generate_cluster_correction_with_none_master_edge(self):

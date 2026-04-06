@@ -1,6 +1,7 @@
 """LLM-based teaching analysis for professor reports.
 This is the ONLY module allowed to import LLM clients (Constitution Principle VI).
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,6 +26,7 @@ class LLMProvider(Protocol):
         temperature: float = 0.3,
     ) -> str: ...
 
+
 logger = logging.getLogger(__name__)
 
 # Named constants for LLM calls
@@ -37,12 +39,14 @@ def _render_overall_assessment_prompt(report_data: "ProfessorReportData") -> str
     Uses render_professor_overall_assessment_prompt from prompt_templates.
     """
     from forma.prompt_templates import render_professor_overall_assessment_prompt
+
     return render_professor_overall_assessment_prompt(report_data)
 
 
 def _render_teaching_suggestions_prompt(report_data: "ProfessorReportData") -> str:
     """Build teaching suggestions prompt with class statistics and misconceptions."""
     from forma.prompt_templates import render_professor_teaching_suggestions_prompt
+
     return render_professor_teaching_suggestions_prompt(report_data)
 
 
@@ -159,16 +163,10 @@ def generate_cluster_correction(
         response. Never returns None (I2 fix).
     """
     try:
-        pattern_name = (
-            cluster.pattern.value
-            if hasattr(cluster.pattern, "value")
-            else str(cluster.pattern)
-        )
+        pattern_name = cluster.pattern.value if hasattr(cluster.pattern, "value") else str(cluster.pattern)
 
         if master_edge is not None:
-            edge_str = (
-                f"{master_edge.subject} -> {master_edge.relation} -> {master_edge.object}"
-            )
+            edge_str = f"{master_edge.subject} -> {master_edge.relation} -> {master_edge.object}"
         else:
             edge_str = "없음"
 

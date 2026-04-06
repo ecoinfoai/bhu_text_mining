@@ -118,9 +118,7 @@ class GraphComparator:
             )
 
         # Compute edge matching
-        matched, missing, extra, wrong_dir, fuzzy_count = self._match_edges(
-            effective_master, student_norm
-        )
+        matched, missing, extra, wrong_dir, fuzzy_count = self._match_edges(effective_master, student_norm)
 
         # Compute P/R/F1
         n_matched = len(matched)
@@ -171,16 +169,10 @@ class GraphComparator:
             return [], list(master_edges), [], [], 0
 
         # Encode all edge strings for fuzzy matching
-        master_strs = [
-            f"{e.subject} {e.relation} {e.object}" for e in master_edges
-        ]
-        student_strs = [
-            f"{e.subject} {e.relation} {e.object}" for e in student_edges
-        ]
+        master_strs = [f"{e.subject} {e.relation} {e.object}" for e in master_edges]
+        student_strs = [f"{e.subject} {e.relation} {e.object}" for e in student_edges]
         # Also encode reversed student edges for direction detection
-        student_reversed_strs = [
-            f"{e.object} {e.relation} {e.subject}" for e in student_edges
-        ]
+        student_reversed_strs = [f"{e.object} {e.relation} {e.subject}" for e in student_edges]
 
         try:
             all_texts = master_strs + student_strs + student_reversed_strs
@@ -218,30 +210,16 @@ class GraphComparator:
             # Check for wrong direction
             best_rev_m_idx = int(np.argmax(sim_reversed[s_idx]))
             best_rev_sim = sim_reversed[s_idx, best_rev_m_idx]
-            if (
-                best_rev_sim >= self._threshold
-                and best_rev_m_idx not in matched_master_idx
-            ):
+            if best_rev_sim >= self._threshold and best_rev_m_idx not in matched_master_idx:
                 wrong_direction.append(student_edges[s_idx])
                 matched_student_idx.add(s_idx)
 
         matched = [
             student_edges[i]
-            for i in sorted(matched_student_idx - {
-                i for i, e in enumerate(student_edges)
-                if e in wrong_direction
-            })
+            for i in sorted(matched_student_idx - {i for i, e in enumerate(student_edges) if e in wrong_direction})
         ]
-        missing = [
-            master_edges[i]
-            for i in range(len(master_edges))
-            if i not in matched_master_idx
-        ]
-        extra = [
-            student_edges[i]
-            for i in range(len(student_edges))
-            if i not in matched_student_idx
-        ]
+        missing = [master_edges[i] for i in range(len(master_edges)) if i not in matched_master_idx]
+        extra = [student_edges[i] for i in range(len(student_edges)) if i not in matched_student_idx]
 
         return matched, missing, extra, wrong_direction, fuzzy_count
 
@@ -257,12 +235,8 @@ class GraphComparator:
         int,
     ]:
         """Fallback exact string matching for edges."""
-        master_keys = {
-            (e.subject, e.relation, e.object): e for e in master_edges
-        }
-        _master_reversed = {
-            (e.object, e.relation, e.subject): e for e in master_edges
-        }
+        master_keys = {(e.subject, e.relation, e.object): e for e in master_edges}
+        _master_reversed = {(e.object, e.relation, e.subject): e for e in master_edges}
 
         matched: list[TripletEdge] = []
         extra: list[TripletEdge] = []
@@ -280,10 +254,6 @@ class GraphComparator:
             else:
                 extra.append(se)
 
-        missing = [
-            e
-            for e in master_edges
-            if (e.subject, e.relation, e.object) not in used_master
-        ]
+        missing = [e for e in master_edges if (e.subject, e.relation, e.object) not in used_master]
 
         return matched, missing, extra, wrong_dir, 0

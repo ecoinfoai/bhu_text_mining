@@ -10,8 +10,9 @@ import pytest
 from forma.lecture_preprocessor import CleanedTranscript
 
 
-def _make_cleaned(text: str = "세포막 단백질 인지질 이중층 세포막 구조",
-                  class_id: str = "A", week: int = 1) -> CleanedTranscript:
+def _make_cleaned(
+    text: str = "세포막 단백질 인지질 이중층 세포막 구조", class_id: str = "A", week: int = 1
+) -> CleanedTranscript:
     """Helper to create a CleanedTranscript for testing."""
     return CleanedTranscript(
         class_id=class_id,
@@ -59,7 +60,9 @@ class TestAnalysisResult:
 
     def test_dataclass_with_all_fields(self) -> None:
         from forma.lecture_analyzer import (
-            AnalysisResult, TopicSummary, ConceptCoverage,
+            AnalysisResult,
+            TopicSummary,
+            ConceptCoverage,
         )
 
         topic = TopicSummary(
@@ -136,7 +139,10 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_basic(
-        self, mock_kss, mock_create_net, mock_extract_kw,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
     ) -> None:
         """Basic analysis returns AnalysisResult with keywords."""
         from forma.lecture_analyzer import analyze_transcript, AnalysisResult
@@ -146,8 +152,7 @@ class TestAnalyzeTranscript:
         mock_kss.split_sentences.return_value = ["세포막은 중요하다.", "단백질도 중요하다."]
 
         cleaned = _make_cleaned()
-        result = analyze_transcript(cleaned, concepts=None, top_n=10,
-                                    no_triplets=True, provider=None)
+        result = analyze_transcript(cleaned, concepts=None, top_n=10, no_triplets=True, provider=None)
 
         assert isinstance(result, AnalysisResult)
         assert result.class_id == "A"
@@ -161,7 +166,10 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_topics_skipped_few_sentences(
-        self, mock_kss, mock_create_net, mock_extract_kw,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
     ) -> None:
         """Less than 10 sentences -> topic_skipped_reason set."""
         from forma.lecture_analyzer import analyze_transcript
@@ -171,8 +179,7 @@ class TestAnalyzeTranscript:
         mock_kss.split_sentences.return_value = ["문장1.", "문장2.", "문장3."]
 
         cleaned = _make_cleaned()
-        result = analyze_transcript(cleaned, concepts=None, top_n=10,
-                                    no_triplets=True, provider=None)
+        result = analyze_transcript(cleaned, concepts=None, top_n=10, no_triplets=True, provider=None)
 
         assert result.topics is None
         assert result.topic_skipped_reason is not None
@@ -184,8 +191,12 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_with_concepts(
-        self, mock_kss, mock_create_net, mock_extract_kw,
-        mock_emphasis, mock_gap,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
+        mock_emphasis,
+        mock_gap,
     ) -> None:
         """concepts provided -> concept_coverage populated."""
         from forma.lecture_analyzer import analyze_transcript
@@ -212,8 +223,11 @@ class TestAnalyzeTranscript:
 
         cleaned = _make_cleaned()
         result = analyze_transcript(
-            cleaned, concepts=["세포막", "미토콘드리아"],
-            top_n=10, no_triplets=True, provider=None,
+            cleaned,
+            concepts=["세포막", "미토콘드리아"],
+            top_n=10,
+            no_triplets=True,
+            provider=None,
         )
 
         assert result.concept_coverage is not None
@@ -226,7 +240,11 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_emphasis_scores(
-        self, mock_kss, mock_create_net, mock_extract_kw, mock_emphasis,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
+        mock_emphasis,
     ) -> None:
         """concepts provided -> emphasis_scores populated."""
         from forma.lecture_analyzer import analyze_transcript
@@ -247,6 +265,7 @@ class TestAnalyzeTranscript:
         # Also patch compute_lecture_gap since concepts triggers it
         with patch("forma.lecture_analyzer.compute_lecture_gap") as mock_gap:
             from forma.lecture_gap_analysis import LectureGapReport
+
             mock_gap.return_value = LectureGapReport(
                 master_concepts={"세포막"},
                 covered_concepts={"세포막"},
@@ -255,8 +274,11 @@ class TestAnalyzeTranscript:
                 coverage_ratio=1.0,
             )
             result = analyze_transcript(
-                cleaned, concepts=["세포막"],
-                top_n=10, no_triplets=True, provider=None,
+                cleaned,
+                concepts=["세포막"],
+                top_n=10,
+                no_triplets=True,
+                provider=None,
             )
 
         assert result.emphasis_scores is not None
@@ -266,7 +288,10 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_triplets_skipped_no_provider(
-        self, mock_kss, mock_create_net, mock_extract_kw,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
     ) -> None:
         """No LLM provider -> triplet_skipped_reason set."""
         from forma.lecture_analyzer import analyze_transcript
@@ -276,8 +301,7 @@ class TestAnalyzeTranscript:
         mock_kss.split_sentences.return_value = ["문장."]
 
         cleaned = _make_cleaned()
-        result = analyze_transcript(cleaned, concepts=None, top_n=10,
-                                    no_triplets=False, provider=None)
+        result = analyze_transcript(cleaned, concepts=None, top_n=10, no_triplets=False, provider=None)
 
         assert result.triplets is None
         assert result.triplet_skipped_reason is not None
@@ -286,7 +310,10 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_triplets_skipped_flag(
-        self, mock_kss, mock_create_net, mock_extract_kw,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
     ) -> None:
         """no_triplets=True -> triplet_skipped_reason set."""
         from forma.lecture_analyzer import analyze_transcript
@@ -296,8 +323,7 @@ class TestAnalyzeTranscript:
         mock_kss.split_sentences.return_value = ["문장."]
 
         cleaned = _make_cleaned()
-        result = analyze_transcript(cleaned, concepts=None, top_n=10,
-                                    no_triplets=True, provider=MagicMock())
+        result = analyze_transcript(cleaned, concepts=None, top_n=10, no_triplets=True, provider=MagicMock())
 
         assert result.triplets is None
         assert result.triplet_skipped_reason is not None
@@ -306,7 +332,10 @@ class TestAnalyzeTranscript:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_analyze_stage_failure_independent(
-        self, mock_kss, mock_create_net, mock_extract_kw,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
     ) -> None:
         """One stage throws, others still run (FR-027)."""
         from forma.lecture_analyzer import analyze_transcript
@@ -316,8 +345,7 @@ class TestAnalyzeTranscript:
         mock_kss.split_sentences.return_value = ["문장."]
 
         cleaned = _make_cleaned()
-        result = analyze_transcript(cleaned, concepts=None, top_n=10,
-                                    no_triplets=True, provider=None)
+        result = analyze_transcript(cleaned, concepts=None, top_n=10, no_triplets=True, provider=None)
 
         # keyword extraction succeeded even though network failed
         assert result.keyword_frequencies is not None
@@ -333,11 +361,17 @@ class TestCaching:
     @patch("forma.lecture_analyzer.create_network")
     @patch("forma.lecture_analyzer.kss")
     def test_save_and_load_analysis_result(
-        self, mock_kss, mock_create_net, mock_extract_kw, tmp_path: Path,
+        self,
+        mock_kss,
+        mock_create_net,
+        mock_extract_kw,
+        tmp_path: Path,
     ) -> None:
         """Round-trip YAML serialization preserves data."""
         from forma.lecture_analyzer import (
-            AnalysisResult, save_analysis_result, load_analysis_result,
+            AnalysisResult,
+            save_analysis_result,
+            load_analysis_result,
         )
 
         result = AnalysisResult(

@@ -125,16 +125,11 @@ def _classify_risk_types(
             risk_types.append(RiskType.SCORE_DECLINE)
 
     # PERSISTENT_LOW: all weekly scores below threshold
-    if score_trajectory and all(
-        s < _PERSISTENT_LOW_THRESHOLD for s in score_trajectory
-    ):
+    if score_trajectory and all(s < _PERSISTENT_LOW_THRESHOLD for s in score_trajectory):
         risk_types.append(RiskType.PERSISTENT_LOW)
 
     # CONCEPT_DEFICIT: >= 3 concepts below mastery threshold
-    deficit_count = sum(
-        1 for score in concept_scores.values()
-        if score < _DEFICIT_MASTERY_THRESHOLD
-    )
+    deficit_count = sum(1 for score in concept_scores.values() if score < _DEFICIT_MASTERY_THRESHOLD)
     if deficit_count >= _CONCEPT_DEFICIT_MIN_COUNT:
         risk_types.append(RiskType.CONCEPT_DEFICIT)
 
@@ -168,14 +163,12 @@ def _compute_rule_based_severity(
     # Score trajectory component
     if score_trajectory:
         mean_score = sum(score_trajectory) / len(score_trajectory)
-        severity += (1.0 - mean_score)
+        severity += 1.0 - mean_score
         n_signals += 1
 
     # Concept deficit component
     if concept_scores:
-        deficit_ratio = sum(
-            1 for s in concept_scores.values() if s < _DEFICIT_MASTERY_THRESHOLD
-        ) / len(concept_scores)
+        deficit_ratio = sum(1 for s in concept_scores.values() if s < _DEFICIT_MASTERY_THRESHOLD) / len(concept_scores)
         severity += deficit_ratio
         n_signals += 1
 
@@ -260,8 +253,7 @@ def build_warning_data(
 
         # Extract deficit concepts (mastery < 0.3)
         deficit_concepts = [
-            concept for concept, score in student_concepts.items()
-            if score < _DEFICIT_MASTERY_THRESHOLD
+            concept for concept, score in student_concepts.items() if score < _DEFICIT_MASTERY_THRESHOLD
         ]
 
         # Map interventions from risk types
@@ -282,19 +274,23 @@ def build_warning_data(
             risk_severity = drop_probability
         else:
             risk_severity = _compute_rule_based_severity(
-                student_concepts, trajectory, absence,
+                student_concepts,
+                trajectory,
+                absence,
             )
 
-        cards.append(WarningCard(
-            student_id=sid,
-            risk_types=risk_types,
-            detection_methods=detection_methods,
-            deficit_concepts=deficit_concepts,
-            misconception_patterns=[],
-            interventions=interventions,
-            drop_probability=drop_probability,
-            risk_severity=risk_severity,
-        ))
+        cards.append(
+            WarningCard(
+                student_id=sid,
+                risk_types=risk_types,
+                detection_methods=detection_methods,
+                deficit_concepts=deficit_concepts,
+                misconception_patterns=[],
+                interventions=interventions,
+                drop_probability=drop_probability,
+                risk_severity=risk_severity,
+            )
+        )
 
     # Sort by risk_severity descending
     cards.sort(key=lambda c: c.risk_severity, reverse=True)

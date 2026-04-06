@@ -26,6 +26,7 @@ from forma.longitudinal_store import LongitudinalStore
 # Helpers — build mock store with multi-week data
 # ---------------------------------------------------------------------------
 
+
 def _make_record(
     student_id: str,
     week: int,
@@ -291,9 +292,7 @@ class TestBuildLongitudinalSummary:
         assert len(summary.concept_mastery_changes) >= 2
 
         # Find specific concepts
-        hangsung = next(
-            (c for c in summary.concept_mastery_changes if c.concept == "항상성"), None
-        )
+        hangsung = next((c for c in summary.concept_mastery_changes if c.concept == "항상성"), None)
         assert hangsung is not None
         assert hangsung.week_start_ratio == pytest.approx(0.6, abs=0.01)
         assert hangsung.week_end_ratio == pytest.approx(0.8, abs=0.01)
@@ -399,9 +398,13 @@ class TestBuildLongitudinalSummaryEdgeCases:
         store = LongitudinalStore(str(tmp_path / "sparse.yaml"))
         # Add records for weeks 1, 3, 7
         for week, score in [(1, 0.3), (3, 0.5), (7, 0.9)]:
-            store.add_record(_make_record(
-                student_id="S001", week=week, ensemble_score=score,
-            ))
+            store.add_record(
+                _make_record(
+                    student_id="S001",
+                    week=week,
+                    ensemble_score=score,
+                )
+            )
 
         summary = build_longitudinal_summary(store, [1, 3, 7], "1A")
 
@@ -421,9 +424,13 @@ class TestBuildLongitudinalSummaryEdgeCases:
         store = LongitudinalStore(str(tmp_path / "sparse2.yaml"))
         for sid in ["S001", "S002"]:
             for week, score in [(1, 0.4), (3, 0.6), (7, 0.8)]:
-                store.add_record(_make_record(
-                    student_id=sid, week=week, ensemble_score=score,
-                ))
+                store.add_record(
+                    _make_record(
+                        student_id=sid,
+                        week=week,
+                        ensemble_score=score,
+                    )
+                )
 
         summary = build_longitudinal_summary(store, [1, 3, 7], "1A")
 
@@ -436,9 +443,13 @@ class TestBuildLongitudinalSummaryEdgeCases:
         from forma.longitudinal_report_data import build_longitudinal_summary
 
         store = LongitudinalStore(str(tmp_path / "single.yaml"))
-        store.add_record(_make_record(
-            student_id="S001", week=5, ensemble_score=0.7,
-        ))
+        store.add_record(
+            _make_record(
+                student_id="S001",
+                week=5,
+                ensemble_score=0.7,
+            )
+        )
 
         summary = build_longitudinal_summary(store, [5], "1A")
 
@@ -451,9 +462,13 @@ class TestBuildLongitudinalSummaryEdgeCases:
         from forma.longitudinal_report_data import build_longitudinal_summary
 
         store = LongitudinalStore(str(tmp_path / "single_risk.yaml"))
-        store.add_record(_make_record(
-            student_id="S001", week=1, ensemble_score=0.2,  # below 0.45 threshold
-        ))
+        store.add_record(
+            _make_record(
+                student_id="S001",
+                week=1,
+                ensemble_score=0.2,  # below 0.45 threshold
+            )
+        )
 
         summary = build_longitudinal_summary(store, [1], "1A")
 
@@ -516,7 +531,8 @@ class TestTopicStatistics:
 
         store = _build_topic_store(tmp_path)
         stats = compute_topic_class_statistics(
-            store, [1, 2, 3],
+            store,
+            [1, 2, 3],
         )
 
         assert len(stats) > 0
@@ -526,10 +542,7 @@ class TestTopicStatistics:
         assert "적용" in topics_found
 
         # Check mean values are reasonable
-        w1_concept = next(
-            s for s in stats
-            if s.topic == "개념이해" and s.week == 1
-        )
+        w1_concept = next(s for s in stats if s.topic == "개념이해" and s.week == 1)
         # Mean of [0.6, 0.7, 0.5] = 0.6
         assert w1_concept.mean == pytest.approx(0.6, abs=0.01)
         assert w1_concept.std >= 0.0
@@ -542,7 +555,8 @@ class TestTopicStatistics:
 
         store = _build_test_store(tmp_path)  # no topic field
         stats = compute_topic_class_statistics(
-            store, [1, 2, 3, 4],
+            store,
+            [1, 2, 3, 4],
         )
         assert stats == []
 
@@ -556,9 +570,7 @@ class TestTopicStatistics:
         trends = compute_topic_trends(store, [1, 2, 3])
 
         assert len(trends) > 0
-        concept_trend = next(
-            t for t in trends if t.topic == "개념이해"
-        )
+        concept_trend = next(t for t in trends if t.topic == "개념이해")
         # All students improving → positive tau
         assert concept_trend.kendall_tau > 0
         assert concept_trend.n_weeks == 3
@@ -591,15 +603,22 @@ class TestFilterByClassIds:
         store = LongitudinalStore(str(tmp_path / "s.yaml"))
         for sid, cls in [("S1", "A"), ("S2", "A"), ("S3", "B")]:
             for w in [1, 2]:
-                store.add_record(LongitudinalRecord(
-                    student_id=sid, week=w, question_sn=1,
-                    scores={"ensemble_score": 0.6},
-                    tier_level=2, tier_label="P",
-                    class_id=cls,
-                ))
+                store.add_record(
+                    LongitudinalRecord(
+                        student_id=sid,
+                        week=w,
+                        question_sn=1,
+                        scores={"ensemble_score": 0.6},
+                        tier_level=2,
+                        tier_label="P",
+                        class_id=cls,
+                    )
+                )
 
         summary = build_longitudinal_summary(
-            store, [1, 2], "Test",
+            store,
+            [1, 2],
+            "Test",
             class_ids=["A"],
         )
         ids = [t.student_id for t in summary.student_trajectories]
@@ -616,14 +635,21 @@ class TestFilterByClassIds:
 
         store = LongitudinalStore(str(tmp_path / "s.yaml"))
         for sid, cls in [("S1", "A"), ("S2", "B")]:
-            store.add_record(LongitudinalRecord(
-                student_id=sid, week=1, question_sn=1,
-                scores={"ensemble_score": 0.6},
-                tier_level=2, tier_label="P",
-                class_id=cls,
-            ))
+            store.add_record(
+                LongitudinalRecord(
+                    student_id=sid,
+                    week=1,
+                    question_sn=1,
+                    scores={"ensemble_score": 0.6},
+                    tier_level=2,
+                    tier_label="P",
+                    class_id=cls,
+                )
+            )
 
         summary = build_longitudinal_summary(
-            store, [1], "Test",
+            store,
+            [1],
+            "Test",
         )
         assert summary.total_students == 2

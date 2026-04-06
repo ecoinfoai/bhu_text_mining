@@ -17,7 +17,13 @@ from forma.evaluation_types import GraphComparisonResult, HubGapEntry, TripletEd
 logger = logging.getLogger(__name__)
 
 DEFAULT_INCLUSION_KEYWORDS: list[str] = [
-    "포함", "속함", "구성", "is-a", "part-of", "분류", "하위",
+    "포함",
+    "속함",
+    "구성",
+    "is-a",
+    "part-of",
+    "분류",
+    "하위",
 ]
 
 
@@ -106,27 +112,27 @@ def classify_misconceptions(
     # --- INCLUSION_ERROR / CAUSAL_REVERSAL from wrong_direction_edges ---
     for edge in graph_result.wrong_direction_edges:
         if _has_inclusion_keyword(edge.relation, inclusion_keywords):
-            results.append(ClassifiedMisconception(
-                pattern=MisconceptionPattern.INCLUSION_ERROR,
-                master_edge=TripletEdge(edge.object, edge.relation, edge.subject),
-                student_edge=edge,
-                concept=None,
-                confidence=0.9,
-                description=(
-                    f"포함 관계 역전: {edge.subject}→{edge.relation}→{edge.object}"
-                ),
-            ))
+            results.append(
+                ClassifiedMisconception(
+                    pattern=MisconceptionPattern.INCLUSION_ERROR,
+                    master_edge=TripletEdge(edge.object, edge.relation, edge.subject),
+                    student_edge=edge,
+                    concept=None,
+                    confidence=0.9,
+                    description=(f"포함 관계 역전: {edge.subject}→{edge.relation}→{edge.object}"),
+                )
+            )
         else:
-            results.append(ClassifiedMisconception(
-                pattern=MisconceptionPattern.CAUSAL_REVERSAL,
-                master_edge=TripletEdge(edge.object, edge.relation, edge.subject),
-                student_edge=edge,
-                concept=None,
-                confidence=0.85,
-                description=(
-                    f"인과 방향 역전: {edge.subject}→{edge.relation}→{edge.object}"
-                ),
-            ))
+            results.append(
+                ClassifiedMisconception(
+                    pattern=MisconceptionPattern.CAUSAL_REVERSAL,
+                    master_edge=TripletEdge(edge.object, edge.relation, edge.subject),
+                    student_edge=edge,
+                    concept=None,
+                    confidence=0.85,
+                    description=(f"인과 방향 역전: {edge.subject}→{edge.relation}→{edge.object}"),
+                )
+            )
 
     # --- RELATION_CONFUSION from extra_edges matching missing_edges on (S, O) ---
     missing_by_so: dict[tuple[str, str], TripletEdge] = {}
@@ -138,29 +144,32 @@ def classify_misconceptions(
         if key in missing_by_so:
             master_edge = missing_by_so[key]
             if master_edge.relation != extra.relation:
-                results.append(ClassifiedMisconception(
-                    pattern=MisconceptionPattern.RELATION_CONFUSION,
-                    master_edge=master_edge,
-                    student_edge=extra,
-                    concept=None,
-                    confidence=0.7,
-                    description=(
-                        f"관계 혼동: {extra.subject}→{extra.relation}→{extra.object} "
-                        f"(정답: {master_edge.relation})"
-                    ),
-                ))
+                results.append(
+                    ClassifiedMisconception(
+                        pattern=MisconceptionPattern.RELATION_CONFUSION,
+                        master_edge=master_edge,
+                        student_edge=extra,
+                        concept=None,
+                        confidence=0.7,
+                        description=(
+                            f"관계 혼동: {extra.subject}→{extra.relation}→{extra.object} (정답: {master_edge.relation})"
+                        ),
+                    )
+                )
 
     # --- CONCEPT_ABSENCE from hub_gap_entries ---
     for entry in hub_gap_entries:
         if not entry.student_present:
-            results.append(ClassifiedMisconception(
-                pattern=MisconceptionPattern.CONCEPT_ABSENCE,
-                master_edge=None,
-                student_edge=None,
-                concept=entry.concept,
-                confidence=entry.degree_centrality,
-                description=f"핵심 개념 부재: {entry.concept}",
-            ))
+            results.append(
+                ClassifiedMisconception(
+                    pattern=MisconceptionPattern.CONCEPT_ABSENCE,
+                    master_edge=None,
+                    student_edge=None,
+                    concept=entry.concept,
+                    confidence=entry.degree_centrality,
+                    description=f"핵심 개념 부재: {entry.concept}",
+                )
+            )
 
     return results
 

@@ -54,9 +54,7 @@ class InterventionRecord:
     intervention_type: str
     description: str = ""
     recorded_by: Optional[str] = None
-    recorded_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    recorded_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     follow_up_week: Optional[int] = None
     outcome: Optional[str] = None
 
@@ -108,7 +106,9 @@ class InterventionLog:
                 if self._next_id <= max_existing_id:
                     logger.warning(
                         "intervention_store: next_id=%d inconsistent with max record id=%d; correcting to %d",
-                        self._next_id, max_existing_id, max_existing_id + 1,
+                        self._next_id,
+                        max_existing_id,
+                        max_existing_id + 1,
                     )
                     self._next_id = max_existing_id + 1
         finally:
@@ -128,7 +128,8 @@ class InterventionLog:
             fcntl.flock(lock_file, fcntl.LOCK_EX)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 yaml.dump(
-                    data, f,
+                    data,
+                    f,
                     default_flow_style=False,
                     allow_unicode=True,
                     sort_keys=False,
@@ -179,10 +180,7 @@ class InterventionLog:
         if description is not None and len(description) > 2000:
             raise ValueError(f"description exceeds 2000 character limit ({len(description)} chars)")
         if intervention_type not in INTERVENTION_TYPES:
-            raise ValueError(
-                f"Invalid intervention_type '{intervention_type}'. "
-                f"Must be one of {INTERVENTION_TYPES}"
-            )
+            raise ValueError(f"Invalid intervention_type '{intervention_type}'. Must be one of {INTERVENTION_TYPES}")
         record_id = self._next_id
         self._next_id += 1
         record_dict = {

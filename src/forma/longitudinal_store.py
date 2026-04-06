@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fcntl
+import math
 import os
 import shutil
 import tempfile
@@ -30,13 +31,35 @@ def _infer_class_id(path: str) -> str | None:
     Returns:
         Extracted class identifier or None.
     """
-    m = re.search(r'[_]([A-Z]{1,3})(?:[_./\\]|$)', path)
+    m = re.search(r"[_]([A-Z]{1,3})(?:[_./\\]|$)", path)
     return m.group(1) if m else None
 
 
-def _record_key(student_id: str, week: int, question_sn: int) -> str:
-    """Build a unique composite key for a longitudinal record."""
-    return f"{student_id}_{week}_{question_sn}"
+def _record_key(
+    student_id: str,
+    week: int,
+    question_sn: int,
+    class_id: str | None = None,
+    semester: str | None = None,
+) -> str:
+    """Build a unique composite key for a longitudinal record.
+
+    Args:
+        student_id: Student identifier.
+        week: Week number.
+        question_sn: Question serial number.
+        class_id: Optional section identifier for class isolation.
+        semester: Optional semester label for semester isolation.
+
+    Returns:
+        Composite key string.
+    """
+    key = f"{student_id}_{week}_{question_sn}"
+    if class_id is not None:
+        key = f"{key}_{class_id}"
+    if semester is not None:
+        key = f"{key}_{semester}"
+    return key
 
 
 class LongitudinalStore:
@@ -93,6 +116,8 @@ class LongitudinalStore:
             d["topic"] = record.topic
         if record.class_id is not None:
             d["class_id"] = record.class_id
+        if record.semester is not None:
+            d["semester"] = record.semester
         return d
 
     def _to_record(self, data: dict) -> LongitudinalRecord:
@@ -114,14 +139,47 @@ class LongitudinalStore:
             ocr_confidence_min=data.get("ocr_confidence_min", None),
             topic=data.get("topic", None),
             class_id=data.get("class_id", None),
+            semester=data.get("semester", None),
         )
 
+    @staticmethod
+    def _validate_scores(scores: dict[str, float]) -> None:
+        """Validate score values, rejecting NaN, Inf, and out-of-range values.
+
+        Args:
+            scores: Dict of metric name to score value.
+
+        Raises:
+            ValueError: If any score is NaN, infinite, or negative.
+        """
+        for metric, value in scores.items():
+            if not isinstance(value, (int, float)):
+                continue
+            if math.isnan(value):
+                raise ValueError(f"Score cannot be NaN (metric='{metric}')")
+            if math.isinf(value):
+                raise ValueError(f"Score cannot be infinite (metric='{metric}')")
+            if value < 0.0:
+                raise ValueError(f"Score cannot be negative (metric='{metric}', value={value})")
+
     def add_record(self, record: LongitudinalRecord) -> None:
-        """Upsert record by (student_id, week, question_sn).
+        """Upsert record by (student_id, week, question_sn[, class_id][, semester]).
 
         If the existing record has manual_override=True, it is preserved.
+        When class_id or semester are set on the record, they become part of
+        the composite key, preventing cross-class and cross-semester overwrites.
+
+        Raises:
+            ValueError: If any score value is NaN, infinite, or negative.
         """
-        key = _record_key(record.student_id, record.week, record.question_sn)
+        self._validate_scores(record.scores)
+        key = _record_key(
+            record.student_id,
+            record.week,
+            record.question_sn,
+            class_id=record.class_id,
+            semester=record.semester,
+        )
         existing = self._records.get(key)
         if existing and existing.get("manual_override", False):
             return
@@ -187,9 +245,7 @@ class LongitudinalStore:
         records.sort(key=lambda r: r.student_id)
         return records
 
-    def get_student_trajectory(
-        self, student_id: str, metric: str
-    ) -> list[tuple[int, float]]:
+    def get_student_trajectory(self, student_id: str, metric: str) -> list[tuple[int, float]]:
         """Return [(week, value)] for a student's metric, sorted by week.
 
         When a student has multiple questions in a single week, the metric
@@ -209,45 +265,31 @@ class LongitudinalStore:
                 val = d.get(metric)
             if val is not None:
                 week_values[d["week"]].append(val)
-        result = [
-            (wk, sum(vals) / len(vals))
-            for wk, vals in sorted(week_values.items())
-        ]
+        result = [(wk, sum(vals) / len(vals)) for wk, vals in sorted(week_values.items())]
         return result
 
-    def get_class_weekly_matrix(
-        self, metric: str
-    ) -> dict[str, dict[int, float]]:
+    def get_class_weekly_matrix(self, metric: str) -> dict[str, dict[int, float]]:
         """Return {student_id: {week: value}} for a given metric.
 
         When a student has multiple questions in a single week, the metric
         values are averaged across questions for that week.
         Only students with at least one matching metric value are included.
         """
-        matrix: dict[str, dict[int, list[float]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+        matrix: dict[str, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
         for d in self._records.values():
             val = d["scores"].get(metric)
             # Fallback: if ensemble_score not stored, compute from components
             if val is None and metric == "ensemble_score":
                 component_vals = [
-                    v for k, v in d["scores"].items()
-                    if isinstance(v, (int, float)) and k != "ensemble_score"
+                    v for k, v in d["scores"].items() if isinstance(v, (int, float)) and k != "ensemble_score"
                 ]
                 if component_vals:
                     val = sum(component_vals) / len(component_vals)
             if val is not None:
                 matrix[d["student_id"]][d["week"]].append(val)
-        return {
-            sid: {wk: sum(vs) / len(vs) for wk, vs in sorted(weeks.items())}
-            for sid, weeks in matrix.items()
-        }
+        return {sid: {wk: sum(vs) / len(vs) for wk, vs in sorted(weeks.items())} for sid, weeks in matrix.items()}
 
-
-    def get_topic_weekly_matrix(
-        self, metric: str
-    ) -> dict[str, dict[str, dict[int, float]]]:
+    def get_topic_weekly_matrix(self, metric: str) -> dict[str, dict[str, dict[int, float]]]:
         """Return {student_id: {topic: {week: avg_score}}}.
 
         Groups records by topic and averages same-topic questions
@@ -260,11 +302,7 @@ class LongitudinalStore:
             Nested dict: student -> topic -> week -> avg score.
         """
         # {sid: {topic: {week: [values]}}}
-        raw: dict[
-            str, dict[str, dict[int, list[float]]]
-        ] = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(list))
-        )
+        raw: dict[str, dict[str, dict[int, list[float]]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         for d in self._records.values():
             topic = d.get("topic")
             if topic is None:
@@ -277,13 +315,7 @@ class LongitudinalStore:
             raw[sid][topic][wk].append(val)
 
         return {
-            sid: {
-                topic: {
-                    wk: sum(vs) / len(vs)
-                    for wk, vs in sorted(weeks.items())
-                }
-                for topic, weeks in topics.items()
-            }
+            sid: {topic: {wk: sum(vs) / len(vs) for wk, vs in sorted(weeks.items())} for topic, weeks in topics.items()}
             for sid, topics in raw.items()
         }
 
@@ -300,10 +332,7 @@ def _compute_concept_scores(
             counts[cmr.concept].append(cmr.is_present)
     if not counts:
         return None
-    return {
-        concept: sum(1 for v in vals if v) / len(vals)
-        for concept, vals in counts.items()
-    }
+    return {concept: sum(1 for v in vals if v) / len(vals) for concept, vals in counts.items()}
 
 
 def snapshot_from_evaluation(
@@ -348,21 +377,13 @@ def snapshot_from_evaluation(
             # Graph comparison results (edge_f1, misconception_count)
             gcr = (graph_comparison_results.get(student_id) or {}).get(qsn)
             edge_f1 = gcr.f1 if gcr else None
-            misconception_count = (
-                len(gcr.wrong_direction_edges) if gcr else None
-            )
+            misconception_count = len(gcr.wrong_direction_edges) if gcr else None
 
             # Concept scores from layer1
-            concept_scores = _compute_concept_scores(
-                layer1_results, student_id, qsn
-            )
+            concept_scores = _compute_concept_scores(layer1_results, student_id, qsn)
 
             # OCR confidence from scan/join pipeline
-            ocr_conf = (
-                (ocr_confidence.get(student_id) or {}).get(qsn)
-                if ocr_confidence
-                else None
-            )
+            ocr_conf = (ocr_confidence.get(student_id) or {}).get(qsn) if ocr_confidence else None
             ocr_mean = ocr_conf["mean"] if ocr_conf else None
             ocr_min = ocr_conf["min"] if ocr_conf else None
 

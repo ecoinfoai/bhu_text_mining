@@ -385,9 +385,7 @@ def load_all_student_data(
                 for c in raw_concepts
             ]
             if concepts:
-                concept_coverage = sum(
-                    1 for c in concepts if c.is_present
-                ) / len(concepts)
+                concept_coverage = sum(1 for c in concepts if c.is_present) / len(concepts)
             else:
                 concept_coverage = 0.0
 
@@ -429,9 +427,19 @@ def load_all_student_data(
             student.questions.append(question)
 
         # Load graph comparison results (optional — graceful skip if missing)
+        # Try consolidated path first, then legacy per-student path
         graph_path = os.path.join(
-            eval_dir, sid, "res_lvl1", "graph_comparison_results.yaml",
+            eval_dir,
+            "res_lvl1",
+            "graph_comparison_results.yaml",
         )
+        if not os.path.exists(graph_path):
+            graph_path = os.path.join(
+                eval_dir,
+                sid,
+                "res_lvl1",
+                "graph_comparison_results.yaml",
+            )
         if os.path.exists(graph_path):
             try:
                 with open(graph_path, encoding="utf-8") as gf:
@@ -486,7 +494,8 @@ def load_all_student_data(
                         q_data.graph_student_edges = matched + extra + wrong_dir
             except Exception:
                 logger.warning(
-                    "Failed to load graph comparison data for student %s", sid,
+                    "Failed to load graph comparison data for student %s",
+                    sid,
                 )
 
         students.append(student)
@@ -531,7 +540,8 @@ def compute_class_distributions(
             dists.component_scores.setdefault(qsn, {})
             for comp_name, comp_val in q.component_scores.items():
                 dists.component_scores[qsn].setdefault(
-                    comp_name, [],
+                    comp_name,
+                    [],
                 ).append(comp_val)
 
     return dists

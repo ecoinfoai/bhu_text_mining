@@ -138,7 +138,10 @@ def build_summary_rows(
         name, cls = id_map.get(sid, ("", ""))
 
         student_data = build_student_data(
-            store, sid, weeks, cohort,
+            store,
+            sid,
+            weeks,
+            cohort,
             student_name=name or None,
             class_name=cls or None,
         )
@@ -155,11 +158,7 @@ def build_summary_rows(
             q_map = student_data.scores_by_week.get(week, {})
 
             # Average ensemble_score across questions
-            ensemble_vals = [
-                s.get("ensemble_score", 0.0)
-                for s in q_map.values()
-                if "ensemble_score" in s
-            ]
+            ensemble_vals = [s.get("ensemble_score", 0.0) for s in q_map.values() if "ensemble_score" in s]
             if ensemble_vals:
                 weekly_ensemble[week] = sum(ensemble_vals) / len(ensemble_vals)
 
@@ -177,19 +176,21 @@ def build_summary_rows(
             latest_week = student_data.weeks[-1]
             latest_pct = student_data.percentiles_by_week.get(latest_week, 0.0)
 
-        rows.append(StudentSummaryRow(
-            student_id=sid,
-            student_name=name,
-            class_name=cls,
-            weekly_ensemble=weekly_ensemble,
-            weekly_coverage_q1=weekly_cov_q1,
-            weekly_coverage_q2=weekly_cov_q2,
-            trend_direction=student_data.trend_direction,
-            trend_slope=student_data.trend_slope,
-            latest_percentile=latest_pct,
-            alert_level=alert_level,
-            triggered_signals=triggered,
-        ))
+        rows.append(
+            StudentSummaryRow(
+                student_id=sid,
+                student_name=name,
+                class_name=cls,
+                weekly_ensemble=weekly_ensemble,
+                weekly_coverage_q1=weekly_cov_q1,
+                weekly_coverage_q2=weekly_cov_q2,
+                trend_direction=student_data.trend_direction,
+                trend_slope=student_data.trend_slope,
+                latest_percentile=latest_pct,
+                alert_level=alert_level,
+                triggered_signals=triggered,
+            )
+        )
 
     # Sort: WARNING first, then CAUTION, then NORMAL; within same level, by student_id
     rows.sort(key=lambda r: (_ALERT_SORT_ORDER.get(r.alert_level, 99), r.student_id))
@@ -232,51 +233,63 @@ class CohortSummaryPDFReportGenerator:
         register_korean_fonts(font_path)
 
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "SumTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "SumSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "SumBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "SumTableHeader",
-            parent=self._styles["Normal"],
-            fontName="NanumGothicBold",
-            fontSize=8,
-            textColor=HexColor("#FFFFFF"),
-            alignment=1,  # CENTER
-        ))
-        self._styles.add(ParagraphStyle(
-            "SumTableData",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            alignment=1,  # CENTER
-        ))
-        self._styles.add(ParagraphStyle(
-            "SumTableDataSmall",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=7,
-            alignment=1,
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "SumTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "SumSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "SumBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "SumTableHeader",
+                parent=self._styles["Normal"],
+                fontName="NanumGothicBold",
+                fontSize=8,
+                textColor=HexColor("#FFFFFF"),
+                alignment=1,  # CENTER
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "SumTableData",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                alignment=1,  # CENTER
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "SumTableDataSmall",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=7,
+                alignment=1,
+            )
+        )
 
     def generate_pdf(
         self,
@@ -300,10 +313,12 @@ class CohortSummaryPDFReportGenerator:
         story.extend(self._build_cover_page(rows, weeks, course_name))
 
         if not rows:
-            story.append(Paragraph(
-                _esc("데이터 없음 — 종단 저장소에 학생 데이터가 없습니다."),
-                self._styles["SumBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("데이터 없음 — 종단 저장소에 학생 데이터가 없습니다."),
+                    self._styles["SumBody"],
+                )
+            )
         else:
             story.extend(self._build_summary_stats(rows))
             story.append(Spacer(1, 5 * mm))
@@ -329,10 +344,12 @@ class CohortSummaryPDFReportGenerator:
         """Build cover page with title and summary counts."""
         story = []
         story.append(Spacer(1, 30 * mm))
-        story.append(Paragraph(
-            _esc("전체 수강생 종단 분석 요약"),
-            self._styles["SumTitle"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("전체 수강생 종단 분석 요약"),
+                self._styles["SumTitle"],
+            )
+        )
         story.append(Spacer(1, 10 * mm))
 
         today_str = date.today().strftime("%Y-%m-%d")
@@ -447,7 +464,10 @@ class CohortSummaryPDFReportGenerator:
         week_col_width = max(12, available / max(n_weeks, 1))
 
         col_widths = [
-            8 * mm, 22 * mm, 18 * mm, 12 * mm,
+            8 * mm,
+            22 * mm,
+            18 * mm,
+            12 * mm,
         ]
         col_widths.extend([week_col_width * mm] * n_weeks)
         col_widths.extend([18 * mm, 14 * mm, 14 * mm])

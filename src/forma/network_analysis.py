@@ -163,9 +163,7 @@ def visualize_network(G: nx.Graph, font_prop: object, title: str = "Keyword Netw
     max_frequency = max(frequencies.values()) if frequencies else 1
 
     # Node sizes proportional to frequency
-    node_sizes = [
-        1000 * (freq / max_frequency) for freq in frequencies.values()
-    ]
+    node_sizes = [1000 * (freq / max_frequency) for freq in frequencies.values()]
 
     # Edge widths proportional to weight
     weights = nx.get_edge_attributes(G, "weight").values()
@@ -173,19 +171,13 @@ def visualize_network(G: nx.Graph, font_prop: object, title: str = "Keyword Netw
     edge_widths = [3 * (weight / max_weight) for weight in weights]
 
     # Draw nodes and edges
-    nx.draw_networkx_nodes(
-        G, pos, node_size=node_sizes, node_color="skyblue", alpha=0.9
-    )
-    nx.draw_networkx_edges(
-        G, pos, width=edge_widths, edge_color="gray", alpha=0.5
-    )
+    nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color="skyblue", alpha=0.9)
+    nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color="gray", alpha=0.5)
 
     # Draw labels with individual font sizes
     for node, (x, y) in pos.items():
         freq = frequencies[node]
-        font_size = 10 + 15 * (
-            freq / max_frequency
-        )  # Font size proportional to frequency
+        font_size = 10 + 15 * (freq / max_frequency)  # Font size proportional to frequency
         plt.text(
             x,
             y,

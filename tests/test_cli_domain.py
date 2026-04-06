@@ -35,10 +35,14 @@ class TestExtractCLIParsing:
         with tempfile.TemporaryDirectory() as tmpdir:
             output = Path(tmpdir) / "out.yaml"
             with pytest.raises(SystemExit) as exc_info:
-                extract_main([
-                    "--textbook", "/nonexistent/file.txt",
-                    "--output", str(output),
-                ])
+                extract_main(
+                    [
+                        "--textbook",
+                        "/nonexistent/file.txt",
+                        "--output",
+                        str(output),
+                    ]
+                )
             assert exc_info.value.code == 1
 
     def test_valid_args_produce_output(self) -> None:
@@ -55,10 +59,14 @@ class TestExtractCLIParsing:
             )
             output = Path(tmpdir) / "concepts.yaml"
 
-            extract_main([
-                "--textbook", str(textbook),
-                "--output", str(output),
-            ])
+            extract_main(
+                [
+                    "--textbook",
+                    str(textbook),
+                    "--output",
+                    str(output),
+                ]
+            )
 
             assert output.exists()
             assert output.stat().st_size > 0
@@ -78,11 +86,16 @@ class TestExtractCLIParsing:
             )
             output = Path(tmpdir) / "concepts.yaml"
 
-            extract_main([
-                "--textbook", str(file1),
-                "--textbook", str(file2),
-                "--output", str(output),
-            ])
+            extract_main(
+                [
+                    "--textbook",
+                    str(file1),
+                    "--textbook",
+                    str(file2),
+                    "--output",
+                    str(output),
+                ]
+            )
 
             assert output.exists()
 
@@ -96,11 +109,16 @@ class TestExtractCLIParsing:
             )
             output = Path(tmpdir) / "concepts.yaml"
 
-            extract_main([
-                "--textbook", str(textbook),
-                "--output", str(output),
-                "--min-freq", "3",
-            ])
+            extract_main(
+                [
+                    "--textbook",
+                    str(textbook),
+                    "--output",
+                    str(output),
+                    "--min-freq",
+                    "3",
+                ]
+            )
 
             assert output.exists()
 
@@ -114,11 +132,15 @@ class TestExtractCLIParsing:
             )
             output = Path(tmpdir) / "concepts.yaml"
 
-            extract_main([
-                "--textbook", str(textbook),
-                "--output", str(output),
-                "--no-cache",
-            ])
+            extract_main(
+                [
+                    "--textbook",
+                    str(textbook),
+                    "--output",
+                    str(output),
+                    "--no-cache",
+                ]
+            )
 
             assert output.exists()
 
@@ -134,38 +156,55 @@ class TestCoverageCLIParsing:
     def test_missing_concepts_arg_exits(self) -> None:
         """Missing --concepts exits with error."""
         with pytest.raises(SystemExit) as exc_info:
-            coverage_main([
-                "--transcripts", "file.txt",
-                "--output", "out.yaml",
-            ])
+            coverage_main(
+                [
+                    "--transcripts",
+                    "file.txt",
+                    "--output",
+                    "out.yaml",
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_missing_transcripts_arg_exits(self) -> None:
         """Missing --transcripts exits with error."""
         with pytest.raises(SystemExit) as exc_info:
-            coverage_main([
-                "--concepts", "concepts.yaml",
-                "--output", "out.yaml",
-            ])
+            coverage_main(
+                [
+                    "--concepts",
+                    "concepts.yaml",
+                    "--output",
+                    "out.yaml",
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_missing_output_arg_exits(self) -> None:
         """Missing --output exits with error."""
         with pytest.raises(SystemExit) as exc_info:
-            coverage_main([
-                "--concepts", "concepts.yaml",
-                "--transcripts", "file.txt",
-            ])
+            coverage_main(
+                [
+                    "--concepts",
+                    "concepts.yaml",
+                    "--transcripts",
+                    "file.txt",
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_nonexistent_concepts_file_exits(self) -> None:
         """Non-existent concepts file exits with error code 1."""
         with pytest.raises(SystemExit) as exc_info:
-            coverage_main([
-                "--concepts", "/nonexistent/concepts.yaml",
-                "--transcripts", "/nonexistent/t.txt",
-                "--output", "/tmp/out.yaml",
-            ])
+            coverage_main(
+                [
+                    "--concepts",
+                    "/nonexistent/concepts.yaml",
+                    "--transcripts",
+                    "/nonexistent/t.txt",
+                    "--output",
+                    "/tmp/out.yaml",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_accepts_optional_flags(self) -> None:
@@ -173,15 +212,24 @@ class TestCoverageCLIParsing:
         from forma.cli_domain import _build_coverage_parser
 
         parser = _build_coverage_parser()
-        args = parser.parse_args([
-            "--concepts", "c.yaml",
-            "--transcripts", "t.txt",
-            "--output", "out.yaml",
-            "--scope", "2장:확산",
-            "--threshold", "0.7",
-            "--week-config", "week.yaml",
-            "--eval-store", "store.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "--concepts",
+                "c.yaml",
+                "--transcripts",
+                "t.txt",
+                "--output",
+                "out.yaml",
+                "--scope",
+                "2장:확산",
+                "--threshold",
+                "0.7",
+                "--week-config",
+                "week.yaml",
+                "--eval-store",
+                "store.yaml",
+            ]
+        )
         assert args.scope == "2장:확산"
         assert args.threshold == 0.7
         assert args.week_config == "week.yaml"
@@ -192,12 +240,18 @@ class TestCoverageCLIParsing:
         from forma.cli_domain import _build_coverage_parser
 
         parser = _build_coverage_parser()
-        args = parser.parse_args([
-            "--concepts", "c.yaml",
-            "--transcripts", "t1.txt",
-            "--transcripts", "t2.txt",
-            "--output", "out.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "--concepts",
+                "c.yaml",
+                "--transcripts",
+                "t1.txt",
+                "--transcripts",
+                "t2.txt",
+                "--output",
+                "out.yaml",
+            ]
+        )
         assert args.transcripts == ["t1.txt", "t2.txt"]
 
 
@@ -224,10 +278,14 @@ class TestReportCLIParsing:
     def test_nonexistent_coverage_file_exits(self) -> None:
         """Non-existent coverage file exits with code 1."""
         with pytest.raises(SystemExit) as exc_info:
-            report_main([
-                "--coverage", "/nonexistent/coverage.yaml",
-                "--output", "/tmp/out.pdf",
-            ])
+            report_main(
+                [
+                    "--coverage",
+                    "/nonexistent/coverage.yaml",
+                    "--output",
+                    "/tmp/out.pdf",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_accepts_optional_flags(self) -> None:
@@ -235,13 +293,20 @@ class TestReportCLIParsing:
         from forma.cli_domain import _build_report_parser
 
         parser = _build_report_parser()
-        args = parser.parse_args([
-            "--coverage", "cov.yaml",
-            "--output", "out.pdf",
-            "--course-name", "인체구조와기능",
-            "--font-path", "/path/to/font.ttf",
-            "--dpi", "200",
-        ])
+        args = parser.parse_args(
+            [
+                "--coverage",
+                "cov.yaml",
+                "--output",
+                "out.pdf",
+                "--course-name",
+                "인체구조와기능",
+                "--font-path",
+                "/path/to/font.ttf",
+                "--dpi",
+                "200",
+            ]
+        )
         assert args.course_name == "인체구조와기능"
         assert args.font_path == "/path/to/font.ttf"
         assert args.dpi == 200
@@ -260,11 +325,16 @@ class TestExtractCLIV2Options:
         from forma.cli_domain import _build_extract_parser
 
         parser = _build_extract_parser()
-        args = parser.parse_args([
-            "--textbook", "ch3.txt",
-            "--output", "out.yaml",
-            "--summary", "Ch03_Summary.md",
-        ])
+        args = parser.parse_args(
+            [
+                "--textbook",
+                "ch3.txt",
+                "--output",
+                "out.yaml",
+                "--summary",
+                "Ch03_Summary.md",
+            ]
+        )
         assert args.summary == ["Ch03_Summary.md"]
 
     def test_summary_flag_repeatable(self) -> None:
@@ -272,13 +342,20 @@ class TestExtractCLIV2Options:
         from forma.cli_domain import _build_extract_parser
 
         parser = _build_extract_parser()
-        args = parser.parse_args([
-            "--textbook", "ch3.txt",
-            "--textbook", "ch4.txt",
-            "--output", "out.yaml",
-            "--summary", "Ch03_Summary.md",
-            "--summary", "Ch04_Summary.md",
-        ])
+        args = parser.parse_args(
+            [
+                "--textbook",
+                "ch3.txt",
+                "--textbook",
+                "ch4.txt",
+                "--output",
+                "out.yaml",
+                "--summary",
+                "Ch03_Summary.md",
+                "--summary",
+                "Ch04_Summary.md",
+            ]
+        )
         assert args.summary == ["Ch03_Summary.md", "Ch04_Summary.md"]
 
     def test_summary_optional(self) -> None:
@@ -286,10 +363,14 @@ class TestExtractCLIV2Options:
         from forma.cli_domain import _build_extract_parser
 
         parser = _build_extract_parser()
-        args = parser.parse_args([
-            "--textbook", "ch3.txt",
-            "--output", "out.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "--textbook",
+                "ch3.txt",
+                "--output",
+                "out.yaml",
+            ]
+        )
         assert args.summary is None
 
     def test_model_flag_accepted(self) -> None:
@@ -297,11 +378,16 @@ class TestExtractCLIV2Options:
         from forma.cli_domain import _build_extract_parser
 
         parser = _build_extract_parser()
-        args = parser.parse_args([
-            "--textbook", "ch3.txt",
-            "--output", "out.yaml",
-            "--model", "gemini-2.5-pro",
-        ])
+        args = parser.parse_args(
+            [
+                "--textbook",
+                "ch3.txt",
+                "--output",
+                "out.yaml",
+                "--model",
+                "gemini-2.5-pro",
+            ]
+        )
         assert args.model == "gemini-2.5-pro"
 
     def test_model_optional(self) -> None:
@@ -309,10 +395,14 @@ class TestExtractCLIV2Options:
         from forma.cli_domain import _build_extract_parser
 
         parser = _build_extract_parser()
-        args = parser.parse_args([
-            "--textbook", "ch3.txt",
-            "--output", "out.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "--textbook",
+                "ch3.txt",
+                "--output",
+                "out.yaml",
+            ]
+        )
         assert args.model is None
 
 
@@ -324,12 +414,18 @@ class TestCoverageCLIV2Options:
         from forma.cli_domain import _build_coverage_parser
 
         parser = _build_coverage_parser()
-        args = parser.parse_args([
-            "--concepts", "c.yaml",
-            "--transcripts", "t.txt",
-            "--output", "out.yaml",
-            "--model", "gemini-2.5-flash",
-        ])
+        args = parser.parse_args(
+            [
+                "--concepts",
+                "c.yaml",
+                "--transcripts",
+                "t.txt",
+                "--output",
+                "out.yaml",
+                "--model",
+                "gemini-2.5-flash",
+            ]
+        )
         assert args.model == "gemini-2.5-flash"
 
     def test_no_pedagogy_flag_accepted(self) -> None:
@@ -337,12 +433,17 @@ class TestCoverageCLIV2Options:
         from forma.cli_domain import _build_coverage_parser
 
         parser = _build_coverage_parser()
-        args = parser.parse_args([
-            "--concepts", "c.yaml",
-            "--transcripts", "t.txt",
-            "--output", "out.yaml",
-            "--no-pedagogy",
-        ])
+        args = parser.parse_args(
+            [
+                "--concepts",
+                "c.yaml",
+                "--transcripts",
+                "t.txt",
+                "--output",
+                "out.yaml",
+                "--no-pedagogy",
+            ]
+        )
         assert args.no_pedagogy is True
 
     def test_no_network_flag_accepted(self) -> None:
@@ -350,12 +451,17 @@ class TestCoverageCLIV2Options:
         from forma.cli_domain import _build_coverage_parser
 
         parser = _build_coverage_parser()
-        args = parser.parse_args([
-            "--concepts", "c.yaml",
-            "--transcripts", "t.txt",
-            "--output", "out.yaml",
-            "--no-network",
-        ])
+        args = parser.parse_args(
+            [
+                "--concepts",
+                "c.yaml",
+                "--transcripts",
+                "t.txt",
+                "--output",
+                "out.yaml",
+                "--no-network",
+            ]
+        )
         assert args.no_network is True
 
     def test_defaults_false(self) -> None:
@@ -363,11 +469,16 @@ class TestCoverageCLIV2Options:
         from forma.cli_domain import _build_coverage_parser
 
         parser = _build_coverage_parser()
-        args = parser.parse_args([
-            "--concepts", "c.yaml",
-            "--transcripts", "t.txt",
-            "--output", "out.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "--concepts",
+                "c.yaml",
+                "--transcripts",
+                "t.txt",
+                "--output",
+                "out.yaml",
+            ]
+        )
         assert args.no_pedagogy is False
         assert args.no_network is False
         assert args.model is None

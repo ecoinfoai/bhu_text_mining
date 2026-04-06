@@ -79,7 +79,8 @@ class TestEdgeCaseHunter:
         ]
         results = [
             _make_comparison_result(
-                f"S{i}", 1,
+                f"S{i}",
+                1,
                 matched=[
                     TripletEdge("A", "R", "B"),
                     TripletEdge("C", "S", "D"),
@@ -99,10 +100,7 @@ class TestEdgeCaseHunter:
             TripletEdge("A", "R", "B"),
             TripletEdge("C", "S", "D"),
         ]
-        results = [
-            _make_comparison_result(f"S{i}", 1)
-            for i in range(200)
-        ]
+        results = [_make_comparison_result(f"S{i}", 1) for i in range(200)]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         for edge in agg.edges:
             assert edge.correct_ratio == pytest.approx(0.0)
@@ -117,7 +115,8 @@ class TestEdgeCaseHunter:
         reversed_edge = TripletEdge("Y", "causes", "X")
         results = [
             _make_comparison_result(
-                f"S{i}", 1,
+                f"S{i}",
+                1,
                 wrong_direction=[reversed_edge],
             )
             for i in range(200)
@@ -132,11 +131,7 @@ class TestEdgeCaseHunter:
 
     def test_empty_master_edges_non_empty_students(self):
         """Empty master_edges with non-empty students -> empty edges list."""
-        results = [
-            _make_comparison_result(f"S{i}", 1,
-                                    matched=[TripletEdge("A", "R", "B")])
-            for i in range(5)
-        ]
+        results = [_make_comparison_result(f"S{i}", 1, matched=[TripletEdge("A", "R", "B")]) for i in range(5)]
         agg = build_class_knowledge_aggregate([], results, question_sn=1)
         assert agg.edges == []
         assert agg.total_students == 5
@@ -158,7 +153,8 @@ class TestEdgeCaseHunter:
         # Student has BOTH the correct edge AND the reversed edge
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 matched=[TripletEdge("A", "R", "B")],
                 wrong_direction=[TripletEdge("B", "R", "A")],
             ),
@@ -182,17 +178,20 @@ class TestEdgeCaseHunter:
         results = [
             # S001: correct (matched)
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 matched=[TripletEdge("A", "R", "B")],
             ),
             # S002: error (wrong direction only)
             _make_comparison_result(
-                "S002", 1,
+                "S002",
+                1,
                 wrong_direction=[TripletEdge("B", "R", "A")],
             ),
             # S003: correct + wrong (both present — matched takes priority)
             _make_comparison_result(
-                "S003", 1,
+                "S003",
+                1,
                 matched=[TripletEdge("A", "R", "B")],
                 wrong_direction=[TripletEdge("B", "R", "A")],
             ),
@@ -201,9 +200,9 @@ class TestEdgeCaseHunter:
         ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         edge = agg.edges[0]
-        assert edge.correct_count == 2   # S001 + S003
-        assert edge.error_count == 1     # S002
-        assert edge.missing_count == 1   # S004
+        assert edge.correct_count == 2  # S001 + S003
+        assert edge.error_count == 1  # S002
+        assert edge.missing_count == 1  # S004
         assert edge.total_students == 4
         assert edge.correct_ratio == pytest.approx(0.5)
 
@@ -212,7 +211,8 @@ class TestEdgeCaseHunter:
         master = [TripletEdge(f"S{i}", "R", f"O{i}") for i in range(100)]
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 matched=[master[0]],  # only first edge matched
             ),
         ]
@@ -234,13 +234,11 @@ class TestMemorySaboteur:
         """1000 students with 10 master edges completes without error."""
         master = [TripletEdge(f"S{i}", "R", f"O{i}") for i in range(10)]
         # Properly reverse wrong_direction edges (student writes O->R->S)
-        reversed_5_8 = [
-            TripletEdge(me.object, me.relation, me.subject)
-            for me in master[5:8]
-        ]
+        reversed_5_8 = [TripletEdge(me.object, me.relation, me.subject) for me in master[5:8]]
         results = [
             _make_comparison_result(
-                f"S{i}", 1,
+                f"S{i}",
+                1,
                 matched=master[:5],
                 wrong_direction=reversed_5_8,
             )
@@ -293,9 +291,7 @@ class TestTypeSystemAntagonist:
     def test_correct_ratio_is_float_not_int(self):
         """correct_ratio must be float, never int (even when ratio is exactly 1)."""
         master = [TripletEdge("A", "R", "B")]
-        results = [
-            _make_comparison_result("S001", 1, matched=[TripletEdge("A", "R", "B")])
-        ]
+        results = [_make_comparison_result("S001", 1, matched=[TripletEdge("A", "R", "B")])]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         assert isinstance(agg.edges[0].correct_ratio, float)
 
@@ -307,7 +303,8 @@ class TestTypeSystemAntagonist:
         master = [TripletEdge("A", "R", "B")]
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 wrong_direction=[TripletEdge("B", "R", "A")],
             ),
         ]
@@ -352,9 +349,7 @@ class TestTypeSystemAntagonist:
     def test_counts_are_int_not_float(self):
         """correct_count, error_count, missing_count must be int."""
         master = [TripletEdge("A", "R", "B")]
-        results = [
-            _make_comparison_result("S001", 1, matched=[TripletEdge("A", "R", "B")])
-        ]
+        results = [_make_comparison_result("S001", 1, matched=[TripletEdge("A", "R", "B")])]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         edge = agg.edges[0]
         assert isinstance(edge.correct_count, int)
@@ -369,9 +364,7 @@ class TestTypeSystemAntagonist:
         results = []
         for i in range(11):
             if i < 7:
-                results.append(_make_comparison_result(
-                    f"S{i}", 1, matched=[TripletEdge("A", "R", "B")]
-                ))
+                results.append(_make_comparison_result(f"S{i}", 1, matched=[TripletEdge("A", "R", "B")]))
             else:
                 results.append(_make_comparison_result(f"S{i}", 1))
 
@@ -401,14 +394,8 @@ class TestConcurrencyDestroyer:
         master1 = [TripletEdge("A", "R1", "B")]
         master2 = [TripletEdge("C", "R2", "D")]
 
-        results1 = [
-            _make_comparison_result("S001", 1, matched=[TripletEdge("A", "R1", "B")])
-            for _ in range(10)
-        ]
-        results2 = [
-            _make_comparison_result("S001", 2)
-            for _ in range(5)
-        ]
+        results1 = [_make_comparison_result("S001", 1, matched=[TripletEdge("A", "R1", "B")]) for _ in range(10)]
+        results2 = [_make_comparison_result("S001", 2) for _ in range(5)]
 
         outputs: dict[str, ClassKnowledgeAggregate] = {}
         errors: list[Exception] = []
@@ -443,7 +430,8 @@ class TestConcurrencyDestroyer:
         master = [TripletEdge("A", "R", "B")]
         results = [
             _make_comparison_result(
-                f"S{i}", 1,
+                f"S{i}",
+                1,
                 matched=[TripletEdge("A", "R", "B")] if i % 2 == 0 else [],
                 wrong_direction=[TripletEdge("A", "R", "B")] if i % 2 == 1 else [],
             )
@@ -486,15 +474,16 @@ class TestPDFKiller:
         ]
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 matched=[TripletEdge('<script>alert("xss")</script>', "관계", "A & B")],
             ),
         ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
         assert len(agg.edges) == 1
         edge = agg.edges[0]
-        assert '<script>' in edge.subject
-        assert '&' in edge.obj
+        assert "<script>" in edge.subject
+        assert "&" in edge.obj
 
     def test_concept_name_200_chars(self):
         """Very long concept name (200+ chars) in edge."""
@@ -509,7 +498,8 @@ class TestPDFKiller:
         master = [TripletEdge(f"S{i}", "R", f"O{i}") for i in range(500)]
         results = [
             _make_comparison_result(
-                f"S{j}", 1,
+                f"S{j}",
+                1,
                 matched=[master[0], master[1]],
             )
             for j in range(10)
@@ -524,9 +514,7 @@ class TestPDFKiller:
         results = []
         for i in range(10):
             if i < 3:
-                results.append(_make_comparison_result(
-                    f"S{i}", 1, matched=[TripletEdge("A", "R", "B")]
-                ))
+                results.append(_make_comparison_result(f"S{i}", 1, matched=[TripletEdge("A", "R", "B")]))
             else:
                 results.append(_make_comparison_result(f"S{i}", 1))
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
@@ -539,9 +527,7 @@ class TestPDFKiller:
         results = []
         for j in range(100):
             if j == 0:
-                results.append(_make_comparison_result(
-                    f"S{j}", 1, matched=[master[0]]
-                ))
+                results.append(_make_comparison_result(f"S{j}", 1, matched=[master[0]]))
             else:
                 results.append(_make_comparison_result(f"S{j}", 1))
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
@@ -583,9 +569,7 @@ class TestDataIntegrityEnforcer:
                         # Store the REVERSED edge (student's wrong direction)
                         wrong.append(TripletEdge(me.object, me.relation, me.subject))
                     # else: missing
-                results.append(_make_comparison_result(
-                    f"S{j}", 1, matched=matched, wrong_direction=wrong
-                ))
+                results.append(_make_comparison_result(f"S{j}", 1, matched=matched, wrong_direction=wrong))
 
             agg = build_class_knowledge_aggregate(master, results, question_sn=1)
             for edge in agg.edges:
@@ -613,16 +597,13 @@ class TestDataIntegrityEnforcer:
                     for me in master
                     if me not in matched and random.random() < 0.3
                 ]
-                results.append(_make_comparison_result(
-                    f"S{j}", 1, matched=matched, wrong_direction=wrong
-                ))
+                results.append(_make_comparison_result(f"S{j}", 1, matched=matched, wrong_direction=wrong))
 
             agg = build_class_knowledge_aggregate(master, results, question_sn=1)
             for edge in agg.edges:
                 expected = edge.correct_count / edge.total_students if edge.total_students > 0 else 0.0
                 assert abs(edge.correct_ratio - expected) < 1e-9, (
-                    f"Trial {trial}: ratio mismatch: "
-                    f"{edge.correct_ratio} vs {expected}"
+                    f"Trial {trial}: ratio mismatch: {edge.correct_ratio} vs {expected}"
                 )
 
     def test_correct_ratio_bounded_0_to_1(self):
@@ -668,7 +649,8 @@ class TestDataIntegrityEnforcer:
         # Wrong direction: stores student's reversed edge (B→A), not master (A→B)
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 wrong_direction=[TripletEdge("B", "R", "A")],
             ),
         ]
@@ -682,7 +664,8 @@ class TestDataIntegrityEnforcer:
         master = [TripletEdge("Subject1", "Relation1", "Object1")]
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 matched=[TripletEdge("Subject1", "Relation1", "Object1")],
             ),
         ]
@@ -710,7 +693,8 @@ class TestDataIntegrityEnforcer:
         # Student reverses A->R1->B producing B->R1->A in wrong_direction
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 wrong_direction=[TripletEdge("B", "R1", "A")],
             ),
         ]
@@ -738,7 +722,8 @@ class TestDataIntegrityEnforcer:
         # Student reverses it but writes a different relation
         results = [
             _make_comparison_result(
-                "S001", 1,
+                "S001",
+                1,
                 wrong_direction=[TripletEdge("B", "caused-by", "A")],
             ),
         ]
@@ -756,10 +741,7 @@ class TestDataIntegrityEnforcer:
         for trial in range(1000):
             n_edges = random.randint(1, 8)
             n_students = random.randint(0, 30)
-            master = [
-                TripletEdge(f"S{i}", relations[i % len(relations)], f"O{i}")
-                for i in range(n_edges)
-            ]
+            master = [TripletEdge(f"S{i}", relations[i % len(relations)], f"O{i}") for i in range(n_edges)]
 
             results = []
             for j in range(n_students):
@@ -771,9 +753,7 @@ class TestDataIntegrityEnforcer:
                         matched.append(me)
                     elif r < 0.65:
                         wrong.append(TripletEdge(me.object, me.relation, me.subject))
-                results.append(_make_comparison_result(
-                    f"S{j}", 1, matched=matched, wrong_direction=wrong
-                ))
+                results.append(_make_comparison_result(f"S{j}", 1, matched=matched, wrong_direction=wrong))
 
             agg = build_class_knowledge_aggregate(master, results, question_sn=1)
             for edge in agg.edges:

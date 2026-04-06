@@ -85,11 +85,7 @@ class TestExtractConcepts:
 
     def test_filters_general_nouns(self) -> None:
         """General nouns like 것, 수, 때, 등 are filtered out."""
-        text = (
-            "것은 수가 때에 등은 중에 위에 있다. "
-            "표피는 표피의 구조가 중요하다. "
-            "표피의 세포는 각질세포이다."
-        )
+        text = "것은 수가 때에 등은 중에 위에 있다. 표피는 표피의 구조가 중요하다. 표피의 세포는 각질세포이다."
         concepts = extract_concepts(text, "test")
         names = {c.name_ko for c in concepts}
         for stopword in ["것", "수", "때", "등", "중", "위"]:
@@ -113,9 +109,7 @@ class TestExtractConcepts:
         """context_sentence contains the concept term."""
         concepts = extract_concepts(SAMPLE_CHAPTER_TEXT, "3장 피부")
         for c in concepts:
-            assert c.name_ko in c.context_sentence, (
-                f"Context for '{c.name_ko}' should contain the term"
-            )
+            assert c.name_ko in c.context_sentence, f"Context for '{c.name_ko}' should contain the term"
 
     def test_sorted_by_frequency_descending(self) -> None:
         """Results are sorted by frequency in descending order."""
@@ -576,7 +570,8 @@ class TestMultiChapterLLMAndYAML:
             file2.write_text(SAMPLE_CHAPTER_TEXT_2, encoding="utf-8")
 
             result = extract_multi_chapter_llm(
-                [str(file1), str(file2)], no_cache=True,
+                [str(file1), str(file2)],
+                no_cache=True,
             )
 
         assert "3장 피부" in result
@@ -711,9 +706,7 @@ class TestParseSummaryHierarchy:
         hierarchy = parse_summary_hierarchy(str(summary))
 
         # 피부의 구조 has 표피 and 진피
-        structure_topic = [
-            m for m in hierarchy.major_topics if m.name == "피부의 구조"
-        ][0]
+        structure_topic = [m for m in hierarchy.major_topics if m.name == "피부의 구조"][0]
         sub_names = [s.name for s in structure_topic.sub_topics]
         assert "표피(epidermis)" in sub_names
         assert "진피(dermis)" in sub_names
@@ -726,12 +719,8 @@ class TestParseSummaryHierarchy:
 
         hierarchy = parse_summary_hierarchy(str(summary))
 
-        structure_topic = [
-            m for m in hierarchy.major_topics if m.name == "피부의 구조"
-        ][0]
-        epidermis_sub = [
-            s for s in structure_topic.sub_topics if s.name == "표피(epidermis)"
-        ][0]
+        structure_topic = [m for m in hierarchy.major_topics if m.name == "피부의 구조"][0]
+        epidermis_sub = [s for s in structure_topic.sub_topics if s.name == "표피(epidermis)"][0]
         assert "각질층" in epidermis_sub.sections
         assert "기저층" in epidermis_sub.sections
         assert len(epidermis_sub.sections) == 5
@@ -863,7 +852,9 @@ class TestChunkTextbookBySections:
         )
 
         chunks = chunk_textbook_by_sections(
-            text, summary_path=str(summary), max_chars=12000,
+            text,
+            summary_path=str(summary),
+            max_chars=12000,
         )
 
         assert len(chunks) == 3
@@ -922,7 +913,9 @@ class TestChunkTextbookBySections:
         )
 
         chunks = chunk_textbook_by_sections(
-            text, summary_path=str(summary), max_chars=12000,
+            text,
+            summary_path=str(summary),
+            max_chars=12000,
         )
 
         assert len(chunks) == 2

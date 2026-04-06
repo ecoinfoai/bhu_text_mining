@@ -40,7 +40,7 @@ __all__ = [
 _ILLEGAL_CHARS = re.compile(r'[<>:"/\\|?*]')
 
 # Tab/newline/CR are preserved by strip_invisible() but illegal in filenames
-_FILENAME_WHITESPACE = re.compile(r'[\t\n\r]')
+_FILENAME_WHITESPACE = re.compile(r"[\t\n\r]")
 
 
 # ---------------------------------------------------------------------------
@@ -178,9 +178,7 @@ def load_manifest(path: str) -> DeliveryManifest:
 
     for pat in file_patterns:
         if "{student_id}" not in pat:
-            raise ValueError(
-                f"Each file_pattern must contain '{{student_id}}': {pat}"
-            )
+            raise ValueError(f"Each file_pattern must contain '{{student_id}}': {pat}")
 
     return DeliveryManifest(directory=str(directory), file_patterns=list(file_patterns))
 
@@ -282,7 +280,8 @@ _MAX_ZIP_BYTES = 25 * 1024 * 1024
 
 
 def match_files_for_student(
-    manifest: DeliveryManifest, student_id: str,
+    manifest: DeliveryManifest,
+    student_id: str,
 ) -> list[str]:
     """Match report files for a student based on manifest patterns.
 
@@ -297,7 +296,7 @@ def match_files_for_student(
         ValueError: If student_id contains path traversal characters.
     """
     # FR-001/FR-002: Path traversal defense
-    if any(c in student_id for c in ('/', '\\', '\x00')) or '..' in student_id:
+    if any(c in student_id for c in ("/", "\\", "\x00")) or ".." in student_id:
         raise ValueError(f"path traversal detected in student_id: {student_id!r}")
 
     if os.sep in student_id or (os.altsep and os.altsep in student_id):
@@ -425,11 +424,9 @@ def prepare_delivery(
     # Handle existing staging folder (FR-020)
     if os.path.exists(output_dir):
         if not force:
-            raise FileExistsError(
-                f"Output directory already exists: {output_dir}\n"
-                "Use --force flag to overwrite."
-            )
+            raise FileExistsError(f"Output directory already exists: {output_dir}\nUse --force flag to overwrite.")
         import shutil
+
         shutil.rmtree(output_dir)
 
     os.makedirs(output_dir, exist_ok=True)
@@ -439,13 +436,15 @@ def prepare_delivery(
     for student in roster.students:
         # FR-021: skip students with empty or invalid email
         if not student.email or "@" not in student.email:
-            details.append(StudentPrepareResult(
-                student_id=student.student_id,
-                name=student.name,
-                email=student.email,
-                status="error",
-                message="email missing or invalid format",
-            ))
+            details.append(
+                StudentPrepareResult(
+                    student_id=student.student_id,
+                    name=student.name,
+                    email=student.email,
+                    status="error",
+                    message="email missing or invalid format",
+                )
+            )
             continue
 
         # Match files
@@ -454,13 +453,15 @@ def prepare_delivery(
 
         if not matched:
             # No files found at all → error
-            details.append(StudentPrepareResult(
-                student_id=student.student_id,
-                name=student.name,
-                email=student.email,
-                status="error",
-                message="no matching files found",
-            ))
+            details.append(
+                StudentPrepareResult(
+                    student_id=student.student_id,
+                    name=student.name,
+                    email=student.email,
+                    status="error",
+                    message="no matching files found",
+                )
+            )
             continue
 
         # Create student staging directory
@@ -480,14 +481,16 @@ def prepare_delivery(
         # Check zip size limit (FR-015)
         if zip_size > _MAX_ZIP_BYTES:
             os.remove(zip_path)
-            details.append(StudentPrepareResult(
-                student_id=student.student_id,
-                name=student.name,
-                email=student.email,
-                status="error",
-                matched_files=matched,
-                message=f"zip size exceeds 25MB limit: {zip_size} bytes",
-            ))
+            details.append(
+                StudentPrepareResult(
+                    student_id=student.student_id,
+                    name=student.name,
+                    email=student.email,
+                    status="error",
+                    matched_files=matched,
+                    message=f"zip size exceeds 25MB limit: {zip_size} bytes",
+                )
+            )
             continue
 
         # Determine status based on match completeness
@@ -499,16 +502,18 @@ def prepare_delivery(
             status = "ready"
             message = ""
 
-        details.append(StudentPrepareResult(
-            student_id=student.student_id,
-            name=student.name,
-            email=student.email,
-            status=status,
-            matched_files=matched,
-            zip_path=zip_path,
-            zip_size_bytes=zip_size,
-            message=message,
-        ))
+        details.append(
+            StudentPrepareResult(
+                student_id=student.student_id,
+                name=student.name,
+                email=student.email,
+                status=status,
+                matched_files=matched,
+                zip_path=zip_path,
+                zip_size_bytes=zip_size,
+                message=message,
+            )
+        )
 
     ready_count = sum(1 for d in details if d.status == "ready")
     warning_count = sum(1 for d in details if d.status == "warning")
@@ -530,7 +535,10 @@ def prepare_delivery(
 
     logger.info(
         "Prepare complete: %d students (ready=%d, warning=%d, error=%d)",
-        summary.total_students, ready_count, warning_count, error_count,
+        summary.total_students,
+        ready_count,
+        warning_count,
+        error_count,
     )
 
     return summary

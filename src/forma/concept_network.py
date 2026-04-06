@@ -105,11 +105,10 @@ def build_concept_network(
     """
     # Filter by importance if > 30 concepts
     if len(concepts) > 30:
-        concepts = [
-            c for c in concepts if c.importance in ("high", "medium")
-        ]
+        concepts = [c for c in concepts if c.importance in ("high", "medium")]
         logger.info(
-            "Filtered to %d high/medium concepts (>30 total)", len(concepts),
+            "Filtered to %d high/medium concepts (>30 total)",
+            len(concepts),
         )
 
     # Build nodes
@@ -134,12 +133,14 @@ def build_concept_network(
         shared = terms1 & terms2
         if len(shared) >= min_shared_terms:
             weight = len(shared) / min(len(terms1), len(terms2))
-            edges.append(ConceptEdge(
-                source=c1.concept,
-                target=c2.concept,
-                relationship="shared_terms",
-                weight=weight,
-            ))
+            edges.append(
+                ConceptEdge(
+                    source=c1.concept,
+                    target=c2.concept,
+                    relationship="shared_terms",
+                    weight=weight,
+                )
+            )
 
     # Semantic edges via embeddings
     if len(concepts) >= 2:
@@ -164,12 +165,14 @@ def build_concept_network(
                     continue
                 cosine = float(sim_matrix[i, j])
                 if cosine > similarity_threshold:
-                    edges.append(ConceptEdge(
-                        source=concepts[i].concept,
-                        target=concepts[j].concept,
-                        relationship="semantic",
-                        weight=cosine,
-                    ))
+                    edges.append(
+                        ConceptEdge(
+                            source=concepts[i].concept,
+                            target=concepts[j].concept,
+                            relationship="semantic",
+                            weight=cosine,
+                        )
+                    )
         except Exception:
             logger.warning("Semantic edge computation failed", exc_info=True)
 

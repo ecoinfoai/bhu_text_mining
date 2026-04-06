@@ -237,11 +237,11 @@ class TestV1FallbackTester:
         concepts = ["표피의 4층 구조", "진피 구조"]
 
         with patch("forma.emphasis_map.compute_emphasis_map") as mock_em:
-            mock_em.return_value = MagicMock(
-                concept_scores={"표피의 4층 구조": 0.4, "진피 구조": 0.01}
-            )
+            mock_em.return_value = MagicMock(concept_scores={"표피의 4층 구조": 0.4, "진피 구조": 0.01})
             results = v1_fallback_analysis(
-                concepts, str(transcript), "A",
+                concepts,
+                str(transcript),
+                "A",
             )
 
         assert len(results) == 2
@@ -261,10 +261,7 @@ class TestV1FallbackTester:
         results = v1_fallback_analysis(concepts, str(transcript), "A")
 
         assert len(results) == 2
-        assert all(
-            r.delivery_status == DeliveryState.NOT_DELIVERED.value
-            for r in results
-        )
+        assert all(r.delivery_status == DeliveryState.NOT_DELIVERED.value for r in results)
         assert all(r.analysis_level == "v1" for r in results)
 
     def test_v1_fallback_empty_concepts(self, tmp_path):
@@ -282,17 +279,20 @@ class TestV1FallbackTester:
         transcript = tmp_path / "B_week3.txt"
         transcript.write_text("진피는 피부의 두 번째 층입니다.", encoding="utf-8")
 
-        with patch(
-            "forma.domain_coverage_analyzer.analyze_delivery_llm",
-            side_effect=RuntimeError("LLM unavailable"),
-        ), patch(
-            "forma.emphasis_map.compute_emphasis_map",
-        ) as mock_em:
-            mock_em.return_value = MagicMock(
-                concept_scores={"진피": 0.35}
-            )
+        with (
+            patch(
+                "forma.domain_coverage_analyzer.analyze_delivery_llm",
+                side_effect=RuntimeError("LLM unavailable"),
+            ),
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+            ) as mock_em,
+        ):
+            mock_em.return_value = MagicMock(concept_scores={"진피": 0.35})
             results = analyze_delivery_with_fallback(
-                ["진피"], str(transcript), "B",
+                ["진피"],
+                str(transcript),
+                "B",
             )
 
         assert len(results) == 1
@@ -396,8 +396,11 @@ class TestEmptyInputTerrorist:
     def test_save_load_delivery_empty_deliveries(self, tmp_path):
         """SURVIVED: Round-trip empty delivery result."""
         result = DeliveryResult(
-            week=0, chapters=[], deliveries=[],
-            effective_delivery_rate=0.0, per_section_rate={},
+            week=0,
+            chapters=[],
+            deliveries=[],
+            effective_delivery_rate=0.0,
+            per_section_rate={},
         )
         path = str(tmp_path / "empty.yaml")
         save_delivery_yaml(result, path)
@@ -506,30 +509,24 @@ class TestPedagogyIsolationInspector:
 
     def test_pedagogy_response_domain_ratio_clamped(self):
         """SURVIVED: domain_ratio is clamped to [0.0, 1.0]."""
-        yaml_text = (
-            "habitual_expressions: []\n"
-            "effective_patterns: []\n"
-            "domain_ratio: 5.0\n"
-        )
+        yaml_text = "habitual_expressions: []\neffective_patterns: []\ndomain_ratio: 5.0\n"
         result = _parse_pedagogy_response(yaml_text, "A")
         assert result.domain_ratio <= 1.0
 
-        yaml_text2 = (
-            "habitual_expressions: []\n"
-            "effective_patterns: []\n"
-            "domain_ratio: -0.5\n"
-        )
+        yaml_text2 = "habitual_expressions: []\neffective_patterns: []\ndomain_ratio: -0.5\n"
         result2 = _parse_pedagogy_response(yaml_text2, "A")
         assert result2.domain_ratio >= 0.0
 
     def test_pedagogy_limits_habitual_to_5(self):
         """SURVIVED: Habitual expressions capped at 5."""
-        yaml_text = "habitual_expressions:\n" + "".join(
-            f"  - expression: expr_{i}\n"
-            f"    total_count: {10 + i}\n"
-            f"    recommendation: 정상 범위\n"
-            for i in range(10)
-        ) + "effective_patterns: []\ndomain_ratio: 0.5\n"
+        yaml_text = (
+            "habitual_expressions:\n"
+            + "".join(
+                f"  - expression: expr_{i}\n    total_count: {10 + i}\n    recommendation: 정상 범위\n"
+                for i in range(10)
+            )
+            + "effective_patterns: []\ndomain_ratio: 0.5\n"
+        )
         result = _parse_pedagogy_response(yaml_text, "A")
         assert len(result.habitual_expressions) <= 5
 
@@ -582,7 +579,8 @@ class TestCachePoisoner:
 
         # Save cache with original content
         _save_v2_cache(
-            str(textbook), "original content",
+            str(textbook),
+            "original content",
             [_make_domain_concept()],
         )
 
@@ -689,7 +687,7 @@ class TestUnicodeSaboteur:
             "  - concept: 표피\n"
             "    delivery_status: 충분히 설명\n"
             "    delivery_quality: 0.8\n"
-            "    evidence: \"표피\u200b는 중요\u200d합니다 \U0001f4a1\"\n"
+            '    evidence: "표피\u200b는 중요\u200d합니다 \U0001f4a1"\n'
             "    depth: 상세 설명\n"
         )
         result = _parse_delivery_response(yaml_text, "A")
@@ -767,8 +765,10 @@ class TestDivisionByZeroHunter:
         from forma.domain_coverage_charts import build_delivery_bar_chart
 
         result = DeliveryResult(
-            week=1, chapters=["3장"],
-            deliveries=[], effective_delivery_rate=0.0,
+            week=1,
+            chapters=["3장"],
+            deliveries=[],
+            effective_delivery_rate=0.0,
             per_section_rate={"A": 0.0, "B": 0.0},
         )
         buf = build_delivery_bar_chart(result)
@@ -779,8 +779,10 @@ class TestDivisionByZeroHunter:
         from forma.domain_coverage_charts import build_delivery_heatmap
 
         result = DeliveryResult(
-            week=1, chapters=["3장"],
-            deliveries=[], effective_delivery_rate=0.0,
+            week=1,
+            chapters=["3장"],
+            deliveries=[],
+            effective_delivery_rate=0.0,
             per_section_rate={},
         )
         buf = build_delivery_heatmap(result)
@@ -815,7 +817,9 @@ class TestNetworkBreaker:
             edges=[("표피", "진피", 3.0)],
         )
         lecture = _make_keyword_network(
-            source="A", nodes=[], edges=[],
+            source="A",
+            nodes=[],
+            edges=[],
         )
         missing = compare_networks(textbook, lecture)
         assert len(missing) == 1
@@ -877,9 +881,7 @@ class TestDeliveryQualityBoundary:
         transcript.write_text("표피 설명", encoding="utf-8")
 
         with patch("forma.emphasis_map.compute_emphasis_map") as mock_em:
-            mock_em.return_value = MagicMock(
-                concept_scores={"표피": 0.3}
-            )
+            mock_em.return_value = MagicMock(concept_scores={"표피": 0.3})
             results = v1_fallback_analysis(["표피"], str(transcript), "A")
 
         assert results[0].delivery_status == DeliveryState.FULLY_DELIVERED.value
@@ -890,9 +892,7 @@ class TestDeliveryQualityBoundary:
         transcript.write_text("표피 설명", encoding="utf-8")
 
         with patch("forma.emphasis_map.compute_emphasis_map") as mock_em:
-            mock_em.return_value = MagicMock(
-                concept_scores={"표피": 0.29}
-            )
+            mock_em.return_value = MagicMock(concept_scores={"표피": 0.29})
             results = v1_fallback_analysis(["표피"], str(transcript), "A")
 
         assert results[0].delivery_status == DeliveryState.PARTIALLY_DELIVERED.value
@@ -903,9 +903,7 @@ class TestDeliveryQualityBoundary:
         transcript.write_text("표피 설명", encoding="utf-8")
 
         with patch("forma.emphasis_map.compute_emphasis_map") as mock_em:
-            mock_em.return_value = MagicMock(
-                concept_scores={"표피": 0.05}
-            )
+            mock_em.return_value = MagicMock(concept_scores={"표피": 0.05})
             results = v1_fallback_analysis(["표피"], str(transcript), "A")
 
         assert results[0].delivery_status == DeliveryState.PARTIALLY_DELIVERED.value
@@ -916,9 +914,7 @@ class TestDeliveryQualityBoundary:
         transcript.write_text("표피 설명", encoding="utf-8")
 
         with patch("forma.emphasis_map.compute_emphasis_map") as mock_em:
-            mock_em.return_value = MagicMock(
-                concept_scores={"표피": 0.04}
-            )
+            mock_em.return_value = MagicMock(concept_scores={"표피": 0.04})
             results = v1_fallback_analysis(["표피"], str(transcript), "A")
 
         assert results[0].delivery_status == DeliveryState.NOT_DELIVERED.value
@@ -1023,8 +1019,11 @@ class TestRegressionSniffer:
         from forma.domain_concept_extractor import TextbookConcept
 
         concept = TextbookConcept(
-            name_ko="세포", name_en="cell", chapter="1장",
-            frequency=5, context_sentence="세포 설명",
+            name_ko="세포",
+            name_en="cell",
+            chapter="1장",
+            frequency=5,
+            context_sentence="세포 설명",
             is_bilingual=True,
         )
         from forma.domain_coverage_analyzer import (
@@ -1037,17 +1036,23 @@ class TestRegressionSniffer:
             concept=concept,
             state=ConceptState.COVERED,
             emphasis=ConceptEmphasis(
-                concept_name="세포", chapter="1장",
+                concept_name="세포",
+                chapter="1장",
                 section_scores={"A": 0.5},
-                mean_score=0.5, std_score=0.0,
+                mean_score=0.5,
+                std_score=0.0,
             ),
             in_scope=True,
         )
         cov_result = CoverageResult(
-            week=1, chapters=["1장"],
+            week=1,
+            chapters=["1장"],
             total_textbook_concepts=1,
-            in_scope_count=1, skipped_count=0,
-            covered_count=1, gap_count=0, extra_count=0,
+            in_scope_count=1,
+            skipped_count=0,
+            covered_count=1,
+            gap_count=0,
+            extra_count=0,
             effective_coverage_rate=1.0,
             per_section_coverage={"A": 1.0},
             classified_concepts=[classified],
@@ -1075,10 +1080,14 @@ class TestRegressionSniffer:
         )
 
         result = CoverageResult(
-            week=1, chapters=["1장"],
+            week=1,
+            chapters=["1장"],
             total_textbook_concepts=0,
-            in_scope_count=0, skipped_count=0,
-            covered_count=0, gap_count=0, extra_count=0,
+            in_scope_count=0,
+            skipped_count=0,
+            covered_count=0,
+            gap_count=0,
+            extra_count=0,
             effective_coverage_rate=0.0,
             per_section_coverage={},
             classified_concepts=[],
@@ -1102,4 +1111,5 @@ class TestRegressionSniffer:
             DomainCoveragePDFReportGenerator,
             DomainDeliveryPDFReportGenerator,
         )
+
         assert DomainCoveragePDFReportGenerator is DomainDeliveryPDFReportGenerator

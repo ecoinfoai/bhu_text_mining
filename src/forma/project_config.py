@@ -24,8 +24,15 @@ logger = logging.getLogger(__name__)
 
 # Known top-level sections in forma.yaml
 _KNOWN_SECTIONS = {
-    "project", "classes", "paths", "ocr", "evaluation", "reports",
-    "prediction", "current_week", "domain_analysis",
+    "project",
+    "classes",
+    "paths",
+    "ocr",
+    "evaluation",
+    "reports",
+    "prediction",
+    "current_week",
+    "domain_analysis",
 }
 
 # Known keys within each section
@@ -33,13 +40,20 @@ _KNOWN_KEYS: dict[str, set[str]] = {
     "project": {"course_name", "year", "semester", "grade"},
     "classes": {"identifiers", "join_pattern", "eval_pattern"},
     "paths": {
-        "exam_config", "join_dir", "output_dir", "longitudinal_store",
+        "exam_config",
+        "join_dir",
+        "output_dir",
+        "longitudinal_store",
         "font_path",
     },
     "ocr": {"naver_config", "credentials", "spreadsheet_url", "num_questions", "ocr_model"},
     "evaluation": {
-        "provider", "model", "skip_feedback", "skip_graph",
-        "skip_statistical", "n_calls",
+        "provider",
+        "model",
+        "skip_feedback",
+        "skip_graph",
+        "skip_statistical",
+        "n_calls",
     },
     "reports": {"dpi", "skip_llm", "aggregate"},
     "prediction": {"model_path"},
@@ -208,8 +222,7 @@ def load_project_config(path: Path) -> dict:
         data = yaml.safe_load(f)
     if data is not None and not isinstance(data, dict):
         logger.warning(
-            "Configuration file %s contains non-dict data (type: %s); "
-            "treating as empty configuration",
+            "Configuration file %s contains non-dict data (type: %s); treating as empty configuration",
             path,
             type(data).__name__,
         )
@@ -246,7 +259,9 @@ def validate_project_config(config_dict: dict) -> None:
         for key in section_data:
             if key not in known_keys:
                 logger.warning(
-                    "Unknown key '%s' in section '%s'", key, section,
+                    "Unknown key '%s' in section '%s'",
+                    key,
+                    section,
                 )
 
     # --- Type and value checks ---
@@ -489,6 +504,7 @@ def apply_project_config(
 # ---------------------------------------------------------------------------
 # Internal validation helpers
 # ---------------------------------------------------------------------------
+
 
 def _check_int(section: dict, key: str, errors: list[str]) -> None:
     """Check that a key, if present, is an int (not bool)."""

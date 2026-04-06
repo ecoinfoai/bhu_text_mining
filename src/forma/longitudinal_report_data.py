@@ -7,6 +7,7 @@ No LLM API calls.
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -79,19 +80,21 @@ class TopicTrendResult:
 
     Args:
         topic: Topic name.
-        kendall_tau: Kendall's tau correlation coefficient.
-        kendall_p: Kendall's tau p-value.
-        spearman_rho: Spearman's rho correlation coefficient.
-        spearman_p: Spearman's rho p-value.
+        kendall_tau: Kendall's tau; None if < 3 data points.
+        kendall_p: p-value for tau; None if < 3 data points.
+        spearman_rho: Spearman's rho; None if < 3 data points.
+        spearman_p: p-value for rho; None if < 3 data points.
         n_weeks: Number of weeks used for trend computation.
+        interpretation: Korean text interpretation (empty if not computed).
     """
 
     topic: str
-    kendall_tau: float
-    kendall_p: float
-    spearman_rho: float
-    spearman_p: float
+    kendall_tau: float | None
+    kendall_p: float | None
+    spearman_rho: float | None
+    spearman_p: float | None
     n_weeks: int
+    interpretation: str = ""
 
 
 @dataclass
@@ -166,10 +169,7 @@ def build_longitudinal_summary(
         for rec in store.get_all_records():
             if rec.class_id in class_ids:
                 allowed_sids.add(rec.student_id)
-        matrix = {
-            sid: ws for sid, ws in matrix.items()
-            if sid in allowed_sids
-        }
+        matrix = {sid: ws for sid, ws in matrix.items() if sid in allowed_sids}
 
     # Collect all student IDs that have data in the requested weeks
     student_ids = set()
@@ -201,34 +201,29 @@ def build_longitudinal_summary(
         # Persistent risk: at_risk every week in the requested period
         # (only for weeks where student has data)
         weeks_with_data = [w for w in sorted_weeks if w in filtered]
-        is_persistent_risk = (
-            len(weeks_with_data) > 0
-            and all(_is_score_at_risk(filtered[w]) for w in weeks_with_data)
-        )
+        is_persistent_risk = len(weeks_with_data) > 0 and all(_is_score_at_risk(filtered[w]) for w in weeks_with_data)
 
-        trajectories.append(StudentTrajectory(
-            student_id=sid,
-            weekly_scores=filtered,
-            overall_trend=trend,
-            is_persistent_risk=is_persistent_risk,
-            risk_weeks=risk_weeks,
-        ))
+        trajectories.append(
+            StudentTrajectory(
+                student_id=sid,
+                weekly_scores=filtered,
+                overall_trend=trend,
+                is_persistent_risk=is_persistent_risk,
+                risk_weeks=risk_weeks,
+            )
+        )
 
     # Class weekly averages
     class_weekly_averages: dict[int, float] = {}
     for w in sorted_weeks:
-        week_scores = [
-            matrix[sid][w]
-            for sid in student_ids
-            if sid in matrix and w in matrix[sid]
-        ]
+        week_scores = [matrix[sid][w] for sid in student_ids if sid in matrix and w in matrix[sid]]
         if week_scores:
-            class_weekly_averages[w] = float(np.mean(week_scores))
+            with np.errstate(all="ignore"):
+                avg = float(np.nanmean(week_scores))
+            class_weekly_averages[w] = 0.0 if np.isnan(avg) else avg
 
     # Persistent risk students
-    persistent_risk_students = [
-        t.student_id for t in trajectories if t.is_persistent_risk
-    ]
+    persistent_risk_students = [t.student_id for t in trajectories if t.is_persistent_risk]
 
     # Concept mastery changes
     concept_mastery_changes = _compute_concept_mastery_changes(store, sorted_weeks)
@@ -276,12 +271,14 @@ def _compute_concept_mastery_changes(
     for concept in all_concepts:
         start = first_concept_scores.get(concept, 0.0)
         end = last_concept_scores.get(concept, 0.0)
-        changes.append(ConceptMasteryChange(
-            concept=concept,
-            week_start_ratio=start,
-            week_end_ratio=end,
-            delta=end - start,
-        ))
+        changes.append(
+            ConceptMasteryChange(
+                concept=concept,
+                week_start_ratio=start,
+                week_end_ratio=end,
+                delta=end - start,
+            )
+        )
 
     # Sort by delta descending
     changes.sort(key=lambda c: c.delta, reverse=True)
@@ -305,11 +302,7 @@ def _aggregate_concept_scores(
             for concept, ratio in rec.concept_scores.items():
                 concept_values[concept].append(ratio)
 
-    return {
-        concept: float(np.mean(values))
-        for concept, values in concept_values.items()
-        if values
-    }
+    return {concept: float(np.mean(values)) for concept, values in concept_values.items() if values}
 
 
 # ---------------------------------------------------------------------------
@@ -338,9 +331,7 @@ def compute_topic_class_statistics(
         return []
 
     # {topic: {week: [scores]}}
-    topic_week_scores: dict[
-        str, dict[int, list[float]]
-    ] = defaultdict(lambda: defaultdict(list))
+    topic_week_scores: dict[str, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
 
     for sid, topics in matrix.items():
         for topic, week_scores in topics.items():
@@ -356,14 +347,14 @@ def compute_topic_class_statistics(
             scores = topic_week_scores[topic].get(week, [])
             if not scores:
                 continue
-            results.append(TopicWeekStats(
-                topic=topic,
-                week=week,
-                mean=float(np.mean(scores)),
-                std=float(np.std(scores, ddof=1))
-                if len(scores) > 1
-                else 0.0,
-            ))
+            results.append(
+                TopicWeekStats(
+                    topic=topic,
+                    week=week,
+                    mean=float(np.mean(scores)),
+                    std=float(np.std(scores, ddof=1)) if len(scores) > 1 else 0.0,
+                )
+            )
 
     return results
 
@@ -391,7 +382,9 @@ def compute_topic_trends(
         return []
 
     stats = compute_topic_class_statistics(
-        store, sorted_weeks, class_ids,
+        store,
+        sorted_weeks,
+        class_ids,
     )
     if not stats:
         return []
@@ -408,9 +401,7 @@ def compute_topic_trends(
     results: list[TopicTrendResult] = []
     for topic in sorted(topic_means):
         wk_means = topic_means[topic]
-        avail_weeks = sorted(
-            w for w in sorted_weeks if w in wk_means
-        )
+        avail_weeks = sorted(w for w in sorted_weeks if w in wk_means)
         if len(avail_weeks) < 3:
             continue
 
@@ -420,13 +411,16 @@ def compute_topic_trends(
         tau, tau_p = kendalltau(x, y)
         rho, rho_p = spearmanr(x, y)
 
-        results.append(TopicTrendResult(
-            topic=topic,
-            kendall_tau=float(tau),
-            kendall_p=float(tau_p),
-            spearman_rho=float(rho),
-            spearman_p=float(rho_p),
-            n_weeks=len(avail_weeks),
-        ))
+        # Convert NaN (constant/insufficient data) to None
+        results.append(
+            TopicTrendResult(
+                topic=topic,
+                kendall_tau=None if math.isnan(tau) else float(tau),
+                kendall_p=None if math.isnan(tau_p) else float(tau_p),
+                spearman_rho=None if math.isnan(rho) else float(rho),
+                spearman_p=None if math.isnan(rho_p) else float(rho_p),
+                n_weeks=len(avail_weeks),
+            )
+        )
 
     return results

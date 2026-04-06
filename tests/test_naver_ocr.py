@@ -76,12 +76,8 @@ def test_send_images_receive_ocr():
         with patch("requests.post") as mock_post:
             mock_post.return_value.json.return_value = mock_response
             mock_post.return_value.status_code = 200
-            with patch(
-                "os.path.exists", return_value=True
-            ):  # os.path.exists 패치
-                results = send_images_receive_ocr(
-                    api_url, secret_key, image_files
-                )
+            with patch("os.path.exists", return_value=True):  # os.path.exists 패치
+                results = send_images_receive_ocr(api_url, secret_key, image_files)
 
     assert len(results) == 1
     assert results[0] == mock_response
@@ -147,22 +143,16 @@ def test_prepare_image_files_list(mock_image_directory):
     """Test the prepare_image_files_list function."""
     image_path = str(mock_image_directory)
     result = prepare_image_files_list(image_path, prefix="cropped_")
-    assert (
-        len(result) == 3
-    ), "The number of filtered files does not match the expected count."
+    assert len(result) == 3, "The number of filtered files does not match the expected count."
 
     for file_path in result:
-        assert os.path.basename(file_path).startswith(
-            "cropped_"
-        ), "File does not have the required prefix."
-        assert file_path.lower().endswith(
-            (".jpg", ".jpeg", ".png", ".bmp", ".gif")
-        ), "File does not have a valid extension."
+        assert os.path.basename(file_path).startswith("cropped_"), "File does not have the required prefix."
+        assert file_path.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif")), (
+            "File does not have a valid extension."
+        )
 
     for file_path in result:
-        assert os.path.isfile(
-            file_path
-        ), f"Path {file_path} is not a valid file."
+        assert os.path.isfile(file_path), f"Path {file_path} is not a valid file."
 
 
 def test_invalid_directory():
@@ -175,9 +165,7 @@ def test_empty_directory(tmpdir):
     """Test function behavior with an empty directory."""
     empty_dir = tmpdir.mkdir("empty_images")
     result = prepare_image_files_list(str(empty_dir), prefix="cropped_")
-    assert (
-        result == []
-    ), "The result should be an empty list for an empty directory."
+    assert result == [], "The result should be an empty list for an empty directory."
 
 
 if __name__ == "__main__":

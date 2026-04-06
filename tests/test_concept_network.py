@@ -71,10 +71,12 @@ class TestBuildConceptNetwork:
 
         with patch("forma.concept_network.encode_texts") as mock_enc:
             # Return orthogonal vectors so no semantic edge
-            mock_enc.return_value = np.array([
-                [1.0, 0.0],
-                [0.0, 1.0],
-            ])
+            mock_enc.return_value = np.array(
+                [
+                    [1.0, 0.0],
+                    [0.0, 1.0],
+                ]
+            )
             network = build_concept_network(concepts, min_shared_terms=2)
 
         # Should have exactly 1 shared_terms edge
@@ -95,10 +97,12 @@ class TestBuildConceptNetwork:
         ]
 
         with patch("forma.concept_network.encode_texts") as mock_enc:
-            mock_enc.return_value = np.array([
-                [1.0, 0.0],
-                [0.0, 1.0],
-            ])
+            mock_enc.return_value = np.array(
+                [
+                    [1.0, 0.0],
+                    [0.0, 1.0],
+                ]
+            )
             network = build_concept_network(concepts, min_shared_terms=2)
 
         shared_edges = [e for e in network.edges if e.relationship == "shared_terms"]
@@ -130,17 +134,11 @@ class TestBuildConceptNetwork:
         concepts = []
         # 20 high, 10 medium, 5 low = 35 total > 30
         for i in range(20):
-            concepts.append(
-                _make_domain_concept(f"high_{i}", importance="high", key_terms=[f"t{i}"])
-            )
+            concepts.append(_make_domain_concept(f"high_{i}", importance="high", key_terms=[f"t{i}"]))
         for i in range(10):
-            concepts.append(
-                _make_domain_concept(f"med_{i}", importance="medium", key_terms=[f"m{i}"])
-            )
+            concepts.append(_make_domain_concept(f"med_{i}", importance="medium", key_terms=[f"m{i}"]))
         for i in range(5):
-            concepts.append(
-                _make_domain_concept(f"low_{i}", importance="low", key_terms=[f"l{i}"])
-            )
+            concepts.append(_make_domain_concept(f"low_{i}", importance="low", key_terms=[f"l{i}"]))
 
         with patch("forma.concept_network.encode_texts") as mock_enc:
             n = 30  # high + medium

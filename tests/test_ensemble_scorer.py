@@ -17,7 +17,6 @@ from forma.evaluation_types import (
 )
 from forma.ensemble_scorer import (
     DEFAULT_WEIGHTS,
-    WEIGHTS_V2,
     EnsembleScorer,
     classify_understanding_level,
     normalize_score,
@@ -29,9 +28,7 @@ from forma.ensemble_scorer import (
 # ---------------------------------------------------------------------------
 
 
-def _make_concept_results(
-    student_id: str, question_sn: int, n: int, n_present: int
-) -> list[ConceptMatchResult]:
+def _make_concept_results(student_id: str, question_sn: int, n: int, n_present: int) -> list[ConceptMatchResult]:
     """Build n ConceptMatchResults with n_present being True."""
     results = []
     for i in range(n):
@@ -49,9 +46,7 @@ def _make_concept_results(
     return results
 
 
-def _make_llm_result(
-    student_id: str, question_sn: int, score: float
-) -> AggregatedLLMResult:
+def _make_llm_result(student_id: str, question_sn: int, score: float) -> AggregatedLLMResult:
     return AggregatedLLMResult(
         student_id=student_id,
         question_sn=question_sn,
@@ -74,9 +69,7 @@ def _make_stat_result(student_id: str, question_sn: int) -> StatisticalResult:
     )
 
 
-def _make_graph_result(
-    student_id: str, question_sn: int, recall: float
-) -> GraphMetricResult:
+def _make_graph_result(student_id: str, question_sn: int, recall: float) -> GraphMetricResult:
     return GraphMetricResult(
         student_id=student_id,
         question_sn=question_sn,
@@ -288,12 +281,8 @@ class TestEnsembleScorerComputeScore:
         """Perfect concept coverage → higher score than zero coverage."""
         cr_high = _make_concept_results("s001", 1, 5, 5)
         cr_low = _make_concept_results("s002", 1, 5, 0)
-        r_high = scorer.compute_score(
-            cr_high, None, None, None, None, "s001", 1
-        )
-        r_low = scorer.compute_score(
-            cr_low, None, None, None, None, "s002", 1
-        )
+        r_high = scorer.compute_score(cr_high, None, None, None, None, "s001", 1)
+        r_low = scorer.compute_score(cr_low, None, None, None, None, "s002", 1)
         assert r_high.ensemble_score > r_low.ensemble_score
 
     def test_component_scores_populated(self, scorer):
@@ -391,10 +380,24 @@ class TestEnsembleScorerV2:
         gc_high = _make_graph_comparison("s001", 1, f1=0.9)
         gc_low = _make_graph_comparison("s001", 1, f1=0.3)
         r_high = scorer.compute_score(
-            cr, None, None, None, None, "s001", 1, graph_comparison=gc_high,
+            cr,
+            None,
+            None,
+            None,
+            None,
+            "s001",
+            1,
+            graph_comparison=gc_high,
         )
         r_low = scorer.compute_score(
-            cr, None, None, None, None, "s001", 1, graph_comparison=gc_low,
+            cr,
+            None,
+            None,
+            None,
+            None,
+            "s001",
+            1,
+            graph_comparison=gc_low,
         )
         assert r_high.ensemble_score > r_low.ensemble_score
 
@@ -404,10 +407,24 @@ class TestEnsembleScorerV2:
         gc_clean = _make_graph_comparison("s001", 1, f1=0.7, n_wrong=0)
         gc_wrong = _make_graph_comparison("s001", 1, f1=0.7, n_wrong=3)
         _r_clean = scorer.compute_score(
-            cr, None, None, None, None, "s001", 1, graph_comparison=gc_clean,
+            cr,
+            None,
+            None,
+            None,
+            None,
+            "s001",
+            1,
+            graph_comparison=gc_clean,
         )
         r_wrong = scorer.compute_score(
-            cr, None, None, None, None, "s001", 1, graph_comparison=gc_wrong,
+            cr,
+            None,
+            None,
+            None,
+            None,
+            "s001",
+            1,
+            graph_comparison=gc_wrong,
         )
         assert r_wrong.component_scores["misconception_penalty"] > 0
 
@@ -426,10 +443,3 @@ class TestEnsembleScorerV2:
         )
         assert "llm_rubric" in result.component_scores
         assert "graph_f1" not in result.component_scores
-
-    def test_weights_v2_sum(self):
-        """WEIGHTS_V2 positive weights minus penalty net to ~1.0 usage."""
-        pos = sum(v for v in WEIGHTS_V2.values() if v > 0)
-        neg = sum(abs(v) for v in WEIGHTS_V2.values() if v < 0)
-        assert pos == pytest.approx(0.95)
-        assert neg == pytest.approx(0.05)

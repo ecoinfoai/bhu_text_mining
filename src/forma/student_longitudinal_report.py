@@ -15,7 +15,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor
 from reportlab.platypus import (
-    Image, PageBreak, Paragraph, SimpleDocTemplate,
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
     Spacer,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -70,38 +73,46 @@ class StudentLongitudinalPDFReportGenerator:
         register_korean_fonts(font_path)
 
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "StuTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "StuSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "StuBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "StuSmall",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            leading=11,
-            spaceAfter=2,
-            textColor=HexColor("#666666"),
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "StuTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "StuSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "StuBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "StuSmall",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                leading=11,
+                spaceAfter=2,
+                textColor=HexColor("#666666"),
+            )
+        )
 
     def generate_pdf(
         self,
@@ -131,14 +142,10 @@ class StudentLongitudinalPDFReportGenerator:
 
         story: list = []
         story.extend(self._build_cover_page(student_data, alert_level))
-        story.extend(self._build_coverage_section(
-            student_data, cohort, llm_text=llm_texts.get("coverage")))
-        story.extend(self._build_component_section(
-            student_data, llm_text=llm_texts.get("component")))
-        story.extend(self._build_position_section(
-            student_data, cohort, llm_text=llm_texts.get("position")))
-        story.extend(self._build_warning_section(
-            warnings, alert_level, llm_text=llm_texts.get("warning")))
+        story.extend(self._build_coverage_section(student_data, cohort, llm_text=llm_texts.get("coverage")))
+        story.extend(self._build_component_section(student_data, llm_text=llm_texts.get("component")))
+        story.extend(self._build_position_section(student_data, cohort, llm_text=llm_texts.get("position")))
+        story.extend(self._build_warning_section(warnings, alert_level, llm_text=llm_texts.get("warning")))
         story.extend(self._build_topic_trend_section(student_data))
         story.extend(self._build_score_legend())
 
@@ -161,10 +168,12 @@ class StudentLongitudinalPDFReportGenerator:
         """Build cover page with student info and alert badge."""
         story = []
         story.append(Spacer(1, 40 * mm))
-        story.append(Paragraph(
-            _esc("학생 개인 종단 분석 보고서"),
-            self._styles["StuTitle"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("학생 개인 종단 분석 보고서"),
+                self._styles["StuTitle"],
+            )
+        )
         story.append(Spacer(1, 10 * mm))
 
         name_str = student_data.student_name or "(이름 미확인)"
@@ -206,8 +215,11 @@ class StudentLongitudinalPDFReportGenerator:
         for qsn in [1, 2]:
             try:
                 chart_buf = build_coverage_trend_chart(
-                    student_data, cohort, qsn,
-                    font_path=self._font_path, dpi=self._dpi,
+                    student_data,
+                    cohort,
+                    qsn,
+                    font_path=self._font_path,
+                    dpi=self._dpi,
                 )
                 story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
             except Exception as exc:
@@ -215,10 +227,12 @@ class StudentLongitudinalPDFReportGenerator:
                 story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
             story.append(Spacer(1, 3 * mm))
 
-        story.append(Paragraph(
-            "파란 선 = 학생, 박스 = 전체 수강생 분포",
-            self._styles["StuSmall"],
-        ))
+        story.append(
+            Paragraph(
+                "파란 선 = 학생, 박스 = 전체 수강생 분포",
+                self._styles["StuSmall"],
+            )
+        )
 
         if llm_text:
             story.append(Spacer(1, 3 * mm))
@@ -242,7 +256,9 @@ class StudentLongitudinalPDFReportGenerator:
 
         try:
             chart_buf = build_component_breakdown_chart(
-                student_data, font_path=self._font_path, dpi=self._dpi,
+                student_data,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
@@ -250,10 +266,12 @@ class StudentLongitudinalPDFReportGenerator:
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            "파랑 = 개념 커버리지, 주황 = LLM 루브릭, 초록 = 앙상블 점수, 보라 = Rasch 능력치 (보조축)",
-            self._styles["StuSmall"],
-        ))
+        story.append(
+            Paragraph(
+                "파랑 = 개념 커버리지, 주황 = LLM 루브릭, 초록 = 앙상블 점수, 보라 = Rasch 능력치 (보조축)",
+                self._styles["StuSmall"],
+            )
+        )
 
         if llm_text:
             story.append(Spacer(1, 3 * mm))
@@ -278,8 +296,10 @@ class StudentLongitudinalPDFReportGenerator:
 
         try:
             chart_buf = build_cohort_position_chart(
-                student_data, cohort,
-                font_path=self._font_path, dpi=self._dpi,
+                student_data,
+                cohort,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
@@ -287,10 +307,12 @@ class StudentLongitudinalPDFReportGenerator:
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            "박스 = 전체 수강생 분포, 빨간 별 = 학생 (백분위 라벨 표시)",
-            self._styles["StuSmall"],
-        ))
+        story.append(
+            Paragraph(
+                "박스 = 전체 수강생 분포, 빨간 별 = 학생 (백분위 라벨 표시)",
+                self._styles["StuSmall"],
+            )
+        )
 
         if llm_text:
             story.append(Spacer(1, 3 * mm))
@@ -315,15 +337,20 @@ class StudentLongitudinalPDFReportGenerator:
 
         try:
             chart_buf = build_warning_table(
-                warnings, alert_level,
-                font_path=self._font_path, dpi=self._dpi,
+                warnings,
+                alert_level,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             n_signals = max(len(warnings), 1)
             chart_height = max(60, (n_signals * 12 + 30))
-            story.append(Image(
-                chart_buf, width=160 * mm,
-                height=min(chart_height, 200) * mm,
-            ))
+            story.append(
+                Image(
+                    chart_buf,
+                    width=160 * mm,
+                    height=min(chart_height, 200) * mm,
+                )
+            )
         except Exception as exc:
             logger.warning("Failed to generate warning table: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
@@ -341,10 +368,12 @@ class StudentLongitudinalPDFReportGenerator:
         """Build score interpretation legend (1 paragraph)."""
         story: list = []
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            _esc(SCORE_INTERPRETATION_LEGEND),
-            self._styles["StuSmall"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(SCORE_INTERPRETATION_LEGEND),
+                self._styles["StuSmall"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
         return story
 
@@ -368,31 +397,25 @@ class StudentLongitudinalPDFReportGenerator:
             return story
 
         story.append(PageBreak())
-        story.append(Paragraph(
-            "5. Topic별 성취도 추세",
-            self._styles["StuSection"],
-        ))
+        story.append(
+            Paragraph(
+                "5. Topic별 성취도 추세",
+                self._styles["StuSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Score legend
         story.extend(self._build_score_legend())
 
         # Compute trends
-        trends = compute_topic_trends(
-            student_data.topic_scores
-        )
+        trends = compute_topic_trends(student_data.topic_scores)
 
         # Build table
         from reportlab.platypus import Table, TableStyle
         from reportlab.lib import colors
 
-        weeks = sorted(
-            set(
-                w
-                for ws in student_data.topic_scores.values()
-                for w in ws
-            )
-        )
+        weeks = sorted(set(w for ws in student_data.topic_scores.values() for w in ws))
         header = ["Topic", "주차 수"]
         for w in weeks:
             header.append(f"{w}주")
@@ -400,24 +423,16 @@ class StudentLongitudinalPDFReportGenerator:
 
         table_data = [header]
         for trend in trends:
-            ts = student_data.topic_scores.get(
-                trend.topic, {}
-            )
+            ts = student_data.topic_scores.get(trend.topic, {})
             row = [trend.topic, str(trend.n_weeks)]
             for w in weeks:
                 v = ts.get(w)
-                row.append(
-                    f"{v:.2f}" if v is not None else "—"
-                )
+                row.append(f"{v:.2f}" if v is not None else "—")
             if trend.kendall_tau is not None:
                 row.append(f"{trend.kendall_tau:+.2f}")
                 row.append(f"{trend.spearman_rho:+.2f}")
                 if trend.kendall_p < 0.05:
-                    row.append(
-                        "상승↑"
-                        if trend.kendall_tau > 0
-                        else "하강↓"
-                    )
+                    row.append("상승↑" if trend.kendall_tau > 0 else "하강↓")
                 else:
                     row.append("변동 없음")
             else:
@@ -427,22 +442,28 @@ class StudentLongitudinalPDFReportGenerator:
         n_cols = len(header)
         col_w = 160 * mm / n_cols
         t = Table(table_data, colWidths=[col_w] * n_cols)
-        t.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                ]
+            )
+        )
         story.append(t)
         story.append(Spacer(1, 3 * mm))
 
         for trend in trends:
             if trend.interpretation:
-                story.append(Paragraph(
-                    _esc(trend.interpretation),
-                    self._styles["StuSmall"],
-                ))
+                story.append(
+                    Paragraph(
+                        _esc(trend.interpretation),
+                        self._styles["StuSmall"],
+                    )
+                )
 
         return story

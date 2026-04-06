@@ -119,25 +119,32 @@ _COMMANDS: dict[tuple[str, str | None], tuple[str, str]] = {
     ("init", None): ("forma.cli_init", "main"),
     ("select", None): ("forma.cli_select", "main"),
     ("lecture", "analyze"): (
-        "forma.cli_lecture", "main_analyze",
+        "forma.cli_lecture",
+        "main_analyze",
     ),
     ("lecture", "compare"): (
-        "forma.cli_lecture", "main_compare",
+        "forma.cli_lecture",
+        "main_compare",
     ),
     ("lecture", "class-compare"): (
-        "forma.cli_lecture", "main_class_compare",
+        "forma.cli_lecture",
+        "main_class_compare",
     ),
     ("backfill", "longitudinal"): (
-        "forma.cli_backfill_longitudinal", "main",
+        "forma.cli_backfill_longitudinal",
+        "main",
     ),
     ("domain", "extract"): (
-        "forma.cli_domain", "extract_main",
+        "forma.cli_domain",
+        "extract_main",
     ),
     ("domain", "coverage"): (
-        "forma.cli_domain", "coverage_main",
+        "forma.cli_domain",
+        "coverage_main",
     ),
     ("domain", "report"): (
-        "forma.cli_domain", "report_main",
+        "forma.cli_domain",
+        "report_main",
     ),
 }
 
@@ -188,9 +195,7 @@ def _build_parser() -> _FormaParser:
         action="version",
         version=f"forma {_VERSION}",
     )
-    parser.add_argument(
-        "--verbose", action="store_true", default=False, help="Enable verbose output"
-    )
+    parser.add_argument("--verbose", action="store_true", default=False, help="Enable verbose output")
     parser.add_argument(
         "--no-config",
         action="store_true",
@@ -231,17 +236,20 @@ def _build_parser() -> _FormaParser:
 
     # --- lecture (nested subcommands) ---
     lecture_parser = subparsers.add_parser(
-        "lecture", help="Lecture transcript analysis",
+        "lecture",
+        help="Lecture transcript analysis",
     )
     lecture_sub = lecture_parser.add_subparsers(
         dest="lecture_sub",
     )
     lecture_sub.add_parser("analyze", help="Analyze single transcript")
     lecture_sub.add_parser(
-        "compare", help="Compare sections for same session",
+        "compare",
+        help="Compare sections for same session",
     )
     lecture_sub.add_parser(
-        "class-compare", help="Compare sections across all sessions",
+        "class-compare",
+        help="Compare sections across all sessions",
     )
 
     # --- backfill (nested subcommands) ---
@@ -251,7 +259,8 @@ def _build_parser() -> _FormaParser:
 
     # --- domain (nested subcommands) ---
     domain_parser = subparsers.add_parser(
-        "domain", help="Textbook-lecture domain coverage analysis",
+        "domain",
+        help="Textbook-lecture domain coverage analysis",
     )
     domain_sub = domain_parser.add_subparsers(dest="domain_sub")
     domain_sub.add_parser("extract", help="Extract textbook concepts")

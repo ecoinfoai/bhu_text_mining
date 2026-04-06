@@ -311,7 +311,7 @@ def main_class_compare(argv: list[str] | None = None) -> None:
                 merged.combined_keyword_frequencies,
                 key=merged.combined_keyword_frequencies.get,  # type: ignore[arg-type]
                 reverse=True,
-            )[:args.top_n],
+            )[: args.top_n],
             network_image_path=None,
             topics=None,
             topic_skipped_reason="merged analysis",

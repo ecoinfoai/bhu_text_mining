@@ -3,6 +3,7 @@
 Tests InterventionRecord dataclass, InterventionLog YAML persistence,
 atomic write, auto-increment IDs, filtering, and outcome updates.
 """
+
 from __future__ import annotations
 
 import os
@@ -28,7 +29,10 @@ class TestInterventionRecord:
     def test_required_fields(self):
         """Record has required fields: student_id, week, intervention_type."""
         rec = InterventionRecord(
-            id=1, student_id="s001", week=2, intervention_type="면담",
+            id=1,
+            student_id="s001",
+            week=2,
+            intervention_type="면담",
         )
         assert rec.student_id == "s001"
         assert rec.week == 2
@@ -38,14 +42,20 @@ class TestInterventionRecord:
     def test_default_description_empty(self):
         """Description defaults to empty string."""
         rec = InterventionRecord(
-            id=1, student_id="s001", week=2, intervention_type="면담",
+            id=1,
+            student_id="s001",
+            week=2,
+            intervention_type="면담",
         )
         assert rec.description == ""
 
     def test_optional_fields_default_none(self):
         """Optional fields default to None."""
         rec = InterventionRecord(
-            id=1, student_id="s001", week=2, intervention_type="면담",
+            id=1,
+            student_id="s001",
+            week=2,
+            intervention_type="면담",
         )
         assert rec.recorded_by is None
         assert rec.follow_up_week is None
@@ -54,7 +64,10 @@ class TestInterventionRecord:
     def test_recorded_at_auto_iso8601(self):
         """recorded_at is auto-set to ISO 8601 string."""
         rec = InterventionRecord(
-            id=1, student_id="s001", week=2, intervention_type="면담",
+            id=1,
+            student_id="s001",
+            week=2,
+            intervention_type="면담",
         )
         assert rec.recorded_at is not None
         assert "T" in rec.recorded_at  # ISO 8601 format
@@ -301,7 +314,9 @@ class TestInterventionLogEdgeCases:
         log = InterventionLog(path)
         log.load()
         _rec_id = log.add_record(
-            "s001", 2, "면담",
+            "s001",
+            2,
+            "면담",
             description="상담",
             recorded_by="prof_kim",
             follow_up_week=4,

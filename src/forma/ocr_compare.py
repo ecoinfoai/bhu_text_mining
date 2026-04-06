@@ -4,7 +4,7 @@ Compares Naver CLOVA OCR results with LLM Vision recognition on the same
 image to identify potential OCR errors, especially in low-confidence fields.
 
 Usage (programmatic):
-    result = run_comparison("image.jpg", naver_config="config.json")
+    result = compare_single_image(image_path, naver_raw, llm_provider)
     print(format_comparison_report(result))
 
 Usage (CLI):
@@ -142,13 +142,15 @@ def compare_single_image(
 
     for i, (ocr_tok, llm_tok, match) in enumerate(aligned):
         conf = ocr_fields[i].get("infer_confidence") if i < len(ocr_fields) else None
-        field_comparisons.append(FieldComparison(
-            field_index=i,
-            ocr_text=ocr_tok,
-            llm_text=llm_tok,
-            ocr_confidence=conf,
-            match=match,
-        ))
+        field_comparisons.append(
+            FieldComparison(
+                field_index=i,
+                ocr_text=ocr_tok,
+                llm_text=llm_tok,
+                ocr_confidence=conf,
+                match=match,
+            )
+        )
         if match:
             match_count += 1
         else:
@@ -166,61 +168,6 @@ def compare_single_image(
         llm_text=llm_text,
         field_comparisons=field_comparisons,
         summary=summary,
-    )
-
-
-def run_comparison(
-    image_path: str,
-    naver_config: str = "",
-    llm_provider_name: str = "gemini",
-    llm_model: str | None = None,
-    llm_api_key: str | None = None,
-    context: dict[str, str] | None = None,
-) -> ComparisonResult:
-    """End-to-end comparison: call both Naver OCR and Vision LLM.
-
-    Args:
-        image_path: Path to the image file.
-        naver_config: Naver OCR config path (JSON).
-        llm_provider_name: "gemini" or "anthropic".
-        llm_model: LLM model override.
-        llm_api_key: LLM API key (falls back to env var).
-        context: Optional exam context for prompt building.
-
-    Returns:
-        ComparisonResult with field-level comparisons.
-    """
-    if not os.path.isfile(image_path):
-        raise FileNotFoundError(f"Image not found: {image_path}")
-
-    # --- Naver OCR ---
-    from forma.naver_ocr import (
-        extract_raw_ocr_data,
-        load_naver_ocr_env,
-        send_images_receive_ocr,
-    )
-
-    secret_key, api_url = load_naver_ocr_env(naver_config)
-    logger.info("Naver OCR call: %s", image_path)
-    ocr_responses = send_images_receive_ocr(api_url, secret_key, [image_path])
-    raw_data = extract_raw_ocr_data(ocr_responses)
-
-    image_name = os.path.basename(image_path)
-    naver_raw = raw_data.get(image_name, {"fields": []})
-
-    # --- Vision LLM ---
-    from forma.llm_provider import create_provider
-
-    logger.info("LLM Vision call: %s (%s)", llm_provider_name, llm_model or "default")
-    provider = create_provider(
-        provider=llm_provider_name, api_key=llm_api_key, model=llm_model,
-    )
-
-    return compare_single_image(
-        image_path=image_path,
-        naver_raw=naver_raw,
-        llm_provider=provider,
-        context=context,
     )
 
 
@@ -243,9 +190,7 @@ def format_comparison_report(result: ComparisonResult) -> str:
         mark = "O" if fc.match else "X"
         conf_str = f"{fc.ocr_confidence:.2f}" if fc.ocr_confidence is not None else "N/A"
         lines.append(
-            f"  [{mark}] {fc.field_index:3d}: "
-            f"OCR={fc.ocr_text!r:20s}  LLM={fc.llm_text!r:20s}  "
-            f"confidence={conf_str}"
+            f"  [{mark}] {fc.field_index:3d}: OCR={fc.ocr_text!r:20s}  LLM={fc.llm_text!r:20s}  confidence={conf_str}"
         )
 
     return "\n".join(lines)
@@ -298,9 +243,7 @@ def run_batch_comparison(
         if f.startswith(prefix) and f.lower().endswith((".jpg", ".jpeg", ".png"))
     )
     if not image_files:
-        raise FileNotFoundError(
-            f"No images with prefix {prefix!r} in {image_dir}"
-        )
+        raise FileNotFoundError(f"No images with prefix {prefix!r} in {image_dir}")
 
     # Load existing results for resume
     done: dict[str, dict] = {}
@@ -319,6 +262,7 @@ def run_batch_comparison(
     if resolved_llm_key is None:
         try:
             from forma.config import load_config
+
             cfg = load_config()
             llm_cfg = cfg.get("llm", {})
             resolved_llm_key = llm_cfg.get("api_key")
@@ -328,7 +272,9 @@ def run_batch_comparison(
             pass
 
     provider = create_provider(
-        provider=llm_provider_name, api_key=resolved_llm_key, model=llm_model,
+        provider=llm_provider_name,
+        api_key=resolved_llm_key,
+        model=llm_model,
     )
 
     total = len(image_files)
@@ -346,7 +292,9 @@ def run_batch_comparison(
         # 1) Naver OCR
         try:
             ocr_responses = send_images_receive_ocr(
-                api_url, secret_key, [img_path],
+                api_url,
+                secret_key,
+                [img_path],
             )
             raw_map = extract_raw_ocr_data(ocr_responses)
             naver_raw = raw_map.get(image_name, {"fields": []})
@@ -393,15 +341,9 @@ def run_batch_comparison(
         _save_batch_results(results, output_path)
 
         match_rate = (
-            llm_result.summary["match_count"] / llm_result.summary["total"]
-            if llm_result.summary["total"] > 0
-            else 0
+            llm_result.summary["match_count"] / llm_result.summary["total"] if llm_result.summary["total"] > 0 else 0
         )
-        print(
-            f" done (match {llm_result.summary['match_count']}"
-            f"/{llm_result.summary['total']}"
-            f" = {match_rate:.0%})"
-        )
+        print(f" done (match {llm_result.summary['match_count']}/{llm_result.summary['total']} = {match_rate:.0%})")
 
     # Final summary
     _print_batch_summary(results)
@@ -416,7 +358,8 @@ def _save_batch_results(results: list[dict], output_path: str) -> None:
     os.makedirs(out_dir, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         yaml.dump(
-            results, f,
+            results,
+            f,
             allow_unicode=True,
             default_flow_style=False,
             sort_keys=False,

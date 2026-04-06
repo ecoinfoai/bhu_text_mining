@@ -75,12 +75,14 @@ def _load_concept_results(eval_dir: str) -> list:
         for q in student.get("questions", []):
             qsn = int(q["question_sn"])
             for c in q.get("concepts", []):
-                results.append(_CMR(
-                    student_id=sid,
-                    question_sn=qsn,
-                    concept=c["concept"],
-                    is_present=bool(c.get("is_present", False)),
-                ))
+                results.append(
+                    _CMR(
+                        student_id=sid,
+                        question_sn=qsn,
+                        concept=c["concept"],
+                        is_present=bool(c.get("is_present", False)),
+                    )
+                )
     return results
 
 

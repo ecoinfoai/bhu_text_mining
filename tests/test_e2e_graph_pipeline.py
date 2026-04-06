@@ -110,14 +110,18 @@ def _mock_triplet_json(triplets: list[dict]) -> str:
     return f"```json\n{json.dumps(triplets, ensure_ascii=False)}\n```"
 
 
-GOOD_TRIPLETS = _mock_triplet_json([
-    {"subject": "수용체", "relation": "감지", "object": "한계점 일탈"},
-    {"subject": "통합센터", "relation": "명령", "object": "효과기"},
-])
+GOOD_TRIPLETS = _mock_triplet_json(
+    [
+        {"subject": "수용체", "relation": "감지", "object": "한계점 일탈"},
+        {"subject": "통합센터", "relation": "명령", "object": "효과기"},
+    ]
+)
 
-PARTIAL_TRIPLETS = _mock_triplet_json([
-    {"subject": "항상성", "relation": "유지", "object": "체온"},
-])
+PARTIAL_TRIPLETS = _mock_triplet_json(
+    [
+        {"subject": "항상성", "relation": "유지", "object": "체온"},
+    ]
+)
 
 
 # ---------------------------------------------------------------------------
@@ -160,6 +164,7 @@ class TestE2EGraphPipeline:
             ]
             with patch("forma.feedback_generator.FeedbackGenerator.generate") as mock_feedback:
                 from forma.evaluation_types import FeedbackResult
+
                 mock_feedback.return_value = FeedbackResult(
                     student_id="test",
                     question_sn=1,
@@ -212,9 +217,7 @@ class TestE2EGraphPipeline:
         # Should produce concept results
         assert os.path.isfile(os.path.join(output_dir, "res_lvl1", "concept_results.yaml"))
         # No graph comparison file (v1 mode)
-        assert not os.path.isfile(
-            os.path.join(output_dir, "res_lvl1", "graph_comparison_results.yaml")
-        )
+        assert not os.path.isfile(os.path.join(output_dir, "res_lvl1", "graph_comparison_results.yaml"))
 
     @patch("forma.concept_checker.encode_texts")
     def test_empty_response_produces_result(
@@ -283,9 +286,11 @@ class TestTripletExtractorE2E:
         """TripletExtractor extracts and achieves consensus with mock LLM."""
         from forma.triplet_extractor import TripletExtractor
 
-        triplet_json = json.dumps([
-            {"subject": "A", "relation": "causes", "object": "B"},
-        ])
+        triplet_json = json.dumps(
+            [
+                {"subject": "A", "relation": "causes", "object": "B"},
+            ]
+        )
         mock_prov = MagicMock()
         mock_prov.generate.return_value = f"```json\n{triplet_json}\n```"
 

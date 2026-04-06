@@ -78,45 +78,55 @@ class DomainDeliveryPDFReportGenerator:
         register_korean_fonts(font_path)
 
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "DcTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=20,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "DcSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "DcBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "DcSmall",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            leading=11,
-            spaceAfter=2,
-            textColor=HexColor("#666666"),
-        ))
-        self._styles.add(ParagraphStyle(
-            "DcTableCell",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            leading=10,
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "DcTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=20,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "DcSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "DcBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "DcSmall",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                leading=11,
+                spaceAfter=2,
+                textColor=HexColor("#666666"),
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "DcTableCell",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                leading=10,
+            )
+        )
 
     def generate_pdf(
         self,
@@ -182,24 +192,36 @@ class DomainDeliveryPDFReportGenerator:
 
         # Section 5: Network comparison
         section_num += 1
-        story.extend(self._build_network_section(
-            textbook_net, section_nets, missing_edges_map, section_num,
-        ))
+        story.extend(
+            self._build_network_section(
+                textbook_net,
+                section_nets,
+                missing_edges_map,
+                section_num,
+            )
+        )
 
         # Hierarchical overview (only when hierarchy is provided)
         if hierarchy is not None:
             section_num += 1
-            story.extend(self._build_hierarchical_overview_section(
-                result, hierarchy, section_num,
-            ))
+            story.extend(
+                self._build_hierarchical_overview_section(
+                    result,
+                    hierarchy,
+                    section_num,
+                )
+            )
 
         # Concept network graph (only when concept_network provided)
         if concept_network is not None:
             section_num += 1
-            story.extend(self._build_concept_network_section(
-                concept_network, section_num,
-                deliveries_by_section=deliveries_by_section,
-            ))
+            story.extend(
+                self._build_concept_network_section(
+                    concept_network,
+                    section_num,
+                    deliveries_by_section=deliveries_by_section,
+                )
+            )
 
         # Section N: Section comparison heatmap
         section_num += 1
@@ -216,9 +238,12 @@ class DomainDeliveryPDFReportGenerator:
         # Section 9: Assessment correlation (only if data exists)
         if assessment_data is not None:
             section_num += 1
-            story.extend(self._build_assessment_section(
-                assessment_data, section_num,
-            ))
+            story.extend(
+                self._build_assessment_section(
+                    assessment_data,
+                    section_num,
+                )
+            )
 
         os.makedirs(
             os.path.dirname(os.path.abspath(output_path)) or ".",
@@ -244,35 +269,45 @@ class DomainDeliveryPDFReportGenerator:
         """Build cover page."""
         story = []
         story.append(Spacer(1, 40 * mm))
-        story.append(Paragraph(
-            _esc("교과서-강의 도메인 전달 분석 보고서"),
-            self._styles["DcTitle"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("교과서-강의 도메인 전달 분석 보고서"),
+                self._styles["DcTitle"],
+            )
+        )
         story.append(Spacer(1, 10 * mm))
 
         if course_name:
-            story.append(Paragraph(
-                f"교과목: {_esc(course_name)}",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    f"교과목: {_esc(course_name)}",
+                    self._styles["DcBody"],
+                )
+            )
 
         if result.week:
-            story.append(Paragraph(
-                f"주차: {result.week}주차",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    f"주차: {result.week}주차",
+                    self._styles["DcBody"],
+                )
+            )
 
         if result.chapters:
-            story.append(Paragraph(
-                f"분석 대상: {_esc(', '.join(result.chapters))}",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    f"분석 대상: {_esc(', '.join(result.chapters))}",
+                    self._styles["DcBody"],
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
-        story.append(Paragraph(
-            f"실효 전달율: {result.effective_delivery_rate:.1%}",
-            self._styles["DcBody"],
-        ))
+        story.append(
+            Paragraph(
+                f"실효 전달율: {result.effective_delivery_rate:.1%}",
+                self._styles["DcBody"],
+            )
+        )
 
         story.append(PageBreak())
         return story
@@ -282,14 +317,18 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_delivery_summary(
-        self, result: object, section_num: int,
+        self,
+        result: object,
+        section_num: int,
     ) -> list:
         """Build concept delivery summary with bar chart."""
         story = []
-        story.append(Paragraph(
-            f"{section_num}. 개념 전달 요약",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 개념 전달 요약",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Count delivery states
@@ -330,16 +369,23 @@ class DomainDeliveryPDFReportGenerator:
         # Delivery bar chart
         try:
             from forma.domain_coverage_charts import build_delivery_bar_chart
+
             chart_buf = build_delivery_bar_chart(
-                result, font_path=self._font_path, dpi=self._dpi,
+                result,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Spacer(1, 5 * mm))
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
             logger.warning("Failed to generate delivery rate bar chart: %s", exc)
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -349,15 +395,19 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_concept_detail_table(
-        self, result: object, section_num: int,
+        self,
+        result: object,
+        section_num: int,
     ) -> list:
         """Build per-concept delivery detail table with colored rows."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 개념별 전달 상세",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 개념별 전달 상세",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Collect sections
@@ -377,9 +427,7 @@ class DomainDeliveryPDFReportGenerator:
 
         headers = ["개념", "상태", "품질"]
         headers.extend(f"{s}반" for s in sections_sorted)
-        header_row = [
-            Paragraph(f"<b>{_esc(h)}</b>", cell_style) for h in headers
-        ]
+        header_row = [Paragraph(f"<b>{_esc(h)}</b>", cell_style) for h in headers]
 
         data = [header_row]
         row_colors = []
@@ -398,9 +446,7 @@ class DomainDeliveryPDFReportGenerator:
                 rep_status = "충분히 설명"
 
             color = _STATUS_COLORS.get(rep_status, "#000000")
-            status_label = (
-                f'<font color="{color}"><b>{_esc(rep_status)}</b></font>'
-            )
+            status_label = f'<font color="{color}"><b>{_esc(rep_status)}</b></font>'
 
             # Average quality
             qualities = [d.delivery_quality for d in sec_data.values()]
@@ -442,9 +488,12 @@ class DomainDeliveryPDFReportGenerator:
             table.setStyle(TableStyle(style_cmds))
             story.append(table)
         else:
-            story.append(Paragraph(
-                "전달 분석 데이터 없음", self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "전달 분석 데이터 없음",
+                    self._styles["DcBody"],
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -454,14 +503,18 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_undelivered_section(
-        self, result: object, section_num: int,
+        self,
+        result: object,
+        section_num: int,
     ) -> list:
         """Build undelivered + partially delivered concepts with actions."""
         story = []
-        story.append(Paragraph(
-            f"{section_num}. 미전달/부분전달 개념",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 미전달/부분전달 개념",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Collect undelivered and partial per concept
@@ -473,10 +526,12 @@ class DomainDeliveryPDFReportGenerator:
                 concept_issues[d.concept].append(d)
 
         if not concept_issues:
-            story.append(Paragraph(
-                "미전달 또는 부분전달 개념이 없습니다.",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "미전달 또는 부분전달 개념이 없습니다.",
+                    self._styles["DcBody"],
+                )
+            )
             story.append(Spacer(1, 5 * mm))
             return story
 
@@ -491,10 +546,7 @@ class DomainDeliveryPDFReportGenerator:
                 color = "#FF9800"
                 label = "부분 전달"
 
-            text = (
-                f'<font color="{color}"><b>{_esc(concept_name)}</b></font>'
-                f" [{_esc(label)}]"
-            )
+            text = f'<font color="{color}"><b>{_esc(concept_name)}</b></font> [{_esc(label)}]'
             story.append(Paragraph(text, self._styles["DcBody"]))
 
             # Show evidence/depth from deliveries
@@ -513,10 +565,12 @@ class DomainDeliveryPDFReportGenerator:
                 action = "보강 권장: 해당 개념의 메커니즘과 핵심 내용을 수업에 포함"
             else:
                 action = "보강 권장: 용어 수준을 넘어 메커니즘과 과정 설명 보완"
-            story.append(Paragraph(
-                f'  <font color="#1565C0">{_esc(action)}</font>',
-                self._styles["DcSmall"],
-            ))
+            story.append(
+                Paragraph(
+                    f'  <font color="#1565C0">{_esc(action)}</font>',
+                    self._styles["DcSmall"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
 
         story.append(Spacer(1, 5 * mm))
@@ -527,14 +581,18 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_skipped_section(
-        self, result: object, section_num: int,
+        self,
+        result: object,
+        section_num: int,
     ) -> list:
         """Build intentionally skipped concepts list (gray, reference)."""
         story = []
-        story.append(Paragraph(
-            f"{section_num}. 의도적 생략 개념",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 의도적 생략 개념",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         skipped_concepts: set[str] = set()
@@ -543,15 +601,19 @@ class DomainDeliveryPDFReportGenerator:
                 skipped_concepts.add(d.concept)
 
         if not skipped_concepts:
-            story.append(Paragraph(
-                "의도적 생략 개념이 없습니다.",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "의도적 생략 개념이 없습니다.",
+                    self._styles["DcBody"],
+                )
+            )
         else:
-            story.append(Paragraph(
-                "아래 개념은 해당 주차 수업 범위에 포함되지 않아 생략되었습니다 (참고용).",
-                self._styles["DcSmall"],
-            ))
+            story.append(
+                Paragraph(
+                    "아래 개념은 해당 주차 수업 범위에 포함되지 않아 생략되었습니다 (참고용).",
+                    self._styles["DcSmall"],
+                )
+            )
             for name in sorted(skipped_concepts):
                 text = f'<font color="#9E9E9E">{_esc(name)}</font>'
                 story.append(Paragraph(text, self._styles["DcBody"]))
@@ -573,17 +635,21 @@ class DomainDeliveryPDFReportGenerator:
         """Build network comparison charts (textbook + sections)."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 핵심 용어 네트워크 비교",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 핵심 용어 네트워크 비교",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         if textbook_net is None or not section_nets:
-            story.append(Paragraph(
-                "네트워크 비교 데이터가 제공되지 않았습니다.",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "네트워크 비교 데이터가 제공되지 않았습니다.",
+                    self._styles["DcBody"],
+                )
+            )
             story.append(Spacer(1, 5 * mm))
             return story
 
@@ -591,41 +657,50 @@ class DomainDeliveryPDFReportGenerator:
             from forma.domain_coverage_charts import (
                 build_network_comparison_chart,
             )
+
             for lecture_net in section_nets:
                 missing = missing_edges_map.get(lecture_net.source, [])
                 chart_buf = build_network_comparison_chart(
-                    textbook_net, lecture_net, missing,
-                    font_path=self._font_path, dpi=self._dpi,
+                    textbook_net,
+                    lecture_net,
+                    missing,
+                    font_path=self._font_path,
+                    dpi=self._dpi,
                 )
-                story.append(Image(
-                    chart_buf, width=170 * mm, height=75 * mm,
-                ))
+                story.append(
+                    Image(
+                        chart_buf,
+                        width=170 * mm,
+                        height=75 * mm,
+                    )
+                )
                 # Text summary: missing edges for this section
                 if missing:
-                    edges_str = ", ".join(
-                        f"{_esc(u)}-{_esc(v)}" for u, v in missing[:5]
+                    edges_str = ", ".join(f"{_esc(u)}-{_esc(v)}" for u, v in missing[:5])
+                    suffix = f" 외 {len(missing) - 5}개" if len(missing) > 5 else ""
+                    story.append(
+                        Paragraph(
+                            f"  {_esc(lecture_net.source)}반 누락 연결: {edges_str}{suffix}",
+                            self._styles["DcSmall"],
+                        )
                     )
-                    suffix = (
-                        f" 외 {len(missing) - 5}개"
-                        if len(missing) > 5 else ""
-                    )
-                    story.append(Paragraph(
-                        f"  {_esc(lecture_net.source)}반 누락 연결: "
-                        f"{edges_str}{suffix}",
-                        self._styles["DcSmall"],
-                    ))
                 else:
-                    story.append(Paragraph(
-                        f"  {_esc(lecture_net.source)}반: "
-                        "교과서 네트워크 연결 모두 포함",
-                        self._styles["DcSmall"],
-                    ))
+                    story.append(
+                        Paragraph(
+                            f"  {_esc(lecture_net.source)}반: 교과서 네트워크 연결 모두 포함",
+                            self._styles["DcSmall"],
+                        )
+                    )
                 story.append(Spacer(1, 3 * mm))
         except Exception as exc:
             logger.warning("Failed to generate network comparison chart: %s", exc)
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -635,34 +710,42 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_section_comparison(
-        self, result: object, section_num: int,
+        self,
+        result: object,
+        section_num: int,
     ) -> list:
         """Build cross-section delivery comparison with heatmap."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 분반 간 전달 비교",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 분반 간 전달 비교",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         try:
             from forma.domain_coverage_charts import build_delivery_heatmap
+
             chart_buf = build_delivery_heatmap(
-                result, font_path=self._font_path, dpi=self._dpi,
+                result,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart_buf, width=160 * mm, height=120 * mm))
         except Exception as exc:
             logger.warning("Failed to generate delivery heatmap: %s", exc)
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
         # Text summary: highest/lowest quality concepts
-        non_skipped = [
-            d for d in result.deliveries
-            if d.delivery_status != "의도적 생략"
-        ]
+        non_skipped = [d for d in result.deliveries if d.delivery_status != "의도적 생략"]
         if non_skipped:
             concept_avg: dict[str, list[float]] = {}
             for d in non_skipped:
@@ -670,20 +753,20 @@ class DomainDeliveryPDFReportGenerator:
                     concept_avg[d.concept] = []
                 concept_avg[d.concept].append(d.delivery_quality)
 
-            avg_scores = {
-                c: sum(vs) / len(vs) for c, vs in concept_avg.items()
-            }
+            avg_scores = {c: sum(vs) / len(vs) for c, vs in concept_avg.items()}
             if avg_scores:
                 best = max(avg_scores, key=avg_scores.get)
                 worst = min(avg_scores, key=avg_scores.get)
                 story.append(Spacer(1, 2 * mm))
-                story.append(Paragraph(
-                    f"  최고 전달: {_esc(best)} "
-                    f"(평균 {avg_scores[best]:.2f}), "
-                    f"최저 전달: {_esc(worst)} "
-                    f"(평균 {avg_scores[worst]:.2f})",
-                    self._styles["DcSmall"],
-                ))
+                story.append(
+                    Paragraph(
+                        f"  최고 전달: {_esc(best)} "
+                        f"(평균 {avg_scores[best]:.2f}), "
+                        f"최저 전달: {_esc(worst)} "
+                        f"(평균 {avg_scores[worst]:.2f})",
+                        self._styles["DcSmall"],
+                    )
+                )
 
         # Section comparison table (T046)
         section_comparisons = getattr(result, "_section_comparisons", None)
@@ -698,15 +781,19 @@ class DomainDeliveryPDFReportGenerator:
         # Per-section rate differences
         if result.per_section_rate:
             story.append(Spacer(1, 3 * mm))
-            story.append(Paragraph(
-                "<b>분반별 전달율:</b>",
-                self._styles["DcBody"],
-            ))
-            for section, rate in sorted(result.per_section_rate.items()):
-                story.append(Paragraph(
-                    f"  {_esc(section)}반: {rate:.1%}",
+            story.append(
+                Paragraph(
+                    "<b>분반별 전달율:</b>",
                     self._styles["DcBody"],
-                ))
+                )
+            )
+            for section, rate in sorted(result.per_section_rate.items()):
+                story.append(
+                    Paragraph(
+                        f"  {_esc(section)}반: {rate:.1%}",
+                        self._styles["DcBody"],
+                    )
+                )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -730,20 +817,26 @@ class DomainDeliveryPDFReportGenerator:
             List of ReportLab flowables.
         """
         story: list = []
-        story.append(Paragraph(
-            "<b>분반 간 통계 비교:</b>",
-            self._styles["DcBody"],
-        ))
+        story.append(
+            Paragraph(
+                "<b>분반 간 통계 비교:</b>",
+                self._styles["DcBody"],
+            )
+        )
         story.append(Spacer(1, 2 * mm))
 
         cell_style = self._styles["DcTableCell"]
         headers = [
-            "분반 A", "분반 B", "평균 A", "평균 B",
-            "검정", "p-value", "보정 p", "유의",
+            "분반 A",
+            "분반 B",
+            "평균 A",
+            "평균 B",
+            "검정",
+            "p-value",
+            "보정 p",
+            "유의",
         ]
-        header_row = [
-            Paragraph(f"<b>{_esc(h)}</b>", cell_style) for h in headers
-        ]
+        header_row = [Paragraph(f"<b>{_esc(h)}</b>", cell_style) for h in headers]
 
         data = [header_row]
         for comp in comparisons:
@@ -765,8 +858,7 @@ class DomainDeliveryPDFReportGenerator:
             data.append(row)
 
         if len(data) > 1:
-            col_widths = [20 * mm, 20 * mm, 20 * mm, 20 * mm,
-                          25 * mm, 22 * mm, 22 * mm, 18 * mm]
+            col_widths = [20 * mm, 20 * mm, 20 * mm, 20 * mm, 25 * mm, 22 * mm, 22 * mm, 18 * mm]
             table = Table(data, colWidths=col_widths, repeatRows=1)
             style_cmds = [
                 ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E0E0E0")),
@@ -786,43 +878,50 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_pedagogy_section(
-        self, pedagogy: list, section_num: int,
+        self,
+        pedagogy: list,
+        section_num: int,
     ) -> list:
         """Build pedagogy analysis section (habitual + effective patterns)."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 교수법 참고",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 교수법 참고",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         if not pedagogy:
-            story.append(Paragraph(
-                "교수법 분석 데이터가 제공되지 않았습니다.",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "교수법 분석 데이터가 제공되지 않았습니다.",
+                    self._styles["DcBody"],
+                )
+            )
             story.append(Spacer(1, 5 * mm))
             return story
 
         for pa in pedagogy:
-            story.append(Paragraph(
-                f"<b>{_esc(pa.section_id)}반</b>",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    f"<b>{_esc(pa.section_id)}반</b>",
+                    self._styles["DcBody"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
 
             # Habitual expressions (TOP 5)
             if pa.habitual_expressions:
-                story.append(Paragraph(
-                    "<b>습관적 표현 (TOP 5):</b>",
-                    self._styles["DcBody"],
-                ))
-                for he in pa.habitual_expressions[:5]:
-                    rec_color = (
-                        "#F44336" if he.recommendation == "사용 자제 권장"
-                        else "#4CAF50"
+                story.append(
+                    Paragraph(
+                        "<b>습관적 표현 (TOP 5):</b>",
+                        self._styles["DcBody"],
                     )
+                )
+                for he in pa.habitual_expressions[:5]:
+                    rec_color = "#F44336" if he.recommendation == "사용 자제 권장" else "#4CAF50"
                     text = (
                         f'  "{_esc(he.expression)}" — '
                         f"총 {he.total_count}회"
@@ -834,21 +933,22 @@ class DomainDeliveryPDFReportGenerator:
             # Effective patterns
             if pa.effective_patterns:
                 story.append(Spacer(1, 2 * mm))
-                story.append(Paragraph(
-                    "<b>효과적 교수법 패턴:</b>",
-                    self._styles["DcBody"],
-                ))
-                for ep in pa.effective_patterns:
-                    text = (
-                        f'  {_esc(ep.pattern_type)}: '
-                        f"{ep.count}회"
+                story.append(
+                    Paragraph(
+                        "<b>효과적 교수법 패턴:</b>",
+                        self._styles["DcBody"],
                     )
+                )
+                for ep in pa.effective_patterns:
+                    text = f"  {_esc(ep.pattern_type)}: {ep.count}회"
                     story.append(Paragraph(text, self._styles["DcSmall"]))
                     for ex in ep.examples[:3]:
-                        story.append(Paragraph(
-                            f'    예: "{_esc(ex[:80])}"',
-                            self._styles["DcSmall"],
-                        ))
+                        story.append(
+                            Paragraph(
+                                f'    예: "{_esc(ex[:80])}"',
+                                self._styles["DcSmall"],
+                            )
+                        )
 
             story.append(Spacer(1, 3 * mm))
 
@@ -860,15 +960,19 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_feedback_summary(
-        self, result: object, section_num: int,
+        self,
+        result: object,
+        section_num: int,
     ) -> list:
         """Build concept-level instructor feedback (NOT word frequency)."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 교수자 피드백 요약",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 교수자 피드백 요약",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 5 * mm))
 
         # Undelivered concepts needing supplementary instruction
@@ -886,40 +990,38 @@ class DomainDeliveryPDFReportGenerator:
                 partial[d.concept].append(d.section_id)
 
         if not_delivered:
-            story.append(Paragraph(
-                "<b>보충 지도가 필요한 개념:</b>",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "<b>보충 지도가 필요한 개념:</b>",
+                    self._styles["DcBody"],
+                )
+            )
             for concept_name, secs in sorted(not_delivered.items()):
                 secs_str = ", ".join(f"{s}반" for s in sorted(secs))
-                text = (
-                    f'  - <font color="#F44336"><b>'
-                    f"{_esc(concept_name)}</b></font>"
-                    f" ({_esc(secs_str)})"
-                )
+                text = f'  - <font color="#F44336"><b>{_esc(concept_name)}</b></font> ({_esc(secs_str)})'
                 story.append(Paragraph(text, self._styles["DcBody"]))
             story.append(Spacer(1, 3 * mm))
 
         if partial:
-            story.append(Paragraph(
-                "<b>설명 심화가 필요한 개념:</b>",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "<b>설명 심화가 필요한 개념:</b>",
+                    self._styles["DcBody"],
+                )
+            )
             for concept_name, secs in sorted(partial.items()):
                 secs_str = ", ".join(f"{s}반" for s in sorted(secs))
-                text = (
-                    f'  - <font color="#FF9800"><b>'
-                    f"{_esc(concept_name)}</b></font>"
-                    f" ({_esc(secs_str)})"
-                )
+                text = f'  - <font color="#FF9800"><b>{_esc(concept_name)}</b></font> ({_esc(secs_str)})'
                 story.append(Paragraph(text, self._styles["DcBody"]))
             story.append(Spacer(1, 3 * mm))
 
         if not not_delivered and not partial:
-            story.append(Paragraph(
-                "모든 수업 범위 내 개념이 충분히 전달되었습니다.",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "모든 수업 범위 내 개념이 충분히 전달되었습니다.",
+                    self._styles["DcBody"],
+                )
+            )
             story.append(Spacer(1, 3 * mm))
 
         # Section uniformity feedback
@@ -930,37 +1032,36 @@ class DomainDeliveryPDFReportGenerator:
             min_r = min(rates)
             gap = max_r - min_r
             if gap > 0.15:
-                story.append(Paragraph(
-                    "<b>분반 균일성 이슈:</b>",
-                    self._styles["DcBody"],
-                ))
+                story.append(
+                    Paragraph(
+                        "<b>분반 균일성 이슈:</b>",
+                        self._styles["DcBody"],
+                    )
+                )
                 best = max(section_rates, key=section_rates.get)
                 worst = min(section_rates, key=section_rates.get)
-                story.append(Paragraph(
-                    f"  {_esc(best)}반({max_r:.1%})과 "
-                    f"{_esc(worst)}반({min_r:.1%}) 간 "
-                    f"전달율 차이가 {gap:.1%}p입니다. "
-                    "전달 방식 재검토를 권장합니다.",
-                    self._styles["DcSmall"],
-                ))
+                story.append(
+                    Paragraph(
+                        f"  {_esc(best)}반({max_r:.1%})과 "
+                        f"{_esc(worst)}반({min_r:.1%}) 간 "
+                        f"전달율 차이가 {gap:.1%}p입니다. "
+                        "전달 방식 재검토를 권장합니다.",
+                        self._styles["DcSmall"],
+                    )
+                )
                 story.append(Spacer(1, 3 * mm))
 
         # Overall assessment
         rate = result.effective_delivery_rate
         if rate >= 0.9:
-            assessment = (
-                "우수: 수업 범위 내 개념의 90% 이상이 "
-                "효과적으로 전달되고 있습니다."
-            )
+            assessment = "우수: 수업 범위 내 개념의 90% 이상이 효과적으로 전달되고 있습니다."
         elif rate >= 0.7:
             assessment = (
-                "양호: 수업 범위 내 개념의 70% 이상이 전달되고 있으나, "
-                "일부 개념에 대한 설명 보완이 필요합니다."
+                "양호: 수업 범위 내 개념의 70% 이상이 전달되고 있으나, 일부 개념에 대한 설명 보완이 필요합니다."
             )
         elif rate >= 0.5:
             assessment = (
-                "주의: 수업 범위 내 개념의 절반 이상이 충분히 전달되지 "
-                "않았습니다. 수업 내용 재구성을 권장합니다."
+                "주의: 수업 범위 내 개념의 절반 이상이 충분히 전달되지 않았습니다. 수업 내용 재구성을 권장합니다."
             )
         else:
             assessment = (
@@ -968,10 +1069,12 @@ class DomainDeliveryPDFReportGenerator:
                 "강의 내용과 교과서 범위의 불일치를 점검하시기 바랍니다."
             )
 
-        story.append(Paragraph(
-            f"<b>종합 평가:</b> {_esc(assessment)}",
-            self._styles["DcBody"],
-        ))
+        story.append(
+            Paragraph(
+                f"<b>종합 평가:</b> {_esc(assessment)}",
+                self._styles["DcBody"],
+            )
+        )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -1001,10 +1104,12 @@ class DomainDeliveryPDFReportGenerator:
         """
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 대주제별 계층 분석",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 대주제별 계층 분석",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         try:
@@ -1016,31 +1121,41 @@ class DomainDeliveryPDFReportGenerator:
 
             # Chart 1: Topic delivery stacked bar
             chart1 = build_topic_delivery_stacked_chart(
-                result, hierarchy,
-                font_path=self._font_path, dpi=self._dpi,
+                result,
+                hierarchy,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart1, width=160 * mm, height=80 * mm))
             story.append(Spacer(1, 5 * mm))
 
             # Chart 2: Hierarchical coverage grouped bar
             chart2 = build_hierarchical_coverage_chart(
-                result, hierarchy,
-                font_path=self._font_path, dpi=self._dpi,
+                result,
+                hierarchy,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart2, width=160 * mm, height=80 * mm))
             story.append(Spacer(1, 5 * mm))
 
             # Chart 3: Grouped quality heatmap
             chart3 = build_grouped_quality_heatmap(
-                result, hierarchy,
-                font_path=self._font_path, dpi=self._dpi,
+                result,
+                hierarchy,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart3, width=160 * mm, height=100 * mm))
         except Exception as exc:
             logger.warning("Failed to generate hierarchy analysis chart: %s", exc)
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -1050,7 +1165,9 @@ class DomainDeliveryPDFReportGenerator:
     # ----------------------------------------------------------------
 
     def _build_assessment_section(
-        self, assessment_data: object, section_num: int,
+        self,
+        assessment_data: object,
+        section_num: int,
     ) -> list:
         """Build formative assessment correlation section.
 
@@ -1058,64 +1175,89 @@ class DomainDeliveryPDFReportGenerator:
         """
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 형성평가 연결 분석",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 형성평가 연결 분석",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 5 * mm))
 
         # Correlation coefficient
         corr = getattr(assessment_data, "correlation", None)
         if corr is not None:
-            story.append(Paragraph(
-                f"전달 품질-습득률 상관계수: Spearman ρ = {corr:.3f}",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    f"전달 품질-습득률 상관계수: Spearman ρ = {corr:.3f}",
+                    self._styles["DcBody"],
+                )
+            )
             story.append(Spacer(1, 3 * mm))
 
         # Well-explained but poorly understood
         well_poor = getattr(assessment_data, "well_explained_poor", [])
         if well_poor:
-            story.append(Paragraph(
-                "<b>잘 설명했으나 습득률이 낮은 개념:</b>",
-                self._styles["DcBody"],
-            ))
-            for item in well_poor:
-                name = item if isinstance(item, str) else getattr(
-                    item, "concept", str(item),
-                )
-                story.append(Paragraph(
-                    f"  - {_esc(name)}",
+            story.append(
+                Paragraph(
+                    "<b>잘 설명했으나 습득률이 낮은 개념:</b>",
                     self._styles["DcBody"],
-                ))
+                )
+            )
+            for item in well_poor:
+                name = (
+                    item
+                    if isinstance(item, str)
+                    else getattr(
+                        item,
+                        "concept",
+                        str(item),
+                    )
+                )
+                story.append(
+                    Paragraph(
+                        f"  - {_esc(name)}",
+                        self._styles["DcBody"],
+                    )
+                )
             story.append(Spacer(1, 3 * mm))
 
         # Under-explained and poorly understood
         under_poor = getattr(assessment_data, "under_explained_poor", [])
         if under_poor:
-            story.append(Paragraph(
-                "<b>설명 부족하고 습득률도 낮은 개념:</b>",
-                self._styles["DcBody"],
-            ))
-            for item in under_poor:
-                name = item if isinstance(item, str) else getattr(
-                    item, "concept", str(item),
-                )
-                story.append(Paragraph(
-                    f"  - {_esc(name)}",
+            story.append(
+                Paragraph(
+                    "<b>설명 부족하고 습득률도 낮은 개념:</b>",
                     self._styles["DcBody"],
-                ))
+                )
+            )
+            for item in under_poor:
+                name = (
+                    item
+                    if isinstance(item, str)
+                    else getattr(
+                        item,
+                        "concept",
+                        str(item),
+                    )
+                )
+                story.append(
+                    Paragraph(
+                        f"  - {_esc(name)}",
+                        self._styles["DcBody"],
+                    )
+                )
             story.append(Spacer(1, 3 * mm))
 
         if not well_poor and not under_poor and corr is None:
-            story.append(Paragraph(
-                "형성평가 연결 분석 상세 데이터가 제공되지 않았습니다.",
-                self._styles["DcBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "형성평가 연결 분석 상세 데이터가 제공되지 않았습니다.",
+                    self._styles["DcBody"],
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
         return story
-
 
     # ----------------------------------------------------------------
     # Concept network graph section (T056)
@@ -1140,25 +1282,34 @@ class DomainDeliveryPDFReportGenerator:
         """
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            f"{section_num}. 개념 네트워크 그래프",
-            self._styles["DcSection"],
-        ))
+        story.append(
+            Paragraph(
+                f"{section_num}. 개념 네트워크 그래프",
+                self._styles["DcSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Single network chart
         try:
             from forma.domain_coverage_charts import build_concept_network_chart
+
             chart_buf = build_concept_network_chart(
-                network, font_path=self._font_path, dpi=self._dpi,
+                network,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart_buf, width=160 * mm, height=130 * mm))
             story.append(Spacer(1, 3 * mm))
         except Exception as exc:
             logger.warning("Failed to generate concept network chart: %s", exc)
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
         # Comparison chart (if multi-section data available)
         if deliveries_by_section and len(deliveries_by_section) >= 2:
@@ -1166,14 +1317,21 @@ class DomainDeliveryPDFReportGenerator:
                 from forma.domain_coverage_charts import (
                     build_concept_network_comparison,
                 )
+
                 comp_buf = build_concept_network_comparison(
-                    network, deliveries_by_section,
-                    font_path=self._font_path, dpi=self._dpi,
+                    network,
+                    deliveries_by_section,
+                    font_path=self._font_path,
+                    dpi=self._dpi,
                 )
                 story.append(PageBreak())
-                story.append(Image(
-                    comp_buf, width=170 * mm, height=130 * mm,
-                ))
+                story.append(
+                    Image(
+                        comp_buf,
+                        width=170 * mm,
+                        height=130 * mm,
+                    )
+                )
                 story.append(Spacer(1, 3 * mm))
             except Exception as exc:
                 logger.warning("Failed to generate network comparison chart: %s", exc)
@@ -1181,15 +1339,17 @@ class DomainDeliveryPDFReportGenerator:
         # Text summary: top 3 edges by weight
         if network.edges:
             sorted_edges = sorted(
-                network.edges, key=lambda e: e.weight, reverse=True,
+                network.edges,
+                key=lambda e: e.weight,
+                reverse=True,
             )[:3]
-            connections = ", ".join(
-                f"{e.source}-{e.target}" for e in sorted_edges
+            connections = ", ".join(f"{e.source}-{e.target}" for e in sorted_edges)
+            story.append(
+                Paragraph(
+                    f"주요 연결: {_esc(connections)}",
+                    self._styles["DcBody"],
+                )
             )
-            story.append(Paragraph(
-                f"주요 연결: {_esc(connections)}",
-                self._styles["DcBody"],
-            ))
 
         story.append(Spacer(1, 5 * mm))
         return story

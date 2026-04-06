@@ -85,23 +85,17 @@ class TestRenderConceptReasoningPrompt:
 
     def test_render_contains_concept(self):
         """Concept name appears in the reasoning prompt."""
-        result = render_concept_reasoning_prompt(
-            concept="삼투", student_response="물은 농도 차이로 이동합니다."
-        )
+        result = render_concept_reasoning_prompt(concept="삼투", student_response="물은 농도 차이로 이동합니다.")
         assert "삼투" in result
 
     def test_render_contains_student_response(self):
         """Student response appears in the reasoning prompt."""
         resp = "세포막을 통한 물의 이동입니다."
-        result = render_concept_reasoning_prompt(
-            concept="삼투", student_response=resp
-        )
+        result = render_concept_reasoning_prompt(concept="삼투", student_response=resp)
         assert resp in result
 
     def test_render_contains_yaml_instruction(self):
         """Reasoning prompt instructs YAML format."""
-        result = render_concept_reasoning_prompt(
-            concept="확산", student_response="분자 운동."
-        )
+        result = render_concept_reasoning_prompt(concept="확산", student_response="분자 운동.")
         assert "yaml" in result.lower()
         assert "concept_understood" in result

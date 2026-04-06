@@ -4,6 +4,7 @@
 Uses pyzbar (zbar) as primary decoder for robust scanning,
 with OpenCV QRCodeDetector as fallback.
 """
+
 from __future__ import annotations
 
 import re
@@ -12,12 +13,14 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 try:
     from pyzbar.pyzbar import decode as _pyzbar_decode
+
     _HAS_PYZBAR = True
 except ImportError:
     _HAS_PYZBAR = False
 
 try:
     import cv2
+
     _HAS_CV2 = True
 except ImportError:  # pragma: no cover
     _HAS_CV2 = False
@@ -39,10 +42,7 @@ def decode_qr_from_image(image_path: str) -> Optional[str]:
         ImportError: if neither pyzbar nor opencv is available.
     """
     if not _HAS_PYZBAR and not _HAS_CV2:
-        raise ImportError(
-            "QR decoding requires pyzbar or opencv-python-headless. "
-            "Install: pip install pyzbar"
-        )
+        raise ImportError("QR decoding requires pyzbar or opencv-python-headless. Install: pip install pyzbar")
 
     from PIL import Image
 
@@ -114,7 +114,9 @@ def _decode_cv2_with_preprocess(image_path: str) -> Optional[str]:
 
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(
-        gray, 0, 255,
+        gray,
+        0,
+        255,
         cv2.THRESH_BINARY + cv2.THRESH_OTSU,
     )
     data, _, _ = detector.detectAndDecode(binary)

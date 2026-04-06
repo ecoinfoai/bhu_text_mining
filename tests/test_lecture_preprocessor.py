@@ -23,6 +23,7 @@ import pytest
 # TestValidatePath
 # -------------------------------------------------------------------
 
+
 class TestValidatePath:
     """Test validate_path() path traversal rejection."""
 
@@ -79,11 +80,13 @@ class TestValidatePath:
 # TestLoadAndDecodeBOM
 # -------------------------------------------------------------------
 
+
 class TestLoadAndDecodeBOM:
     """Test load_and_decode() UTF-8 BOM handling."""
 
     def test_bom_stripped_from_content(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """UTF-8 BOM is stripped automatically."""
         from forma.lecture_preprocessor import load_and_decode
@@ -98,7 +101,8 @@ class TestLoadAndDecodeBOM:
         assert enc == "utf-8"
 
     def test_no_bom_still_works(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Non-BOM UTF-8 files still work with utf-8-sig."""
         from forma.lecture_preprocessor import load_and_decode
@@ -113,6 +117,7 @@ class TestLoadAndDecodeBOM:
 # -------------------------------------------------------------------
 # TestSplitMixedTokensPreserve
 # -------------------------------------------------------------------
+
 
 class TestSplitMixedTokensPreserve:
     """Test split_mixed_tokens() preserves biology abbreviations."""
@@ -142,6 +147,7 @@ class TestSplitMixedTokensPreserve:
 # -------------------------------------------------------------------
 # TestRemoveFillers
 # -------------------------------------------------------------------
+
 
 class TestRemoveFillers:
     """Test remove_fillers() Korean filler word removal."""
@@ -187,6 +193,7 @@ class TestRemoveFillers:
 # TestNormalizeRepeatedChars
 # -------------------------------------------------------------------
 
+
 class TestNormalizeRepeatedChars:
     """Test normalize_repeated_chars() compression."""
 
@@ -210,6 +217,7 @@ class TestNormalizeRepeatedChars:
 # TestSplitMixedTokens
 # -------------------------------------------------------------------
 
+
 class TestSplitMixedTokens:
     """Test split_mixed_tokens() language boundary splitting."""
 
@@ -232,6 +240,7 @@ class TestSplitMixedTokens:
 # TestBuildStopwords
 # -------------------------------------------------------------------
 
+
 class TestBuildStopwords:
     """Test build_stopwords() 3-layer stopword construction."""
 
@@ -241,9 +250,7 @@ class TestBuildStopwords:
 
         sw = build_stopwords()
         for particle in ("은", "는", "이", "가"):
-            assert particle in sw, (
-                f"Korean particle '{particle}' missing"
-            )
+            assert particle in sw, f"Korean particle '{particle}' missing"
 
     def test_build_stopwords_includes_english(self) -> None:
         """Standard English function words present."""
@@ -251,9 +258,7 @@ class TestBuildStopwords:
 
         sw = build_stopwords()
         for word in ("the", "a", "of", "is"):
-            assert word in sw, (
-                f"English stopword '{word}' missing"
-            )
+            assert word in sw, f"English stopword '{word}' missing"
 
     def test_build_stopwords_includes_lecture_discourse(
         self,
@@ -263,9 +268,7 @@ class TestBuildStopwords:
 
         sw = build_stopwords()
         for word in ("okay", "right", "basically"):
-            assert word in sw, (
-                f"Lecture discourse word '{word}' missing"
-            )
+            assert word in sw, f"Lecture discourse word '{word}' missing"
 
     def test_build_stopwords_merges_extras(self) -> None:
         """Extra stopwords merged into result."""
@@ -282,6 +285,7 @@ class TestBuildStopwords:
 # TestFilterStopwords
 # -------------------------------------------------------------------
 
+
 class TestFilterStopwords:
     """Test filter_stopwords() with abbreviation preservation."""
 
@@ -293,7 +297,9 @@ class TestFilterStopwords:
         stopwords = frozenset({"은", "를"})
         abbreviations = frozenset()
         result = filter_stopwords(
-            words, stopwords, abbreviations,
+            words,
+            stopwords,
+            abbreviations,
         )
         assert result == ["세포", "에너지", "생산"]
 
@@ -309,7 +315,9 @@ class TestFilterStopwords:
         words = ["ATP", "세포", "DNA", "RNA"]
         stopwords = frozenset({"ATP", "DNA"})
         result = filter_stopwords(
-            words, stopwords, BIOLOGY_ABBREVIATIONS,
+            words,
+            stopwords,
+            BIOLOGY_ABBREVIATIONS,
         )
         assert "ATP" in result
         assert "DNA" in result
@@ -324,7 +332,9 @@ class TestFilterStopwords:
         stopwords = frozenset({"PCR", "the"})
         abbreviations = frozenset({"PCR"})
         result = filter_stopwords(
-            words, stopwords, abbreviations,
+            words,
+            stopwords,
+            abbreviations,
         )
         assert "PCR" in result
         assert "the" not in result
@@ -334,11 +344,13 @@ class TestFilterStopwords:
 # TestPreprocessTranscript
 # -------------------------------------------------------------------
 
+
 class TestPreprocessTranscript:
     """Test preprocess_transcript() full 8-step pipeline."""
 
     def test_preprocess_transcript_empty_file(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Empty file raises ValueError with Korean message."""
         from forma.lecture_preprocessor import preprocess_transcript
@@ -349,7 +361,8 @@ class TestPreprocessTranscript:
             preprocess_transcript(str(p), "A", 1)
 
     def test_preprocess_transcript_empty_after_cleaning(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """File with only fillers raises ValueError."""
         from forma.lecture_preprocessor import preprocess_transcript
@@ -363,7 +376,8 @@ class TestPreprocessTranscript:
             preprocess_transcript(str(p), "A", 1)
 
     def test_preprocess_transcript_exceeds_length(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """File exceeding MAX_TRANSCRIPT_LENGTH raises ValueError."""
         from forma.lecture_preprocessor import (
@@ -380,7 +394,8 @@ class TestPreprocessTranscript:
             preprocess_transcript(str(p), "A", 1)
 
     def test_preprocess_transcript_returns_cleaned_transcript(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Valid file returns CleanedTranscript with all fields."""
         from forma.lecture_preprocessor import (
@@ -388,9 +403,7 @@ class TestPreprocessTranscript:
             CleanedTranscript,
         )
 
-        content = (
-            "오늘은 어 세포의 ATP 합성에 대해 설명하겠습니다"
-        )
+        content = "오늘은 어 세포의 ATP 합성에 대해 설명하겠습니다"
         p = tmp_path / "valid.txt"
         p.write_text(content, encoding="utf-8")
 
@@ -410,11 +423,13 @@ class TestPreprocessTranscript:
 # TestLoadAndDecode
 # -------------------------------------------------------------------
 
+
 class TestLoadAndDecode:
     """Test load_and_decode() encoding detection."""
 
     def test_load_and_decode_utf8(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """UTF-8 file decoded correctly."""
         from forma.lecture_preprocessor import load_and_decode
@@ -426,7 +441,9 @@ class TestLoadAndDecode:
         assert encoding == "utf-8"
 
     def test_load_and_decode_euckr_fallback(
-        self, tmp_path: Path, caplog,
+        self,
+        tmp_path: Path,
+        caplog,
     ) -> None:
         """EUC-KR file decoded with fallback and warning logged."""
         from forma.lecture_preprocessor import load_and_decode
@@ -445,6 +462,7 @@ class TestLoadAndDecode:
 # TestBiologyAbbreviations
 # -------------------------------------------------------------------
 
+
 class TestBiologyAbbreviations:
     """Test BIOLOGY_ABBREVIATIONS constant."""
 
@@ -456,6 +474,4 @@ class TestBiologyAbbreviations:
 
         assert isinstance(BIOLOGY_ABBREVIATIONS, frozenset)
         for abbr in ("ATP", "DNA", "RNA", "pH", "mRNA"):
-            assert abbr in BIOLOGY_ABBREVIATIONS, (
-                f"'{abbr}' missing from BIOLOGY_ABBREVIATIONS"
-            )
+            assert abbr in BIOLOGY_ABBREVIATIONS, f"'{abbr}' missing from BIOLOGY_ABBREVIATIONS"

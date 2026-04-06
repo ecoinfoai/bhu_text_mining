@@ -4,6 +4,7 @@ BUG-001: Config merge precedence (cli_ocr.py)
 BUG-002: CLI routing for eval --class (cli_main.py)
 BUG-003: Join output format tolerance (evaluation_io.py, pipeline_evaluation.py)
 """
+
 from __future__ import annotations
 
 import sys
@@ -65,9 +66,7 @@ class TestConfigMergePrecedence:
             (None, None, None, None, "argparse default (None)"),
         ],
     )
-    def test_num_questions_precedence(
-        self, tmp_path, cli_val, week_val, forma_val, expected, desc
-    ):
+    def test_num_questions_precedence(self, tmp_path, cli_val, week_val, forma_val, expected, desc):
         """8-combination precedence matrix for num_questions."""
         from forma.cli_ocr import _parse_args
 
@@ -96,6 +95,7 @@ class TestConfigMergePrecedence:
         raw_argv = argv
 
         from forma.project_config import apply_project_config
+
         with patch("forma.project_config.find_project_config", return_value=str(tmp_path / "forma.yaml")):
             apply_project_config(args, argv=raw_argv)
 
@@ -106,11 +106,7 @@ class TestConfigMergePrecedence:
         resolved = resolve_class_patterns(week_cfg, "A")
 
         # Reconstruct explicit_keys (the fix pattern)
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in raw_argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in raw_argv if token.startswith("--")}
 
         # Apply precedence: CLI > week.yaml > forma.yaml/default
         # Note: resolved.ocr_num_questions defaults to 0 (falsy) when not set
@@ -133,9 +129,7 @@ class TestConfigMergePrecedence:
             (None, None, "student_id", "argparse default"),
         ],
     )
-    def test_student_id_column_precedence(
-        self, tmp_path, cli_val, week_val, expected, desc
-    ):
+    def test_student_id_column_precedence(self, tmp_path, cli_val, week_val, expected, desc):
         """Precedence matrix for student_id_column (not in forma.yaml schema)."""
         from forma.cli_ocr import _parse_args
 
@@ -154,6 +148,7 @@ class TestConfigMergePrecedence:
         raw_argv = argv
 
         from forma.project_config import apply_project_config
+
         with patch("forma.project_config.find_project_config", return_value=str(tmp_path / "forma.yaml")):
             apply_project_config(args, argv=raw_argv)
 
@@ -162,11 +157,7 @@ class TestConfigMergePrecedence:
         week_cfg = load_week_config(week_path)
         resolved = resolve_class_patterns(week_cfg, "A")
 
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in raw_argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in raw_argv if token.startswith("--")}
 
         # student_id_column precedence
         # Note: resolved.ocr_student_id_column defaults to "" (falsy) when not set
@@ -223,6 +214,7 @@ class TestEvalRouting:
         def fake_import(module_path, func_name):
             def delegate():
                 captured["argv"] = sys.argv[1:]
+
             captured["key"] = (module_path, func_name)
             return delegate
 
@@ -362,9 +354,7 @@ class TestBareListPipeline:
             {"student_id": "S002", "q_num": 1, "text": "세포막은 선택적 투과성"},
         ]
         responses_path = tmp_path / "final_A.yaml"
-        responses_path.write_text(
-            yaml.dump(bare_list, allow_unicode=True), encoding="utf-8"
-        )
+        responses_path.write_text(yaml.dump(bare_list, allow_unicode=True), encoding="utf-8")
 
         # Create a minimal exam config
         config_data = {
@@ -380,9 +370,7 @@ class TestBareListPipeline:
             ],
         }
         config_path = tmp_path / "exam.yaml"
-        config_path.write_text(
-            yaml.dump(config_data, allow_unicode=True), encoding="utf-8"
-        )
+        config_path.write_text(yaml.dump(config_data, allow_unicode=True), encoding="utf-8")
 
         # The non-'--class' path (questions_used=None) should accept bare list
         # We test by directly loading and extracting, mimicking the pipeline path
@@ -448,6 +436,7 @@ class TestAdversarialPersonas:
         def fake_import(module_path, func_name):
             def delegate():
                 captured["argv"] = sys.argv[1:]
+
             captured["key"] = (module_path, func_name)
             return delegate
 
@@ -539,17 +528,17 @@ class TestAdversarialPersonas:
         (tmp_path / "images" / "A").mkdir(parents=True, exist_ok=True)
 
         argv = [
-            "scan", "--class", "A",
-            "--week-config", str(week_path),
-            "--num-questions", "3",
+            "scan",
+            "--class",
+            "A",
+            "--week-config",
+            str(week_path),
+            "--num-questions",
+            "3",
         ]
         args = _parse_args(argv)
 
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in argv if token.startswith("--")}
 
         assert "num_questions" in explicit
         assert args.num_questions == 3  # CLI wins over week(99) and forma(77)
@@ -570,16 +559,16 @@ class TestAdversarialPersonas:
         week_path = self._make_week_yaml(tmp_path, week_data)
 
         argv = [
-            "join", "--class", "A",
-            "--week-config", str(week_path),
-            "--student-id-column", "my_sid",
+            "join",
+            "--class",
+            "A",
+            "--week-config",
+            str(week_path),
+            "--student-id-column",
+            "my_sid",
         ]
         args = _parse_args(argv)
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in argv if token.startswith("--")}
 
         assert "student_id_column" in explicit
         assert args.student_id_column == "my_sid"
@@ -630,14 +619,17 @@ class TestAdversarialPersonas:
         from forma.week_config import load_week_config, resolve_class_patterns
         from forma.project_config import apply_project_config
 
-        self._make_forma_yaml(tmp_path, {
-            "project": {"name": "test"},
-            "ocr": {
-                "num_questions": 10,
-                "naver_config": "/path/to/naver",
-                "spreadsheet_url": "https://example.com",
+        self._make_forma_yaml(
+            tmp_path,
+            {
+                "project": {"name": "test"},
+                "ocr": {
+                    "num_questions": 10,
+                    "naver_config": "/path/to/naver",
+                    "spreadsheet_url": "https://example.com",
+                },
             },
-        })
+        )
         week_data = {
             "week": 1,
             "ocr": {
@@ -659,11 +651,7 @@ class TestAdversarialPersonas:
         week_cfg = load_week_config(week_path)
         resolved = resolve_class_patterns(week_cfg, "A")
 
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in argv if token.startswith("--")}
 
         # week.yaml num_questions (2) should win over forma.yaml (10)
         if "num_questions" not in explicit:
@@ -897,21 +885,13 @@ class TestAdversarialPersonas:
     def test_adversarial_P10_flag_equals_syntax(self):
         """--num-questions=3 (= syntax) → detected in explicit_keys."""
         argv = ["scan", "--class", "A", "--num-questions=3", "--week-config", "/tmp/w.yaml"]
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in argv if token.startswith("--")}
         assert "num_questions" in explicit
 
     def test_adversarial_P10_flag_underscore_variant(self):
         """--num_questions (underscore) → detected correctly by explicit_keys logic."""
         argv = ["scan", "--class", "A", "--num_questions", "3"]
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in argv if token.startswith("--")}
         assert "num_questions" in explicit
 
     def test_adversarial_P10_repeated_flags(self):
@@ -932,10 +912,15 @@ class TestAdversarialPersonas:
             (tmp_path / "images" / "A").mkdir(parents=True, exist_ok=True)
 
             argv = [
-                "scan", "--class", "A",
-                "--week-config", str(week_path),
-                "--num-questions", "3",
-                "--num-questions", "7",
+                "scan",
+                "--class",
+                "A",
+                "--week-config",
+                str(week_path),
+                "--num-questions",
+                "3",
+                "--num-questions",
+                "7",
             ]
             args = _parse_args(argv)
             assert args.num_questions == 7  # last wins
@@ -943,11 +928,7 @@ class TestAdversarialPersonas:
     def test_adversarial_P10_no_config_flag_explicit(self):
         """--no-config flag → detected in explicit_keys."""
         argv = ["scan", "--class", "A", "--no-config", "--num-questions", "5"]
-        explicit = {
-            token.lstrip("-").split("=")[0].replace("-", "_")
-            for token in argv
-            if token.startswith("--")
-        }
+        explicit = {token.lstrip("-").split("=")[0].replace("-", "_") for token in argv if token.startswith("--")}
         assert "no_config" in explicit
         assert "num_questions" in explicit
 
@@ -1039,9 +1020,7 @@ class TestAdversarialPersonas:
         from forma.evaluation_io import extract_student_responses
 
         bare = [
-            {"student_id": f"S{i:04d}", "q_num": q, "text": f"답변_{i}_{q}"}
-            for i in range(100)
-            for q in range(1, 11)
+            {"student_id": f"S{i:04d}", "q_num": q, "text": f"답변_{i}_{q}"} for i in range(100) for q in range(1, 11)
         ]
         result = extract_student_responses(bare)
         assert len(result) == 100

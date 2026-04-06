@@ -1,4 +1,5 @@
 """Hub centrality gap analysis for concept network comparison."""
+
 from __future__ import annotations
 
 import logging
@@ -51,12 +52,14 @@ def compute_hub_gap(
     # Build HubGapEntry list
     entries = []
     for concept, cent in top_nodes:
-        entries.append(HubGapEntry(
-            concept=concept,
-            degree_centrality=cent,
-            student_present=(concept in student_concepts),
-            class_inclusion_rate=0.0,
-        ))
+        entries.append(
+            HubGapEntry(
+                concept=concept,
+                degree_centrality=cent,
+                student_present=(concept in student_concepts),
+                class_inclusion_rate=0.0,
+            )
+        )
 
     return entries
 
@@ -101,15 +104,16 @@ def compute_class_hub_gap(
             rate = 0.0
         else:
             count = sum(
-                1 for edges in all_student_edges.values()
-                if any(concept in (e.subject, e.object) for e in edges)
+                1 for edges in all_student_edges.values() if any(concept in (e.subject, e.object) for e in edges)
             )
             rate = min(1.0, count / n_students)
-        entries.append(HubGapEntry(
-            concept=concept,
-            degree_centrality=cent,
-            student_present=False,
-            class_inclusion_rate=rate,
-        ))
+        entries.append(
+            HubGapEntry(
+                concept=concept,
+                degree_centrality=cent,
+                student_present=False,
+                class_inclusion_rate=rate,
+            )
+        )
 
     return entries

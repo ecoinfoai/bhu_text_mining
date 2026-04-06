@@ -316,7 +316,7 @@ def render_template(
 
 def _sanitize_header(value: str) -> str:
     """Strip CR and LF characters to prevent email header injection."""
-    return value.replace('\r', '').replace('\n', '')
+    return value.replace("\r", "").replace("\n", "")
 
 
 def _mask_email(email: str) -> str:
@@ -374,9 +374,7 @@ def compose_email(
 
     # Set From with display name if provided (FR-006: sanitize headers)
     if sender_config.sender_name:
-        msg["From"] = _sanitize_header(
-            f"{sender_config.sender_name} <{sender_config.sender_email}>"
-        )
+        msg["From"] = _sanitize_header(f"{sender_config.sender_name} <{sender_config.sender_email}>")
     else:
         msg["From"] = _sanitize_header(sender_config.sender_email)
 
@@ -415,15 +413,17 @@ def save_delivery_log(log: DeliveryLog, path: str) -> None:
     """
     results_list = []
     for r in log.results:
-        results_list.append({
-            "student_id": r.student_id,
-            "email": r.email,
-            "status": r.status,
-            "sent_at": r.sent_at,
-            "attachment": r.attachment,
-            "size_bytes": r.size_bytes,
-            "error": r.error,
-        })
+        results_list.append(
+            {
+                "student_id": r.student_id,
+                "email": r.email,
+                "status": r.status,
+                "sent_at": r.sent_at,
+                "attachment": r.attachment,
+                "size_bytes": r.size_bytes,
+                "error": r.error,
+            }
+        )
 
     data = {
         "sent_at": log.sent_at,
@@ -474,21 +474,21 @@ def load_delivery_log(path: str) -> DeliveryLog:
     _REQUIRED_KEYS = ("sent_at", "smtp_server", "total", "success", "failed")
     missing = [k for k in _REQUIRED_KEYS if k not in data]
     if missing:
-        raise ValueError(
-            f"delivery_log.yaml missing required keys: {', '.join(missing)} ({path})"
-        )
+        raise ValueError(f"delivery_log.yaml missing required keys: {', '.join(missing)} ({path})")
 
     results = []
     for r in data.get("results", []):
-        results.append(DeliveryResult(
-            student_id=r["student_id"],
-            email=r["email"],
-            status=r["status"],
-            sent_at=r["sent_at"],
-            attachment=r["attachment"],
-            size_bytes=r["size_bytes"],
-            error=r.get("error", ""),
-        ))
+        results.append(
+            DeliveryResult(
+                student_id=r["student_id"],
+                email=r["email"],
+                status=r["status"],
+                sent_at=r["sent_at"],
+                attachment=r["attachment"],
+                size_bytes=r["size_bytes"],
+                error=r.get("error", ""),
+            )
+        )
 
     return DeliveryLog(
         sent_at=data["sent_at"],
@@ -564,19 +564,14 @@ def send_emails(
         if not dry_run and not retry_failed and not existing_log.dry_run:
             has_success = any(r.status == "success" for r in existing_log.results)
             if has_success and not force:
-                raise ValueError(
-                    "Delivery log already contains successful sends. Use --force to resend."
-                )
+                raise ValueError("Delivery log already contains successful sends. Use --force to resend.")
 
     # Resolve password (FR-008)
     if not dry_run:
         if password is None:
             password = os.environ.get("FORMA_SMTP_PASSWORD")
         if not password:
-            raise ValueError(
-                "SMTP password not configured. "
-                "Use FORMA_SMTP_PASSWORD env var or --password-from-stdin."
-            )
+            raise ValueError("SMTP password not configured. Use FORMA_SMTP_PASSWORD env var or --password-from-stdin.")
 
     # Determine send targets
     details = summary_data.get("details", [])
@@ -623,11 +618,17 @@ def send_emails(
             zip_path = target.get("zip_path")
 
             if not zip_path or not os.path.exists(str(zip_path)):
-                results.append(DeliveryResult(
-                    student_id=sid, email=email, status="failed",
-                    sent_at=now, attachment="", size_bytes=0,
-                    error="zip file not found",
-                ))
+                results.append(
+                    DeliveryResult(
+                        student_id=sid,
+                        email=email,
+                        status="failed",
+                        sent_at=now,
+                        attachment="",
+                        size_bytes=0,
+                        error="zip file not found",
+                    )
+                )
                 failed_count += 1
                 continue
 
@@ -646,13 +647,20 @@ def send_emails(
                 # Preview output (no actual sending)
                 logger.info(
                     "[DRY-RUN] To: %s, Subject: %s, Attachment: %s",
-                    _mask_email(email), subject, os.path.basename(zip_path),
+                    _mask_email(email),
+                    subject,
+                    os.path.basename(zip_path),
                 )
-                results.append(DeliveryResult(
-                    student_id=sid, email=email, status="success",
-                    sent_at=now, attachment=os.path.basename(zip_path),
-                    size_bytes=zip_size,
-                ))
+                results.append(
+                    DeliveryResult(
+                        student_id=sid,
+                        email=email,
+                        status="success",
+                        sent_at=now,
+                        attachment=os.path.basename(zip_path),
+                        size_bytes=zip_size,
+                    )
+                )
                 success_count += 1
             else:
                 try:
@@ -675,7 +683,10 @@ def send_emails(
                             last_error = disc_err
                             logger.warning(
                                 "SMTP disconnected (attempt %d/%d): %s (%s)",
-                                attempt + 1, _MAX_RETRIES, sid, disc_err,
+                                attempt + 1,
+                                _MAX_RETRIES,
+                                sid,
+                                disc_err,
                             )
                             try:
                                 smtp_conn = _connect_smtp()
@@ -683,27 +694,44 @@ def send_emails(
                                 logger.warning("SMTP reconnect failed: %s", reconn_err)
                                 last_error = reconn_err
                     if sent:
-                        results.append(DeliveryResult(
-                            student_id=sid, email=email, status="success",
-                            sent_at=now, attachment=os.path.basename(zip_path),
-                            size_bytes=zip_size,
-                        ))
+                        results.append(
+                            DeliveryResult(
+                                student_id=sid,
+                                email=email,
+                                status="success",
+                                sent_at=now,
+                                attachment=os.path.basename(zip_path),
+                                size_bytes=zip_size,
+                            )
+                        )
                         success_count += 1
                     else:
                         logger.warning("Send failed: %s (%s): %s", sid, _mask_email(email), last_error)
-                        results.append(DeliveryResult(
-                            student_id=sid, email=email, status="failed",
-                            sent_at=now, attachment=os.path.basename(zip_path),
-                            size_bytes=zip_size, error=str(last_error),
-                        ))
+                        results.append(
+                            DeliveryResult(
+                                student_id=sid,
+                                email=email,
+                                status="failed",
+                                sent_at=now,
+                                attachment=os.path.basename(zip_path),
+                                size_bytes=zip_size,
+                                error=str(last_error),
+                            )
+                        )
                         failed_count += 1
                 except Exception as e:
                     logger.warning("Send failed: %s (%s): %s", sid, _mask_email(email), e)
-                    results.append(DeliveryResult(
-                        student_id=sid, email=email, status="failed",
-                        sent_at=now, attachment=os.path.basename(zip_path),
-                        size_bytes=zip_size, error=str(e),
-                    ))
+                    results.append(
+                        DeliveryResult(
+                            student_id=sid,
+                            email=email,
+                            status="failed",
+                            sent_at=now,
+                            attachment=os.path.basename(zip_path),
+                            size_bytes=zip_size,
+                            error=str(e),
+                        )
+                    )
                     failed_count += 1
 
             # Rate limiting (FR-010): sleep between sends, not after last one
@@ -744,10 +772,7 @@ def print_delivery_summary(log: DeliveryLog) -> None:
         log: Delivery log with results.
     """
     prefix = "[DRY-RUN] " if log.dry_run else ""
-    print(
-        f"{prefix}Total {log.total}: {log.success} success, "
-        f"{log.failed} failed"
-    )
+    print(f"{prefix}Total {log.total}: {log.success} success, {log.failed} failed")
 
     if log.failed > 0:
         failed_results = [r for r in log.results if r.status == "failed"]
@@ -795,15 +820,11 @@ def send_summary_email(
     msg = MIMEMultipart()
     # FR-006: sanitize headers
     if smtp_config.sender_name:
-        msg["From"] = _sanitize_header(
-            f"{smtp_config.sender_name} <{smtp_config.sender_email}>"
-        )
+        msg["From"] = _sanitize_header(f"{smtp_config.sender_name} <{smtp_config.sender_email}>")
     else:
         msg["From"] = _sanitize_header(smtp_config.sender_email)
     msg["To"] = _sanitize_header(smtp_config.sender_email)
-    msg["Subject"] = _sanitize_header(
-        f"[forma] 발송 결과 요약 ({log.success}/{log.total})"
-    )
+    msg["Subject"] = _sanitize_header(f"[forma] 발송 결과 요약 ({log.success}/{log.total})")
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     conn = smtplib.SMTP(smtp_config.smtp_server, smtp_config.smtp_port, timeout=30)

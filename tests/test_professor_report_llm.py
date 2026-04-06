@@ -170,9 +170,7 @@ class TestGenerateProfessorAnalysis:
         from forma.professor_report_llm import generate_professor_analysis
 
         suggestions_text = "세포막 개념 강화가 필요합니다."
-        provider = _make_mock_provider(
-            side_effects=[RuntimeError("API timeout"), suggestions_text]
-        )
+        provider = _make_mock_provider(side_effects=[RuntimeError("API timeout"), suggestions_text])
         report_data = _make_test_report_data()
 
         generate_professor_analysis(provider, report_data)
@@ -186,9 +184,7 @@ class TestGenerateProfessorAnalysis:
         from forma.professor_report_llm import generate_professor_analysis
 
         overall_text = "학급 전체 평균은 0.575입니다."
-        provider = _make_mock_provider(
-            side_effects=[overall_text, RuntimeError("connection reset")]
-        )
+        provider = _make_mock_provider(side_effects=[overall_text, RuntimeError("connection reset")])
         report_data = _make_test_report_data()
 
         generate_professor_analysis(provider, report_data)
@@ -201,9 +197,7 @@ class TestGenerateProfessorAnalysis:
         """Both LLM calls raise Exception — fallback used for both, flag set."""
         from forma.professor_report_llm import generate_professor_analysis
 
-        provider = _make_mock_provider(
-            side_effects=[RuntimeError("no connection"), RuntimeError("no connection")]
-        )
+        provider = _make_mock_provider(side_effects=[RuntimeError("no connection"), RuntimeError("no connection")])
         report_data = _make_test_report_data()
 
         generate_professor_analysis(provider, report_data)
@@ -248,20 +242,14 @@ class TestGenerateProfessorAnalysis:
                 pii_strings.append(row.student_number)
 
         for pii in pii_strings:
-            assert pii not in report_data.overall_assessment, (
-                f"PII '{pii}' found in overall_assessment"
-            )
-            assert pii not in report_data.teaching_suggestions, (
-                f"PII '{pii}' found in teaching_suggestions"
-            )
+            assert pii not in report_data.overall_assessment, f"PII '{pii}' found in overall_assessment"
+            assert pii not in report_data.teaching_suggestions, f"PII '{pii}' found in teaching_suggestions"
 
     def test_model_used_set(self):
         """After successful call, llm_model_used is not empty."""
         from forma.professor_report_llm import generate_professor_analysis
 
-        provider = _make_mock_provider(
-            responses=["전체 분석 텍스트입니다.", "교수법 제안입니다."]
-        )
+        provider = _make_mock_provider(responses=["전체 분석 텍스트입니다.", "교수법 제안입니다."])
         report_data = _make_test_report_data()
 
         generate_professor_analysis(provider, report_data)
@@ -298,7 +286,7 @@ class TestFallbackFunctions:
         # Should contain the mean value (0.575) in some form
         mean_str = f"{report_data.class_ensemble_mean:.3f}"
         mean_alt = f"{report_data.class_ensemble_mean:.2f}"
-        assert (mean_str in result or mean_alt in result or "0.575" in result or "0.58" in result), (
+        assert mean_str in result or mean_alt in result or "0.575" in result or "0.58" in result, (
             f"Expected class mean in fallback text, got: {result}"
         )
 
@@ -399,9 +387,7 @@ class TestPromptRendering:
 
         for row in report_data.student_rows:
             if row.real_name:
-                assert row.real_name not in result, (
-                    f"PII '{row.real_name}' found in overall assessment prompt"
-                )
+                assert row.real_name not in result, f"PII '{row.real_name}' found in overall assessment prompt"
             if row.student_number:
                 assert row.student_number not in result, (
                     f"PII '{row.student_number}' found in overall assessment prompt"
@@ -436,9 +422,7 @@ class TestPromptRendering:
 
         for row in report_data.student_rows:
             if row.real_name:
-                assert row.real_name not in result, (
-                    f"PII '{row.real_name}' found in teaching suggestions prompt"
-                )
+                assert row.real_name not in result, f"PII '{row.real_name}' found in teaching suggestions prompt"
             if row.student_number:
                 assert row.student_number not in result, (
                     f"PII '{row.student_number}' found in teaching suggestions prompt"

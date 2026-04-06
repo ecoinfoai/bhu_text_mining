@@ -60,10 +60,7 @@ def _read_image(image_path: str) -> tuple[bytes, str]:
     ext = os.path.splitext(image_path)[1].lower()
     mime_type = _IMAGE_MIME_TYPES.get(ext)
     if mime_type is None:
-        raise ValueError(
-            f"Unsupported image format: {ext!r}. "
-            f"Supported: {', '.join(sorted(_IMAGE_MIME_TYPES))}"
-        )
+        raise ValueError(f"Unsupported image format: {ext!r}. Supported: {', '.join(sorted(_IMAGE_MIME_TYPES))}")
     with open(image_path, "rb") as f:
         return f.read(), mime_type
 
@@ -131,17 +128,18 @@ class LLMProvider(abc.ABC):
         last_exc: Exception | None = None
         for attempt in range(MAX_RETRIES):
             try:
-                return self._generate_impl(
-                    prompt, max_tokens, temperature, system_instruction
-                )
+                return self._generate_impl(prompt, max_tokens, temperature, system_instruction)
             except Exception as exc:
                 last_exc = exc
                 if not _is_retryable(exc):
                     raise
-                wait = INITIAL_BACKOFF * (2 ** attempt)
+                wait = INITIAL_BACKOFF * (2**attempt)
                 logger.warning(
                     "LLM call failed (attempt %d/%d): %s. Retrying in %.1fs",
-                    attempt + 1, MAX_RETRIES, exc, wait,
+                    attempt + 1,
+                    MAX_RETRIES,
+                    exc,
+                    wait,
                 )
                 time.sleep(wait)
         raise last_exc  # type: ignore[misc]
@@ -185,17 +183,24 @@ class LLMProvider(abc.ABC):
         for attempt in range(MAX_RETRIES):
             try:
                 return self._generate_with_image_impl(
-                    prompt, image_data, mime_type,
-                    max_tokens, temperature, system_instruction,
+                    prompt,
+                    image_data,
+                    mime_type,
+                    max_tokens,
+                    temperature,
+                    system_instruction,
                 )
             except Exception as exc:
                 last_exc = exc
                 if not _is_retryable(exc):
                     raise
-                wait = INITIAL_BACKOFF * (2 ** attempt)
+                wait = INITIAL_BACKOFF * (2**attempt)
                 logger.warning(
                     "LLM vision call failed (attempt %d/%d): %s. Retrying in %.1fs",
-                    attempt + 1, MAX_RETRIES, exc, wait,
+                    attempt + 1,
+                    MAX_RETRIES,
+                    exc,
+                    wait,
                 )
                 time.sleep(wait)
         raise last_exc  # type: ignore[misc]
@@ -245,18 +250,25 @@ class LLMProvider(abc.ABC):
         for attempt in range(MAX_RETRIES):
             try:
                 return self._generate_with_image_full_impl(
-                    prompt, image_data, mime_type,
-                    max_tokens, temperature, system_instruction,
+                    prompt,
+                    image_data,
+                    mime_type,
+                    max_tokens,
+                    temperature,
+                    system_instruction,
                     response_logprobs,
                 )
             except Exception as exc:
                 last_exc = exc
                 if not _is_retryable(exc):
                     raise
-                wait = INITIAL_BACKOFF * (2 ** attempt)
+                wait = INITIAL_BACKOFF * (2**attempt)
                 logger.warning(
                     "LLM vision full call failed (attempt %d/%d): %s. Retrying in %.1fs",
-                    attempt + 1, MAX_RETRIES, exc, wait,
+                    attempt + 1,
+                    MAX_RETRIES,
+                    exc,
+                    wait,
                 )
                 time.sleep(wait)
         raise last_exc  # type: ignore[misc]
@@ -279,8 +291,7 @@ class GeminiProvider(LLMProvider):
         resolved_key = api_key or os.environ.get("GOOGLE_API_KEY")
         if not resolved_key:
             raise EnvironmentError(
-                "Google API key required. Set GOOGLE_API_KEY environment "
-                "variable or pass api_key= explicitly."
+                "Google API key required. Set GOOGLE_API_KEY environment variable or pass api_key= explicitly."
             )
         from google import genai
 
@@ -398,8 +409,7 @@ class AnthropicProvider(LLMProvider):
         resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not resolved_key:
             raise EnvironmentError(
-                "Anthropic API key required. Set ANTHROPIC_API_KEY environment "
-                "variable or pass api_key= explicitly."
+                "Anthropic API key required. Set ANTHROPIC_API_KEY environment variable or pass api_key= explicitly."
             )
         import anthropic
 
@@ -527,7 +537,4 @@ def create_provider(
     elif provider in ("anthropic", "claude"):
         return AnthropicProvider(api_key=api_key, model=model)
     else:
-        raise ValueError(
-            f"Unknown LLM provider: {provider!r}. "
-            f"Supported: 'gemini', 'anthropic'."
-        )
+        raise ValueError(f"Unknown LLM provider: {provider!r}. Supported: 'gemini', 'anthropic'.")

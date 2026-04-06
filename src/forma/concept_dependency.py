@@ -168,9 +168,7 @@ def build_and_validate_dag(
             cycle_path = " -> ".join(u for u, _v, _d in cycle)
         except nx.NetworkXNoCycle:
             cycle_path = "unknown"
-        raise ValueError(
-            f"Concept dependency graph contains a cycle: {cycle_path}"
-        )
+        raise ValueError(f"Concept dependency graph contains a cycle: {cycle_path}")
 
     # Knowledge graph concept warning
     if knowledge_graph_concepts is not None:

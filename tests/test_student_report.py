@@ -69,9 +69,7 @@ def _make_question(
     understanding_level: str = "Beginning",
     component_scores: dict[str, float] | None = None,
     feedback_text: str = (
-        "[평가 요약]\n항상성 개념 부분 이해.\n"
-        "[분석 결과]\n세부 기전 설명 부족.\n"
-        "[학습 제안]\n교과서 3장 복습 권장."
+        "[평가 요약]\n항상성 개념 부분 이해.\n[분석 결과]\n세부 기전 설명 부족.\n[학습 제안]\n교과서 3장 복습 권장."
     ),
     misconceptions: list[str] | None = None,
 ) -> QuestionReportData:
@@ -170,7 +168,8 @@ class TestGeneratorInit:
     def test_generator_init_registers_font(self, mock_font):
         """StudentPDFReportGenerator registers NanumGothic font on init."""
         with patch(
-            "forma.student_report.find_korean_font", return_value=mock_font,
+            "forma.student_report.find_korean_font",
+            return_value=mock_font,
         ):
             with patch(
                 "forma.font_utils.pdfmetrics.registerFont",
@@ -277,7 +276,8 @@ class TestMakeOutputFilename:
         output_dir = "/tmp/reports"
 
         result = StudentPDFReportGenerator._make_output_filename(
-            student, output_dir,
+            student,
+            output_dir,
         )
         expected = os.path.join(output_dir, "1A_w1_2026194126_이유정.pdf")
         assert result == expected
@@ -288,7 +288,8 @@ class TestMakeOutputFilename:
 
         student = _make_student(class_name="A반", week_num=1)
         result = StudentPDFReportGenerator._make_output_filename(
-            student, "/tmp",
+            student,
+            "/tmp",
         )
         filename = os.path.basename(result)
         assert filename.startswith("1A_w1_")
@@ -299,7 +300,8 @@ class TestMakeOutputFilename:
 
         student = _make_student(class_name="B반", week_num=1)
         result = StudentPDFReportGenerator._make_output_filename(
-            student, "/tmp",
+            student,
+            "/tmp",
         )
         filename = os.path.basename(result)
         assert filename.startswith("1B_w1_")
@@ -312,7 +314,7 @@ class TestSanitizeFilename:
         """Characters illegal in filenames are replaced with underscores."""
         from forma.student_report import _sanitize_filename
 
-        result = _sanitize_filename('이름/with:special')
+        result = _sanitize_filename("이름/with:special")
         assert result == "이름_with_special"
 
     def test_sanitize_filename_clean(self):
@@ -331,9 +333,7 @@ class TestParseFeedbackSections:
         from forma.student_report import parse_feedback_sections
 
         text = (
-            "[평가 요약]\n항상성 개념 부분 이해.\n"
-            "[분석 결과]\n세부 기전 설명 부족.\n"
-            "[학습 제안]\n교과서 3장 복습 권장."
+            "[평가 요약]\n항상성 개념 부분 이해.\n[분석 결과]\n세부 기전 설명 부족.\n[학습 제안]\n교과서 3장 복습 권장."
         )
         result = parse_feedback_sections(text)
 
@@ -395,12 +395,8 @@ class TestBuildHeaderSection:
         _all_text = " ".join(all_call_args)
 
         # The header should reference the report title
-        title_found = any(
-            "학생 개인별 평가 리포트" in arg for arg in all_call_args
-        )
-        assert title_found, (
-            "Header should contain the report title '학생 개인별 평가 리포트'"
-        )
+        title_found = any("학생 개인별 평가 리포트" in arg for arg in all_call_args)
+        assert title_found, "Header should contain the report title '학생 개인별 평가 리포트'"
 
 
 class TestBuildQuestionSection:
@@ -437,15 +433,14 @@ class TestBuildQuestionSection:
                     with patch("forma.student_report.PageBreak"):
                         with patch("forma.student_report.Table") as mock_table:
                             story = generator._build_question_section(
-                                question, distributions,
+                                question,
+                                distributions,
                             )
 
         assert isinstance(story, list)
         assert len(story) > 0
         # Table constructor should have been called (answer comparison)
-        assert mock_table.called, (
-            "Question section should create a Table for answer comparison"
-        )
+        assert mock_table.called, "Question section should create a Table for answer comparison"
 
 
 class TestXmlEscapeInAnswerText:
@@ -484,7 +479,8 @@ class TestXmlEscapeInAnswerText:
                     create=True,
                 ):
                     _story = generator._build_question_section(
-                        question, distributions,
+                        question,
+                        distributions,
                     )
 
         # Collect all text passed to Paragraph calls
@@ -495,19 +491,14 @@ class TestXmlEscapeInAnswerText:
 
         # The raw '<script>' must NOT appear unescaped in any Paragraph
         _escaped_form = escape(dangerous_answer)
-        raw_in_paragraphs = any(
-            "<script>" in text for text in all_para_texts
-        )
-        escaped_in_paragraphs = any(
-            "&lt;script&gt;" in text for text in all_para_texts
-        )
+        raw_in_paragraphs = any("<script>" in text for text in all_para_texts)
+        escaped_in_paragraphs = any("&lt;script&gt;" in text for text in all_para_texts)
 
         # Either the raw tag should be absent, or the escaped form should
         # appear.  ReportLab's Paragraph uses XML, so unescaped angle
         # brackets will cause parsing errors.
         assert not raw_in_paragraphs or escaped_in_paragraphs, (
-            "Student answer text with '<script>' must be XML-escaped "
-            "before being passed to Paragraph"
+            "Student answer text with '<script>' must be XML-escaped before being passed to Paragraph"
         )
 
 
@@ -533,11 +524,7 @@ class TestParseFeedbackEdgeCases:
         from forma.student_report import parse_feedback_sections
 
         long_content = "가" * 700
-        text = (
-            f"[평가 요약]\n{long_content}\n"
-            f"[분석 결과]\n{long_content}\n"
-            f"[학습 제안]\n{long_content}"
-        )
+        text = f"[평가 요약]\n{long_content}\n[분석 결과]\n{long_content}\n[학습 제안]\n{long_content}"
         assert len(text) > 2000
         result = parse_feedback_sections(text)
         assert len(result["평가 요약"]) == 700
@@ -814,8 +801,7 @@ class TestStudentReportHubGapTable:
 
         tables = [f for f in story if isinstance(f, Table)]
         assert len(tables) > 0, (
-            "Expected at least one Table flowable in the story when "
-            "hub_gap_entries is non-empty, but none was found."
+            "Expected at least one Table flowable in the story when hub_gap_entries is non-empty, but none was found."
         )
 
         # Collect all text from table cells and check for hub gap header or concept names
@@ -907,18 +893,24 @@ class TestStudentReportDeltaDisplay:
         )
         deltas = {
             "overall": WeeklyDelta(
-                current_score=0.65, previous_score=0.50,
-                delta=0.15, delta_symbol="↑",
+                current_score=0.65,
+                previous_score=0.50,
+                delta=0.15,
+                delta_symbol="↑",
             ),
             1: WeeklyDelta(
-                current_score=0.26, previous_score=0.20,
-                delta=0.06, delta_symbol="↑",
+                current_score=0.26,
+                previous_score=0.20,
+                delta=0.06,
+                delta_symbol="↑",
             ),
         }
 
         gen = StudentPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            student_data, dists, str(tmp_path),
+            student_data,
+            dists,
+            str(tmp_path),
             weekly_deltas=deltas,
         )
         assert os.path.exists(pdf_path)
@@ -939,22 +931,25 @@ class TestStudentReportDeltaDisplay:
         # Create a minimal PNG for trajectory chart
         import struct
         import zlib
+
         def _make_tiny_png():
             width, height = 1, 1
-            raw_data = b'\x00\xff\x00\x00'
+            raw_data = b"\x00\xff\x00\x00"
             compressed = zlib.compress(raw_data)
-            ihdr = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
-            chunks = b''
-            for chunk_type, data in [(b'IHDR', ihdr), (b'IDAT', compressed), (b'IEND', b'')]:
-                crc = zlib.crc32(chunk_type + data) & 0xffffffff
-                chunks += struct.pack('>I', len(data)) + chunk_type + data + struct.pack('>I', crc)
-            return b'\x89PNG\r\n\x1a\n' + chunks
+            ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+            chunks = b""
+            for chunk_type, data in [(b"IHDR", ihdr), (b"IDAT", compressed), (b"IEND", b"")]:
+                crc = zlib.crc32(chunk_type + data) & 0xFFFFFFFF
+                chunks += struct.pack(">I", len(data)) + chunk_type + data + struct.pack(">I", crc)
+            return b"\x89PNG\r\n\x1a\n" + chunks
 
         chart_buf = io.BytesIO(_make_tiny_png())
 
         gen = StudentPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            student_data, dists, str(tmp_path),
+            student_data,
+            dists,
+            str(tmp_path),
             trajectory_chart=chart_buf,
         )
         assert os.path.exists(pdf_path)
@@ -1019,11 +1014,7 @@ class TestParseFeedbackSectionsBackwardCompat:
         """T027: Still correctly parse old section names (backward compat)."""
         from forma.student_report import parse_feedback_sections
 
-        text = (
-            "[평가 요약] 기존 형식의 피드백입니다. "
-            "[분석 결과] 분석 내용입니다. "
-            "[학습 제안] 학습 제안 내용입니다."
-        )
+        text = "[평가 요약] 기존 형식의 피드백입니다. [분석 결과] 분석 내용입니다. [학습 제안] 학습 제안 내용입니다."
         result = parse_feedback_sections(text)
         assert "평가 요약" in result
         assert "분석 결과" in result
@@ -1034,9 +1025,7 @@ class TestParseFeedbackSectionsBackwardCompat:
         from forma.student_report import parse_feedback_sections
 
         text = (
-            "[현재 상태] 새 형식 첫 섹션. "
-            "[분석 결과] 구 형식 두번째 섹션. "
-            "[학생에게 권하는 사항] 새 형식 세번째 섹션."
+            "[현재 상태] 새 형식 첫 섹션. [분석 결과] 구 형식 두번째 섹션. [학생에게 권하는 사항] 새 형식 세번째 섹션."
         )
         result = parse_feedback_sections(text)
         assert "현재 상태" in result
@@ -1081,9 +1070,7 @@ class TestFeedbackParseIntegration:
         from forma.student_report import parse_feedback_sections
 
         feedback = (
-            "[평가 요약] 항상성 개념 부분 이해.\n"
-            "[분석 결과] 세부 기전 설명 부족.\n"
-            "[학습 제안] 교과서 3장 복습 권장."
+            "[평가 요약] 항상성 개념 부분 이해.\n[분석 결과] 세부 기전 설명 부족.\n[학습 제안] 교과서 3장 복습 권장."
         )
         result = parse_feedback_sections(feedback)
         assert "평가 요약" in result
@@ -1136,7 +1123,9 @@ class TestLearningPathSection:
         dists = _make_distributions()
         gen = StudentPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            student, dists, str(tmp_path),
+            student,
+            dists,
+            str(tmp_path),
             learning_path=lp,
         )
         assert os.path.exists(pdf_path)
@@ -1157,7 +1146,9 @@ class TestLearningPathSection:
         dists = _make_distributions()
         gen = StudentPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            student, dists, str(tmp_path),
+            student,
+            dists,
+            str(tmp_path),
             learning_path=lp,
         )
         assert os.path.exists(pdf_path)
@@ -1189,7 +1180,9 @@ class TestLearningPathSection:
         dists = _make_distributions()
         gen = StudentPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            student, dists, str(tmp_path),
+            student,
+            dists,
+            str(tmp_path),
             learning_path=lp,
         )
         assert os.path.exists(pdf_path)
@@ -1209,7 +1202,11 @@ class TestStudentGradeTrend:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_build_grade_trend_section_returns_flowables(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """_build_grade_trend_section returns non-empty story list."""
         from forma.student_report import StudentPDFReportGenerator
@@ -1224,7 +1221,11 @@ class TestStudentGradeTrend:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_upper_tier_text(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """'상위권' prediction shows softened trend text with '상위권'."""
         from reportlab.platypus import Paragraph
@@ -1242,7 +1243,11 @@ class TestStudentGradeTrend:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_mid_tier_text(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """'중위권' prediction shows softened text."""
         from reportlab.platypus import Paragraph
@@ -1260,7 +1265,11 @@ class TestStudentGradeTrend:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_lower_tier_text(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """'하위권' prediction shows softened text."""
         from reportlab.platypus import Paragraph
@@ -1278,7 +1287,11 @@ class TestStudentGradeTrend:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_no_explicit_grade_in_student_report(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Student report must NOT show explicit A/B/C/D/F grades (FR-031)."""
         from reportlab.platypus import Paragraph
@@ -1299,7 +1312,11 @@ class TestStudentGradeTrend:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_has_heading(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes '학습 추이' heading."""
         from reportlab.platypus import Paragraph
@@ -1320,7 +1337,9 @@ class TestStudentGradeTrend:
         dists = _make_distributions()
         gen = StudentPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            student, dists, str(tmp_path),
+            student,
+            dists,
+            str(tmp_path),
             grade_trend="상위권",
         )
         assert os.path.exists(pdf_path)

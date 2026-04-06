@@ -121,10 +121,7 @@ def _make_report_data(
 ) -> ProfessorReportData:
     """Build minimal ProfessorReportData for testing."""
     if student_rows is None:
-        student_rows = [
-            _make_student_row(f"S{i:03d}")
-            for i in range(1, n_students + 1)
-        ]
+        student_rows = [_make_student_row(f"S{i:03d}") for i in range(1, n_students + 1)]
     return ProfessorReportData(
         class_name="A",
         week_num=1,
@@ -139,7 +136,10 @@ def _make_report_data(
         class_ensemble_q1=0.6,
         class_ensemble_q3=0.8,
         overall_level_distribution={
-            "Advanced": 1, "Proficient": 1, "Developing": 1, "Beginning": 0,
+            "Advanced": 1,
+            "Proficient": 1,
+            "Developing": 1,
+            "Beginning": 0,
         },
         question_stats=[
             QuestionClassStats(
@@ -182,7 +182,8 @@ class TestProfessorReportOcrSection:
 
         gen = ProfessorPDFReportGenerator()
         path = gen.generate_pdf(
-            data, str(tmp_path),
+            data,
+            str(tmp_path),
             ocr_confidence_data=ocr_data,
         )
 
@@ -220,7 +221,8 @@ class TestProfessorReportOcrSection:
 
         gen = ProfessorPDFReportGenerator()
         path = gen.generate_pdf(
-            data, str(tmp_path),
+            data,
+            str(tmp_path),
             ocr_confidence_data=ocr_data,
         )
         assert path.endswith(".pdf")
@@ -232,7 +234,8 @@ class TestProfessorReportOcrSection:
         data = _make_report_data()
         gen = ProfessorPDFReportGenerator()
         path = gen.generate_pdf(
-            data, str(tmp_path),
+            data,
+            str(tmp_path),
             ocr_confidence_data=[],
         )
         assert path.endswith(".pdf")

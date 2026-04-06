@@ -47,14 +47,16 @@ def _make_classified(
     """
     items = []
     for i in range(n):
-        items.append(ClassifiedMisconception(
-            pattern=pattern,
-            master_edge=TripletEdge(f"S{i}", f"R{i}", f"O{i}"),
-            student_edge=TripletEdge(f"O{i}", f"R{i}", f"S{i}"),
-            concept=None,
-            confidence=0.85,
-            description=f"오개념 설명 {i}: 인과 방향 역전 S{i}->R{i}->O{i}",
-        ))
+        items.append(
+            ClassifiedMisconception(
+                pattern=pattern,
+                master_edge=TripletEdge(f"S{i}", f"R{i}", f"O{i}"),
+                student_edge=TripletEdge(f"O{i}", f"R{i}", f"S{i}"),
+                concept=None,
+                confidence=0.85,
+                description=f"오개념 설명 {i}: 인과 방향 역전 S{i}->R{i}->O{i}",
+            )
+        )
     return items
 
 
@@ -67,23 +69,19 @@ def _make_mixed_classified(n: int) -> list[ClassifiedMisconception]:
     items = []
     for i in range(n):
         p = patterns[i % len(patterns)]
-        master_edge = (
-            None if p == MisconceptionPattern.CONCEPT_ABSENCE
-            else TripletEdge(f"S{i}", f"R{i}", f"O{i}")
-        )
-        student_edge = (
-            None if p == MisconceptionPattern.CONCEPT_ABSENCE
-            else TripletEdge(f"O{i}", f"R{i}", f"S{i}")
-        )
+        master_edge = None if p == MisconceptionPattern.CONCEPT_ABSENCE else TripletEdge(f"S{i}", f"R{i}", f"O{i}")
+        student_edge = None if p == MisconceptionPattern.CONCEPT_ABSENCE else TripletEdge(f"O{i}", f"R{i}", f"S{i}")
         concept = f"concept_{i}" if p == MisconceptionPattern.CONCEPT_ABSENCE else None
-        items.append(ClassifiedMisconception(
-            pattern=p,
-            master_edge=master_edge,
-            student_edge=student_edge,
-            concept=concept,
-            confidence=0.7 + 0.03 * i,
-            description=f"오개념 {i}: {p.value} 패턴",
-        ))
+        items.append(
+            ClassifiedMisconception(
+                pattern=p,
+                master_edge=master_edge,
+                student_edge=student_edge,
+                concept=concept,
+                confidence=0.7 + 0.03 * i,
+                description=f"오개념 {i}: {p.value} 패턴",
+            )
+        )
     return items
 
 
@@ -231,9 +229,7 @@ class TestClusterMisconceptionsFunction:
 
         for cluster in result:
             assert isinstance(cluster.representative_error, str)
-            assert len(cluster.representative_error) > 0, (
-                f"Cluster {cluster.cluster_id} has empty representative_error"
-            )
+            assert len(cluster.representative_error) > 0, f"Cluster {cluster.cluster_id} has empty representative_error"
 
     @patch("forma.misconception_clustering.encode_texts", side_effect=_mock_encode_deterministic)
     def test_cluster_member_count_positive(self, mock_encode):
@@ -300,9 +296,7 @@ class TestClusterMisconceptionsFunction:
 
         if len(result) > 1:
             counts = [c.member_count for c in result]
-            assert counts == sorted(counts, reverse=True), (
-                f"Clusters not sorted by member_count descending: {counts}"
-            )
+            assert counts == sorted(counts, reverse=True), f"Clusters not sorted by member_count descending: {counts}"
 
     @patch("forma.misconception_clustering.encode_texts", side_effect=_mock_encode_sparse)
     def test_min_cluster_size_merges_singles_to_other(self, mock_encode):
@@ -318,7 +312,9 @@ class TestClusterMisconceptionsFunction:
 
         classified = _make_classified(5)
         result = cluster_misconceptions(
-            classified, n_clusters=5, min_cluster_size=2,
+            classified,
+            n_clusters=5,
+            min_cluster_size=2,
         )
 
         # All singles merged => exactly 1 OTHER cluster with id=-1
@@ -369,14 +365,16 @@ class TestClusterMisconceptionsFunction:
         # All CONCEPT_ABSENCE pattern (no master_edge)
         items = []
         for i in range(5):
-            items.append(ClassifiedMisconception(
-                pattern=MisconceptionPattern.CONCEPT_ABSENCE,
-                master_edge=None,
-                student_edge=None,
-                concept=f"concept_{i}",
-                confidence=0.75,
-                description=f"핵심 개념 부재: concept_{i}",
-            ))
+            items.append(
+                ClassifiedMisconception(
+                    pattern=MisconceptionPattern.CONCEPT_ABSENCE,
+                    master_edge=None,
+                    student_edge=None,
+                    concept=f"concept_{i}",
+                    confidence=0.75,
+                    description=f"핵심 개념 부재: concept_{i}",
+                )
+            )
 
         result = cluster_misconceptions(items, n_clusters=2)
         assert isinstance(result, list)

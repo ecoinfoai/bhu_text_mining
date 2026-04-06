@@ -36,13 +36,21 @@ logger = logging.getLogger(__name__)
 
 # 15 feature names in order
 FEATURE_NAMES = [
-    "score_mean", "score_variance", "score_slope", "last_score",
-    "coverage_mean", "coverage_slope",
+    "score_mean",
+    "score_variance",
+    "score_slope",
+    "last_score",
+    "coverage_mean",
+    "coverage_slope",
     "tier_low_ratio",
-    "misconception_mean", "misconception_slope",
-    "absence_count", "absence_ratio",
-    "z_score_mean", "z_score_slope",
-    "edge_f1_mean", "edge_f1_slope",
+    "misconception_mean",
+    "misconception_slope",
+    "absence_count",
+    "absence_ratio",
+    "z_score_mean",
+    "z_score_slope",
+    "edge_f1_mean",
+    "edge_f1_slope",
 ]
 
 
@@ -191,9 +199,7 @@ class FeatureExtractor:
         # Compute per-week class mean and std
         week_stats: dict[int, tuple[float, float]] = {}
         for w in weeks:
-            week_scores = [
-                scores[w] for scores in class_matrix.values() if w in scores
-            ]
+            week_scores = [scores[w] for scores in class_matrix.values() if w in scores]
             if week_scores:
                 mean = _safe_nanmean(week_scores)
                 with np.errstate(all="ignore"):
@@ -209,7 +215,10 @@ class FeatureExtractor:
         for idx, sid in enumerate(student_ids):
             records = student_records[sid]
             matrix[idx] = self._extract_student_features(
-                records, weeks, n_weeks, class_matrix.get(sid, {}),
+                records,
+                weeks,
+                n_weeks,
+                class_matrix.get(sid, {}),
                 week_stats,
             )
 
@@ -253,9 +262,7 @@ class FeatureExtractor:
             week_misconceptions[r.week].append(
                 float(r.misconception_count) if r.misconception_count is not None else 0.0
             )
-            week_edge_f1[r.week].append(
-                float(r.edge_f1) if r.edge_f1 is not None else 0.0
-            )
+            week_edge_f1[r.week].append(float(r.edge_f1) if r.edge_f1 is not None else 0.0)
 
         # Average per week (NaN-safe)
         scores_by_week = {w: _safe_nanmean(vs) for w, vs in sorted(week_scores.items())}
@@ -349,9 +356,7 @@ class RiskPredictor:
         """
         n_students = feature_matrix.shape[0]
         if n_students < min_students:
-            raise ValueError(
-                f"Insufficient students for training: {n_students} < {min_students}"
-            )
+            raise ValueError(f"Insufficient students for training: {n_students} < {min_students}")
 
         # Normalize features
         scaler = StandardScaler()
@@ -436,12 +441,14 @@ class RiskPredictor:
             for j, name in enumerate(feature_names):
                 coef = coefficients[j]
                 contribution = coef * X_scaled[i, j]
-                factors.append(RiskFactor(
-                    name=name,
-                    importance=abs(float(coef)),
-                    value=float(feature_matrix[i, j]),
-                    direction="increasing_risk" if contribution > 0 else "decreasing_risk",
-                ))
+                factors.append(
+                    RiskFactor(
+                        name=name,
+                        importance=abs(float(coef)),
+                        value=float(feature_matrix[i, j]),
+                        direction="increasing_risk" if contribution > 0 else "decreasing_risk",
+                    )
+                )
 
             # Sort by importance descending
             factors.sort(key=lambda f: f.importance, reverse=True)
@@ -456,14 +463,16 @@ class RiskPredictor:
             else:
                 predicted_tier = 3
 
-            predictions.append(RiskPrediction(
-                student_id=sid,
-                drop_probability=drop_prob,
-                risk_factors=factors,
-                predicted_tier=predicted_tier,
-                is_model_based=True,
-                confidence="high",
-            ))
+            predictions.append(
+                RiskPrediction(
+                    student_id=sid,
+                    drop_probability=drop_prob,
+                    risk_factors=factors,
+                    predicted_tier=predicted_tier,
+                    is_model_based=True,
+                    confidence="high",
+                )
+            )
 
         return predictions
 
@@ -497,32 +506,32 @@ class RiskPredictor:
             absence_ratio = feature_matrix[i, absence_ratio_idx]
 
             # Simple heuristic: weighted combination
-            drop_prob = max(0.0, min(1.0,
-                (1.0 - score_mean) * 0.5 +
-                max(0, -score_slope) * 2.0 +
-                absence_ratio * 0.3
-            ))
+            drop_prob = max(0.0, min(1.0, (1.0 - score_mean) * 0.5 + max(0, -score_slope) * 2.0 + absence_ratio * 0.3))
 
             factors = []
             for j, name in enumerate(feature_names):
-                factors.append(RiskFactor(
-                    name=name,
-                    importance=abs(float(feature_matrix[i, j])),
-                    value=float(feature_matrix[i, j]),
-                    direction="increasing_risk" if feature_matrix[i, j] > 0.5 else "decreasing_risk",
-                ))
+                factors.append(
+                    RiskFactor(
+                        name=name,
+                        importance=abs(float(feature_matrix[i, j])),
+                        value=float(feature_matrix[i, j]),
+                        direction="increasing_risk" if feature_matrix[i, j] > 0.5 else "decreasing_risk",
+                    )
+                )
             factors.sort(key=lambda f: f.importance, reverse=True)
 
             predicted_tier = 0 if drop_prob >= 0.7 else (1 if drop_prob >= 0.5 else (2 if drop_prob >= 0.3 else 3))
 
-            predictions.append(RiskPrediction(
-                student_id=sid,
-                drop_probability=drop_prob,
-                risk_factors=factors,
-                predicted_tier=predicted_tier,
-                is_model_based=False,
-                confidence="limited",
-            ))
+            predictions.append(
+                RiskPrediction(
+                    student_id=sid,
+                    drop_probability=drop_prob,
+                    risk_factors=factors,
+                    predicted_tier=predicted_tier,
+                    is_model_based=False,
+                    confidence="limited",
+                )
+            )
 
         return predictions
 
@@ -556,8 +565,6 @@ def load_model(path: Path | str) -> TrainedRiskModel:
         raise FileNotFoundError(f"Model file not found: {path}")
     obj = joblib.load(str(path))
     if not isinstance(obj, TrainedRiskModel):
-        raise TypeError(
-            f"Expected TrainedRiskModel, got {type(obj).__name__}"
-        )
+        raise TypeError(f"Expected TrainedRiskModel, got {type(obj).__name__}")
     logger.info("Model loaded from %s", path)
     return obj

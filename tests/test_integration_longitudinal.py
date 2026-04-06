@@ -61,9 +61,12 @@ def _build_integration_store(tmp_path) -> tuple[LongitudinalStore, str]:
                 score = max(0.0, min(1.0, base + week_bonus + noise))
 
                 tier_label = (
-                    "Advanced" if score >= 0.85
-                    else "Proficient" if score >= 0.65
-                    else "Developing" if score >= 0.45
+                    "Advanced"
+                    if score >= 0.85
+                    else "Proficient"
+                    if score >= 0.65
+                    else "Developing"
+                    if score >= 0.45
                     else "Beginning"
                 )
 
@@ -252,13 +255,23 @@ class TestLongitudinalIntegration:
         _, store_path = _build_integration_store(tmp_path)
         output_path = str(tmp_path / "cli_report.pdf")
 
-        with patch("sys.argv", [
-            "forma-report-longitudinal",
-            "--store", store_path,
-            "--class-name", "IntegCLI",
-            "--weeks", "1", "2", "3", "4",
-            "--output", output_path,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "forma-report-longitudinal",
+                "--store",
+                store_path,
+                "--class-name",
+                "IntegCLI",
+                "--weeks",
+                "1",
+                "2",
+                "3",
+                "4",
+                "--output",
+                output_path,
+            ],
+        ):
             result = main()
 
         assert result is None or result == 0

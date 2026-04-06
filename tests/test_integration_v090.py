@@ -82,16 +82,14 @@ def _build_store(tmp_path, *, include_v2_fields: bool = True) -> LongitudinalSto
                 noise = random.uniform(-0.05, 0.05)
                 score = max(0.0, min(1.0, base + week_bonus + noise))
 
-                tier_level = (
-                    3 if score >= 0.85
-                    else 2 if score >= 0.65
-                    else 1 if score >= 0.45
-                    else 0
-                )
+                tier_level = 3 if score >= 0.85 else 2 if score >= 0.65 else 1 if score >= 0.45 else 0
                 tier_label = (
-                    "Advanced" if tier_level == 3
-                    else "Proficient" if tier_level == 2
-                    else "Developing" if tier_level == 1
+                    "Advanced"
+                    if tier_level == 3
+                    else "Proficient"
+                    if tier_level == 2
+                    else "Developing"
+                    if tier_level == 1
                     else "Beginning"
                 )
 
@@ -262,7 +260,9 @@ class TestFeatureExtractionFromStore:
         extractor = FeatureExtractor()
 
         matrix, feature_names, student_ids = extractor.extract(
-            store, _WEEKS, class_name=None,
+            store,
+            _WEEKS,
+            class_name=None,
         )
 
         # Shape: 20 students x 15 features
@@ -333,8 +333,12 @@ class TestTrainPredictRoundtrip:
         # Train
         predictor = RiskPredictor()
         trained = predictor.train(
-            matrix, labels, feature_names,
-            min_students=10, n_weeks=4, target_threshold=0.45,
+            matrix,
+            labels,
+            feature_names,
+            min_students=10,
+            n_weeks=4,
+            target_threshold=0.45,
         )
 
         assert trained.n_students == _N_STUDENTS
@@ -418,7 +422,10 @@ class TestWarningDataFromPredictions:
         for sid in student_ids:
             base = _student_base_score(sid)
             score_trajectories[sid] = [
-                base, base + 0.03, base + 0.06, base + 0.09,
+                base,
+                base + 0.03,
+                base + 0.06,
+                base + 0.09,
             ]
 
         absence_ratios = {sid: 0.0 for sid in student_ids}
@@ -478,10 +485,7 @@ class TestWarningDataUnionInclusion:
             RiskPrediction(student_id="D", drop_probability=0.1),
         ]
 
-        concept_scores = {
-            sid: {"c1": 0.2, "c2": 0.1, "c3": 0.15}
-            for sid in ["A", "B", "C", "D"]
-        }
+        concept_scores = {sid: {"c1": 0.2, "c2": 0.1, "c3": 0.15} for sid in ["A", "B", "C", "D"]}
         score_trajectories = {
             "A": [0.3, 0.28, 0.25, 0.22],
             "B": [0.4, 0.35, 0.30, 0.25],
@@ -541,10 +545,12 @@ class TestCrossSectionTwoClasses:
         assert stats_b.pct_at_risk == 3 / 40
 
         # Pairwise comparison
-        comparisons = compute_pairwise_comparisons({
-            "A": scores_a,
-            "B": scores_b,
-        })
+        comparisons = compute_pairwise_comparisons(
+            {
+                "A": scores_a,
+                "B": scores_b,
+            }
+        )
 
         assert len(comparisons) == 1
         cmp = comparisons[0]
@@ -558,14 +564,10 @@ class TestCrossSectionTwoClasses:
         assert cmp.test_name == "welch_t"
 
         # Large mean difference should be significant
-        assert cmp.is_significant is True, (
-            f"p={cmp.p_value}, expected significant difference"
-        )
+        assert cmp.is_significant is True, f"p={cmp.p_value}, expected significant difference"
 
         # Effect size should be large (d > 0.8) given ~0.3 mean difference
-        assert cmp.effect_size_label in ("medium", "large"), (
-            f"d={cmp.cohens_d}, label={cmp.effect_size_label}"
-        )
+        assert cmp.effect_size_label in ("medium", "large"), f"d={cmp.cohens_d}, label={cmp.effect_size_label}"
 
         # No Bonferroni correction for 2 sections
         assert cmp.p_value_corrected is None
@@ -657,8 +659,11 @@ class TestFullPipeline:
         labels = (matrix[:, 0] < 0.45).astype(int)
         predictor = RiskPredictor()
         trained = predictor.train(
-            matrix, labels, feature_names,
-            min_students=10, n_weeks=4,
+            matrix,
+            labels,
+            feature_names,
+            min_students=10,
+            n_weeks=4,
         )
 
         model_path = tmp_path / "model.pkl"
@@ -689,7 +694,10 @@ class TestFullPipeline:
                 "세포분열": max(0.0, base - 0.2),
             }
             score_trajectories[sid] = [
-                base, base + 0.03, base + 0.06, base + 0.09,
+                base,
+                base + 0.03,
+                base + 0.06,
+                base + 0.09,
             ]
             absence_ratios[sid] = 0.0
 
@@ -726,10 +734,12 @@ class TestFullPipeline:
         # Section B (higher-index students) should have higher mean
         assert stats_b.mean > stats_a.mean
 
-        comparisons = compute_pairwise_comparisons({
-            "A": scores_a,
-            "B": scores_b,
-        })
+        comparisons = compute_pairwise_comparisons(
+            {
+                "A": scores_a,
+                "B": scores_b,
+            }
+        )
         assert len(comparisons) == 1
         cmp = comparisons[0]
         assert isinstance(cmp, SectionComparison)
@@ -756,7 +766,9 @@ class TestFullPipeline:
 
         # Cold start: no trained model available
         predictions = predictor.predict_cold_start(
-            matrix, student_ids, feature_names,
+            matrix,
+            student_ids,
+            feature_names,
         )
 
         assert len(predictions) == _N_STUDENTS
@@ -808,7 +820,10 @@ class TestFullPipeline:
                 "세포분열": max(0.0, base - 0.2),
             }
             score_trajectories[sid] = [
-                base, base + 0.03, base + 0.06, base + 0.09,
+                base,
+                base + 0.03,
+                base + 0.06,
+                base + 0.09,
             ]
 
         cards = build_warning_data(
@@ -822,18 +837,11 @@ class TestFullPipeline:
         card_ids = {c.student_id for c in cards}
 
         # High drop probability students (>= 0.5) must appear in warning cards
-        high_prob_ids = {
-            p.student_id for p in predictions if p.drop_probability >= 0.5
-        }
-        assert high_prob_ids.issubset(card_ids), (
-            f"High-prob students missing from cards: {high_prob_ids - card_ids}"
-        )
+        high_prob_ids = {p.student_id for p in predictions if p.drop_probability >= 0.5}
+        assert high_prob_ids.issubset(card_ids), f"High-prob students missing from cards: {high_prob_ids - card_ids}"
 
         # Rule-based at-risk students must also appear in warning cards
-        rule_at_risk_ids = {
-            sid for sid, info in at_risk_students.items()
-            if info["is_at_risk"]
-        }
+        rule_at_risk_ids = {sid for sid, info in at_risk_students.items() if info["is_at_risk"]}
         assert rule_at_risk_ids.issubset(card_ids), (
             f"Rule-based at-risk missing from cards: {rule_at_risk_ids - card_ids}"
         )
@@ -841,8 +849,7 @@ class TestFullPipeline:
         # Cards should be exactly the union (no extras)
         expected_union = rule_at_risk_ids | high_prob_ids
         assert card_ids == expected_union, (
-            f"Card IDs mismatch: extra={card_ids - expected_union}, "
-            f"missing={expected_union - card_ids}"
+            f"Card IDs mismatch: extra={card_ids - expected_union}, missing={expected_union - card_ids}"
         )
 
         # Every card with drop_probability should have model_predicted method
@@ -861,30 +868,31 @@ class TestFullPipeline:
 
         # Cross-section comparison with warning-flagged students
         # Section A = at-risk students, Section B = non-at-risk (from card set)
-        at_risk_scores = [
-            float(matrix[student_ids.index(sid), 0])
-            for sid in card_ids if sid in student_ids
-        ]
+        at_risk_scores = [float(matrix[student_ids.index(sid), 0]) for sid in card_ids if sid in student_ids]
         safe_ids = set(student_ids) - card_ids
-        safe_scores = [
-            float(matrix[student_ids.index(sid), 0])
-            for sid in safe_ids
-        ]
+        safe_scores = [float(matrix[student_ids.index(sid), 0]) for sid in safe_ids]
 
         if at_risk_scores and safe_scores:
             stats_risk = compute_section_stats(
-                "at_risk", at_risk_scores, card_ids,
+                "at_risk",
+                at_risk_scores,
+                card_ids,
             )
             stats_safe = compute_section_stats(
-                "safe", safe_scores, set(),
+                "safe",
+                safe_scores,
+                set(),
             )
             # Safe students should have higher mean score
             assert stats_safe.mean > stats_risk.mean, (
                 f"safe={stats_safe.mean:.3f} should be > at_risk={stats_risk.mean:.3f}"
             )
 
-            comparisons = compute_pairwise_comparisons({
-                "at_risk": at_risk_scores, "safe": safe_scores,
-            })
+            comparisons = compute_pairwise_comparisons(
+                {
+                    "at_risk": at_risk_scores,
+                    "safe": safe_scores,
+                }
+            )
             assert len(comparisons) == 1
             assert comparisons[0].cohens_d != 0.0  # groups should differ

@@ -254,9 +254,7 @@ domain_ratio: 0.75
         transcript.write_text("내용", encoding="utf-8")
 
         expressions = "\n".join(
-            f'  - expression: "expr{i}"\n    total_count: {10 - i}\n'
-            f'    recommendation: "정상 범위"'
-            for i in range(8)
+            f'  - expression: "expr{i}"\n    total_count: {10 - i}\n    recommendation: "정상 범위"' for i in range(8)
         )
         mock_response = f"habitual_expressions:\n{expressions}\n"
         mock_response += "effective_patterns: []\ndomain_ratio: 0.5\n"

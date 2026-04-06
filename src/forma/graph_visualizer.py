@@ -78,21 +78,13 @@ class GraphVisualizer:
         edge_styles: list[tuple[str, str, dict]] = []
 
         for e in matched:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "green", "style": "solid"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "green", "style": "solid"}))
         for e in wrong_direction:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "red", "style": "dashed"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "red", "style": "dashed"}))
         for e in missing:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "gray", "style": "dashed"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "gray", "style": "dashed"}))
         for e in extra:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "orange", "style": "dashed"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "orange", "style": "dashed"}))
 
         for src, dst, attrs in edge_styles:
             G.add_edge(src, dst, **attrs)
@@ -178,21 +170,13 @@ class GraphVisualizer:
         edge_styles: list[tuple[str, str, dict]] = []
 
         for e in matched_edges:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "green", "style": "solid"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "green", "style": "solid"}))
         for e in wrong_direction_edges:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "red", "style": "dashed"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "red", "style": "dashed"}))
         for e in missing_edges:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "gray", "style": "dashed"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "gray", "style": "dashed"}))
         for e in extra_edges:
-            edge_styles.append(
-                (e.subject, e.object, {"label": e.relation, "color": "orange", "style": "dashed"})
-            )
+            edge_styles.append((e.subject, e.object, {"label": e.relation, "color": "orange", "style": "dashed"}))
 
         for src, dst, attrs in edge_styles:
             G.add_edge(src, dst, **attrs)

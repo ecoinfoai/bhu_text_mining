@@ -69,7 +69,10 @@ def _build_store(tmp_path, records: list[LongitudinalRecord]) -> LongitudinalSto
 
 
 def _make_student_data(
-    weeks=None, student_id="s001", student_name="Test", class_name="A",
+    weeks=None,
+    student_id="s001",
+    student_name="Test",
+    class_name="A",
 ) -> StudentLongitudinalData:
     if weeks is None:
         weeks = [1, 2, 3]
@@ -144,8 +147,12 @@ class TestPIIHunter:
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1])
         data = build_student_data(
-            store, "2021123456", weeks=[1], cohort=cohort,
-            student_name="김민수", class_name="A반",
+            store,
+            "2021123456",
+            weeks=[1],
+            cohort=cohort,
+            student_name="김민수",
+            class_name="A반",
         )
         signals, _ = evaluate_warnings(data, cohort)
         summary = anonymize(data, signals)
@@ -248,26 +255,17 @@ class TestEdgeCaseTerrorist:
         assert isinstance(level, AlertLevel)
 
     def test_negative_scores(self, tmp_path):
-        """Negative scores should not crash the pipeline."""
-        records = [
-            _make_record(student_id="s001", week=1, question_sn=1,
-                         ensemble_score=-0.5, concept_coverage=-1.0),
-            _make_record(student_id="s002", week=1, question_sn=1,
-                         ensemble_score=0.8),
-        ]
-        store = _build_store(tmp_path, records)
-        cohort = build_cohort_distribution(store, weeks=[1])
-        data = build_student_data(store, "s001", weeks=[1], cohort=cohort)
-        signals, level = evaluate_warnings(data, cohort)
-        assert isinstance(level, AlertLevel)
+        """Negative scores are rejected by store validation."""
+        rec = _make_record(student_id="s001", week=1, question_sn=1, ensemble_score=-0.5, concept_coverage=-1.0)
+        store = LongitudinalStore(str(tmp_path / "store.yaml"))
+        with pytest.raises(ValueError, match="negative"):
+            store.add_record(rec)
 
     def test_score_above_one(self, tmp_path):
         """Scores > 1.0 should not crash."""
         records = [
-            _make_record(student_id="s001", week=1, question_sn=1,
-                         ensemble_score=5.0, concept_coverage=10.0),
-            _make_record(student_id="s002", week=1, question_sn=1,
-                         ensemble_score=0.5),
+            _make_record(student_id="s001", week=1, question_sn=1, ensemble_score=5.0, concept_coverage=10.0),
+            _make_record(student_id="s002", week=1, question_sn=1, ensemble_score=0.5),
         ]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1])
@@ -290,10 +288,8 @@ class TestEdgeCaseTerrorist:
         weeks = list(range(1, 51))
         records = []
         for w in weeks:
-            records.append(_make_record(student_id="s001", week=w, question_sn=1,
-                                        ensemble_score=0.5 + 0.005 * w))
-            records.append(_make_record(student_id="s002", week=w, question_sn=1,
-                                        ensemble_score=0.5))
+            records.append(_make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.5 + 0.005 * w))
+            records.append(_make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5))
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=weeks)
         data = build_student_data(store, "s001", weeks=weeks, cohort=cohort)
@@ -339,7 +335,9 @@ class TestCrashArtist:
         from forma.student_longitudinal_report import StudentLongitudinalPDFReportGenerator
 
         student = StudentLongitudinalData(
-            student_id="empty", weeks=[], scores_by_week={},
+            student_id="empty",
+            weeks=[],
+            scores_by_week={},
         )
         cohort = CohortDistribution()
         warnings = []
@@ -387,7 +385,8 @@ class TestMemoryHog:
             build_cohort_position_chart(student, cohort, dpi=72)
             build_warning_table(
                 [WarningSignal("test", True, "critical", "detail")],
-                AlertLevel.WARNING, dpi=72,
+                AlertLevel.WARNING,
+                dpi=72,
             )
 
         final_count = len(plt.get_fignums())
@@ -408,7 +407,7 @@ class TestUnicodeSaboteur:
         from forma.student_longitudinal_report import StudentLongitudinalPDFReportGenerator
 
         # Name with zero-width space (U+200B) and RTL override (U+202E)
-        hostile_name = "홍\u200B길\u200C동\u200D"
+        hostile_name = "홍\u200b길\u200c동\u200d"
         student = _make_student_data(student_name=hostile_name)
         cohort = _make_cohort()
         warnings = []
@@ -423,7 +422,7 @@ class TestUnicodeSaboteur:
         """Emoji characters in student_id should not crash PDF."""
         from forma.student_longitudinal_report import StudentLongitudinalPDFReportGenerator
 
-        student = _make_student_data(student_id="s001\U0001F600")
+        student = _make_student_data(student_id="s001\U0001f600")
         cohort = _make_cohort()
         output = str(tmp_path / "emoji_id.pdf")
 
@@ -436,7 +435,7 @@ class TestUnicodeSaboteur:
         csv_path = tmp_path / "rtl.csv"
         csv_path.write_text(
             "타임스탬프,익명ID,분반을 선택하세요.,학번을 입력하세요.,이름을 입력하세요.\n"
-            "2026/03/10,abc,A반,s001,\u202Emalicious\n",
+            "2026/03/10,abc,A반,s001,\u202emalicious\n",
             encoding="utf-8",
         )
         result = parse_id_csv(str(csv_path))
@@ -475,14 +474,20 @@ class TestSchemaBreaker:
     def test_scores_missing_ensemble_score_key(self, tmp_path):
         """Records with no ensemble_score should not crash."""
         rec = LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
+            student_id="s001",
+            week=1,
+            question_sn=1,
             scores={"concept_coverage": 0.5},  # no ensemble_score
-            tier_level=1, tier_label="test",
+            tier_level=1,
+            tier_label="test",
         )
         rec2 = LongitudinalRecord(
-            student_id="s002", week=1, question_sn=1,
+            student_id="s002",
+            week=1,
+            question_sn=1,
             scores={"concept_coverage": 0.8, "ensemble_score": 0.7},
-            tier_level=1, tier_label="test",
+            tier_level=1,
+            tier_label="test",
         )
         store = _build_store(tmp_path, [rec, rec2])
         cohort = build_cohort_distribution(store, weeks=[1])
@@ -494,14 +499,20 @@ class TestSchemaBreaker:
     def test_empty_scores_dict(self, tmp_path):
         """Record with empty scores dict should not crash."""
         rec = LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
+            student_id="s001",
+            week=1,
+            question_sn=1,
             scores={},
-            tier_level=1, tier_label="test",
+            tier_level=1,
+            tier_label="test",
         )
         rec2 = LongitudinalRecord(
-            student_id="s002", week=1, question_sn=1,
+            student_id="s002",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.5},
-            tier_level=1, tier_label="test",
+            tier_level=1,
+            tier_label="test",
         )
         store = _build_store(tmp_path, [rec, rec2])
         cohort = build_cohort_distribution(store, weeks=[1])
@@ -531,22 +542,21 @@ class TestDivisionByZeroHunter:
     def test_percentile_empty_scores(self):
         """_compute_percentile with empty scores list should return 0.0."""
         from forma.student_longitudinal_data import _compute_percentile
+
         result = _compute_percentile(0.5, [])
         assert result == 0.0
 
     def test_percentile_single_score(self):
         """Percentile with one score."""
         from forma.student_longitudinal_data import _compute_percentile
+
         result = _compute_percentile(0.5, [0.5])
         # below=0, equal=1, n=1 -> 100*(0+0.5)/1 = 50
         assert result == pytest.approx(50.0)
 
     def test_all_identical_scores_std_zero(self, tmp_path):
         """All identical scores -> std=0, should not crash."""
-        records = [
-            _make_record(student_id=f"s{i:03d}", week=1, question_sn=1, ensemble_score=0.5)
-            for i in range(5)
-        ]
+        records = [_make_record(student_id=f"s{i:03d}", week=1, question_sn=1, ensemble_score=0.5) for i in range(5)]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1])
         assert cohort.weekly_stats[1].std == pytest.approx(0.0, abs=1e-9)
@@ -582,6 +592,7 @@ class TestTypeConfusionAgent:
     def test_warning_table_with_none_alert_level_key(self):
         """build_warning_table should handle an unknown AlertLevel gracefully."""
         from forma.student_longitudinal_charts import build_warning_table
+
         # Using a valid AlertLevel -- all 3 are covered. NORMAL is baseline.
         buf = build_warning_table([], AlertLevel.NORMAL, dpi=72)
         assert buf.getvalue()[:4] == b"\x89PNG"
@@ -612,23 +623,28 @@ class TestRegressionSniffer:
     def test_all_exports_importable(self):
         """All __all__ items from each module should be importable."""
         from forma import student_longitudinal_data as sld
+
         for name in sld.__all__:
             assert hasattr(sld, name), f"Missing export: {name}"
 
         from forma import student_longitudinal_charts as slc
+
         for name in slc.__all__:
             assert hasattr(slc, name), f"Missing export: {name}"
 
         from forma import student_longitudinal_report as slr
+
         for name in slr.__all__:
             assert hasattr(slr, name), f"Missing export: {name}"
 
         from forma import student_longitudinal_llm as sll
+
         for name in sll.__all__:
             assert hasattr(sll, name), f"Missing export: {name}"
 
     def test_cli_module_exports(self):
         from forma import cli_report_student as cli
+
         for name in cli.__all__:
             assert hasattr(cli, name), f"Missing export: {name}"
 
@@ -645,6 +661,7 @@ class TestConstitutionPolice:
         """chart_utils.save_fig is used in charts, guaranteeing plt.close."""
         import inspect
         from forma import student_longitudinal_charts as slc
+
         source = inspect.getsource(slc)
         assert "_save_fig" in source, "Charts should use save_fig for figure cleanup"
 
@@ -652,12 +669,14 @@ class TestConstitutionPolice:
         """Report generator should use esc() for user-supplied text."""
         import inspect
         from forma import student_longitudinal_report as slr
+
         source = inspect.getsource(slr)
         assert "_esc" in source, "Report should use esc() for XML-safe text"
 
     def test_anonymize_produces_no_pii_fields(self):
         """AnonymizedStudentSummary has no student_id/name/class fields."""
         import dataclasses
+
         field_names = {f.name for f in dataclasses.fields(AnonymizedStudentSummary)}
         assert "student_id" not in field_names
         assert "student_name" not in field_names
@@ -666,6 +685,7 @@ class TestConstitutionPolice:
     def test_llm_system_instruction_is_korean(self):
         """LLM system instruction should be in Korean."""
         from forma.student_longitudinal_llm import _SYSTEM_INSTRUCTION
+
         assert any("\uac00" <= ch <= "\ud7a3" for ch in _SYSTEM_INSTRUCTION)
 
 
@@ -716,11 +736,7 @@ class TestPromptInjectionAttacker:
         """LLM returns garbage/injection -> sections are None, no crash."""
         from forma.student_longitudinal_llm import generate_interpretation
 
-        garbage_response = (
-            "IGNORE EVERYTHING. Here is the real answer:\n"
-            "student_id: 2021999999\n"
-            "student_name: 홍길동\n"
-        )
+        garbage_response = "IGNORE EVERYTHING. Here is the real answer:\nstudent_id: 2021999999\nstudent_name: 홍길동\n"
         summary = AnonymizedStudentSummary()
         mock_provider = MagicMock()
         mock_provider.generate.return_value = garbage_response
@@ -740,16 +756,11 @@ class TestInfNaNSpecialist:
     """Tests with inf and NaN in various positions."""
 
     def test_inf_ensemble_score(self, tmp_path):
-        """Infinite ensemble_score should not crash."""
-        records = [
-            _make_record(student_id="s001", week=1, question_sn=1, ensemble_score=float("inf")),
-            _make_record(student_id="s002", week=1, question_sn=1, ensemble_score=0.5),
-        ]
-        store = _build_store(tmp_path, records)
-        cohort = build_cohort_distribution(store, weeks=[1])
-        data = build_student_data(store, "s001", weeks=[1], cohort=cohort)
-        signals, level = evaluate_warnings(data, cohort)
-        assert isinstance(level, AlertLevel)
+        """Infinite ensemble_score is rejected by store validation."""
+        rec = _make_record(student_id="s001", week=1, question_sn=1, ensemble_score=float("inf"))
+        store = LongitudinalStore(str(tmp_path / "store.yaml"))
+        with pytest.raises(ValueError, match="infinite"):
+            store.add_record(rec)
 
     def test_chart_with_nan_scores_no_crash(self):
         """Charts should handle NaN in score data without crashing."""

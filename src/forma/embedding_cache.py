@@ -95,9 +95,6 @@ def encode_texts(
         1
     """
     if not texts:
-        raise ValueError(
-            "texts is empty in encode_texts(). "
-            "Provide at least one string to encode."
-        )
+        raise ValueError("texts is empty in encode_texts(). Provide at least one string to encode.")
     encoder = get_encoder(model_name)
     return encoder.encode(texts, convert_to_numpy=True)

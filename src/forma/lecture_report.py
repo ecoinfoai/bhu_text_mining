@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 from reportlab.lib.pagesizes import A4
@@ -19,8 +20,12 @@ from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
 from reportlab.platypus import (
-    Image, Paragraph, SimpleDocTemplate,
-    Spacer, Table, TableStyle,
+    Image,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
@@ -52,56 +57,70 @@ class LectureReportGenerator:
         register_korean_fonts(font_path)
 
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "LectTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LectSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LectBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LectTableHeader",
-            parent=self._styles["Normal"],
-            fontName="NanumGothicBold",
-            fontSize=9,
-            textColor=HexColor("#FFFFFF"),
-            alignment=1,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LectTableData",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=9,
-            alignment=1,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LectSkipped",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-            textColor=HexColor("#888888"),
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "LectTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LectSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LectBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LectTableHeader",
+                parent=self._styles["Normal"],
+                fontName="NanumGothicBold",
+                fontSize=9,
+                textColor=HexColor("#FFFFFF"),
+                alignment=1,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LectTableData",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=9,
+                alignment=1,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LectSkipped",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+                textColor=HexColor("#888888"),
+            )
+        )
 
     def generate_analysis_report(
-        self, result: AnalysisResult, output_path: Path,
+        self,
+        result: AnalysisResult,
+        output_path: Path,
     ) -> None:
         """Build a PDF report from an AnalysisResult.
 
@@ -154,9 +173,12 @@ class LectureReportGenerator:
         ]
 
         if not result.keyword_frequencies:
-            flowables.append(Paragraph(
-                "키워드 추출 결과 없음", self._styles["LectSkipped"],
-            ))
+            flowables.append(
+                Paragraph(
+                    "키워드 추출 결과 없음",
+                    self._styles["LectSkipped"],
+                )
+            )
             return flowables
 
         # Build table with top keywords
@@ -168,20 +190,26 @@ class LectureReportGenerator:
         rows = [header]
         for i, kw in enumerate(result.top_keywords[:20], 1):
             freq = result.keyword_frequencies.get(kw, 0)
-            rows.append([
-                Paragraph(str(i), self._styles["LectTableData"]),
-                Paragraph(esc(kw), self._styles["LectTableData"]),
-                Paragraph(str(freq), self._styles["LectTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(str(i), self._styles["LectTableData"]),
+                    Paragraph(esc(kw), self._styles["LectTableData"]),
+                    Paragraph(str(freq), self._styles["LectTableData"]),
+                ]
+            )
 
         table = Table(rows, colWidths=[30 * mm, 80 * mm, 30 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
+                ]
+            )
+        )
         flowables.append(table)
         flowables.append(Spacer(1, 8 * mm))
         return flowables
@@ -201,9 +229,12 @@ class LectureReportGenerator:
             )
             flowables.append(img)
         else:
-            flowables.append(Paragraph(
-                "네트워크 이미지 없음", self._styles["LectSkipped"],
-            ))
+            flowables.append(
+                Paragraph(
+                    "네트워크 이미지 없음",
+                    self._styles["LectSkipped"],
+                )
+            )
 
         flowables.append(Spacer(1, 8 * mm))
         return flowables
@@ -217,9 +248,12 @@ class LectureReportGenerator:
 
         if result.topics is None:
             reason = result.topic_skipped_reason or "알 수 없는 이유"
-            flowables.append(Paragraph(
-                f"[건너뜀] {esc(reason)}", self._styles["LectSkipped"],
-            ))
+            flowables.append(
+                Paragraph(
+                    f"[건너뜀] {esc(reason)}",
+                    self._styles["LectSkipped"],
+                )
+            )
             flowables.append(Spacer(1, 8 * mm))
             return flowables
 
@@ -231,23 +265,29 @@ class LectureReportGenerator:
         ]
         rows = [header]
         for topic in result.topics:
-            rows.append([
-                Paragraph(str(topic.topic_id), self._styles["LectTableData"]),
-                Paragraph(
-                    esc(", ".join(topic.keywords[:5])),
-                    self._styles["LectTableData"],
-                ),
-                Paragraph(str(topic.sentence_count), self._styles["LectTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(str(topic.topic_id), self._styles["LectTableData"]),
+                    Paragraph(
+                        esc(", ".join(topic.keywords[:5])),
+                        self._styles["LectTableData"],
+                    ),
+                    Paragraph(str(topic.sentence_count), self._styles["LectTableData"]),
+                ]
+            )
 
         table = Table(rows, colWidths=[25 * mm, 100 * mm, 30 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
+                ]
+            )
+        )
         flowables.append(table)
         flowables.append(Spacer(1, 8 * mm))
         return flowables
@@ -264,21 +304,27 @@ class LectureReportGenerator:
             return flowables
 
         ratio_pct = f"{cc.coverage_ratio * 100:.1f}%"
-        flowables.append(Paragraph(
-            f"커버리지: {ratio_pct} ({len(cc.covered_concepts)}/{cc.total_concepts})",
-            self._styles["LectBody"],
-        ))
+        flowables.append(
+            Paragraph(
+                f"커버리지: {ratio_pct} ({len(cc.covered_concepts)}/{cc.total_concepts})",
+                self._styles["LectBody"],
+            )
+        )
 
         if cc.covered_concepts:
-            flowables.append(Paragraph(
-                f"포함 개념: {esc(', '.join(cc.covered_concepts))}",
-                self._styles["LectBody"],
-            ))
+            flowables.append(
+                Paragraph(
+                    f"포함 개념: {esc(', '.join(cc.covered_concepts))}",
+                    self._styles["LectBody"],
+                )
+            )
         if cc.missed_concepts:
-            flowables.append(Paragraph(
-                f"누락 개념: {esc(', '.join(cc.missed_concepts))}",
-                self._styles["LectBody"],
-            ))
+            flowables.append(
+                Paragraph(
+                    f"누락 개념: {esc(', '.join(cc.missed_concepts))}",
+                    self._styles["LectBody"],
+                )
+            )
 
         flowables.append(Spacer(1, 8 * mm))
         return flowables
@@ -299,22 +345,30 @@ class LectureReportGenerator:
         ]
         rows = [header]
         sorted_scores = sorted(
-            result.emphasis_scores.items(), key=lambda x: x[1], reverse=True,
+            result.emphasis_scores.items(),
+            key=lambda x: x[1],
+            reverse=True,
         )
         for concept, score in sorted_scores:
-            rows.append([
-                Paragraph(esc(concept), self._styles["LectTableData"]),
-                Paragraph(f"{score:.3f}", self._styles["LectTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(esc(concept), self._styles["LectTableData"]),
+                    Paragraph(f"{score:.3f}", self._styles["LectTableData"]),
+                ]
+            )
 
         table = Table(rows, colWidths=[80 * mm, 40 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
+                ]
+            )
+        )
         flowables.append(table)
         flowables.append(Spacer(1, 8 * mm))
         return flowables
@@ -324,7 +378,9 @@ class LectureReportGenerator:
     # ------------------------------------------------------------------
 
     def generate_comparison_report(
-        self, comparison: ComparisonResult, output_path: Path,
+        self,
+        comparison: ComparisonResult,
+        output_path: Path,
     ) -> None:
         """Build a PDF comparison report from a ComparisonResult.
 
@@ -347,14 +403,18 @@ class LectureReportGenerator:
         title = f"반 간 비교 보고서 — {esc(sections_label)}"
         story.append(Paragraph(title, self._styles["LectTitle"]))
         story.append(Spacer(1, 6 * mm))
-        story.append(Paragraph(
-            f"비교 유형: {esc(comparison.comparison_type)}",
-            self._styles["LectBody"],
-        ))
-        story.append(Paragraph(
-            f"비교 시각: {esc(comparison.comparison_timestamp)}",
-            self._styles["LectBody"],
-        ))
+        story.append(
+            Paragraph(
+                f"비교 유형: {esc(comparison.comparison_type)}",
+                self._styles["LectBody"],
+            )
+        )
+        story.append(
+            Paragraph(
+                f"비교 시각: {esc(comparison.comparison_timestamp)}",
+                self._styles["LectBody"],
+            )
+        )
         story.append(Spacer(1, 8 * mm))
 
         # Sections
@@ -365,7 +425,8 @@ class LectureReportGenerator:
         doc.build(story)
 
     def _build_exclusive_keywords_section(
-        self, comparison: ComparisonResult,
+        self,
+        comparison: ComparisonResult,
     ) -> list:
         """Build table showing exclusive keywords per section.
 
@@ -388,26 +449,32 @@ class LectureReportGenerator:
         for section_id in sorted(comparison.exclusive_keywords.keys()):
             keywords = comparison.exclusive_keywords[section_id]
             kw_text = ", ".join(keywords) if keywords else "(없음)"
-            rows.append([
-                Paragraph(esc(section_id), self._styles["LectTableData"]),
-                Paragraph(esc(kw_text), self._styles["LectTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(esc(section_id), self._styles["LectTableData"]),
+                    Paragraph(esc(kw_text), self._styles["LectTableData"]),
+                ]
+            )
 
         table = Table(rows, colWidths=[30 * mm, 130 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (0, 0), (0, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.white, HexColor("#F2F2F2")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
+                ]
+            )
+        )
         flowables.append(table)
         flowables.append(Spacer(1, 8 * mm))
         return flowables
 
     def _build_concept_gap_section(
-        self, comparison: ComparisonResult,
+        self,
+        comparison: ComparisonResult,
     ) -> list:
         """Build matrix of covered/missed concepts per section.
 
@@ -423,10 +490,12 @@ class LectureReportGenerator:
         ]
 
         if comparison.concept_gaps is None:
-            flowables.append(Paragraph(
-                "개념 목록 미제공 — 개념 누락 분석 생략",
-                self._styles["LectSkipped"],
-            ))
+            flowables.append(
+                Paragraph(
+                    "개념 목록 미제공 — 개념 누락 분석 생략",
+                    self._styles["LectSkipped"],
+                )
+            )
             flowables.append(Spacer(1, 8 * mm))
             return flowables
 
@@ -438,26 +507,32 @@ class LectureReportGenerator:
         for section_id in sorted(comparison.concept_gaps.keys()):
             missed = comparison.concept_gaps[section_id]
             missed_text = ", ".join(missed) if missed else "(전체 포함)"
-            rows.append([
-                Paragraph(esc(section_id), self._styles["LectTableData"]),
-                Paragraph(esc(missed_text), self._styles["LectTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(esc(section_id), self._styles["LectTableData"]),
+                    Paragraph(esc(missed_text), self._styles["LectTableData"]),
+                ]
+            )
 
         table = Table(rows, colWidths=[30 * mm, 130 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (0, 0), (0, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.white, HexColor("#F2F2F2")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
+                ]
+            )
+        )
         flowables.append(table)
         flowables.append(Spacer(1, 8 * mm))
         return flowables
 
     def _build_emphasis_variance_section(
-        self, comparison: ComparisonResult,
+        self,
+        comparison: ComparisonResult,
     ) -> list:
         """Build table of top-N emphasis variance concepts with per-section scores.
 
@@ -473,9 +548,12 @@ class LectureReportGenerator:
         ]
 
         if not comparison.emphasis_variance:
-            flowables.append(Paragraph(
-                "강조도 데이터 없음", self._styles["LectSkipped"],
-            ))
+            flowables.append(
+                Paragraph(
+                    "강조도 데이터 없음",
+                    self._styles["LectSkipped"],
+                )
+            )
             flowables.append(Spacer(1, 8 * mm))
             return flowables
 
@@ -512,14 +590,17 @@ class LectureReportGenerator:
             col_widths = [w * scale for w in col_widths]
 
         table = Table(rows, colWidths=col_widths)
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.white, HexColor("#F2F2F2")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#4472C4")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F2F2F2")]),
+                ]
+            )
+        )
         flowables.append(table)
         flowables.append(Spacer(1, 8 * mm))
         return flowables

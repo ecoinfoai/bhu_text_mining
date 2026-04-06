@@ -130,8 +130,7 @@ class ReportChartGenerator:
         if not components:
             # Empty chart
             fig, ax = plt.subplots(figsize=(160 / 25.4, 30 / 25.4))
-            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
-                    fontproperties=self._font_prop)
+            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center", fontproperties=self._font_prop)
             return _save_fig(fig, dpi=self._dpi)
 
         n = len(components)
@@ -195,8 +194,7 @@ class ReportChartGenerator:
         """
         if not concepts:
             fig, ax = plt.subplots(figsize=(160 / 25.4, 30 / 25.4))
-            ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center",
-                    fontproperties=self._font_prop)
+            ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center", fontproperties=self._font_prop)
             return _save_fig(fig, dpi=self._dpi)
 
         n = len(concepts)
@@ -305,8 +303,7 @@ class ReportChartGenerator:
         n = len(labels)
         if n < 3:
             fig, ax = plt.subplots(figsize=(120 / 25.4, 120 / 25.4))
-            ax.text(0.5, 0.5, "축 부족", ha="center", va="center",
-                    fontproperties=self._font_prop)
+            ax.text(0.5, 0.5, "축 부족", ha="center", va="center", fontproperties=self._font_prop)
             return _save_fig(fig, dpi=self._dpi)
 
         angles = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
@@ -321,13 +318,11 @@ class ReportChartGenerator:
         )
 
         # Student profile (blue solid)
-        ax.plot(angles, student_vals, "o-", color="#1565C0",
-                linewidth=2, label="학생")
+        ax.plot(angles, student_vals, "o-", color="#1565C0", linewidth=2, label="학생")
         ax.fill(angles, student_vals, color="#1565C0", alpha=0.15)
 
         # Class average (gray dashed)
-        ax.plot(angles, class_vals, "o--", color="#888888",
-                linewidth=1.5, label="학급 평균")
+        ax.plot(angles, class_vals, "o--", color="#888888", linewidth=1.5, label="학급 평균")
 
         ax.set_thetagrids(
             np.degrees(angles[:-1]),
@@ -362,17 +357,13 @@ class ReportChartGenerator:
         """
         if not weekly_scores:
             fig, ax = plt.subplots(figsize=(120 / 25.4, 60 / 25.4))
-            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
-                    fontproperties=self._font_prop)
+            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center", fontproperties=self._font_prop)
             ax.set_axis_off()
             return _save_fig(fig, dpi=self._dpi)
 
         weeks = sorted(weekly_scores.keys())
         scores = [weekly_scores[w] for w in weeks]
-        colors = [
-            "#1565C0" if w == current_week else "#90CAF9"
-            for w in weeks
-        ]
+        colors = ["#1565C0" if w == current_week else "#90CAF9" for w in weeks]
 
         fig, ax = plt.subplots(figsize=(120 / 25.4, 60 / 25.4))
         x_pos = range(len(weeks))

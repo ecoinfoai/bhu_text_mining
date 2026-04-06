@@ -44,12 +44,38 @@ __all__ = [
 # Domain stopwords — general nouns that are not domain-specific
 # ----------------------------------------------------------------
 
-DOMAIN_STOPWORDS: frozenset[str] = frozenset({
-    "것", "수", "때", "등", "중", "위", "및", "또는",
-    "그림", "표", "참고", "경우", "이상", "이하", "정도",
-    "부위", "부분", "기능", "구조", "역할", "특징", "과정",
-    "결과", "종류", "방법", "이름", "형태", "상태",
-})
+DOMAIN_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "것",
+        "수",
+        "때",
+        "등",
+        "중",
+        "위",
+        "및",
+        "또는",
+        "그림",
+        "표",
+        "참고",
+        "경우",
+        "이상",
+        "이하",
+        "정도",
+        "부위",
+        "부분",
+        "기능",
+        "구조",
+        "역할",
+        "특징",
+        "과정",
+        "결과",
+        "종류",
+        "방법",
+        "이름",
+        "형태",
+        "상태",
+    }
+)
 
 
 # ----------------------------------------------------------------
@@ -169,14 +195,16 @@ def extract_concepts(
         # Find context sentence
         context = _find_context_sentence(ko, sentences)
 
-        concepts.append(TextbookConcept(
-            name_ko=ko,
-            name_en=en,
-            chapter=chapter_name,
-            frequency=freq,
-            context_sentence=context,
-            is_bilingual=True,
-        ))
+        concepts.append(
+            TextbookConcept(
+                name_ko=ko,
+                name_en=en,
+                chapter=chapter_name,
+                frequency=freq,
+                context_sentence=context,
+                is_bilingual=True,
+            )
+        )
 
     # Process non-bilingual nouns
     for noun, freq in noun_counts.items():
@@ -193,14 +221,16 @@ def extract_concepts(
 
         context = _find_context_sentence(noun, sentences)
 
-        concepts.append(TextbookConcept(
-            name_ko=noun,
-            name_en=bilingual_dict.get(noun),
-            chapter=chapter_name,
-            frequency=freq,
-            context_sentence=context,
-            is_bilingual=False,
-        ))
+        concepts.append(
+            TextbookConcept(
+                name_ko=noun,
+                name_en=bilingual_dict.get(noun),
+                chapter=chapter_name,
+                frequency=freq,
+                context_sentence=context,
+                is_bilingual=False,
+            )
+        )
 
     # Step 7: Sort by frequency descending
     concepts.sort(key=lambda c: c.frequency, reverse=True)
@@ -482,28 +512,32 @@ def load_concepts_yaml(
         if is_v2:
             concepts: list = []
             for c in raw_concepts:
-                concepts.append(DomainConcept(
-                    concept=c["concept"],
-                    description=c.get("description", ""),
-                    key_terms=c.get("key_terms", []),
-                    importance=c.get("importance", "medium"),
-                    section=c.get("section", ""),
-                    chapter=chapter_name,
-                    major_topic=c.get("major_topic", ""),
-                    sub_topic=c.get("sub_topic", ""),
-                ))
+                concepts.append(
+                    DomainConcept(
+                        concept=c["concept"],
+                        description=c.get("description", ""),
+                        key_terms=c.get("key_terms", []),
+                        importance=c.get("importance", "medium"),
+                        section=c.get("section", ""),
+                        chapter=chapter_name,
+                        major_topic=c.get("major_topic", ""),
+                        sub_topic=c.get("sub_topic", ""),
+                    )
+                )
             result[chapter_name] = concepts
         else:
             concepts_v1: list = []
             for c in raw_concepts:
-                concepts_v1.append(TextbookConcept(
-                    name_ko=c["name_ko"],
-                    name_en=c.get("name_en"),
-                    chapter=chapter_name,
-                    frequency=c["frequency"],
-                    context_sentence=c.get("context", ""),
-                    is_bilingual=c.get("is_bilingual", False),
-                ))
+                concepts_v1.append(
+                    TextbookConcept(
+                        name_ko=c["name_ko"],
+                        name_en=c.get("name_en"),
+                        chapter=chapter_name,
+                        frequency=c["frequency"],
+                        context_sentence=c.get("context", ""),
+                        is_bilingual=c.get("is_bilingual", False),
+                    )
+                )
             result[chapter_name] = concepts_v1
 
     return result
@@ -591,10 +625,7 @@ def build_extraction_prompt(
         Formatted prompt string.
     """
     if structure_guide:
-        structure_section = (
-            "## 챕터 구조 가이드 (참고)\n"
-            f"{structure_guide}\n"
-        )
+        structure_section = f"## 챕터 구조 가이드 (참고)\n{structure_guide}\n"
     else:
         structure_section = ""
 
@@ -673,7 +704,8 @@ def _parse_llm_concepts(
         data = _recover_truncated_yaml(text)
         if data is None:
             logger.warning(
-                "Recovery failed\n--- Response text (first 500 chars) ---\n%s", text[:500],
+                "Recovery failed\n--- Response text (first 500 chars) ---\n%s",
+                text[:500],
             )
             return []
 
@@ -693,14 +725,16 @@ def _parse_llm_concepts(
             logger.debug("Required fields missing, skipping: %s", item)
             continue
 
-        concepts.append(DomainConcept(
-            concept=concept_name,
-            description=description,
-            key_terms=key_terms if isinstance(key_terms, list) else [key_terms],
-            importance=item.get("importance", "medium"),
-            section=item.get("section", ""),
-            chapter=chapter_name,
-        ))
+        concepts.append(
+            DomainConcept(
+                concept=concept_name,
+                description=description,
+                key_terms=key_terms if isinstance(key_terms, list) else [key_terms],
+                importance=item.get("importance", "medium"),
+                section=item.get("section", ""),
+                chapter=chapter_name,
+            )
+        )
 
     return concepts
 
@@ -867,8 +901,10 @@ def extract_concepts_llm_chunked(
 
     # Get cleaned body for chunking
     from forma.textbook_preprocessor import prepare_textbook_for_llm
+
     cleaned_body, _structure_guide = prepare_textbook_for_llm(
-        raw_text, summary_path=summary_path,
+        raw_text,
+        summary_path=summary_path,
     )
 
     if not cleaned_body.strip():
@@ -877,7 +913,8 @@ def extract_concepts_llm_chunked(
 
     # Chunk the text
     chunks = chunk_textbook_by_sections(
-        cleaned_body, summary_path=summary_path,
+        cleaned_body,
+        summary_path=summary_path,
     )
     logger.info("Chunked into %d chunks", len(chunks))
 
@@ -913,11 +950,15 @@ def extract_concepts_llm_chunked(
             chunk_results.append(concepts)
             logger.info(
                 "Chunk %d/%d completed: %d concepts extracted",
-                idx + 1, len(chunks), len(concepts),
+                idx + 1,
+                len(chunks),
+                len(concepts),
             )
         except Exception:
             logger.warning(
-                "Chunk %d LLM call failed", idx + 1, exc_info=True,
+                "Chunk %d LLM call failed",
+                idx + 1,
+                exc_info=True,
             )
             chunk_results.append([])
 
@@ -977,7 +1018,8 @@ def extract_concepts_llm(
     # Read and preprocess
     raw_text = path.read_text(encoding="utf-8")
     cleaned_body, structure_guide = prepare_textbook_for_llm(
-        raw_text, summary_path=summary_path,
+        raw_text,
+        summary_path=summary_path,
     )
 
     if not cleaned_body.strip():
@@ -1105,7 +1147,6 @@ class TopicHierarchy:
     major_topics: list[MajorTopic] = field(default_factory=list)
     section_to_major: dict[str, str] = field(default_factory=dict)
     section_to_sub: dict[str, str] = field(default_factory=dict)
-
 
 
 def parse_summary_hierarchy(summary_path: str) -> TopicHierarchy:
@@ -1286,14 +1327,16 @@ def chunk_textbook_by_sections(
                 sub_topic = hierarchy.major_topics[0].sub_topics[0].name
                 section_path_ret.append(sub_topic)
 
-        return [TextbookChunk(
-            chapter="",
-            section_path=section_path_ret,
-            major_topic=major_topic,
-            sub_topic=sub_topic,
-            text=text.strip(),
-            char_count=len(text.strip()),
-        )]
+        return [
+            TextbookChunk(
+                chapter="",
+                section_path=section_path_ret,
+                major_topic=major_topic,
+                sub_topic=sub_topic,
+                text=text.strip(),
+                char_count=len(text.strip()),
+            )
+        ]
 
     # Split at ### headers
     h3_matches = list(h3_pattern.finditer(text))
@@ -1328,23 +1371,27 @@ def chunk_textbook_by_sections(
             if len(section_text) > max_chars:
                 sub_chunks = _split_at_paragraphs(section_text, max_chars)
                 for sc in sub_chunks:
-                    chunks.append(TextbookChunk(
+                    chunks.append(
+                        TextbookChunk(
+                            chapter="",
+                            section_path=list(section_path_list),
+                            major_topic=major_topic,
+                            sub_topic=sub_topic,
+                            text=sc,
+                            char_count=len(sc),
+                        )
+                    )
+            else:
+                chunks.append(
+                    TextbookChunk(
                         chapter="",
                         section_path=list(section_path_list),
                         major_topic=major_topic,
                         sub_topic=sub_topic,
-                        text=sc,
-                        char_count=len(sc),
-                    ))
-            else:
-                chunks.append(TextbookChunk(
-                    chapter="",
-                    section_path=list(section_path_list),
-                    major_topic=major_topic,
-                    sub_topic=sub_topic,
-                    text=section_text,
-                    char_count=len(section_text),
-                ))
+                        text=section_text,
+                        char_count=len(section_text),
+                    )
+                )
 
         return chunks
 
@@ -1445,7 +1492,9 @@ def _merge_chunk_concepts(
                 merged_indices.add(j)
                 current = DomainConcept(
                     concept=current.concept if len(current.description) >= len(other.description) else other.concept,
-                    description=current.description if len(current.description) >= len(other.description) else other.description,
+                    description=current.description
+                    if len(current.description) >= len(other.description)
+                    else other.description,
                     key_terms=list(set(current.key_terms) | set(other.key_terms)),
                     importance=_higher_importance(current.importance, other.importance),
                     section=current.section or other.section,

@@ -157,43 +157,33 @@ class TestFeedbackGenerator:
         )
         mock_provider.generate.return_value = long_text
         gen = FeedbackGenerator(mock_provider, max_chars=600)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해")
         assert result.char_count <= 600
 
     def test_data_sources_with_graph(self, mock_provider):
         """Data sources include graph_f1 when graph_comparison present."""
         gen = FeedbackGenerator(mock_provider)
         gc = _make_graph_comparison()
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, gc, 2, "기전+용어"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, gc, 2, "기전+용어")
         assert "graph_f1" in result.data_sources_used
 
     def test_data_sources_without_graph(self, mock_provider):
         """Data sources exclude graph_f1 when no graph_comparison."""
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해")
         assert "graph_f1" not in result.data_sources_used
 
     def test_provider_failure(self, mock_provider):
         """Provider exception returns error message feedback."""
         mock_provider.generate.side_effect = Exception("API down")
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해")
         assert "실패" in result.feedback_text
 
     def test_tier_level_preserved(self, mock_provider):
         """Tier level and label preserved in result."""
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 3, "전문적 구조화"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 3, "전문적 구조화")
         assert result.tier_level == 3
         assert result.tier_label == "전문적 구조화"
 
@@ -234,8 +224,14 @@ class TestFeedbackPromptUS1US2:
 
     def test_system_instruction_has_banned_expressions(self):
         """T008: System instruction prohibits deficit-focused expressions."""
-        banned = ["놓쳤습니다", "부족합니다", "언급하지 않았습니다",
-                  "잘못 이해하고 있습니다", "오류가 있습니다", "틀렸습니다"]
+        banned = [
+            "놓쳤습니다",
+            "부족합니다",
+            "언급하지 않았습니다",
+            "잘못 이해하고 있습니다",
+            "오류가 있습니다",
+            "틀렸습니다",
+        ]
         for expr in banned:
             assert expr in FEEDBACK_SYSTEM_INSTRUCTION, f"Missing banned expression: {expr}"
 
@@ -252,12 +248,17 @@ class TestFeedbackPromptUS1US2:
     def test_template_has_new_section_names(self):
         """T009: Template renders with new section names."""
         rendered = render_feedback_prompt(
-            question="Q?", student_response="A",
-            concept_coverage=0.5, graph_f1=0.7,
-            tier_level=2, tier_label="기전+용어",
-            matched_count=3, missing_count=1,
+            question="Q?",
+            student_response="A",
+            concept_coverage=0.5,
+            graph_f1=0.7,
+            tier_level=2,
+            tier_label="기전+용어",
+            matched_count=3,
+            missing_count=1,
             wrong_direction_count=0,
-            missing_edges_text="(없음)", wrong_direction_text="(없음)",
+            missing_edges_text="(없음)",
+            wrong_direction_text="(없음)",
         )
         assert "[현재 상태]" in rendered
         assert "[원인]" in rendered
@@ -266,12 +267,17 @@ class TestFeedbackPromptUS1US2:
     def test_template_no_old_section_names(self):
         """T009: Template does NOT reference old section names."""
         rendered = render_feedback_prompt(
-            question="Q?", student_response="A",
-            concept_coverage=0.5, graph_f1=0.7,
-            tier_level=2, tier_label="기전+용어",
-            matched_count=3, missing_count=1,
+            question="Q?",
+            student_response="A",
+            concept_coverage=0.5,
+            graph_f1=0.7,
+            tier_level=2,
+            tier_label="기전+용어",
+            matched_count=3,
+            missing_count=1,
             wrong_direction_count=0,
-            missing_edges_text="(없음)", wrong_direction_text="(없음)",
+            missing_edges_text="(없음)",
+            wrong_direction_text="(없음)",
         )
         assert "[평가 요약]" not in rendered
         assert "[분석 결과]" not in rendered
@@ -280,12 +286,17 @@ class TestFeedbackPromptUS1US2:
     def test_template_no_jargon(self):
         """T012: Template does not reference technical jargon."""
         rendered = render_feedback_prompt(
-            question="Q?", student_response="A",
-            concept_coverage=0.5, graph_f1=0.7,
-            tier_level=1, tier_label="기전 이해",
-            matched_count=3, missing_count=1,
+            question="Q?",
+            student_response="A",
+            concept_coverage=0.5,
+            graph_f1=0.7,
+            tier_level=1,
+            tier_label="기전 이해",
+            matched_count=3,
+            missing_count=1,
             wrong_direction_count=0,
-            missing_edges_text="(없음)", wrong_direction_text="(없음)",
+            missing_edges_text="(없음)",
+            wrong_direction_text="(없음)",
         )
         assert "임베딩" in rendered  # present in prohibition instruction
         assert "그래프 분석" not in rendered
@@ -293,12 +304,17 @@ class TestFeedbackPromptUS1US2:
     def test_template_jargon_prohibition_instruction(self):
         """FR-006: Template explicitly instructs LLM to avoid technical jargon."""
         rendered = render_feedback_prompt(
-            question="Q?", student_response="A",
-            concept_coverage=0.5, graph_f1=0.7,
-            tier_level=1, tier_label="기전 이해",
-            matched_count=3, missing_count=1,
+            question="Q?",
+            student_response="A",
+            concept_coverage=0.5,
+            graph_f1=0.7,
+            tier_level=1,
+            tier_label="기전 이해",
+            matched_count=3,
+            missing_count=1,
             wrong_direction_count=0,
-            missing_edges_text="(없음)", wrong_direction_text="(없음)",
+            missing_edges_text="(없음)",
+            wrong_direction_text="(없음)",
         )
         assert "기술 용어" in rendered
         assert "사용하지 마세요" in rendered
@@ -308,18 +324,24 @@ class TestFeedbackPromptUS1US2:
     def test_template_no_minimum_length(self):
         """T012: Template does not have '~자 이상 작성하세요' minimum."""
         rendered = render_feedback_prompt(
-            question="Q?", student_response="A",
-            concept_coverage=0.5, graph_f1=0.7,
-            tier_level=0, tier_label="미달",
-            matched_count=0, missing_count=5,
+            question="Q?",
+            student_response="A",
+            concept_coverage=0.5,
+            graph_f1=0.7,
+            tier_level=0,
+            tier_label="미달",
+            matched_count=0,
+            missing_count=5,
             wrong_direction_count=0,
-            missing_edges_text="test", wrong_direction_text="test",
+            missing_edges_text="test",
+            wrong_direction_text="test",
         )
         assert "이상 작성하세요" not in rendered
 
     def test_generate_length_guidance_new_targets(self):
         """T010/T014: generate() uses new tier targets in length_guidance."""
         from unittest.mock import patch
+
         mock_provider = MagicMock()
         mock_provider.generate.return_value = "[현재 상태] 테스트. [원인] 테스트. [학생에게 권하는 사항] 테스트."
         gen = FeedbackGenerator(mock_provider)
@@ -449,9 +471,7 @@ class TestFallbackTemplates:
         """Each fallback template is between 300 and 600 chars."""
         for tier, template in FALLBACK_TEMPLATES.items():
             char_count = len(template)
-            assert 300 <= char_count <= 600, (
-                f"Tier {tier} template length {char_count} outside 300-600 range"
-            )
+            assert 300 <= char_count <= 600, f"Tier {tier} template length {char_count} outside 300-600 range"
 
 
 class TestRetryAndFallback:
@@ -472,9 +492,7 @@ class TestRetryAndFallback:
         )
         mock_provider.generate.side_effect = [bad_response, good_response]
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어")
         assert "[현재 상태]" in result.feedback_text
         assert mock_provider.generate.call_count == 2
 
@@ -483,22 +501,20 @@ class TestRetryAndFallback:
         bad_response = "구조 없는 응답입니다."
         mock_provider.generate.side_effect = [bad_response, bad_response]
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어")
         assert result.feedback_text == FALLBACK_TEMPLATES[2]
         assert mock_provider.generate.call_count == 2
 
     def test_fallback_on_double_failure_logs_warning(self, mock_provider, caplog):
         """Double failure logs a warning (FR-014)."""
         import logging
+
         bad_response = "구조 없는 응답입니다."
         mock_provider.generate.side_effect = [bad_response, bad_response]
         gen = FeedbackGenerator(mock_provider)
         with caplog.at_level(logging.WARNING, logger="forma.feedback_generator"):
             gen.generate("s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어")
-        assert any("fallback" in record.message.lower() or "대체" in record.message
-                    for record in caplog.records)
+        assert any("fallback" in record.message.lower() or "대체" in record.message for record in caplog.records)
 
     def test_soften_tone_applied_before_validation(self, mock_provider):
         """_soften_tone() is applied to LLM output before validation."""
@@ -509,9 +525,7 @@ class TestRetryAndFallback:
         )
         mock_provider.generate.return_value = response_with_banned
         gen = FeedbackGenerator(mock_provider)
-        result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해"
-        )
+        result = gen.generate("s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해")
         assert "놓쳤습니다" not in result.feedback_text
         assert "추가로 학습하면 좋겠습니다" in result.feedback_text
 
@@ -548,8 +562,14 @@ class TestIntegrationFullPipeline:
         gen = FeedbackGenerator(mock_provider)
         gc = _make_graph_comparison(f1=0.7, n_matched=3, n_missing=1, n_wrong=1)
         result = gen.generate(
-            "s001", 1, "항상성이란?", "체온을 유지하는 것",
-            0.6, gc, 2, "기전+용어",
+            "s001",
+            1,
+            "항상성이란?",
+            "체온을 유지하는 것",
+            0.6,
+            gc,
+            2,
+            "기전+용어",
         )
         for section in _REQUIRED_SECTIONS:
             assert section in result.feedback_text, f"Missing section: {section}"
@@ -558,7 +578,14 @@ class TestIntegrationFullPipeline:
         """Full pipeline output contains no banned expressions."""
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         for banned in NEGATIVE_EXPRESSIONS:
             assert banned not in result.feedback_text, f"Banned expression found: {banned}"
@@ -567,7 +594,14 @@ class TestIntegrationFullPipeline:
         """Full pipeline output is within 300-600 chars (or fallback range)."""
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert result.char_count <= MAX_FEEDBACK_CHARS
 
@@ -575,7 +609,14 @@ class TestIntegrationFullPipeline:
         """Full pipeline output ends with sentence-terminating punctuation."""
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert result.feedback_text.rstrip()[-1] in ".。!?"
 
@@ -583,7 +624,14 @@ class TestIntegrationFullPipeline:
         """Well-formed feedback needs only one LLM call (no retry)."""
         gen = FeedbackGenerator(mock_provider)
         _result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert mock_provider.generate.call_count == 1
 
@@ -592,7 +640,14 @@ class TestIntegrationFullPipeline:
         gen = FeedbackGenerator(mock_provider)
         gc = _make_graph_comparison()
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, gc, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            gc,
+            2,
+            "기전+용어",
         )
         assert "concept_coverage" in result.data_sources_used
         assert "tier_level" in result.data_sources_used
@@ -624,12 +679,17 @@ class TestAdversaryPersona1ToxicLLM:
         mock_provider.generate.return_value = toxic
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         for banned in NEGATIVE_EXPRESSIONS:
-            assert banned not in result.feedback_text, (
-                f"Banned expression '{banned}' survived pipeline"
-            )
+            assert banned not in result.feedback_text, f"Banned expression '{banned}' survived pipeline"
 
     def test_banned_expression_embedded_in_sentence(self, mock_provider):
         """Banned expression embedded within a longer sentence → still caught."""
@@ -641,7 +701,14 @@ class TestAdversaryPersona1ToxicLLM:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert "부족합니다" not in result.feedback_text
         assert "더 보완하면 좋겠습니다" in result.feedback_text
@@ -656,7 +723,14 @@ class TestAdversaryPersona1ToxicLLM:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert result.feedback_text.count("부족합니다") == 0
         assert result.feedback_text.count("더 보완하면 좋겠습니다") == 3
@@ -671,10 +745,7 @@ class TestAdversaryPersona2Truncator:
 
     def test_missing_final_section_triggers_retry(self, mock_provider):
         """Text missing [학생에게 권하는 사항] → retry triggered, second call succeeds."""
-        truncated = (
-            "[현재 상태] 학생은 개념을 이해하고 있습니다.\n"
-            "[원인] 일부 관계 파악이 필요합니다."
-        )
+        truncated = "[현재 상태] 학생은 개념을 이해하고 있습니다.\n[원인] 일부 관계 파악이 필요합니다."
         good = (
             "[현재 상태] 학생은 개념을 이해하고 있습니다.\n"
             "[원인] 일부 관계 파악이 필요합니다.\n"
@@ -683,7 +754,14 @@ class TestAdversaryPersona2Truncator:
         mock_provider.generate.side_effect = [truncated, good]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert "[학생에게 권하는 사항]" in result.feedback_text
         assert mock_provider.generate.call_count == 2
@@ -691,15 +769,18 @@ class TestAdversaryPersona2Truncator:
     def test_missing_two_sections_triggers_retry(self, mock_provider):
         """Text with only [현재 상태] → retry triggered."""
         truncated = "[현재 상태] 학생은 개념을 일부 이해하고 있습니다."
-        good = (
-            "[현재 상태] 이해도가 있습니다.\n"
-            "[원인] 추가 학습이 필요합니다.\n"
-            "[학생에게 권하는 사항] 복습을 권합니다."
-        )
+        good = "[현재 상태] 이해도가 있습니다.\n[원인] 추가 학습이 필요합니다.\n[학생에게 권하는 사항] 복습을 권합니다."
         mock_provider.generate.side_effect = [truncated, good]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert "[원인]" in result.feedback_text
         assert "[학생에게 권하는 사항]" in result.feedback_text
@@ -707,14 +788,18 @@ class TestAdversaryPersona2Truncator:
 
     def test_both_truncated_falls_back(self, mock_provider):
         """Both attempts missing final section → fallback template used."""
-        truncated = (
-            "[현재 상태] 학생은 개념을 이해하고 있습니다.\n"
-            "[원인] 일부 관계 파악이 필요합니다."
-        )
+        truncated = "[현재 상태] 학생은 개념을 이해하고 있습니다.\n[원인] 일부 관계 파악이 필요합니다."
         mock_provider.generate.side_effect = [truncated, truncated]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert result.feedback_text == FALLBACK_TEMPLATES[1]
 
@@ -731,7 +816,14 @@ class TestAdversaryPersona3EmptyResponder:
         mock_provider.generate.return_value = ""
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         # Empty string stripped becomes empty → no sections → ValueError → retry
         # Both attempts empty → fallback
@@ -742,7 +834,14 @@ class TestAdversaryPersona3EmptyResponder:
         mock_provider.generate.return_value = "   \n\t  \n  "
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 0, "미달",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            0,
+            "미달",
         )
         assert result.feedback_text == FALLBACK_TEMPLATES[0]
 
@@ -752,7 +851,14 @@ class TestAdversaryPersona3EmptyResponder:
         mock_provider.generate.return_value = empty_sections
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         # The pipeline should still produce valid output (possibly repaired)
         assert isinstance(result.feedback_text, str)
@@ -790,7 +896,14 @@ class TestAdversaryPersona4VerboseWriter:
         mock_provider.generate.return_value = verbose
         gen = FeedbackGenerator(mock_provider, max_chars=600)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert result.char_count <= 600
 
@@ -800,7 +913,14 @@ class TestAdversaryPersona4VerboseWriter:
         mock_provider.generate.return_value = verbose
         gen = FeedbackGenerator(mock_provider, max_chars=600)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 0, "미달",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            0,
+            "미달",
         )
         assert result.char_count <= 600
 
@@ -810,7 +930,14 @@ class TestAdversaryPersona4VerboseWriter:
         mock_provider.generate.return_value = verbose
         gen = FeedbackGenerator(mock_provider, max_chars=600)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert result.feedback_text.rstrip()[-1] in ".。!?"
 
@@ -825,15 +952,18 @@ class TestAdversaryPersona5MalformedStructurer:
     def test_no_section_markers_triggers_retry(self, mock_provider):
         """Plain text without any section markers → retry triggered."""
         plain = "학생은 개념을 잘 이해하고 있습니다. 교재를 복습하면 좋겠습니다."
-        good = (
-            "[현재 상태] 이해도가 좋습니다.\n"
-            "[원인] 추가 학습이 필요합니다.\n"
-            "[학생에게 권하는 사항] 복습을 권합니다."
-        )
+        good = "[현재 상태] 이해도가 좋습니다.\n[원인] 추가 학습이 필요합니다.\n[학생에게 권하는 사항] 복습을 권합니다."
         mock_provider.generate.side_effect = [plain, good]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert "[현재 상태]" in result.feedback_text
         assert mock_provider.generate.call_count == 2
@@ -845,15 +975,18 @@ class TestAdversaryPersona5MalformedStructurer:
             "[원인] 추가 학습이 필요합니다.\n"
             "[학생에게 권하는 사항] 복습을 권합니다."
         )
-        good = (
-            "[현재 상태] 이해도가 좋습니다.\n"
-            "[원인] 추가 학습이 필요합니다.\n"
-            "[학생에게 권하는 사항] 복습을 권합니다."
-        )
+        good = "[현재 상태] 이해도가 좋습니다.\n[원인] 추가 학습이 필요합니다.\n[학생에게 권하는 사항] 복습을 권합니다."
         mock_provider.generate.side_effect = [typo, good]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert "[현재 상태]" in result.feedback_text
         assert mock_provider.generate.call_count == 2
@@ -868,7 +1001,14 @@ class TestAdversaryPersona5MalformedStructurer:
         mock_provider.generate.return_value = wrong_order
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         # All 3 sections should be present in output
         for section in _REQUIRED_SECTIONS:
@@ -880,7 +1020,14 @@ class TestAdversaryPersona5MalformedStructurer:
         mock_provider.generate.side_effect = [broken, broken]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 3, "전문적 구조화",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            3,
+            "전문적 구조화",
         )
         assert result.feedback_text == FALLBACK_TEMPLATES[3]
 
@@ -898,7 +1045,14 @@ class TestAdversaryPersona6DoubleFailure:
         mock_provider.generate.side_effect = [truncated, truncated]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 0, "미달",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            0,
+            "미달",
         )
         assert result.feedback_text == FALLBACK_TEMPLATES[0]
         assert mock_provider.generate.call_count == 2
@@ -906,18 +1060,23 @@ class TestAdversaryPersona6DoubleFailure:
     def test_double_empty_uses_fallback_and_logs_warning(self, mock_provider, caplog):
         """Both calls empty → fallback template + warning logged (FR-014)."""
         import logging
+
         mock_provider.generate.side_effect = ["", ""]
         gen = FeedbackGenerator(mock_provider)
         with caplog.at_level(logging.WARNING, logger="forma.feedback_generator"):
             result = gen.generate(
-                "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+                "s001",
+                1,
+                "Q?",
+                "answer",
+                0.5,
+                None,
+                1,
+                "기전 이해",
             )
         assert result.feedback_text == FALLBACK_TEMPLATES[1]
         # Verify warning logged about fallback
-        fallback_warnings = [
-            r for r in caplog.records
-            if "fallback" in r.message.lower() or "대체" in r.message
-        ]
+        fallback_warnings = [r for r in caplog.records if "fallback" in r.message.lower() or "대체" in r.message]
         assert len(fallback_warnings) >= 1, "FR-014: Warning must be logged on fallback"
 
     def test_double_malformed_fallback_has_all_sections(self, mock_provider):
@@ -926,12 +1085,17 @@ class TestAdversaryPersona6DoubleFailure:
         mock_provider.generate.side_effect = [broken, broken]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         for section in _REQUIRED_SECTIONS:
-            assert section in result.feedback_text, (
-                f"Fallback template missing section: {section}"
-            )
+            assert section in result.feedback_text, f"Fallback template missing section: {section}"
 
     def test_fallback_matches_tier_level(self, mock_provider):
         """Fallback template matches the student's tier level."""
@@ -940,7 +1104,14 @@ class TestAdversaryPersona6DoubleFailure:
             mock_provider.generate.side_effect = [broken, broken]
             gen = FeedbackGenerator(mock_provider)
             result = gen.generate(
-                "s001", 1, "Q?", "answer", 0.5, None, tier, f"tier{tier}",
+                "s001",
+                1,
+                "Q?",
+                "answer",
+                0.5,
+                None,
+                tier,
+                f"tier{tier}",
             )
             assert result.feedback_text == FALLBACK_TEMPLATES[tier], (
                 f"Tier {tier} should use FALLBACK_TEMPLATES[{tier}]"
@@ -949,15 +1120,18 @@ class TestAdversaryPersona6DoubleFailure:
     def test_first_fails_second_succeeds(self, mock_provider):
         """First attempt ValueError, second attempt succeeds → no fallback."""
         malformed = "마커 없는 텍스트입니다."
-        good = (
-            "[현재 상태] 좋은 이해도입니다.\n"
-            "[원인] 추가 학습이 도움됩니다.\n"
-            "[학생에게 권하는 사항] 복습을 권합니다."
-        )
+        good = "[현재 상태] 좋은 이해도입니다.\n[원인] 추가 학습이 도움됩니다.\n[학생에게 권하는 사항] 복습을 권합니다."
         mock_provider.generate.side_effect = [malformed, good]
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert result.feedback_text != FALLBACK_TEMPLATES[2]
         assert "[현재 상태]" in result.feedback_text
@@ -991,7 +1165,14 @@ class TestAdversaryPersona7BoundaryPusher:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider, max_chars=600)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 0, "미달",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            0,
+            "미달",
         )
         assert result.char_count <= 600
 
@@ -1002,21 +1183,33 @@ class TestAdversaryPersona7BoundaryPusher:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider, max_chars=600)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 0, "미달",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            0,
+            "미달",
         )
         assert result.char_count <= 600
 
     def test_short_valid_feedback_accepted(self, mock_provider):
         """Short but valid feedback (all sections present) → accepted."""
         short = (
-            "[현재 상태] 이해도가 좋습니다.\n"
-            "[원인] 관계 파악이 필요합니다.\n"
-            "[학생에게 권하는 사항] 복습을 권합니다."
+            "[현재 상태] 이해도가 좋습니다.\n[원인] 관계 파악이 필요합니다.\n[학생에게 권하는 사항] 복습을 권합니다."
         )
         mock_provider.generate.return_value = short
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 3, "전문적 구조화",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            3,
+            "전문적 구조화",
         )
         assert "[현재 상태]" in result.feedback_text
         assert "[원인]" in result.feedback_text
@@ -1040,7 +1233,14 @@ class TestAdversaryPersona8UnicodeAttacker:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert isinstance(result.feedback_text, str)
         assert len(result.feedback_text) > 0
@@ -1055,7 +1255,14 @@ class TestAdversaryPersona8UnicodeAttacker:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert isinstance(result.feedback_text, str)
         for section in _REQUIRED_SECTIONS:
@@ -1071,7 +1278,14 @@ class TestAdversaryPersona8UnicodeAttacker:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            2,
+            "기전+용어",
         )
         assert isinstance(result.feedback_text, str)
         assert len(result.feedback_text) > 0
@@ -1086,7 +1300,14 @@ class TestAdversaryPersona8UnicodeAttacker:
         mock_provider.generate.return_value = text
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         assert isinstance(result.feedback_text, str)
         assert len(result.feedback_text) > 0
@@ -1118,11 +1339,16 @@ class TestAdversaryInvariants:
             mock_provider.generate.side_effect = [llm_output, llm_output]
             gen = FeedbackGenerator(mock_provider)
             result = gen.generate(
-                "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+                "s001",
+                1,
+                "Q?",
+                "answer",
+                0.5,
+                None,
+                1,
+                "기전 이해",
             )
-            assert result.feedback_text is not None, (
-                f"feedback_text was None for LLM output: {llm_output!r}"
-            )
+            assert result.feedback_text is not None, f"feedback_text was None for LLM output: {llm_output!r}"
 
     def test_invariant_feedback_always_string(self, mock_provider):
         """Regardless of LLM output, feedback_text is always a string."""
@@ -1136,7 +1362,14 @@ class TestAdversaryInvariants:
             mock_provider.generate.side_effect = [llm_output, llm_output]
             gen = FeedbackGenerator(mock_provider)
             result = gen.generate(
-                "s001", 1, "Q?", "answer", 0.5, None, 0, "미달",
+                "s001",
+                1,
+                "Q?",
+                "answer",
+                0.5,
+                None,
+                0,
+                "미달",
             )
             assert isinstance(result.feedback_text, str)
 
@@ -1148,7 +1381,14 @@ class TestAdversaryInvariants:
         mock_provider.generate.return_value = toxic
         gen = FeedbackGenerator(mock_provider)
         result = gen.generate(
-            "s001", 1, "Q?", "answer", 0.5, None, 1, "기전 이해",
+            "s001",
+            1,
+            "Q?",
+            "answer",
+            0.5,
+            None,
+            1,
+            "기전 이해",
         )
         for banned in NEGATIVE_EXPRESSIONS:
             assert banned not in result.feedback_text
@@ -1164,7 +1404,14 @@ class TestAdversaryInvariants:
             mock_provider.generate.side_effect = [llm_output, llm_output]
             gen = FeedbackGenerator(mock_provider)
             result = gen.generate(
-                "s001", 1, "Q?", "answer", 0.5, None, 2, "기전+용어",
+                "s001",
+                1,
+                "Q?",
+                "answer",
+                0.5,
+                None,
+                2,
+                "기전+용어",
             )
             assert result.char_count == len(result.feedback_text), (
                 f"char_count={result.char_count} != len={len(result.feedback_text)}"
@@ -1176,14 +1423,8 @@ class TestAdversaryInvariants:
             assert isinstance(template, str)
             assert len(template) > 0
             for section in _REQUIRED_SECTIONS:
-                assert section in template, (
-                    f"Tier {tier} fallback missing section: {section}"
-                )
-            assert template.rstrip().endswith("."), (
-                f"Tier {tier} fallback doesn't end with period"
-            )
+                assert section in template, f"Tier {tier} fallback missing section: {section}"
+            assert template.rstrip().endswith("."), f"Tier {tier} fallback doesn't end with period"
             # No banned expressions in fallback templates
             for banned in NEGATIVE_EXPRESSIONS:
-                assert banned not in template, (
-                    f"Tier {tier} fallback contains banned: {banned}"
-                )
+                assert banned not in template, f"Tier {tier} fallback contains banned: {banned}"

@@ -41,6 +41,7 @@ from forma.textbook_preprocessor import clean_textbook_text, extract_bilingual_t
 # Helper factories
 # ============================================================
 
+
 def _make_concept(
     name_ko: str = "세포",
     name_en: str | None = "cell",
@@ -88,11 +89,16 @@ def _make_classified(
 ) -> ClassifiedConcept:
     concept = _make_concept(name_ko=name_ko, frequency=frequency, chapter=chapter)
     emphasis = _make_emphasis(
-        concept_name=name_ko, chapter=chapter,
-        mean_score=mean_score, std_score=std_score,
+        concept_name=name_ko,
+        chapter=chapter,
+        mean_score=mean_score,
+        std_score=std_score,
     )
     return ClassifiedConcept(
-        concept=concept, state=state, emphasis=emphasis, in_scope=in_scope,
+        concept=concept,
+        state=state,
+        emphasis=emphasis,
+        in_scope=in_scope,
     )
 
 
@@ -238,29 +244,20 @@ class TestGiantFileAttacker:
     def test_classify_1000_concepts(self):
         """Classify 1000 concepts quickly."""
         concepts = [_make_concept(name_ko=f"개념{i}", chapter="1장") for i in range(1000)]
-        emphasis = [
-            _make_emphasis(concept_name=f"개념{i}", mean_score=0.1 * (i % 10))
-            for i in range(1000)
-        ]
+        emphasis = [_make_emphasis(concept_name=f"개념{i}", mean_score=0.1 * (i % 10)) for i in range(1000)]
         scope = TeachingScope(chapters=["1장"])
         result = classify_concepts(concepts, emphasis, scope)
         assert len(result) == 1000
 
     def test_build_coverage_1000_concepts(self):
         """build_coverage_result with 1000 classified concepts."""
-        classified = [
-            _make_classified(name_ko=f"개념{i}", frequency=i + 1)
-            for i in range(1000)
-        ]
+        classified = [_make_classified(name_ko=f"개념{i}", frequency=i + 1) for i in range(1000)]
         result = build_coverage_result(classified, [])
         assert result.total_textbook_concepts == 1000
 
     def test_coverage_yaml_roundtrip_large(self, tmp_path):
         """YAML save/load with 500 concepts."""
-        classified = [
-            _make_classified(name_ko=f"개념{i}", frequency=i + 1)
-            for i in range(500)
-        ]
+        classified = [_make_classified(name_ko=f"개념{i}", frequency=i + 1) for i in range(500)]
         cr = build_coverage_result(classified, [])
         out = str(tmp_path / "big.yaml")
         save_coverage_yaml(cr, out)
@@ -334,10 +331,14 @@ class TestDivisionByZeroHunter:
     def test_zero_sections_per_section_coverage(self):
         """No emphasis data → per_section_coverage empty, no division error."""
         concept = _make_concept()
-        classified = [ClassifiedConcept(
-            concept=concept, state=ConceptState.GAP,
-            emphasis=None, in_scope=True,
-        )]
+        classified = [
+            ClassifiedConcept(
+                concept=concept,
+                state=ConceptState.GAP,
+                emphasis=None,
+                in_scope=True,
+            )
+        ]
         result = build_coverage_result(classified, [])
         assert result.per_section_coverage == {}
 
@@ -349,10 +350,14 @@ class TestDivisionByZeroHunter:
             std_score=0.0,
         )
         concept = _make_concept()
-        classified = [ClassifiedConcept(
-            concept=concept, state=ConceptState.COVERED,
-            emphasis=emphasis, in_scope=True,
-        )]
+        classified = [
+            ClassifiedConcept(
+                concept=concept,
+                state=ConceptState.COVERED,
+                emphasis=emphasis,
+                in_scope=True,
+            )
+        ]
         result = build_coverage_result(classified, [])
         assert result.section_variance_top10 == []  # std=0 is filtered out
 
@@ -388,7 +393,9 @@ class TestScopeConfusionAgent:
         concept = _make_concept(chapter="1장")
         scope = TeachingScope(chapters=["99장"])
         classified = classify_concepts(
-            [concept], [_make_emphasis()], scope,
+            [concept],
+            [_make_emphasis()],
+            scope,
         )
         assert classified[0].state == ConceptState.SKIPPED
 
@@ -416,12 +423,14 @@ class TestScopeConfusionAgent:
 
     def test_scope_rules_invalid_include_only_type(self):
         """Non-list include_only → not added to scope_rules."""
-        scope = parse_teaching_scope({
-            "textbook": {
-                "chapters": ["1장"],
-                "scope": {"1장": {"include_only": "not_a_list"}},
+        scope = parse_teaching_scope(
+            {
+                "textbook": {
+                    "chapters": ["1장"],
+                    "scope": {"1장": {"include_only": "not_a_list"}},
+                }
             }
-        })
+        )
         assert "1장" not in scope.scope_rules
 
 
@@ -456,10 +465,15 @@ class TestCachePoisoner:
         textbook.write_text("원래 내용", encoding="utf-8")
 
         cache = Path(_cache_path_for(str(textbook)))
-        cache.write_text(yaml.dump({
-            "hash": "deadbeef_wrong_hash",
-            "concepts": [],
-        }), encoding="utf-8")
+        cache.write_text(
+            yaml.dump(
+                {
+                    "hash": "deadbeef_wrong_hash",
+                    "concepts": [],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         result = _load_cache(str(textbook))
         assert result is None
@@ -521,9 +535,7 @@ class TestEncodingAttacker:
 
     def test_concepts_yaml_utf8_roundtrip(self, tmp_path):
         """Korean concept names survive YAML round-trip."""
-        concepts = {
-            "3장 피부": [_make_concept(name_ko="표피", name_en="epidermis", chapter="3장 피부")]
-        }
+        concepts = {"3장 피부": [_make_concept(name_ko="표피", name_en="epidermis", chapter="3장 피부")]}
         out = str(tmp_path / "concepts.yaml")
         save_concepts_yaml(concepts, out)
         loaded = load_concepts_yaml(out)
@@ -550,31 +562,37 @@ class TestSectionNameGuesser:
     def test_infer_section_standard_pattern(self):
         """'1A_2주차_1차시.txt' → 'A'."""
         from forma.domain_coverage_analyzer import _infer_section_from_filename
+
         assert _infer_section_from_filename("1A_2주차_1차시.txt") == "A"
 
     def test_infer_section_prefix_pattern(self):
         """'A_w2_s1.txt' → 'A'."""
         from forma.domain_coverage_analyzer import _infer_section_from_filename
+
         assert _infer_section_from_filename("A_w2_s1.txt") == "A"
 
     def test_infer_section_section_prefix(self):
         """'sectionB_week3.txt' → 'B'."""
         from forma.domain_coverage_analyzer import _infer_section_from_filename
+
         assert _infer_section_from_filename("sectionB_week3.txt") == "B"
 
     def test_infer_section_fallback(self):
         """'random_transcript.txt' → 'random_transcript' (stem)."""
         from forma.domain_coverage_analyzer import _infer_section_from_filename
+
         assert _infer_section_from_filename("random_transcript.txt") == "random_transcript"
 
     def test_infer_section_no_extension(self):
         """Filename without extension → uses stem."""
         from forma.domain_coverage_analyzer import _infer_section_from_filename
+
         assert _infer_section_from_filename("transcript") == "transcript"
 
     def test_infer_section_lowercase(self):
         """'1a_2주차.txt' → 'A' (uppercased)."""
         from forma.domain_coverage_analyzer import _infer_section_from_filename
+
         assert _infer_section_from_filename("1a_2주차.txt") == "A"
 
 
@@ -653,6 +671,7 @@ class TestMemoryHog:
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
         import matplotlib.pyplot as plt
+
         plt.close("all")
 
     def test_emphasis_bias_scatter_500_points(self):
@@ -661,16 +680,19 @@ class TestMemoryHog:
 
         classified = []
         for i in range(500):
-            classified.append(_make_classified(
-                name_ko=f"개념{i}",
-                state=ConceptState.COVERED if i % 2 == 0 else ConceptState.GAP,
-                mean_score=0.1 * (i % 10),
-                frequency=i + 1,
-            ))
+            classified.append(
+                _make_classified(
+                    name_ko=f"개념{i}",
+                    state=ConceptState.COVERED if i % 2 == 0 else ConceptState.GAP,
+                    mean_score=0.1 * (i % 10),
+                    frequency=i + 1,
+                )
+            )
         cr = _make_coverage_result(classified_concepts=classified)
         buf = build_emphasis_bias_scatter(cr)
         assert isinstance(buf, io.BytesIO)
         import matplotlib.pyplot as plt
+
         plt.close("all")
 
     def test_heatmap_max_concepts_cap(self):
@@ -679,14 +701,17 @@ class TestMemoryHog:
 
         classified = []
         for i in range(200):
-            classified.append(_make_classified(
-                name_ko=f"개념{i}",
-                std_score=0.01 * (i + 1),
-            ))
+            classified.append(
+                _make_classified(
+                    name_ko=f"개념{i}",
+                    std_score=0.01 * (i + 1),
+                )
+            )
         cr = _make_coverage_result(classified_concepts=classified)
         buf = build_section_variance_heatmap(cr, max_concepts=20)
         assert isinstance(buf, io.BytesIO)
         import matplotlib.pyplot as plt
+
         plt.close("all")
 
     def test_heatmap_empty_data(self):
@@ -695,14 +720,17 @@ class TestMemoryHog:
 
         concept = _make_concept()
         cc = ClassifiedConcept(
-            concept=concept, state=ConceptState.GAP,
-            emphasis=None, in_scope=True,
+            concept=concept,
+            state=ConceptState.GAP,
+            emphasis=None,
+            in_scope=True,
         )
         cr = _make_coverage_result(classified_concepts=[cc])
         buf = build_section_variance_heatmap(cr)
         assert isinstance(buf, io.BytesIO)
         assert buf.getvalue()[:4] == b"\x89PNG"
         import matplotlib.pyplot as plt
+
         plt.close("all")
 
 
@@ -717,36 +745,42 @@ class TestRegressionSniffer:
     def test_all_textbook_preprocessor_exports(self):
         """textbook_preprocessor __all__ entries are importable."""
         from forma import textbook_preprocessor
+
         for name in textbook_preprocessor.__all__:
             assert hasattr(textbook_preprocessor, name)
 
     def test_all_concept_extractor_exports(self):
         """domain_concept_extractor __all__ entries are importable."""
         from forma import domain_concept_extractor
+
         for name in domain_concept_extractor.__all__:
             assert hasattr(domain_concept_extractor, name)
 
     def test_all_coverage_analyzer_exports(self):
         """domain_coverage_analyzer __all__ entries are importable."""
         from forma import domain_coverage_analyzer
+
         for name in domain_coverage_analyzer.__all__:
             assert hasattr(domain_coverage_analyzer, name)
 
     def test_all_coverage_charts_exports(self):
         """domain_coverage_charts __all__ entries are importable."""
         from forma import domain_coverage_charts
+
         for name in domain_coverage_charts.__all__:
             assert hasattr(domain_coverage_charts, name)
 
     def test_all_coverage_report_exports(self):
         """domain_coverage_report __all__ entries are importable."""
         from forma import domain_coverage_report
+
         for name in domain_coverage_report.__all__:
             assert hasattr(domain_coverage_report, name)
 
     def test_all_cli_domain_exports(self):
         """cli_domain __all__ entries are importable."""
         from forma import cli_domain
+
         for name in cli_domain.__all__:
             assert hasattr(cli_domain, name)
 
@@ -760,7 +794,8 @@ class TestRegressionSniffer:
         assert loaded.covered_count == cr.covered_count
         assert loaded.gap_count == cr.gap_count
         assert loaded.effective_coverage_rate == pytest.approx(
-            cr.effective_coverage_rate, abs=0.001,
+            cr.effective_coverage_rate,
+            abs=0.001,
         )
 
     def test_concepts_yaml_round_trip(self, tmp_path):
@@ -790,7 +825,9 @@ class TestRegressionSniffer:
 
         scope = TeachingScope(chapters=["1장"])
         result = classify_concepts(
-            [concept_above, concept_below, concept_out], emphasis, scope,
+            [concept_above, concept_below, concept_out],
+            emphasis,
+            scope,
         )
 
         assert result[0].state == ConceptState.COVERED

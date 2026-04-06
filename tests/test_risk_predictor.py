@@ -17,6 +17,7 @@ import pytest
 # Helper: build a mock LongitudinalStore
 # ---------------------------------------------------------------------------
 
+
 def _build_mock_store(records_data: list[dict]) -> MagicMock:
     """Build a mock LongitudinalStore from a list of record dicts.
 
@@ -27,17 +28,19 @@ def _build_mock_store(records_data: list[dict]) -> MagicMock:
 
     records = []
     for d in records_data:
-        records.append(LongitudinalRecord(
-            student_id=d["student_id"],
-            week=d["week"],
-            question_sn=d.get("question_sn", 1),
-            scores=d.get("scores", {"ensemble_score": 0.5}),
-            tier_level=d.get("tier_level", 2),
-            tier_label=d.get("tier_label", "Proficient"),
-            edge_f1=d.get("edge_f1"),
-            misconception_count=d.get("misconception_count"),
-            concept_scores=d.get("concept_scores"),
-        ))
+        records.append(
+            LongitudinalRecord(
+                student_id=d["student_id"],
+                week=d["week"],
+                question_sn=d.get("question_sn", 1),
+                scores=d.get("scores", {"ensemble_score": 0.5}),
+                tier_level=d.get("tier_level", 2),
+                tier_label=d.get("tier_label", "Proficient"),
+                edge_f1=d.get("edge_f1"),
+                misconception_count=d.get("misconception_count"),
+                concept_scores=d.get("concept_scores"),
+            )
+        )
 
     store = MagicMock()
     store.get_all_records.return_value = records
@@ -45,6 +48,7 @@ def _build_mock_store(records_data: list[dict]) -> MagicMock:
     # get_student_trajectory: returns [(week, value)] for a student metric
     def _trajectory(student_id, metric):
         from collections import defaultdict
+
         week_values: dict[int, list[float]] = defaultdict(list)
         for r in records:
             if r.student_id != student_id:
@@ -52,27 +56,20 @@ def _build_mock_store(records_data: list[dict]) -> MagicMock:
             val = r.scores.get(metric)
             if val is not None:
                 week_values[r.week].append(val)
-        return [
-            (wk, sum(vs) / len(vs))
-            for wk, vs in sorted(week_values.items())
-        ]
+        return [(wk, sum(vs) / len(vs)) for wk, vs in sorted(week_values.items())]
 
     store.get_student_trajectory.side_effect = _trajectory
 
     # get_class_weekly_matrix: returns {student_id: {week: value}}
     def _matrix(metric):
         from collections import defaultdict
-        matrix: dict[str, dict[int, list[float]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+
+        matrix: dict[str, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
         for r in records:
             val = r.scores.get(metric)
             if val is not None:
                 matrix[r.student_id][r.week].append(val)
-        return {
-            sid: {wk: sum(vs) / len(vs) for wk, vs in sorted(weeks.items())}
-            for sid, weeks in matrix.items()
-        }
+        return {sid: {wk: sum(vs) / len(vs) for wk, vs in sorted(weeks.items())} for sid, weeks in matrix.items()}
 
     store.get_class_weekly_matrix.side_effect = _matrix
 
@@ -83,30 +80,33 @@ def _make_3week_data(n_students: int = 15) -> list[dict]:
     """Generate 3-week data for n_students with varying scores."""
     data = []
     for i in range(n_students):
-        sid = f"S{i+1:03d}"
+        sid = f"S{i + 1:03d}"
         base_score = 0.3 + (i / n_students) * 0.5  # 0.3 to 0.8
         for week in [1, 2, 3]:
             score = base_score + (week - 2) * 0.05  # slight trend
             score = max(0.0, min(1.0, score))
-            data.append({
-                "student_id": sid,
-                "week": week,
-                "question_sn": 1,
-                "scores": {
-                    "ensemble_score": score,
-                    "concept_coverage": score * 0.9,
-                },
-                "tier_level": 2 if score >= 0.45 else 0,
-                "tier_label": "Proficient" if score >= 0.45 else "Beginning",
-                "edge_f1": score * 0.8,
-                "misconception_count": max(0, int((1 - score) * 5)),
-            })
+            data.append(
+                {
+                    "student_id": sid,
+                    "week": week,
+                    "question_sn": 1,
+                    "scores": {
+                        "ensemble_score": score,
+                        "concept_coverage": score * 0.9,
+                    },
+                    "tier_level": 2 if score >= 0.45 else 0,
+                    "tier_label": "Proficient" if score >= 0.45 else "Beginning",
+                    "edge_f1": score * 0.8,
+                    "misconception_count": max(0, int((1 - score) * 5)),
+                }
+            )
     return data
 
 
 # ---------------------------------------------------------------------------
 # T019: FeatureExtractor tests
 # ---------------------------------------------------------------------------
+
 
 class TestFeatureExtractor:
     """Tests for FeatureExtractor."""
@@ -120,7 +120,8 @@ class TestFeatureExtractor:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
 
         assert isinstance(matrix, np.ndarray)
@@ -140,13 +141,21 @@ class TestFeatureExtractor:
         _, feature_names, _ = extractor.extract(store, weeks=[1, 2, 3])
 
         expected = [
-            "score_mean", "score_variance", "score_slope", "last_score",
-            "coverage_mean", "coverage_slope",
+            "score_mean",
+            "score_variance",
+            "score_slope",
+            "last_score",
+            "coverage_mean",
+            "coverage_slope",
             "tier_low_ratio",
-            "misconception_mean", "misconception_slope",
-            "absence_count", "absence_ratio",
-            "z_score_mean", "z_score_slope",
-            "edge_f1_mean", "edge_f1_slope",
+            "misconception_mean",
+            "misconception_slope",
+            "absence_count",
+            "absence_ratio",
+            "z_score_mean",
+            "z_score_slope",
+            "edge_f1_mean",
+            "edge_f1_slope",
         ]
         assert feature_names == expected
 
@@ -156,10 +165,14 @@ class TestFeatureExtractor:
 
         data = [
             {
-                "student_id": "S001", "week": 1, "question_sn": 1,
+                "student_id": "S001",
+                "week": 1,
+                "question_sn": 1,
                 "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
-                "tier_level": 2, "tier_label": "Proficient",
-                "edge_f1": 0.7, "misconception_count": 1,
+                "tier_level": 2,
+                "tier_label": "Proficient",
+                "edge_f1": 0.7,
+                "misconception_count": 1,
             },
         ]
         store = _build_mock_store(data)
@@ -178,9 +191,12 @@ class TestFeatureExtractor:
 
         data = [
             {
-                "student_id": "S001", "week": w, "question_sn": 1,
+                "student_id": "S001",
+                "week": w,
+                "question_sn": 1,
                 "scores": {"ensemble_score": 0.5, "concept_coverage": 0.4},
-                "tier_level": 2, "tier_label": "Proficient",
+                "tier_level": 2,
+                "tier_label": "Proficient",
                 # No edge_f1, misconception_count
             }
             for w in [1, 2, 3]
@@ -202,15 +218,35 @@ class TestFeatureExtractor:
 
         data = [
             # S001 has weeks 1, 2, 3
-            {"student_id": "S001", "week": 1, "scores": {"ensemble_score": 0.5, "concept_coverage": 0.4},
-             "tier_level": 2, "tier_label": "Proficient"},
-            {"student_id": "S001", "week": 2, "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient"},
-            {"student_id": "S001", "week": 3, "scores": {"ensemble_score": 0.7, "concept_coverage": 0.6},
-             "tier_level": 2, "tier_label": "Proficient"},
+            {
+                "student_id": "S001",
+                "week": 1,
+                "scores": {"ensemble_score": 0.5, "concept_coverage": 0.4},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
+            {
+                "student_id": "S001",
+                "week": 2,
+                "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
+            {
+                "student_id": "S001",
+                "week": 3,
+                "scores": {"ensemble_score": 0.7, "concept_coverage": 0.6},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
             # S002 only has week 1 (missing 2 and 3)
-            {"student_id": "S002", "week": 1, "scores": {"ensemble_score": 0.4, "concept_coverage": 0.3},
-             "tier_level": 0, "tier_label": "Beginning"},
+            {
+                "student_id": "S002",
+                "week": 1,
+                "scores": {"ensemble_score": 0.4, "concept_coverage": 0.3},
+                "tier_level": 0,
+                "tier_label": "Beginning",
+            },
         ]
         store = _build_mock_store(data)
 
@@ -229,10 +265,20 @@ class TestFeatureExtractor:
         from forma.risk_predictor import FeatureExtractor
 
         data = [
-            {"student_id": "S001", "week": 1, "scores": {"ensemble_score": 0.8, "concept_coverage": 0.7},
-             "tier_level": 3, "tier_label": "Advanced"},
-            {"student_id": "S002", "week": 1, "scores": {"ensemble_score": 0.2, "concept_coverage": 0.1},
-             "tier_level": 0, "tier_label": "Beginning"},
+            {
+                "student_id": "S001",
+                "week": 1,
+                "scores": {"ensemble_score": 0.8, "concept_coverage": 0.7},
+                "tier_level": 3,
+                "tier_label": "Advanced",
+            },
+            {
+                "student_id": "S002",
+                "week": 1,
+                "scores": {"ensemble_score": 0.2, "concept_coverage": 0.1},
+                "tier_level": 0,
+                "tier_label": "Beginning",
+            },
         ]
         store = _build_mock_store(data)
 
@@ -252,6 +298,7 @@ class TestFeatureExtractor:
 # T020: RiskPredictor tests
 # ---------------------------------------------------------------------------
 
+
 class TestRiskPredictor:
     """Tests for RiskPredictor."""
 
@@ -264,7 +311,8 @@ class TestRiskPredictor:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
 
         # Label: last score < 0.45 → drop
@@ -289,7 +337,8 @@ class TestRiskPredictor:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
         labels = (matrix[:, feature_names.index("last_score")] < 0.45).astype(int)
 
@@ -313,7 +362,8 @@ class TestRiskPredictor:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
         labels = (matrix[:, feature_names.index("last_score")] < 0.45).astype(int)
 
@@ -334,12 +384,15 @@ class TestRiskPredictor:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
 
         predictor = RiskPredictor()
         predictions = predictor.predict_cold_start(
-            matrix, student_ids, feature_names,
+            matrix,
+            student_ids,
+            feature_names,
         )
 
         assert len(predictions) == 10
@@ -359,7 +412,10 @@ class TestRiskPredictor:
         predictor = RiskPredictor()
         with pytest.raises(ValueError, match="student"):
             predictor.train(
-                matrix, labels, feature_names, min_students=10,
+                matrix,
+                labels,
+                feature_names,
+                min_students=10,
             )
 
     def test_drop_probability_bounds(self):
@@ -371,7 +427,8 @@ class TestRiskPredictor:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
         labels = (matrix[:, feature_names.index("last_score")] < 0.45).astype(int)
 
@@ -386,6 +443,7 @@ class TestRiskPredictor:
 # ---------------------------------------------------------------------------
 # T021: TrainedRiskModel persistence tests
 # ---------------------------------------------------------------------------
+
 
 class TestModelPersistence:
     """Tests for save_model/load_model (joblib roundtrip)."""
@@ -404,7 +462,8 @@ class TestModelPersistence:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
         labels = (matrix[:, feature_names.index("last_score")] < 0.45).astype(int)
 
@@ -443,7 +502,8 @@ class TestModelPersistence:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
         labels = (matrix[:, feature_names.index("last_score")] < 0.45).astype(int)
 
@@ -470,7 +530,8 @@ class TestModelPersistence:
 
         extractor = FeatureExtractor()
         matrix, feature_names, student_ids = extractor.extract(
-            store, weeks=[1, 2, 3],
+            store,
+            weeks=[1, 2, 3],
         )
         labels = (matrix[:, feature_names.index("last_score")] < 0.45).astype(int)
 
@@ -497,15 +558,30 @@ class TestFeatureExtractorNanSafety:
         from forma.risk_predictor import FeatureExtractor
 
         data = [
-            {"student_id": "S001", "week": 1, "question_sn": 1,
-             "scores": {"ensemble_score": float("nan"), "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient"},
-            {"student_id": "S001", "week": 2, "question_sn": 1,
-             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient"},
-            {"student_id": "S001", "week": 3, "question_sn": 1,
-             "scores": {"ensemble_score": 0.7, "concept_coverage": 0.6},
-             "tier_level": 3, "tier_label": "Advanced"},
+            {
+                "student_id": "S001",
+                "week": 1,
+                "question_sn": 1,
+                "scores": {"ensemble_score": float("nan"), "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
+            {
+                "student_id": "S001",
+                "week": 2,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
+            {
+                "student_id": "S001",
+                "week": 3,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.7, "concept_coverage": 0.6},
+                "tier_level": 3,
+                "tier_label": "Advanced",
+            },
         ]
         store = _build_mock_store(data)
         extractor = FeatureExtractor()
@@ -524,12 +600,22 @@ class TestFeatureExtractorNanSafety:
         from forma.risk_predictor import FeatureExtractor
 
         data = [
-            {"student_id": "S001", "week": 1, "question_sn": 1,
-             "scores": {"ensemble_score": 0.5, "concept_coverage": float("nan")},
-             "tier_level": 2, "tier_label": "Proficient"},
-            {"student_id": "S001", "week": 2, "question_sn": 1,
-             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient"},
+            {
+                "student_id": "S001",
+                "week": 1,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.5, "concept_coverage": float("nan")},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
+            {
+                "student_id": "S001",
+                "week": 2,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
         ]
         store = _build_mock_store(data)
         extractor = FeatureExtractor()
@@ -545,14 +631,24 @@ class TestFeatureExtractorNanSafety:
         from forma.risk_predictor import FeatureExtractor
 
         data = [
-            {"student_id": "S001", "week": 1, "question_sn": 1,
-             "scores": {"ensemble_score": 0.5, "concept_coverage": 0.4},
-             "tier_level": 2, "tier_label": "Proficient",
-             "edge_f1": float("nan")},
-            {"student_id": "S001", "week": 2, "question_sn": 1,
-             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient",
-             "edge_f1": 0.7},
+            {
+                "student_id": "S001",
+                "week": 1,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.5, "concept_coverage": 0.4},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+                "edge_f1": float("nan"),
+            },
+            {
+                "student_id": "S001",
+                "week": 2,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+                "edge_f1": 0.7,
+            },
         ]
         store = _build_mock_store(data)
         extractor = FeatureExtractor()
@@ -569,10 +665,16 @@ class TestFeatureExtractorNanSafety:
         from forma.risk_predictor import FeatureExtractor
 
         data = [
-            {"student_id": "S001", "week": w, "question_sn": 1,
-             "scores": {"ensemble_score": float("nan"), "concept_coverage": float("nan")},
-             "tier_level": 2, "tier_label": "Proficient",
-             "edge_f1": float("nan"), "misconception_count": None}
+            {
+                "student_id": "S001",
+                "week": w,
+                "question_sn": 1,
+                "scores": {"ensemble_score": float("nan"), "concept_coverage": float("nan")},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+                "edge_f1": float("nan"),
+                "misconception_count": None,
+            }
             for w in [1, 2, 3]
         ]
         store = _build_mock_store(data)
@@ -587,12 +689,22 @@ class TestFeatureExtractorNanSafety:
         from forma.risk_predictor import FeatureExtractor
 
         data = [
-            {"student_id": "S001", "week": 1, "question_sn": 1,
-             "scores": {"ensemble_score": float("nan"), "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient"},
-            {"student_id": "S002", "week": 1, "question_sn": 1,
-             "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
-             "tier_level": 2, "tier_label": "Proficient"},
+            {
+                "student_id": "S001",
+                "week": 1,
+                "question_sn": 1,
+                "scores": {"ensemble_score": float("nan"), "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
+            {
+                "student_id": "S002",
+                "week": 1,
+                "question_sn": 1,
+                "scores": {"ensemble_score": 0.6, "concept_coverage": 0.5},
+                "tier_level": 2,
+                "tier_label": "Proficient",
+            },
         ]
         store = _build_mock_store(data)
         extractor = FeatureExtractor()

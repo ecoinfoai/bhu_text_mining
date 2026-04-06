@@ -79,9 +79,9 @@ def run_batch_evaluation(
         skip_feedback = True
 
     for cls in classes:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"[batch] Processing class {cls}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Resolve join file path
         join_filename = join_pattern.replace("{class}", cls)
@@ -162,23 +162,15 @@ def _generate_class_reports(class_dir: str, config_path: str) -> None:
 
 def main() -> None:
     """Parse arguments and run the batch evaluation pipeline."""
-    parser = argparse.ArgumentParser(
-        description="Batch evaluation pipeline for multiple class sections"
-    )
-    parser.add_argument(
-        "--config", required=True, help="Exam YAML config path"
-    )
-    parser.add_argument(
-        "--join-dir", required=True, help="Directory with join output files"
-    )
+    parser = argparse.ArgumentParser(description="Batch evaluation pipeline for multiple class sections")
+    parser.add_argument("--config", required=True, help="Exam YAML config path")
+    parser.add_argument("--join-dir", required=True, help="Directory with join output files")
     parser.add_argument(
         "--join-pattern",
         required=True,
         help='Filename pattern with {class} placeholder (e.g., "anp_1{class}_final.yaml")',
     )
-    parser.add_argument(
-        "--output", required=True, help="Root output directory"
-    )
+    parser.add_argument("--output", required=True, help="Root output directory")
     parser.add_argument(
         "--classes",
         nargs="+",
@@ -190,12 +182,8 @@ def main() -> None:
         default="gemini",
         help="LLM provider: gemini (default) or anthropic",
     )
-    parser.add_argument(
-        "--api-key", default=None, help="LLM API key (overrides env var)"
-    )
-    parser.add_argument(
-        "--model", default=None, help="LLM model ID override"
-    )
+    parser.add_argument("--api-key", default=None, help="LLM API key (overrides env var)")
+    parser.add_argument("--model", default=None, help="LLM model ID override")
     parser.add_argument(
         "--skip-feedback",
         action="store_true",

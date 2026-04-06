@@ -508,10 +508,7 @@ class TestStudentRankLollipop:
 
     def test_large_dataset_no_crash(self, chart_gen):
         """student_rank_lollipop handles 60 students (top/bottom 25 with gap) without raising."""
-        rows = [
-            _make_student_summary_row(f"Student_{i:02d}", round(i / 60, 2))
-            for i in range(60)
-        ]
+        rows = [_make_student_summary_row(f"Student_{i:02d}", round(i / 60, 2)) for i in range(60)]
         result = chart_gen.student_rank_lollipop(rows)
         assert isinstance(result, io.BytesIO)
 
@@ -529,10 +526,7 @@ class TestStudentRankLollipop:
 
     def test_all_same_score(self, chart_gen):
         """student_rank_lollipop handles all-same score (zero variance) without raising."""
-        rows = [
-            _make_student_summary_row(f"Student_{i}", 0.5)
-            for i in range(5)
-        ]
+        rows = [_make_student_summary_row(f"Student_{i}", 0.5) for i in range(5)]
         result = chart_gen.student_rank_lollipop(rows)
         assert isinstance(result, io.BytesIO)
 
@@ -691,16 +685,18 @@ def _make_aggregate(
     agg_edges = []
     for subj, rel, obj, ratio, err, miss in edges:
         correct = total_students - err - miss
-        agg_edges.append(AggregateEdge(
-            subject=subj,
-            relation=rel,
-            obj=obj,
-            correct_count=correct,
-            error_count=err,
-            missing_count=miss,
-            total_students=total_students,
-            correct_ratio=ratio,
-        ))
+        agg_edges.append(
+            AggregateEdge(
+                subject=subj,
+                relation=rel,
+                obj=obj,
+                correct_count=correct,
+                error_count=err,
+                missing_count=miss,
+                total_students=total_students,
+                correct_ratio=ratio,
+            )
+        )
     return ClassKnowledgeAggregate(
         question_sn=question_sn,
         edges=agg_edges,

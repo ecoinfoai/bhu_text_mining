@@ -8,6 +8,7 @@ Workflow:
     4. Naver OCR each cropped image → text
     5. Join results → YAML output
 """
+
 from __future__ import annotations
 
 import csv
@@ -17,6 +18,7 @@ from typing import Any, Optional
 
 import yaml
 
+from forma.io_utils import _atomic_write
 from forma.naver_ocr import (
     extract_raw_ocr_data,
     extract_text_with_confidence,
@@ -75,10 +77,7 @@ def run_scan_pipeline(
 
     raw_images = _list_raw_images(image_dir)
     if not raw_images:
-        raise FileNotFoundError(
-            f"No images found in {image_dir!r}. "
-            "[run_scan_pipeline]"
-        )
+        raise FileNotFoundError(f"No images found in {image_dir!r}. [run_scan_pipeline]")
     sample_image = raw_images[0]
 
     # ── step 1: collect crop coordinates ─────────
@@ -88,10 +87,7 @@ def run_scan_pipeline(
     else:
         coords_list = []
         for q_idx in range(1, num_questions + 1):
-            print(
-                f"\nSelect answer area for Q{q_idx} "
-                f"(click top-left then bottom-right):"
-            )
+            print(f"\nSelect answer area for Q{q_idx} (click top-left then bottom-right):")
             coords_list.append(show_image(sample_image))
 
     # ── step 2: batch crop per question ──────────
@@ -105,9 +101,7 @@ def run_scan_pipeline(
     # Collect all cropped files upfront for progress tracking
     all_cropped: list[tuple[int, str]] = []
     for q_idx, prefix in enumerate(prefixes, 1):
-        for img_path in sorted(
-            prepare_image_files_list(image_dir, prefix + "_")
-        ):
+        for img_path in sorted(prepare_image_files_list(image_dir, prefix + "_")):
             all_cropped.append((q_idx, img_path))
 
     total_files = len(all_cropped)
@@ -130,6 +124,7 @@ def run_scan_pipeline(
         )
         # Resolve model name for output
         from forma.llm_provider import create_provider as _create_prov
+
         try:
             _tmp = _create_prov(provider=llm_provider, api_key=llm_api_key, model=llm_model)  # type: ignore[arg-type]
             llm_model_name = _tmp.model_name
@@ -149,7 +144,8 @@ def run_scan_pipeline(
         pct = processed * 100 // total_files
         print(
             f"\r  [{pct:3d}%] {processed}/{total_files}  {source_file}",
-            end="", flush=True,
+            end="",
+            flush=True,
         )
 
         # QR decode
@@ -203,7 +199,9 @@ def run_scan_pipeline(
             # Naver OCR mode (legacy)
             try:
                 ocr_responses = send_images_receive_ocr(
-                    api_url, secret_key, [img_path],
+                    api_url,
+                    secret_key,
+                    [img_path],
                 )
                 conf_map = extract_text_with_confidence(ocr_responses)
                 if conf_map:
@@ -235,16 +233,13 @@ def run_scan_pipeline(
         results.append(result_entry)
 
     total = qr_decoded + qr_failed
-    print(
-        f"\n✓ {qr_decoded}/{total} QR decoded, "
-        f"⚠ {qr_failed} failures"
-    )
+    print(f"\n✓ {qr_decoded}/{total} QR decoded, ⚠ {qr_failed} failures")
 
     # Low-confidence summary
     low_conf = [
-        r for r in results
-        if r.get("ocr_confidence_mean") is not None
-        and r["ocr_confidence_mean"] < ocr_review_threshold
+        r
+        for r in results
+        if r.get("ocr_confidence_mean") is not None and r["ocr_confidence_mean"] < ocr_review_threshold
     ]
     if low_conf:
         print(
@@ -259,17 +254,17 @@ def run_scan_pipeline(
         for r in low_conf:
             reason_parts = []
             if r.get("ocr_confidence_mean") is not None:
-                reason_parts.append(
-                    f"confidence {r['ocr_confidence_mean']:.2f} < {ocr_review_threshold}"
-                )
-            review_entries.append({
-                "image_name": r.get("source_file", ""),
-                "student_id": r.get("student_id", ""),
-                "q_num": r.get("q_num", 0),
-                "text": r.get("text", ""),
-                "ocr_confidence_mean": r.get("ocr_confidence_mean"),
-                "reason": "; ".join(reason_parts) if reason_parts else "low_confidence",
-            })
+                reason_parts.append(f"confidence {r['ocr_confidence_mean']:.2f} < {ocr_review_threshold}")
+            review_entries.append(
+                {
+                    "image_name": r.get("source_file", ""),
+                    "student_id": r.get("student_id", ""),
+                    "q_num": r.get("q_num", 0),
+                    "text": r.get("text", ""),
+                    "ocr_confidence_mean": r.get("ocr_confidence_mean"),
+                    "reason": "; ".join(reason_parts) if reason_parts else "low_confidence",
+                }
+            )
         review_path = os.path.join(
             os.path.dirname(os.path.abspath(output_path)),
             "review_needed.yaml",
@@ -321,10 +316,7 @@ def run_join_pipeline(
             *forms_csv_path* is provided.
     """
     if spreadsheet_url is None and forms_csv_path is None:
-        raise ValueError(
-            "At least one data source required: "
-            "--spreadsheet-url or --forms-csv"
-        )
+        raise ValueError("At least one data source required: --spreadsheet-url or --forms-csv")
 
     with open(ocr_results_path, encoding="utf-8") as f:
         ocr_results: list[dict[str, Any]] = yaml.safe_load(f)
@@ -346,10 +338,7 @@ def run_join_pipeline(
                     forms_data[sid] = {str(k): str(v) for k, v in row.items()}
         except Exception as exc:
             if forms_csv_path is not None:
-                print(
-                    f"WARNING: Google Sheets access failed ({exc}), "
-                    f"falling back to CSV: {forms_csv_path}"
-                )
+                print(f"WARNING: Google Sheets access failed ({exc}), falling back to CSV: {forms_csv_path}")
             else:
                 raise
 
@@ -373,21 +362,13 @@ def run_join_pipeline(
         forms_row = forms_data.get(sid, {})
         record: dict[str, Any] = dict(entry)
         if forms_row:
-            extra = {
-                k: v
-                for k, v in forms_row.items()
-                if k != student_id_column
-            }
+            extra = {k: v for k, v in forms_row.items() if k != student_id_column}
             record["forms_data"] = extra
             matched_sids.add(sid)
         joined.append(record)
 
     # ── match report ─────────────────────────────
-    all_sids = {
-        e.get("student_id", "")
-        for e in ocr_results
-        if not e.get("student_id", "").startswith("UNKNOWN_")
-    }
+    all_sids = {e.get("student_id", "") for e in ocr_results if not e.get("student_id", "").startswith("UNKNOWN_")}
     unmatched = sorted(all_sids - matched_sids)
     total = len(all_sids)
     matched = len(matched_sids)
@@ -428,20 +409,14 @@ def _print_confidence_review_table(
         threshold: Confidence threshold below which entries are flagged.
     """
     # Check if any entry has confidence data
-    has_confidence = any(
-        entry.get("ocr_confidence_mean") is not None for entry in joined
-    )
+    has_confidence = any(entry.get("ocr_confidence_mean") is not None for entry in joined)
     if not has_confidence:
         return
 
     # Filter entries with confidence below threshold
-    total_with_confidence = sum(
-        1 for e in joined if e.get("ocr_confidence_mean") is not None
-    )
+    total_with_confidence = sum(1 for e in joined if e.get("ocr_confidence_mean") is not None)
     low_entries = [
-        e for e in joined
-        if e.get("ocr_confidence_mean") is not None
-        and e["ocr_confidence_mean"] < threshold
+        e for e in joined if e.get("ocr_confidence_mean") is not None and e["ocr_confidence_mean"] < threshold
     ]
 
     if not low_entries:
@@ -459,21 +434,14 @@ def _print_confidence_review_table(
         name = forms.get("이름", "-")
         q_num = str(e.get("q_num", ""))
         conf_mean = f"{e['ocr_confidence_mean']:.2f}"
-        conf_min = (
-            f"{e['ocr_confidence_min']:.2f}"
-            if e.get("ocr_confidence_min") is not None
-            else "-"
-        )
+        conf_min = f"{e['ocr_confidence_min']:.2f}" if e.get("ocr_confidence_min") is not None else "-"
         text = e.get("text", "")
         preview = text[:30] + "..." if len(text) > 30 else text
         rows.append((sid, name, q_num, conf_mean, conf_min, preview))
 
     # Print table
     headers = ("Student ID", "Name", "Q#", "Conf", "Min Block", "Recognized text (first 30 chars)")
-    col_widths = [
-        max(len(h), max(len(r[i]) for r in rows))
-        for i, h in enumerate(headers)
-    ]
+    col_widths = [max(len(h), max(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
 
     def _row_str(vals: tuple) -> str:
         cells = " │ ".join(v.ljust(w) for v, w in zip(vals, col_widths))
@@ -523,13 +491,16 @@ def _save_yaml(
     """Save *data* as YAML to *output_path*, creating dirs as needed."""
     out_dir = os.path.dirname(os.path.abspath(output_path))
     os.makedirs(out_dir, exist_ok=True)
+
     # Dumper that quotes string values but not keys
     class _QuotedDumper(yaml.SafeDumper):
         pass
 
     def _quoted_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
         return dumper.represent_scalar(
-            "tag:yaml.org,2002:str", data, style='"',
+            "tag:yaml.org,2002:str",
+            data,
+            style='"',
         )
 
     def _mapping(dumper: yaml.SafeDumper, data: dict) -> yaml.MappingNode:
@@ -543,12 +514,15 @@ def _save_yaml(
     _QuotedDumper.add_representer(str, _quoted_str)
     _QuotedDumper.add_representer(dict, _mapping)
 
-    with open(output_path, "w", encoding="utf-8") as f:
+    def _write(f):
         yaml.dump(
-            data, f,
+            data,
+            f,
             Dumper=_QuotedDumper,
             allow_unicode=True,
             default_flow_style=False,
             sort_keys=False,
         )
+
+    _atomic_write(_write, output_path)
     print(f"Results saved: {output_path}")

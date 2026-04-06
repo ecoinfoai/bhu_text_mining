@@ -16,8 +16,13 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor
 from reportlab.platypus import (
-    Image, PageBreak, Paragraph, SimpleDocTemplate,
-    Spacer, Table, TableStyle,
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
@@ -77,7 +82,7 @@ METHODS_SECTION_TEXT: str = (
 RISK_INTERPRETATION_GUIDE: str = (
     "■ 선정 기준\n\n"
     "분석 기간 내 모든 주차에서 성취도 점수가 0.45 미만인 "
-    "학생을 \"지속 위험군\"으로 분류합니다. 단일 주차에서만 "
+    '학생을 "지속 위험군"으로 분류합니다. 단일 주차에서만 '
     "0.45 미만인 학생은 일시적 부진으로 간주하여 이 목록에 "
     "포함되지 않습니다.\n\n"
     "■ 표 컬럼 해석\n\n"
@@ -137,44 +142,54 @@ class LongitudinalPDFReportGenerator:
 
         # Define paragraph styles
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "LongTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LongSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LongBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LongTableHeader",
-            parent=self._styles["Normal"],
-            fontName="NanumGothicBold",
-            fontSize=8,
-            textColor=HexColor("#FFFFFF"),
-            alignment=1,
-        ))
-        self._styles.add(ParagraphStyle(
-            "LongTableData",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            alignment=1,
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "LongTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LongSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LongBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LongTableHeader",
+                parent=self._styles["Normal"],
+                fontName="NanumGothicBold",
+                fontSize=8,
+                textColor=HexColor("#FFFFFF"),
+                alignment=1,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "LongTableData",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                alignment=1,
+            )
+        )
 
     def generate_pdf(
         self,
@@ -208,22 +223,24 @@ class LongitudinalPDFReportGenerator:
         story.extend(self._build_methods_section())
         story.extend(self._build_class_trend_section(summary_data))
         story.extend(self._build_trajectory_section(summary_data))
-        story.extend(self._build_heatmap_section(
-            summary_data,
-            class_data=class_data,
-            class_ids=class_ids,
-            heatmap_layout=heatmap_layout,
-        ))
+        story.extend(
+            self._build_heatmap_section(
+                summary_data,
+                class_data=class_data,
+                class_ids=class_ids,
+                heatmap_layout=heatmap_layout,
+            )
+        )
         story.extend(self._build_risk_analysis_section(summary_data))
-        story.extend(self._build_concept_mastery_section(
-            summary_data, mastery_top_n=mastery_top_n,
-        ))
+        story.extend(
+            self._build_concept_mastery_section(
+                summary_data,
+                mastery_top_n=mastery_top_n,
+            )
+        )
 
         # Topic statistics section (v0.13.1 US7)
-        if (
-            summary_data.topic_statistics
-            or summary_data.topic_trends
-        ):
+        if summary_data.topic_statistics or summary_data.topic_trends:
             story.extend(
                 self._build_topic_statistics_section(
                     summary_data.topic_statistics or [],
@@ -258,10 +275,12 @@ class LongitudinalPDFReportGenerator:
         """Build cover page with report title and summary info."""
         story = []
         story.append(Spacer(1, 60 * mm))
-        story.append(Paragraph(
-            _esc("종단 분석 요약 보고서"),
-            self._styles["LongTitle"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("종단 분석 요약 보고서"),
+                self._styles["LongTitle"],
+            )
+        )
         story.append(Spacer(1, 10 * mm))
 
         weeks_str = ", ".join(str(w) for w in data.period_weeks)
@@ -285,20 +304,24 @@ class LongitudinalPDFReportGenerator:
             List of ReportLab flowables for the Methods section.
         """
         story: list = []
-        story.append(Paragraph(
-            _esc("방법: 성취도 점수 산출"),
-            self._styles["LongSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("방법: 성취도 점수 산출"),
+                self._styles["LongSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         for paragraph in METHODS_SECTION_TEXT.split("\n\n"):
             cleaned = paragraph.strip()
             if not cleaned:
                 continue
-            story.append(Paragraph(
-                _esc(cleaned).replace("\n", "<br/>"),
-                self._styles["LongBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc(cleaned).replace("\n", "<br/>"),
+                    self._styles["LongBody"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
 
         story.append(PageBreak())
@@ -317,9 +340,12 @@ class LongitudinalPDFReportGenerator:
             "0.70 이상 = 우수, 0.45~0.70 = 보통, "
             "0.45 미만 = 위험 구간입니다."
         )
-        story.append(Paragraph(
-            _esc(_guide), self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(_guide),
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 2 * mm))
 
         if not data.class_weekly_averages:
@@ -327,26 +353,34 @@ class LongitudinalPDFReportGenerator:
             return story
 
         # Weekly averages table
-        header = [Paragraph("주차", self._styles["LongTableHeader"]),
-                  Paragraph("학급 평균", self._styles["LongTableHeader"])]
+        header = [
+            Paragraph("주차", self._styles["LongTableHeader"]),
+            Paragraph("학급 평균", self._styles["LongTableHeader"]),
+        ]
         rows = [header]
         for week in data.period_weeks:
             avg = data.class_weekly_averages.get(week)
             avg_str = f"{avg:.3f}" if avg is not None else "—"
-            rows.append([
-                Paragraph(f"W{week}", self._styles["LongTableData"]),
-                Paragraph(avg_str, self._styles["LongTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(f"W{week}", self._styles["LongTableData"]),
+                    Paragraph(avg_str, self._styles["LongTableData"]),
+                ]
+            )
 
         table = Table(rows, colWidths=[40 * mm, 60 * mm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(table)
         story.append(Spacer(1, 5 * mm))
         return story
@@ -365,15 +399,21 @@ class LongitudinalPDFReportGenerator:
             "선의 기울기가 양수이면 개선 추세, "
             "음수이면 하락 추세를 의미합니다."
         )
-        story.append(Paragraph(
-            _esc(_guide), self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(_guide),
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 2 * mm))
 
         from forma.longitudinal_report_charts import build_trajectory_line_chart
+
         try:
             chart_buf = build_trajectory_line_chart(
-                data, font_path=self._font_path, dpi=self._dpi,
+                data,
+                font_path=self._font_path,
+                dpi=self._dpi,
             )
             story.append(Image(chart_buf, width=160 * mm, height=100 * mm))
         except Exception as exc:
@@ -381,10 +421,12 @@ class LongitudinalPDFReportGenerator:
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            "빨강 = 지속 위험군, 회색 = 일반 학생, 파랑 = 학급 평균",
-            self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                "빨강 = 지속 위험군, 회색 = 일반 학생, 파랑 = 학급 평균",
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 5 * mm))
         return story
 
@@ -398,105 +440,126 @@ class LongitudinalPDFReportGenerator:
         """Build student x week heatmap section."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            "3. 학생×주차 히트맵",
-            self._styles["LongSection"],
-        ))
+        story.append(
+            Paragraph(
+                "3. 학생×주차 히트맵",
+                self._styles["LongSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         try:
-            if (
-                class_data
-                and class_ids
-                and heatmap_layout
-            ):
+            if class_data and class_ids and heatmap_layout:
                 from forma.longitudinal_report_charts import (
                     build_class_heatmap_subplots,
                 )
+
                 chart_buf = build_class_heatmap_subplots(
-                    class_data, class_ids, heatmap_layout,
+                    class_data,
+                    class_ids,
+                    heatmap_layout,
                     font_path=self._font_path,
                     dpi=self._dpi,
                 )
                 rows, cols = heatmap_layout
                 h = rows * 60 * mm
-                story.append(Image(
-                    chart_buf,
-                    width=160 * mm,
-                    height=h,
-                ))
+                story.append(
+                    Image(
+                        chart_buf,
+                        width=160 * mm,
+                        height=h,
+                    )
+                )
             else:
                 from forma.longitudinal_report_charts import (
                     build_class_week_heatmap,
                 )
+
                 chart_buf = build_class_week_heatmap(
                     data,
                     font_path=self._font_path,
                     dpi=self._dpi,
                 )
-                story.append(Image(
-                    chart_buf,
-                    width=160 * mm,
-                    height=120 * mm,
-                ))
+                story.append(
+                    Image(
+                        chart_buf,
+                        width=160 * mm,
+                        height=120 * mm,
+                    )
+                )
         except Exception as exc:
             logger.warning(
-                "Failed to generate heatmap: %s", exc,
+                "Failed to generate heatmap: %s",
+                exc,
             )
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG),
-                width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            "최종 주차 점수 기준 정렬. "
-            "빨강(낮음) → 초록(높음). 회색 = 결측.",
-            self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                "최종 주차 점수 기준 정렬. 빨강(낮음) → 초록(높음). 회색 = 결측.",
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 5 * mm))
         return story
 
     def _build_risk_analysis_section(self, data: LongitudinalSummaryData) -> list:
         """Build persistent risk student analysis section with interpretation guide."""
         story = []
-        story.append(Paragraph(
-            "4. 지속 위험군 분석",
-            self._styles["LongSection"],
-        ))
+        story.append(
+            Paragraph(
+                "4. 지속 위험군 분석",
+                self._styles["LongSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Interpretation guide (always shown)
-        story.append(Paragraph(
-            _esc("지속 위험군 분석 — 해석 가이드"),
-            self._styles["LongSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("지속 위험군 분석 — 해석 가이드"),
+                self._styles["LongSection"],
+            )
+        )
         story.append(Spacer(1, 2 * mm))
         for paragraph in RISK_INTERPRETATION_GUIDE.split("\n\n"):
             cleaned = paragraph.strip()
             if not cleaned:
                 continue
-            story.append(Paragraph(
-                _esc(cleaned).replace("\n", "<br/>"),
-                self._styles["LongBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc(cleaned).replace("\n", "<br/>"),
+                    self._styles["LongBody"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
         story.append(Spacer(1, 3 * mm))
 
         n_persistent = len(data.persistent_risk_students)
-        story.append(Paragraph(
-            f"전 기간 지속 위험군: <b>{n_persistent}명</b>",
-            self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                f"전 기간 지속 위험군: <b>{n_persistent}명</b>",
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 2 * mm))
 
         if data.persistent_risk_students:
             story.extend(self._build_risk_tables_by_trend(data))
         else:
-            story.append(Paragraph(
-                "지속 위험군 학생이 없습니다.",
-                self._styles["LongBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "지속 위험군 학생이 없습니다.",
+                    self._styles["LongBody"],
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
         return story
@@ -519,8 +582,7 @@ class LongitudinalPDFReportGenerator:
 
         for sid in data.persistent_risk_students:
             traj = next(
-                (t for t in data.student_trajectories
-                 if t.student_id == sid),
+                (t for t in data.student_trajectories if t.student_id == sid),
                 None,
             )
             if traj is None:
@@ -529,9 +591,7 @@ class LongitudinalPDFReportGenerator:
             if data.period_weeks and traj.weekly_scores:
                 for w in reversed(data.period_weeks):
                     if w in traj.weekly_scores:
-                        final_score = (
-                            f"{traj.weekly_scores[w]:.3f}"
-                        )
+                        final_score = f"{traj.weekly_scores[w]:.3f}"
                         break
             row = (sid, final_score, traj.overall_trend)
             if traj.overall_trend > 0.05:
@@ -548,21 +608,23 @@ class LongitudinalPDFReportGenerator:
         ]
         story: list = []
         for title, color, rows in groups:
-            story.append(Paragraph(
-                f"{_esc(title)} ({len(rows)}명)",
-                self._styles["LongSection"],
-            ))
+            story.append(
+                Paragraph(
+                    f"{_esc(title)} ({len(rows)}명)",
+                    self._styles["LongSection"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
             if not rows:
-                story.append(Paragraph(
-                    "해당 학생 없음",
-                    self._styles["LongBody"],
-                ))
+                story.append(
+                    Paragraph(
+                        "해당 학생 없음",
+                        self._styles["LongBody"],
+                    )
+                )
                 story.append(Spacer(1, 3 * mm))
                 continue
-            story.append(
-                self._build_risk_table(rows, color)
-            )
+            story.append(self._build_risk_table(rows, color))
             story.append(Spacer(1, 4 * mm))
         return story
 
@@ -582,35 +644,33 @@ class LongitudinalPDFReportGenerator:
         """
         header = [
             Paragraph("학생", self._styles["LongTableHeader"]),
-            Paragraph("최종 점수",
-                       self._styles["LongTableHeader"]),
-            Paragraph("추세(기울기)",
-                       self._styles["LongTableHeader"]),
+            Paragraph("최종 점수", self._styles["LongTableHeader"]),
+            Paragraph("추세(기울기)", self._styles["LongTableHeader"]),
         ]
         table_rows = [header]
         for sid, score, trend in rows:
-            table_rows.append([
-                Paragraph(_esc(sid),
-                          self._styles["LongTableData"]),
-                Paragraph(score,
-                          self._styles["LongTableData"]),
-                Paragraph(f"{trend:+.4f}",
-                          self._styles["LongTableData"]),
-            ])
+            table_rows.append(
+                [
+                    Paragraph(_esc(sid), self._styles["LongTableData"]),
+                    Paragraph(score, self._styles["LongTableData"]),
+                    Paragraph(f"{trend:+.4f}", self._styles["LongTableData"]),
+                ]
+            )
         tbl = Table(
             table_rows,
             colWidths=[50 * mm, 45 * mm, 45 * mm],
         )
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0),
-             HexColor(header_color)),
-            ("TEXTCOLOR", (0, 0), (-1, 0),
-             HexColor("#FFFFFF")),
-            ("GRID", (0, 0), (-1, -1), 0.5,
-             HexColor("#CCCCCC")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
+        tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor(header_color)),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
         return tbl
 
     def _build_concept_mastery_section(
@@ -632,35 +692,43 @@ class LongitudinalPDFReportGenerator:
         """
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            "5. 개념별 마스터리 변화",
-            self._styles["LongSection"],
-        ))
+        story.append(
+            Paragraph(
+                "5. 개념별 마스터리 변화",
+                self._styles["LongSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Interpretation guide
         for para in MASTERY_INTERPRETATION_GUIDE.split("\n\n"):
             cleaned = para.strip()
             if cleaned:
-                story.append(Paragraph(
-                    _esc(cleaned).replace("\n", "<br/>"),
-                    self._styles["LongBody"],
-                ))
+                story.append(
+                    Paragraph(
+                        _esc(cleaned).replace("\n", "<br/>"),
+                        self._styles["LongBody"],
+                    )
+                )
                 story.append(Spacer(1, 2 * mm))
         story.append(Spacer(1, 3 * mm))
 
         if not data.concept_mastery_changes:
-            story.append(Paragraph(
-                "개념 마스터리 데이터가 없습니다.",
-                self._styles["LongBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "개념 마스터리 데이터가 없습니다.",
+                    self._styles["LongBody"],
+                )
+            )
             return story
 
         use_heatmap = len(data.period_weeks) >= 5
 
         if use_heatmap:
             self._build_mastery_heatmap(
-                story, data, mastery_top_n,
+                story,
+                data,
+                mastery_top_n,
             )
         else:
             self._build_mastery_bar_chart(story, data)
@@ -671,20 +739,24 @@ class LongitudinalPDFReportGenerator:
         changes = data.concept_mastery_changes
         if mastery_top_n and mastery_top_n < len(changes):
             changes = sorted(
-                changes, key=lambda c: abs(c.delta),
+                changes,
+                key=lambda c: abs(c.delta),
                 reverse=True,
             )[:mastery_top_n]
             changes = sorted(
-                changes, key=lambda c: c.delta,
+                changes,
+                key=lambda c: c.delta,
                 reverse=True,
             )
 
         header = [
             Paragraph(
-                "개념", self._styles["LongTableHeader"],
+                "개념",
+                self._styles["LongTableHeader"],
             ),
             Paragraph(
-                "첫 주차", self._styles["LongTableHeader"],
+                "첫 주차",
+                self._styles["LongTableHeader"],
             ),
             Paragraph(
                 "마지막 주차",
@@ -698,42 +770,43 @@ class LongitudinalPDFReportGenerator:
         rows = [header]
         for c in changes:
             delta_str = f"{c.delta:+.3f}"
-            rows.append([
-                Paragraph(
-                    _esc(c.concept),
-                    self._styles["LongTableData"],
-                ),
-                Paragraph(
-                    f"{c.week_start_ratio:.3f}",
-                    self._styles["LongTableData"],
-                ),
-                Paragraph(
-                    f"{c.week_end_ratio:.3f}",
-                    self._styles["LongTableData"],
-                ),
-                Paragraph(
-                    delta_str,
-                    self._styles["LongTableData"],
-                ),
-            ])
+            rows.append(
+                [
+                    Paragraph(
+                        _esc(c.concept),
+                        self._styles["LongTableData"],
+                    ),
+                    Paragraph(
+                        f"{c.week_start_ratio:.3f}",
+                        self._styles["LongTableData"],
+                    ),
+                    Paragraph(
+                        f"{c.week_end_ratio:.3f}",
+                        self._styles["LongTableData"],
+                    ),
+                    Paragraph(
+                        delta_str,
+                        self._styles["LongTableData"],
+                    ),
+                ]
+            )
 
         table = Table(
             rows,
             colWidths=[50 * mm, 35 * mm, 35 * mm, 35 * mm],
         )
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0),
-             HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0),
-             HexColor("#FFFFFF")),
-            ("GRID", (0, 0), (-1, -1), 0.5,
-             HexColor("#CCCCCC")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [HexColor("#FFFFFF"),
-              HexColor("#F5F5F5")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(table)
         story.append(Spacer(1, 5 * mm))
         return story
@@ -747,6 +820,7 @@ class LongitudinalPDFReportGenerator:
         from forma.longitudinal_report_charts import (
             build_concept_mastery_bar_chart,
         )
+
         try:
             chart_buf = build_concept_mastery_bar_chart(
                 data,
@@ -755,19 +829,25 @@ class LongitudinalPDFReportGenerator:
             )
             n = len(data.concept_mastery_changes)
             chart_height = max(60, n * 15)
-            story.append(Image(
-                chart_buf, width=160 * mm,
-                height=min(chart_height, 200) * mm,
-            ))
+            story.append(
+                Image(
+                    chart_buf,
+                    width=160 * mm,
+                    height=min(chart_height, 200) * mm,
+                )
+            )
         except Exception as exc:
             logger.warning(
                 "Failed to generate mastery bar chart: %s",
                 exc,
             )
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG),
-                width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
     def _build_mastery_heatmap(
         self,
@@ -779,6 +859,7 @@ class LongitudinalPDFReportGenerator:
         from forma.longitudinal_report_charts import (
             build_concept_mastery_heatmap,
         )
+
         try:
             # Build mastery_data from concept_mastery_changes
             # For heatmap we need per-week data, but changes
@@ -789,34 +870,37 @@ class LongitudinalPDFReportGenerator:
                 if data.period_weeks:
                     first_w = data.period_weeks[0]
                     last_w = data.period_weeks[-1]
-                    mastery_data[c.concept][first_w] = (
-                        c.week_start_ratio
-                    )
-                    mastery_data[c.concept][last_w] = (
-                        c.week_end_ratio
-                    )
+                    mastery_data[c.concept][first_w] = c.week_start_ratio
+                    mastery_data[c.concept][last_w] = c.week_end_ratio
 
             chart_buf = build_concept_mastery_heatmap(
-                mastery_data, data.period_weeks,
+                mastery_data,
+                data.period_weeks,
                 top_n=mastery_top_n,
                 font_path=self._font_path,
                 dpi=self._dpi,
             )
             n = len(data.concept_mastery_changes)
             chart_height = max(60, n * 12 + 30)
-            story.append(Image(
-                chart_buf, width=160 * mm,
-                height=min(chart_height, 200) * mm,
-            ))
+            story.append(
+                Image(
+                    chart_buf,
+                    width=160 * mm,
+                    height=min(chart_height, 200) * mm,
+                )
+            )
         except Exception as exc:
             logger.warning(
                 "Failed to generate mastery heatmap: %s",
                 exc,
             )
-            story.append(Image(
-                io.BytesIO(_FALLBACK_PNG),
-                width=10 * mm, height=10 * mm,
-            ))
+            story.append(
+                Image(
+                    io.BytesIO(_FALLBACK_PNG),
+                    width=10 * mm,
+                    height=10 * mm,
+                )
+            )
 
     def _build_topic_statistics_section(
         self,
@@ -834,17 +918,21 @@ class LongitudinalPDFReportGenerator:
         """
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            "6. 주제별 종단 통계",
-            self._styles["LongSection"],
-        ))
+        story.append(
+            Paragraph(
+                "6. 주제별 종단 통계",
+                self._styles["LongSection"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         if not stats:
-            story.append(Paragraph(
-                "주제(topic) 데이터가 없습니다.",
-                self._styles["LongBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "주제(topic) 데이터가 없습니다.",
+                    self._styles["LongBody"],
+                )
+            )
             return story
 
         # Build topic×week table
@@ -861,86 +949,114 @@ class LongitudinalPDFReportGenerator:
         sorted_topics = sorted(topics.keys())
 
         # Header row
-        header = [Paragraph(
-            "주차", self._styles["LongTableHeader"],
-        )]
+        header = [
+            Paragraph(
+                "주차",
+                self._styles["LongTableHeader"],
+            )
+        ]
         for topic in sorted_topics:
-            header.append(Paragraph(
-                _esc(f"{topic}(평균)"),
-                self._styles["LongTableHeader"],
-            ))
-            header.append(Paragraph(
-                _esc(f"{topic}(SD)"),
-                self._styles["LongTableHeader"],
-            ))
+            header.append(
+                Paragraph(
+                    _esc(f"{topic}(평균)"),
+                    self._styles["LongTableHeader"],
+                )
+            )
+            header.append(
+                Paragraph(
+                    _esc(f"{topic}(SD)"),
+                    self._styles["LongTableHeader"],
+                )
+            )
 
         rows = [header]
         for week in sorted_weeks:
-            row = [Paragraph(
-                f"W{week}", self._styles["LongTableData"],
-            )]
+            row = [
+                Paragraph(
+                    f"W{week}",
+                    self._styles["LongTableData"],
+                )
+            ]
             for topic in sorted_topics:
                 if week in topics[topic]:
                     m, sd = topics[topic][week]
-                    row.append(Paragraph(
-                        f"{m:.3f}",
-                        self._styles["LongTableData"],
-                    ))
-                    row.append(Paragraph(
-                        f"{sd:.3f}",
-                        self._styles["LongTableData"],
-                    ))
+                    row.append(
+                        Paragraph(
+                            f"{m:.3f}",
+                            self._styles["LongTableData"],
+                        )
+                    )
+                    row.append(
+                        Paragraph(
+                            f"{sd:.3f}",
+                            self._styles["LongTableData"],
+                        )
+                    )
                 else:
-                    row.append(Paragraph(
-                        "—", self._styles["LongTableData"],
-                    ))
-                    row.append(Paragraph(
-                        "—", self._styles["LongTableData"],
-                    ))
+                    row.append(
+                        Paragraph(
+                            "—",
+                            self._styles["LongTableData"],
+                        )
+                    )
+                    row.append(
+                        Paragraph(
+                            "—",
+                            self._styles["LongTableData"],
+                        )
+                    )
             rows.append(row)
 
         n_cols = 1 + len(sorted_topics) * 2
         col_w = 155.0 / n_cols
         col_widths = [col_w * mm] * n_cols
         table = Table(rows, colWidths=col_widths)
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0),
-             HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0),
-             HexColor("#FFFFFF")),
-            ("GRID", (0, 0), (-1, -1), 0.5,
-             HexColor("#CCCCCC")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [HexColor("#FFFFFF"),
-              HexColor("#F5F5F5")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(table)
         story.append(Spacer(1, 5 * mm))
 
         # Trend summary
         if trends:
-            story.append(Paragraph(
-                "주제별 추세 분석",
-                self._styles["LongSection"],
-            ))
+            story.append(
+                Paragraph(
+                    "주제별 추세 분석",
+                    self._styles["LongSection"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
             for t in trends:
-                tau_sig = (
-                    "유의" if t.kendall_p < 0.05
-                    else "비유의"
+                if t.kendall_tau is None or t.kendall_p is None:
+                    line = f"{_esc(t.topic)} 추세: 데이터 부족 (n={t.n_weeks}주)"
+                else:
+                    tau_sig = "유의" if t.kendall_p < 0.05 else "비유의"
+                    rho_str = (
+                        f"rho = {t.spearman_rho:+.2f} (p = {t.spearman_p:.3f})"
+                        if t.spearman_rho is not None
+                        else "rho = N/A"
+                    )
+                    line = (
+                        f"{_esc(t.topic)} 추세: "
+                        f"tau = {t.kendall_tau:+.2f} "
+                        f"(p = {t.kendall_p:.3f}, {tau_sig}), "
+                        f"{rho_str}"
+                    )
+                story.append(
+                    Paragraph(
+                        line,
+                        self._styles["LongBody"],
+                    )
                 )
-                line = (
-                    f"{_esc(t.topic)} 추세: "
-                    f"tau = {t.kendall_tau:+.2f} "
-                    f"(p = {t.kendall_p:.3f}, {tau_sig}), "
-                    f"rho = {t.spearman_rho:+.2f} "
-                    f"(p = {t.spearman_p:.3f})"
-                )
-                story.append(Paragraph(
-                    line, self._styles["LongBody"],
-                ))
                 story.append(Spacer(1, 1 * mm))
 
         story.append(Spacer(1, 5 * mm))
@@ -961,13 +1077,16 @@ class LongitudinalPDFReportGenerator:
         story.append(Spacer(1, 3 * mm))
 
         if not data.risk_predictions:
-            story.append(Paragraph(
-                "리스크 예측 데이터가 없습니다.",
-                self._styles["LongBody"],
-            ))
+            story.append(
+                Paragraph(
+                    "리스크 예측 데이터가 없습니다.",
+                    self._styles["LongBody"],
+                )
+            )
             return story
 
         from forma.longitudinal_report_charts import build_risk_trend_chart
+
         try:
             chart_buf = build_risk_trend_chart(
                 data.risk_predictions,
@@ -997,6 +1116,7 @@ class LongitudinalPDFReportGenerator:
         story.append(Spacer(1, 3 * mm))
 
         from forma.longitudinal_report_charts import build_intervention_effect_chart
+
         try:
             n_sufficient = sum(1 for e in effects if e.sufficient_data)
             chart_height = max(60, n_sufficient * 12)
@@ -1005,25 +1125,30 @@ class LongitudinalPDFReportGenerator:
                 font_path=self._font_path,
                 dpi=self._dpi,
             )
-            story.append(Image(
-                chart_buf, width=160 * mm,
-                height=min(chart_height, 200) * mm,
-            ))
+            story.append(
+                Image(
+                    chart_buf,
+                    width=160 * mm,
+                    height=min(chart_height, 200) * mm,
+                )
+            )
         except Exception as exc:
             logger.warning("Failed to generate intervention effect chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            "파랑 = 개입 전 평균, 초록 = 개입 후 평균. "
-            "데이터 부족 건은 제외.",
-            self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                "파랑 = 개입 전 평균, 초록 = 개입 후 평균. 데이터 부족 건은 제외.",
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 5 * mm))
         return story
 
     def _build_ocr_confidence_trend_section(
-        self, trajectories: dict[str, list[tuple[int, float]]],
+        self,
+        trajectories: dict[str, list[tuple[int, float]]],
     ) -> list:
         """Build OCR confidence trend chart section.
 
@@ -1039,24 +1164,30 @@ class LongitudinalPDFReportGenerator:
         story.append(Spacer(1, 3 * mm))
 
         from forma.longitudinal_report_charts import build_ocr_confidence_trend_chart
+
         try:
             chart_buf = build_ocr_confidence_trend_chart(
                 trajectories,
                 font_path=self._font_path,
                 dpi=self._dpi,
             )
-            story.append(Image(
-                chart_buf, width=160 * mm, height=100 * mm,
-            ))
+            story.append(
+                Image(
+                    chart_buf,
+                    width=160 * mm,
+                    height=100 * mm,
+                )
+            )
         except Exception as exc:
             logger.warning("Failed to generate OCR confidence trend chart: %s", exc)
             story.append(Image(io.BytesIO(_FALLBACK_PNG), width=10 * mm, height=10 * mm))
 
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            "3주 이상 연속 기준값(0.75) 미만 학생은 빨간색으로 표시. "
-            "인식률 데이터가 없는 주차는 건너뜁니다.",
-            self._styles["LongBody"],
-        ))
+        story.append(
+            Paragraph(
+                "3주 이상 연속 기준값(0.75) 미만 학생은 빨간색으로 표시. 인식률 데이터가 없는 주차는 건너뜁니다.",
+                self._styles["LongBody"],
+            )
+        )
         story.append(Spacer(1, 5 * mm))
         return story

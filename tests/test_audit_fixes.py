@@ -99,12 +99,9 @@ class TestInterventionStoreNextIdCorrection:
         data = {
             "_meta": {"next_id": 3},
             "records": [
-                {"id": 1, "student_id": "S1", "week": 1,
-                 "intervention_type": "\uba74\ub2f4", "description": ""},
-                {"id": 2, "student_id": "S2", "week": 1,
-                 "intervention_type": "\uba74\ub2f4", "description": ""},
-                {"id": 7, "student_id": "S3", "week": 2,
-                 "intervention_type": "\uba74\ub2f4", "description": ""},
+                {"id": 1, "student_id": "S1", "week": 1, "intervention_type": "\uba74\ub2f4", "description": ""},
+                {"id": 2, "student_id": "S2", "week": 1, "intervention_type": "\uba74\ub2f4", "description": ""},
+                {"id": 7, "student_id": "S3", "week": 2, "intervention_type": "\uba74\ub2f4", "description": ""},
             ],
         }
         with open(store_path, "w", encoding="utf-8") as f:
@@ -122,8 +119,7 @@ class TestInterventionStoreNextIdCorrection:
         data = {
             "_meta": {"next_id": 10},
             "records": [
-                {"id": 1, "student_id": "S1", "week": 1,
-                 "intervention_type": "\uba74\ub2f4", "description": ""},
+                {"id": 1, "student_id": "S1", "week": 1, "intervention_type": "\uba74\ub2f4", "description": ""},
             ],
         }
         with open(store_path, "w", encoding="utf-8") as f:
@@ -150,9 +146,12 @@ class TestLongitudinalStoreBackupOrder:
         store_path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(store_path)
         record = LongitudinalRecord(
-            student_id="S1", week=1, question_sn=1,
+            student_id="S1",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.8},
-            tier_level=3, tier_label="excellent",
+            tier_level=3,
+            tier_label="excellent",
         )
         store.add_record(record)
         store.save()
@@ -176,9 +175,12 @@ class TestLongitudinalStoreBackupOrder:
         # First save
         store = LongitudinalStore(store_path)
         r1 = LongitudinalRecord(
-            student_id="S1", week=1, question_sn=1,
+            student_id="S1",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.5},
-            tier_level=2, tier_label="good",
+            tier_level=2,
+            tier_label="good",
         )
         store.add_record(r1)
         store.save()
@@ -187,9 +189,12 @@ class TestLongitudinalStoreBackupOrder:
         store2 = LongitudinalStore(store_path)
         store2.load()
         r2 = LongitudinalRecord(
-            student_id="S2", week=2, question_sn=1,
+            student_id="S2",
+            week=2,
+            question_sn=1,
             scores={"ensemble_score": 0.9},
-            tier_level=3, tier_label="excellent",
+            tier_level=3,
+            tier_label="excellent",
         )
         store2.add_record(r2)
         store2.save()
@@ -248,9 +253,12 @@ class TestDedicatedLockFile:
         assert store._lock_path == store_path + ".lock"
 
         record = LongitudinalRecord(
-            student_id="S1", week=1, question_sn=1,
+            student_id="S1",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.8},
-            tier_level=3, tier_label="excellent",
+            tier_level=3,
+            tier_label="excellent",
         )
         store.add_record(record)
         store.save()
@@ -277,8 +285,12 @@ class TestDedicatedLockFile:
         store_path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(store_path)
         r = LongitudinalRecord(
-            student_id="S1", week=1, question_sn=1,
-            scores={"score": 0.5}, tier_level=2, tier_label="ok",
+            student_id="S1",
+            week=1,
+            question_sn=1,
+            scores={"score": 0.5},
+            tier_level=2,
+            tier_label="ok",
         )
         store.add_record(r)
         store.save()
@@ -305,9 +317,12 @@ class TestLongitudinalStoreUtf8:
         store_path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(store_path)
         record = LongitudinalRecord(
-            student_id="\ud559\uc0dd01", week=1, question_sn=1,
+            student_id="\ud559\uc0dd01",
+            week=1,
+            question_sn=1,
             scores={"ensemble_score": 0.7},
-            tier_level=2, tier_label="\uc6b0\uc218",
+            tier_level=2,
+            tier_label="\uc6b0\uc218",
         )
         store.add_record(record)
         store.save()
@@ -347,15 +362,20 @@ class TestSendEmailsNonDictSummary:
         # Write minimal smtp config
         smtp_path = str(tmp_path / "smtp.yaml")
         with open(smtp_path, "w", encoding="utf-8") as f:
-            yaml.dump({
-                "smtp_server": "smtp.example.com",
-                "smtp_port": 587,
-                "sender_email": "test@example.com",
-            }, f)
+            yaml.dump(
+                {
+                    "smtp_server": "smtp.example.com",
+                    "smtp_port": 587,
+                    "sender_email": "test@example.com",
+                },
+                f,
+            )
 
         with pytest.raises(ValueError, match="prepare_summary.yaml"):
             send_emails(
-                staging_dir, template_path, smtp_path,
+                staging_dir,
+                template_path,
+                smtp_path,
                 dry_run=True,
             )
 
@@ -376,15 +396,20 @@ class TestSendEmailsNonDictSummary:
 
         smtp_path = str(tmp_path / "smtp.yaml")
         with open(smtp_path, "w", encoding="utf-8") as f:
-            yaml.dump({
-                "smtp_server": "smtp.example.com",
-                "smtp_port": 587,
-                "sender_email": "test@example.com",
-            }, f)
+            yaml.dump(
+                {
+                    "smtp_server": "smtp.example.com",
+                    "smtp_port": 587,
+                    "sender_email": "test@example.com",
+                },
+                f,
+            )
 
         with pytest.raises(ValueError, match="prepare_summary.yaml"):
             send_emails(
-                staging_dir, template_path, smtp_path,
+                staging_dir,
+                template_path,
+                smtp_path,
                 dry_run=True,
             )
 
@@ -454,9 +479,11 @@ class TestNaverOcrTypeCheck:
     def test_naver_ocr_valid_dict_ok(self):
         from forma.config import get_naver_ocr_config
 
-        key, url = get_naver_ocr_config({
-            "naver_ocr": {"secret_key": "abc", "api_url": "http://x"},
-        })
+        key, url = get_naver_ocr_config(
+            {
+                "naver_ocr": {"secret_key": "abc", "api_url": "http://x"},
+            }
+        )
         assert key == "abc"
         assert url == "http://x"
 
@@ -645,8 +672,11 @@ class TestSingleClassAugmentationWarnings:
 
         with caplog.at_level(logging.WARNING):
             model = predictor.train(
-                X, labels, list(FEATURE_NAMES),
-                min_students=10, n_weeks=3,
+                X,
+                labels,
+                list(FEATURE_NAMES),
+                min_students=10,
+                n_weeks=3,
             )
 
         assert "only one class" in caplog.text.lower()
@@ -666,8 +696,11 @@ class TestSingleClassAugmentationWarnings:
 
         with caplog.at_level(logging.WARNING):
             model = predictor.train(
-                X, labels, list(GRADE_FEATURE_NAMES),
-                min_students=10, n_weeks=4,
+                X,
+                labels,
+                list(GRADE_FEATURE_NAMES),
+                min_students=10,
+                n_weeks=4,
             )
 
         assert "only one class" in caplog.text.lower()
@@ -723,19 +756,31 @@ class TestAtomicLongitudinalStore:
         # First writer
         store1 = LongitudinalStore(path)
         store1.load()
-        store1.add_record(LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.8}, tier_level=3, tier_label="상",
-        ))
+        store1.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.8},
+                tier_level=3,
+                tier_label="상",
+            )
+        )
         store1.save()
 
         # Second writer (re-opens the same file)
         store2 = LongitudinalStore(path)
         store2.load()
-        store2.add_record(LongitudinalRecord(
-            student_id="S002", week=1, question_sn=1,
-            scores={"ensemble_score": 0.6}, tier_level=2, tier_label="중상",
-        ))
+        store2.add_record(
+            LongitudinalRecord(
+                student_id="S002",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.6},
+                tier_level=2,
+                tier_label="중상",
+            )
+        )
         store2.save()
 
         # Verify both records persist
@@ -769,18 +814,21 @@ class TestSmtpReconnection:
             student_dir.mkdir()
             zip_path = student_dir / f"Name{i}_{sid}.zip"
             zip_path.write_bytes(b"PK\x03\x04fake")
-            students.append({
-                "student_id": sid,
-                "name": f"Name{i}",
-                "email": f"s{i}@test.com",
-                "status": "ready",
-                "matched_files": [str(zip_path)],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": zip_path.stat().st_size,
-                "message": "",
-            })
+            students.append(
+                {
+                    "student_id": sid,
+                    "name": f"Name{i}",
+                    "email": f"s{i}@test.com",
+                    "status": "ready",
+                    "matched_files": [str(zip_path)],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": zip_path.stat().st_size,
+                    "message": "",
+                }
+            )
 
         import yaml
+
         summary = {
             "prepared_at": "2026-01-01T00:00:00",
             "class_name": "TestClass",
@@ -800,25 +848,36 @@ class TestSmtpReconnection:
 
         smtp_path = tmp_path / "smtp.yaml"
         with open(smtp_path, "w") as f:
-            yaml.dump({
-                "smtp_server": "smtp.test.com",
-                "smtp_port": 587,
-                "sender_email": "prof@test.com",
-                "use_tls": True,
-            }, f)
+            yaml.dump(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "smtp_port": 587,
+                    "sender_email": "prof@test.com",
+                    "use_tls": True,
+                },
+                f,
+            )
 
         call_count = 0
 
         class ReconnectingSMTP:
-            def __init__(self, *args, **kwargs): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 2:
                     raise smtplib.SMTPServerDisconnected("Connection lost")
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         with patch("smtplib.SMTP", ReconnectingSMTP):
             os.environ["FORMA_SMTP_PASSWORD"] = "testpass"
@@ -853,13 +912,24 @@ class TestSmtpTimeout:
         zip_path.write_bytes(b"PK\x03\x04fake")
 
         summary = {
-            "prepared_at": "2026-01-01", "class_name": "C",
-            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
-            "details": [{
-                "student_id": "S001", "name": "Test", "email": "s@t.com",
-                "status": "ready", "matched_files": [str(zip_path)],
-                "zip_path": str(zip_path), "zip_size_bytes": 10, "message": "",
-            }],
+            "prepared_at": "2026-01-01",
+            "class_name": "C",
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
+            "details": [
+                {
+                    "student_id": "S001",
+                    "name": "Test",
+                    "email": "s@t.com",
+                    "status": "ready",
+                    "matched_files": [str(zip_path)],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 10,
+                    "message": "",
+                }
+            ],
         }
         with open(staging / "prepare_summary.yaml", "w") as f:
             yaml.dump(summary, f, allow_unicode=True)
@@ -870,10 +940,15 @@ class TestSmtpTimeout:
 
         smtp_path = tmp_path / "smtp.yaml"
         with open(smtp_path, "w") as f:
-            yaml.dump({
-                "smtp_server": "s.t.com", "smtp_port": 587,
-                "sender_email": "p@t.com", "use_tls": True,
-            }, f)
+            yaml.dump(
+                {
+                    "smtp_server": "s.t.com",
+                    "smtp_port": 587,
+                    "sender_email": "p@t.com",
+                    "use_tls": True,
+                },
+                f,
+            )
 
         captured_args = {}
 
@@ -881,10 +956,18 @@ class TestSmtpTimeout:
             def __init__(self, *args, **kwargs):
                 captured_args["args"] = args
                 captured_args["kwargs"] = kwargs
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         with patch("smtplib.SMTP", CapturingSMTP):
             os.environ["FORMA_SMTP_PASSWORD"] = "testpass"
@@ -907,20 +990,33 @@ class TestSmtpAuthError:
         from forma.delivery_send import SmtpConfig, send_summary_email, DeliveryLog
 
         mock_log = DeliveryLog(
-            sent_at="2026-01-01", smtp_server="smtp.test.com",
-            dry_run=False, total=0, success=0, failed=0, results=[],
+            sent_at="2026-01-01",
+            smtp_server="smtp.test.com",
+            dry_run=False,
+            total=0,
+            success=0,
+            failed=0,
+            results=[],
         )
         config = SmtpConfig(
-            smtp_server="smtp.test.com", smtp_port=587,
-            sender_email="test@test.com", use_tls=True,
+            smtp_server="smtp.test.com",
+            smtp_port=587,
+            sender_email="test@test.com",
+            use_tls=True,
         )
 
         class AuthFailSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
             def login(self, u, p):
                 raise smtplib.SMTPAuthenticationError(535, b"Auth failed")
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         with patch("smtplib.SMTP", AuthFailSMTP):
             with pytest.raises(smtplib.SMTPAuthenticationError):
@@ -982,14 +1078,26 @@ class TestLongitudinalStoreIndex:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.8}, tier_level=3, tier_label="상",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="S002", week=1, question_sn=1,
-            scores={"ensemble_score": 0.6}, tier_level=2, tier_label="중상",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.8},
+                tier_level=3,
+                tier_label="상",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S002",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.6},
+                tier_level=2,
+                tier_label="중상",
+            )
+        )
         store.save()
 
         store2 = LongitudinalStore(path)
@@ -1006,14 +1114,26 @@ class TestLongitudinalStoreIndex:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.8}, tier_level=3, tier_label="상",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="S001", week=2, question_sn=1,
-            scores={"ensemble_score": 0.9}, tier_level=3, tier_label="상",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.8},
+                tier_level=3,
+                tier_label="상",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="S001",
+                week=2,
+                question_sn=1,
+                scores={"ensemble_score": 0.9},
+                tier_level=3,
+                tier_label="상",
+            )
+        )
         store.save()
 
         store2 = LongitudinalStore(path)
@@ -1031,11 +1151,16 @@ class TestLongitudinalStoreIndex:
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
         for i in range(50):
-            store.add_record(LongitudinalRecord(
-                student_id=f"S{i:03d}", week=1, question_sn=1,
-                scores={"ensemble_score": 0.5 + i * 0.01},
-                tier_level=2, tier_label="중상",
-            ))
+            store.add_record(
+                LongitudinalRecord(
+                    student_id=f"S{i:03d}",
+                    week=1,
+                    question_sn=1,
+                    scores={"ensemble_score": 0.5 + i * 0.01},
+                    tier_level=2,
+                    tier_label="중상",
+                )
+            )
         store.save()
 
         store2 = LongitudinalStore(path)
@@ -1054,11 +1179,16 @@ class TestLongitudinalStoreIndex:
         store = LongitudinalStore(path)
         for w in [1, 2, 3]:
             for i in range(10):
-                store.add_record(LongitudinalRecord(
-                    student_id=f"S{i:03d}", week=w, question_sn=1,
-                    scores={"ensemble_score": 0.5},
-                    tier_level=2, tier_label="중상",
-                ))
+                store.add_record(
+                    LongitudinalRecord(
+                        student_id=f"S{i:03d}",
+                        week=w,
+                        question_sn=1,
+                        scores={"ensemble_score": 0.5},
+                        tier_level=2,
+                        tier_label="중상",
+                    )
+                )
         store.save()
 
         store2 = LongitudinalStore(path)
@@ -1080,11 +1210,13 @@ class TestSetBasedEdgeMatching:
     def _make_edge(self, s: str, r: str, o: str):
         """Create a mock TripletEdge."""
         from types import SimpleNamespace
+
         return SimpleNamespace(subject=s, relation=r, object=o)
 
     def _make_comparison(self, matched, wrong_direction):
         """Create a mock GraphComparisonResult."""
         from types import SimpleNamespace
+
         return SimpleNamespace(
             matched_edges=matched,
             wrong_direction_edges=wrong_direction,
@@ -1155,6 +1287,7 @@ class TestTableTruncation:
 
         # Simulate 200 student rows (just need objects with overall_ensemble_mean)
         from types import SimpleNamespace
+
         rows = [
             SimpleNamespace(
                 student_number=f"S{i:03d}",
@@ -1178,10 +1311,7 @@ class TestTableTruncation:
         from forma.professor_report import _truncate_student_rows
         from types import SimpleNamespace
 
-        rows = [
-            SimpleNamespace(overall_ensemble_mean=0.5)
-            for _ in range(80)
-        ]
+        rows = [SimpleNamespace(overall_ensemble_mean=0.5) for _ in range(80)]
         result, was_truncated = _truncate_student_rows(rows)
         assert was_truncated is False
         assert len(result) == 80

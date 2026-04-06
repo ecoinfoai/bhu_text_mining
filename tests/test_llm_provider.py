@@ -30,11 +30,15 @@ def _mock_google_genai():
     mock_types = MagicMock()
     mock_google = MagicMock()
     mock_google.genai = mock_genai
-    return {
-        "google": mock_google,
-        "google.genai": mock_genai,
-        "google.genai.types": mock_types,
-    }, mock_genai, mock_types
+    return (
+        {
+            "google": mock_google,
+            "google.genai": mock_genai,
+            "google.genai.types": mock_types,
+        },
+        mock_genai,
+        mock_types,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -97,9 +101,7 @@ class TestGeminiProvider:
 
         with patch.dict(sys.modules, modules):
             provider = GeminiProvider(api_key="k")
-            result = provider.generate(
-                "user prompt", system_instruction="You are an evaluator."
-            )
+            result = provider.generate("user prompt", system_instruction="You are an evaluator.")
         assert result == "response"
         # Verify system_instruction was included in the config
         call_kwargs = mock_genai.Client.return_value.models.generate_content.call_args
@@ -167,9 +169,7 @@ class TestAnthropicProvider:
 
         with patch.dict(sys.modules, {"anthropic": mock_anthropic}):
             provider = AnthropicProvider(api_key="k")
-            result = provider.generate(
-                "user prompt", system_instruction="You are an evaluator."
-            )
+            result = provider.generate("user prompt", system_instruction="You are an evaluator.")
         assert result == "ok"
         # Verify system was passed to messages.create
         call_kwargs = mock_anthropic.Anthropic.return_value.messages.create.call_args

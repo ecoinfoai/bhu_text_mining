@@ -15,9 +15,7 @@ from unittest.mock import MagicMock, patch
 # ---------------------------------------------------------------------------
 
 
-def _make_binary_matrix(
-    n_students: int = 40, n_items: int = 6, p: float = 0.6, seed: int = 0
-) -> np.ndarray:
+def _make_binary_matrix(n_students: int = 40, n_items: int = 6, p: float = 0.6, seed: int = 0) -> np.ndarray:
     """Generate a synthetic binary response matrix."""
     rng = np.random.default_rng(seed)
     return (rng.random((n_students, n_items)) < p).astype(int)
@@ -60,9 +58,7 @@ class TestRaschAnalyzerFit:
             "Discrimination": np.ones(6),
         }
 
-        with patch(
-            "forma.statistical_analysis._rasch_cml", return_value=mock_result
-        ):
+        with patch("forma.statistical_analysis._rasch_cml", return_value=mock_result):
             ra = RaschAnalyzer(question_sn=1)
             ra.fit(X)
         assert ra.item_difficulties_ is not None
@@ -81,9 +77,7 @@ class TestRaschAnalyzerFit:
             "Discrimination": np.ones(6),
         }
 
-        with patch(
-            "forma.statistical_analysis._rasch_cml", return_value=mock_result
-        ):
+        with patch("forma.statistical_analysis._rasch_cml", return_value=mock_result):
             ra = RaschAnalyzer(question_sn=1)
             ra.fit(X)
         # Should complete without error; at most 38 rows used
@@ -113,9 +107,7 @@ class TestRaschAnalyzerAbilityEstimates:
             "Discrimination": np.ones(6),
         }
 
-        with patch(
-            "forma.statistical_analysis._rasch_cml", return_value=mock_result
-        ):
+        with patch("forma.statistical_analysis._rasch_cml", return_value=mock_result):
             ra = RaschAnalyzer(question_sn=1)
             ra.fit(X)
             thetas, ses = ra.ability_estimates(X)
@@ -211,17 +203,17 @@ class TestComputeConceptMatrix:
         concepts = ["세포막", "삼투", "확산"]
         results = [
             ConceptMatchResult(
-                concept=c, student_id=sid, question_sn=1,
-                is_present=(i % 2 == 0), similarity_score=0.5,
-                top_k_mean_similarity=0.5, threshold_used=0.45,
+                concept=c,
+                student_id=sid,
+                question_sn=1,
+                is_present=(i % 2 == 0),
+                similarity_score=0.5,
+                top_k_mean_similarity=0.5,
+                threshold_used=0.45,
             )
-            for i, (sid, c) in enumerate(
-                [(s, c) for s in students for c in concepts]
-            )
+            for i, (sid, c) in enumerate([(s, c) for s in students for c in concepts])
         ]
-        mat, student_ids, concept_list = compute_concept_matrix(
-            results, students, concepts
-        )
+        mat, student_ids, concept_list = compute_concept_matrix(results, students, concepts)
         assert mat.shape == (2, 3)
         assert student_ids == students
         assert concept_list == concepts
@@ -235,9 +227,13 @@ class TestComputeConceptMatrix:
         concepts = ["세포막"]
         results = [
             ConceptMatchResult(
-                concept="세포막", student_id="s001", question_sn=1,
-                is_present=True, similarity_score=0.7,
-                top_k_mean_similarity=0.7, threshold_used=0.45,
+                concept="세포막",
+                student_id="s001",
+                question_sn=1,
+                is_present=True,
+                similarity_score=0.7,
+                top_k_mean_similarity=0.7,
+                threshold_used=0.45,
             )
         ]
         mat, _, _ = compute_concept_matrix(results, students, concepts)

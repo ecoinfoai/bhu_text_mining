@@ -22,6 +22,7 @@ from pathlib import Path
 import yaml
 
 from forma.domain_concept_extractor import TextbookConcept
+from forma.io_utils import atomic_write_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,6 @@ __all__ = [
     "compute_ensemble_quality",
     # v3 transcript chunking
     "MAX_TRANSCRIPT_LENGTH",
-    "_chunk_transcript_with_overlap",
-    "_DELIVERY_RUBRIC",
     # v3 cross-section statistics
     "DeliverySectionComparison",
     "compute_delivery_pairwise_comparisons",
@@ -171,9 +170,7 @@ def parse_scope_string(scope_str: str) -> dict[str, list[str]]:
         if ":" in part:
             chapter, keywords_str = part.split(":", 1)
             chapter = chapter.strip()
-            keywords = [
-                kw.strip() for kw in keywords_str.split(",") if kw.strip()
-            ]
+            keywords = [kw.strip() for kw in keywords_str.split(",") if kw.strip()]
             result[chapter] = keywords
         else:
             result[part.strip()] = []
@@ -331,13 +328,15 @@ def compute_concept_emphasis(
         mean_score = statistics.mean(values) if values else 0.0
         std_score = statistics.stdev(values) if len(values) >= 2 else 0.0
 
-        result.append(ConceptEmphasis(
-            concept_name=concept.name_ko,
-            chapter=concept.chapter,
-            section_scores=section_scores,
-            mean_score=mean_score,
-            std_score=std_score,
-        ))
+        result.append(
+            ConceptEmphasis(
+                concept_name=concept.name_ko,
+                chapter=concept.chapter,
+                section_scores=section_scores,
+                mean_score=mean_score,
+                std_score=std_score,
+            )
+        )
 
     return result
 
@@ -396,9 +395,7 @@ def classify_concepts(
     Returns:
         List of ClassifiedConcept in same order as input concepts.
     """
-    emphasis_map: dict[str, ConceptEmphasis] = {
-        e.concept_name: e for e in emphasis_list
-    }
+    emphasis_map: dict[str, ConceptEmphasis] = {e.concept_name: e for e in emphasis_list}
 
     result: list[ClassifiedConcept] = []
     for concept in concepts:
@@ -412,12 +409,14 @@ def classify_concepts(
         else:
             state = ConceptState.GAP
 
-        result.append(ClassifiedConcept(
-            concept=concept,
-            state=state,
-            emphasis=emphasis,
-            in_scope=in_scope,
-        ))
+        result.append(
+            ClassifiedConcept(
+                concept=concept,
+                state=state,
+                emphasis=emphasis,
+                in_scope=in_scope,
+            )
+        )
 
     return result
 
@@ -468,11 +467,34 @@ def detect_extra_concepts(
     concept_names = {c.name_ko for c in concepts}
 
     # Stopwords for extra concept detection
-    stopwords = frozenset({
-        "것", "수", "때", "등", "중", "위", "및", "또는", "이", "그",
-        "저", "여기", "거기", "이것", "그것", "아까", "지금", "오늘",
-        "다음", "부분", "경우", "정도", "이상", "이하",
-    })
+    stopwords = frozenset(
+        {
+            "것",
+            "수",
+            "때",
+            "등",
+            "중",
+            "위",
+            "및",
+            "또는",
+            "이",
+            "그",
+            "저",
+            "여기",
+            "거기",
+            "이것",
+            "그것",
+            "아까",
+            "지금",
+            "오늘",
+            "다음",
+            "부분",
+            "경우",
+            "정도",
+            "이상",
+            "이하",
+        }
+    )
 
     okt = Okt()
     section_nouns: dict[str, Counter] = {}  # section → word → count
@@ -530,11 +552,13 @@ def detect_extra_concepts(
                     example = section_sentences.get(section, {}).get(word, "")
 
         if total >= min_mentions:
-            extras.append(ExtraConcept(
-                name=word,
-                section_mentions=mentions,
-                example_sentence=example,
-            ))
+            extras.append(
+                ExtraConcept(
+                    name=word,
+                    section_mentions=mentions,
+                    example_sentence=example,
+                )
+            )
 
     extras.sort(key=lambda e: sum(e.section_mentions.values()), reverse=True)
     return extras
@@ -620,9 +644,7 @@ def build_coverage_result(
     skipped_count = len(skipped)
     extra_count = len(extras)
 
-    effective_coverage_rate = (
-        covered_count / in_scope_count if in_scope_count > 0 else 0.0
-    )
+    effective_coverage_rate = covered_count / in_scope_count if in_scope_count > 0 else 0.0
 
     # Per-section coverage
     per_section_coverage = _compute_per_section_coverage(in_scope)
@@ -731,9 +753,7 @@ def _compute_section_variance_top10(
     variance_data: list[tuple[str, float]] = []
     for c in classified:
         if c.emphasis is not None and c.emphasis.std_score > 0:
-            variance_data.append(
-                (c.concept.name_ko, c.emphasis.std_score)
-            )
+            variance_data.append((c.concept.name_ko, c.emphasis.std_score))
 
     variance_data.sort(key=lambda x: x[1], reverse=True)
     return variance_data[:10]
@@ -765,10 +785,7 @@ def save_coverage_yaml(
             "skipped": result.skipped_count,
             "extra": result.extra_count,
             "effective_coverage": round(result.effective_coverage_rate, 4),
-            "per_section": {
-                k: round(v, 4)
-                for k, v in result.per_section_coverage.items()
-            },
+            "per_section": {k: round(v, 4) for k, v in result.per_section_coverage.items()},
         },
         "concepts": [],
         "extra_concepts": [],
@@ -776,13 +793,13 @@ def save_coverage_yaml(
 
     if result.emphasis_bias_correlation is not None:
         data["summary"]["emphasis_bias_rho"] = round(
-            result.emphasis_bias_correlation, 4,
+            result.emphasis_bias_correlation,
+            4,
         )
 
     if result.section_variance_top10:
         data["summary"]["section_variance_top10"] = [
-            {"name": name, "std": round(std, 4)}
-            for name, std in result.section_variance_top10
+            {"name": name, "std": round(std, 4)} for name, std in result.section_variance_top10
         ]
 
     for cc in result.classified_concepts:
@@ -793,10 +810,7 @@ def save_coverage_yaml(
             "in_scope": cc.in_scope,
         }
         if cc.emphasis is not None:
-            entry["emphasis"] = {
-                k: round(v, 4)
-                for k, v in cc.emphasis.section_scores.items()
-            }
+            entry["emphasis"] = {k: round(v, 4) for k, v in cc.emphasis.section_scores.items()}
             entry["mean_emphasis"] = round(cc.emphasis.mean_score, 4)
             entry["std_emphasis"] = round(cc.emphasis.std_score, 4)
         if cc.concept.name_en:
@@ -804,16 +818,17 @@ def save_coverage_yaml(
         data["concepts"].append(entry)
 
     for extra in result.extra_concepts:
-        data["extra_concepts"].append({
-            "name": extra.name,
-            "section_mentions": extra.section_mentions,
-            "example": extra.example_sentence,
-        })
+        data["extra_concepts"].append(
+            {
+                "name": extra.name,
+                "section_mentions": extra.section_mentions,
+                "example": extra.example_sentence,
+            }
+        )
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    with open(output, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+    atomic_write_yaml(data, output)
 
 
 def load_coverage_yaml(path: str) -> CoverageResult:
@@ -866,21 +881,25 @@ def load_coverage_yaml(path: str) -> CoverageResult:
                 std_score=entry.get("std_emphasis", 0.0),
             )
 
-        classified.append(ClassifiedConcept(
-            concept=concept,
-            state=state,
-            emphasis=emphasis,
-            in_scope=entry.get("in_scope", True),
-        ))
+        classified.append(
+            ClassifiedConcept(
+                concept=concept,
+                state=state,
+                emphasis=emphasis,
+                in_scope=entry.get("in_scope", True),
+            )
+        )
 
     # Reconstruct extra concepts
     extras: list[ExtraConcept] = []
     for entry in data.get("extra_concepts", []):
-        extras.append(ExtraConcept(
-            name=entry["name"],
-            section_mentions=entry.get("section_mentions", {}),
-            example_sentence=entry.get("example", ""),
-        ))
+        extras.append(
+            ExtraConcept(
+                name=entry["name"],
+                section_mentions=entry.get("section_mentions", {}),
+                example_sentence=entry.get("example", ""),
+            )
+        )
 
     # Reconstruct variance top 10
     variance_top10: list[tuple[str, float]] = []
@@ -982,8 +1001,7 @@ class DeliveryResult:
 # ----------------------------------------------------------------
 
 _DELIVERY_SYSTEM_INSTRUCTION = (
-    "당신은 해부생리학 강의 분석 전문가입니다. "
-    "교과서 개념이 강의에서 어떻게 전달되었는지 분석해주세요."
+    "당신은 해부생리학 강의 분석 전문가입니다. 교과서 개념이 강의에서 어떻게 전달되었는지 분석해주세요."
 )
 
 _DELIVERY_RUBRIC = """\
@@ -1113,15 +1131,17 @@ def _parse_delivery_response(
         quality = float(raw_quality) if raw_quality is not None else 0.0
         quality = max(0.0, min(1.0, quality))
 
-        results.append(DeliveryAnalysis(
-            concept=concept_name,
-            section_id=section_id,
-            delivery_status=status,
-            delivery_quality=quality,
-            evidence=item.get("evidence", ""),
-            depth=item.get("depth", ""),
-            analysis_level="v2",
-        ))
+        results.append(
+            DeliveryAnalysis(
+                concept=concept_name,
+                section_id=section_id,
+                delivery_status=status,
+                delivery_quality=quality,
+                evidence=item.get("evidence", ""),
+                depth=item.get("depth", ""),
+                analysis_level="v2",
+            )
+        )
 
     return results
 
@@ -1206,6 +1226,7 @@ def _split_transcript_sentences(transcript_text: str) -> list[str]:
     """
     try:
         import kss
+
         sentences = kss.split_sentences(transcript_text)
     except Exception:
         sentences = re.split(r"[.!?]\s*", transcript_text)
@@ -1403,7 +1424,9 @@ def analyze_delivery_llm(
         except Exception:
             logger.warning(
                 "Batch %d failed (concepts %d~%d)",
-                i // _DELIVERY_BATCH_SIZE + 1, i, i + len(batch) - 1,
+                i // _DELIVERY_BATCH_SIZE + 1,
+                i,
+                i + len(batch) - 1,
                 exc_info=True,
             )
 
@@ -1445,7 +1468,8 @@ def analyze_delivery_llm(
             da.signal_scores = signals
         except Exception:
             logger.debug(
-                "Ensemble signal computation failed, using LLM score only: %s", da.concept,
+                "Ensemble signal computation failed, using LLM score only: %s",
+                da.concept,
                 exc_info=True,
             )
 
@@ -1495,16 +1519,18 @@ def _build_no_llm_results(
         else:
             status = DeliveryState.NOT_DELIVERED
 
-        results.append(DeliveryAnalysis(
-            concept=concept_name,
-            section_id=section_id,
-            delivery_status=status.value,
-            delivery_quality=ensemble_q,
-            evidence="",
-            depth="",
-            analysis_level="signal_only",
-            signal_scores=signals,
-        ))
+        results.append(
+            DeliveryAnalysis(
+                concept=concept_name,
+                section_id=section_id,
+                delivery_status=status.value,
+                delivery_quality=ensemble_q,
+                evidence="",
+                depth="",
+                analysis_level="signal_only",
+                signal_scores=signals,
+            )
+        )
 
     return results
 
@@ -1609,8 +1635,10 @@ def _analyze_delivery_chunked(
                     chunk_results.extend(parsed)
                 except Exception:
                     logger.warning(
-                        "Chunk %d batch %d failed", chunk_idx + 1,
-                        i // _DELIVERY_BATCH_SIZE + 1, exc_info=True,
+                        "Chunk %d batch %d failed",
+                        chunk_idx + 1,
+                        i // _DELIVERY_BATCH_SIZE + 1,
+                        exc_info=True,
                     )
 
         for da in chunk_results:
@@ -1626,16 +1654,18 @@ def _analyze_delivery_chunked(
             final_results.append(best)
         else:
             # No result for this concept
-            final_results.append(DeliveryAnalysis(
-                concept=concept_name,
-                section_id=section_id,
-                delivery_status=DeliveryState.NOT_DELIVERED.value,
-                delivery_quality=0.0,
-                evidence="",
-                depth="",
-                analysis_level="v2",
-                signal_scores={"embedding": 0.0, "term_coverage": 0.0, "density": 0.0, "llm": 0.0},
-            ))
+            final_results.append(
+                DeliveryAnalysis(
+                    concept=concept_name,
+                    section_id=section_id,
+                    delivery_status=DeliveryState.NOT_DELIVERED.value,
+                    delivery_quality=0.0,
+                    evidence="",
+                    depth="",
+                    analysis_level="v2",
+                    signal_scores={"embedding": 0.0, "term_coverage": 0.0, "density": 0.0, "llm": 0.0},
+                )
+            )
 
     return final_results
 
@@ -1713,15 +1743,17 @@ def v1_fallback_analysis(
         else:
             status = DeliveryState.NOT_DELIVERED
 
-        results.append(DeliveryAnalysis(
-            concept=concept_name,
-            section_id=section_id,
-            delivery_status=status.value,
-            delivery_quality=score,
-            evidence="",
-            depth="",
-            analysis_level="v1",
-        ))
+        results.append(
+            DeliveryAnalysis(
+                concept=concept_name,
+                section_id=section_id,
+                delivery_status=status.value,
+                delivery_quality=score,
+                evidence="",
+                depth="",
+                analysis_level="v1",
+            )
+        )
 
     return results
 
@@ -1759,7 +1791,10 @@ def analyze_delivery_with_fallback(
             exc_info=True,
         )
         return v1_fallback_analysis(
-            concepts, transcript_path, section_id, threshold,
+            concepts,
+            transcript_path,
+            section_id,
+            threshold,
         )
 
 
@@ -1801,16 +1836,15 @@ def build_delivery_result_v2(
         section_deliveries[d.section_id].append(d)
 
     # Filter to non-skipped deliveries only
-    non_skipped = [
-        d for d in deliveries
-        if d.delivery_status != DeliveryState.SKIPPED.value
-    ]
+    non_skipped = [d for d in deliveries if d.delivery_status != DeliveryState.SKIPPED.value]
 
     # Overall effective delivery rate
     if non_skipped:
         delivered = sum(
-            1 for d in non_skipped
-            if d.delivery_status in (
+            1
+            for d in non_skipped
+            if d.delivery_status
+            in (
                 DeliveryState.FULLY_DELIVERED.value,
                 DeliveryState.PARTIALLY_DELIVERED.value,
             )
@@ -1822,14 +1856,13 @@ def build_delivery_result_v2(
     # Per-section rate
     per_section_rate: dict[str, float] = {}
     for section_id, sec_deliveries in sorted(section_deliveries.items()):
-        sec_non_skipped = [
-            d for d in sec_deliveries
-            if d.delivery_status != DeliveryState.SKIPPED.value
-        ]
+        sec_non_skipped = [d for d in sec_deliveries if d.delivery_status != DeliveryState.SKIPPED.value]
         if sec_non_skipped:
             sec_delivered = sum(
-                1 for d in sec_non_skipped
-                if d.delivery_status in (
+                1
+                for d in sec_non_skipped
+                if d.delivery_status
+                in (
                     DeliveryState.FULLY_DELIVERED.value,
                     DeliveryState.PARTIALLY_DELIVERED.value,
                 )
@@ -1869,12 +1902,10 @@ def save_delivery_yaml(
         "chapters": result.chapters,
         "summary": {
             "effective_delivery_rate": round(
-                result.effective_delivery_rate, 4,
+                result.effective_delivery_rate,
+                4,
             ),
-            "per_section_rate": {
-                k: round(v, 4)
-                for k, v in result.per_section_rate.items()
-            },
+            "per_section_rate": {k: round(v, 4) for k, v in result.per_section_rate.items()},
         },
         "deliveries": [],
     }
@@ -1890,15 +1921,12 @@ def save_delivery_yaml(
             "analysis_level": d.analysis_level,
         }
         if d.signal_scores:
-            entry["signal_scores"] = {
-                k: round(v, 4) for k, v in d.signal_scores.items()
-            }
+            entry["signal_scores"] = {k: round(v, 4) for k, v in d.signal_scores.items()}
         data["deliveries"].append(entry)
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    with open(output, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+    atomic_write_yaml(data, output)
 
 
 def load_delivery_yaml(path: str) -> DeliveryResult:
@@ -2061,6 +2089,7 @@ def encode_texts(texts: list[str]) -> object:
     Exists at module level to allow ``unittest.mock.patch`` in tests.
     """
     from forma.embedding_cache import encode_texts as _encode
+
     return _encode(texts)
 
 
@@ -2074,6 +2103,7 @@ def _normalize_embeddings(embs):
         Normalized array where each row has unit L2 norm.
     """
     import numpy as np
+
     norms = np.linalg.norm(embs, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1.0, norms)
     return embs / norms
@@ -2246,9 +2276,7 @@ def compute_ensemble_quality(
 
     weight_sum = sum(weights.values())
     if abs(weight_sum - 1.0) > 0.05:
-        raise ValueError(
-            f"Weights must sum to approximately 1.0, got {weight_sum:.4f}"
-        )
+        raise ValueError(f"Weights must sum to approximately 1.0, got {weight_sum:.4f}")
 
     import math
 
@@ -2335,7 +2363,8 @@ def compute_delivery_pairwise_comparisons(
     sections = sorted(section_qualities.keys())
     if len(sections) < 2:
         logger.warning(
-            "Section comparison requires at least 2 sections (currently %d)", len(sections),
+            "Section comparison requires at least 2 sections (currently %d)",
+            len(sections),
         )
         return []
 
@@ -2358,7 +2387,9 @@ def compute_delivery_pairwise_comparisons(
         # Mann-Whitney U test (for reference)
         try:
             _u_stat, _u_p = mannwhitneyu(
-                quals_a, quals_b, alternative="two-sided",
+                quals_a,
+                quals_b,
+                alternative="two-sided",
             )
         except Exception:
             pass
@@ -2367,16 +2398,18 @@ def compute_delivery_pairwise_comparisons(
         p_value = float(t_p)
         corrected_p = min(p_value * n_comparisons, 1.0)
 
-        comparisons.append(DeliverySectionComparison(
-            section_a=sec_a,
-            section_b=sec_b,
-            mean_a=mean_a,
-            mean_b=mean_b,
-            test_name="welch_t",
-            statistic=float(t_stat),
-            p_value=p_value,
-            corrected_p_value=corrected_p,
-            significant=corrected_p < 0.05,
-        ))
+        comparisons.append(
+            DeliverySectionComparison(
+                section_a=sec_a,
+                section_b=sec_b,
+                mean_a=mean_a,
+                mean_b=mean_b,
+                test_name="welch_t",
+                statistic=float(t_stat),
+                p_value=p_value,
+                corrected_p_value=corrected_p,
+                significant=corrected_p < 0.05,
+            )
+        )
 
     return comparisons

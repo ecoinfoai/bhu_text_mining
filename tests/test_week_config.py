@@ -14,6 +14,7 @@ import yaml
 # T004: Discovery tests
 # ---------------------------------------------------------------------------
 
+
 class TestFindWeekConfig:
     """Test find_week_config() upward directory search."""
 
@@ -78,6 +79,7 @@ class TestFindWeekConfig:
 # ---------------------------------------------------------------------------
 # T005: Loading and validation tests
 # ---------------------------------------------------------------------------
+
 
 class TestLoadWeekConfig:
     """Test load_week_config() and validate_week_config()."""
@@ -200,33 +202,42 @@ class TestLoadWeekConfig:
 
         # Valid
         validate_week_config(
-            {"week": 1, "ocr": {
-                "num_questions": 2,
-                "image_dir_pattern": "img",
-                "crop_coords": [[10, 20, 100, 200], [50, 60, 150, 260]],
-            }},
+            {
+                "week": 1,
+                "ocr": {
+                    "num_questions": 2,
+                    "image_dir_pattern": "img",
+                    "crop_coords": [[10, 20, 100, 200], [50, 60, 150, 260]],
+                },
+            },
             required_section="ocr",
         )
 
         # Wrong number of elements
         with pytest.raises(ValueError, match="crop_coords"):
             validate_week_config(
-                {"week": 1, "ocr": {
-                    "num_questions": 2,
-                    "image_dir_pattern": "img",
-                    "crop_coords": [[10, 20, 100]],
-                }},
+                {
+                    "week": 1,
+                    "ocr": {
+                        "num_questions": 2,
+                        "image_dir_pattern": "img",
+                        "crop_coords": [[10, 20, 100]],
+                    },
+                },
                 required_section="ocr",
             )
 
         # x1 >= x2
         with pytest.raises(ValueError, match="crop_coords"):
             validate_week_config(
-                {"week": 1, "ocr": {
-                    "num_questions": 2,
-                    "image_dir_pattern": "img",
-                    "crop_coords": [[100, 20, 50, 200]],
-                }},
+                {
+                    "week": 1,
+                    "ocr": {
+                        "num_questions": 2,
+                        "image_dir_pattern": "img",
+                        "crop_coords": [[100, 20, 50, 200]],
+                    },
+                },
                 required_section="ocr",
             )
 
@@ -234,6 +245,7 @@ class TestLoadWeekConfig:
 # ---------------------------------------------------------------------------
 # T006: Merge priority tests
 # ---------------------------------------------------------------------------
+
 
 class TestMergeConfigs:
     """Test 5-level config merge priority."""
@@ -332,6 +344,7 @@ class TestMergeConfigs:
 # T007: {class} pattern resolution tests
 # ---------------------------------------------------------------------------
 
+
 class TestResolveClassPatterns:
     """Test resolve_class_patterns() for {class} placeholder replacement."""
 
@@ -403,6 +416,7 @@ class TestResolveClassPatterns:
 # ---------------------------------------------------------------------------
 # T008: Crop coords write-back tests
 # ---------------------------------------------------------------------------
+
 
 class TestSaveCropCoords:
     """Test save_crop_coords() write-back to week.yaml."""
@@ -483,6 +497,7 @@ class TestSaveCropCoords:
 # T008a: --class value validation test
 # ---------------------------------------------------------------------------
 
+
 class TestClassValueValidation:
     """Test warning when --class value not in classes.identifiers."""
 
@@ -493,8 +508,9 @@ class TestClassValueValidation:
         with caplog.at_level(logging.WARNING):
             warn_if_class_unknown("Z", ["A", "B", "C", "D"])
         assert "Z" in caplog.text
-        assert any("identifiers" in msg.lower() or "class" in msg.lower()
-                    for msg in [r.message for r in caplog.records])
+        assert any(
+            "identifiers" in msg.lower() or "class" in msg.lower() for msg in [r.message for r in caplog.records]
+        )
 
     def test_no_warning_when_class_in_identifiers(self, caplog) -> None:
         """No warning when class_id is valid."""
@@ -509,6 +525,7 @@ class TestClassValueValidation:
 # T005: Lecture section tests
 # -------------------------------------------------------------------
 
+
 class TestLectureSection:
     """Test lecture section in week.yaml loading and validation."""
 
@@ -517,14 +534,16 @@ class TestLectureSection:
         yaml_path = path / "week.yaml"
         with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(
-                data, f,
+                data,
+                f,
                 default_flow_style=False,
                 allow_unicode=True,
             )
         return yaml_path
 
     def test_load_week_config_lecture_section(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """week.yaml with lecture section populates lecture_* fields."""
         from forma.week_config import load_week_config
@@ -541,16 +560,15 @@ class TestLectureSection:
         }
         yaml_path = self._write_yaml(tmp_path, data)
         config = load_week_config(yaml_path)
-        assert config.lecture_transcript_pattern == (
-            "trans_{class}.txt"
-        )
+        assert config.lecture_transcript_pattern == ("trans_{class}.txt")
         assert config.lecture_concept_source == "concepts.yaml"
         assert config.lecture_output_dir == "output/lecture"
         assert config.lecture_extra_stopwords == ["커스텀"]
         assert config.lecture_extra_abbreviations == ["PCR"]
 
     def test_load_week_config_no_lecture_section(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Missing lecture section uses defaults (empty strings)."""
         from forma.week_config import load_week_config
@@ -565,7 +583,8 @@ class TestLectureSection:
         assert config.lecture_extra_abbreviations == []
 
     def test_lecture_transcript_pattern_class_resolution(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """{class} in lecture_transcript_pattern gets resolved."""
         from forma.week_config import (
@@ -578,9 +597,7 @@ class TestLectureSection:
             lecture_transcript_pattern="trans_{class}.txt",
         )
         resolved = resolve_class_patterns(config, "B")
-        assert resolved.lecture_transcript_pattern == (
-            "trans_B.txt"
-        )
+        assert resolved.lecture_transcript_pattern == ("trans_B.txt")
 
     def test_validate_week_config_lecture_section(self) -> None:
         """Validation checks for lecture section."""

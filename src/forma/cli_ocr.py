@@ -17,6 +17,7 @@ Usage:
 
     forma-ocr compare --image scan.jpg --provider gemini
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,7 +38,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="OCR pipeline for scanned answer sheets",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -53,43 +57,59 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="OCR config YAML file path (legacy, deprecated)",
     )
     scan_source.add_argument(
-        "--class", dest="class_id",
+        "--class",
+        dest="class_id",
         help="Class identifier ({class} pattern in week.yaml)",
     )
     scan_p.add_argument(
-        "--provider", dest="provider", default="gemini",
+        "--provider",
+        dest="provider",
+        default="gemini",
         help="LLM provider (gemini or anthropic, default: gemini)",
     )
     scan_p.add_argument(
-        "--model", default=None,
+        "--model",
+        default=None,
         help="LLM model ID override",
     )
     scan_p.add_argument(
-        "--subject", default=None,
+        "--subject",
+        default=None,
         help="Subject name (LLM prompt context)",
     )
     scan_p.add_argument(
-        "--question", default=None,
+        "--question",
+        default=None,
         help="Question text (LLM prompt context)",
     )
     scan_p.add_argument(
-        "--answer-keywords", default=None, dest="answer_keywords",
+        "--answer-keywords",
+        default=None,
+        dest="answer_keywords",
         help="Key terms (comma-separated, LLM prompt context)",
     )
     scan_p.add_argument(
-        "--num-questions", type=int, default=None,
+        "--num-questions",
+        type=int,
+        default=None,
         help="Number of questions (can use config YAML num-questions value)",
     )
     scan_p.add_argument(
-        "--recrop", action="store_true", default=False,
+        "--recrop",
+        action="store_true",
+        default=False,
         help="Ignore saved crop coordinates, re-select",
     )
     scan_p.add_argument(
-        "--week-config", default=None, dest="week_config",
+        "--week-config",
+        default=None,
+        dest="week_config",
         help="week.yaml path (default: auto-discover from current directory)",
     )
     scan_p.add_argument(
-        "--ocr-review-threshold", type=float, default=None,
+        "--ocr-review-threshold",
+        type=float,
+        default=None,
         dest="ocr_review_threshold",
         help="OCR confidence review threshold (default: 0.75)",
     )
@@ -100,43 +120,58 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Join OCR results with Google Forms/Sheets",
     )
     join_p.add_argument(
-        "--class", dest="class_id", default=None,
+        "--class",
+        dest="class_id",
+        default=None,
         help="Class identifier ({class} pattern in week.yaml)",
     )
     join_p.add_argument(
-        "--ocr-results", required=False, default=None,
+        "--ocr-results",
+        required=False,
+        default=None,
         help="OCR results YAML file path",
     )
     join_p.add_argument(
-        "--output", required=False, default=None,
+        "--output",
+        required=False,
+        default=None,
         help="Output YAML file path",
     )
     join_p.add_argument(
-        "--spreadsheet-url", default=None,
+        "--spreadsheet-url",
+        default=None,
         help="Google Sheets URL (preferred source)",
     )
     join_p.add_argument(
-        "--forms-csv", default=None,
+        "--forms-csv",
+        default=None,
         help="Google Forms CSV file path (fallback)",
     )
     join_p.add_argument(
-        "--credentials", default="credentials.json",
+        "--credentials",
+        default="credentials.json",
         help="OAuth2 credentials JSON path (default: credentials.json)",
     )
     join_p.add_argument(
-        "--manual-mapping", default=None,
+        "--manual-mapping",
+        default=None,
         help="Manual mapping YAML file path (for unmatched students)",
     )
     join_p.add_argument(
-        "--student-id-column", default="student_id",
+        "--student-id-column",
+        default="student_id",
         help="Student ID column name (default: student_id)",
     )
     join_p.add_argument(
-        "--week-config", default=None, dest="week_config",
+        "--week-config",
+        default=None,
+        dest="week_config",
         help="week.yaml path (default: auto-discover from current directory)",
     )
     join_p.add_argument(
-        "--ocr-review-threshold", type=float, default=None,
+        "--ocr-review-threshold",
+        type=float,
+        default=None,
         dest="ocr_review_threshold",
         help="OCR confidence review threshold (default: 0.75)",
     )
@@ -152,57 +187,65 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Image file path to compare (single image)",
     )
     cmp_source.add_argument(
-        "--image-dir", dest="image_dir",
+        "--image-dir",
+        dest="image_dir",
         help="Image directory to compare (batch mode)",
     )
     cmp_p.add_argument(
-        "--provider", default="gemini",
+        "--provider",
+        default="gemini",
         help="LLM provider (gemini or anthropic, default: gemini)",
     )
     cmp_p.add_argument(
-        "--model", default=None,
+        "--model",
+        default=None,
         help="LLM model ID (default: provider default)",
     )
     cmp_p.add_argument(
-        "--naver-config", default="", dest="naver_config",
+        "--naver-config",
+        default="",
+        dest="naver_config",
         help="Naver OCR config JSON file path",
     )
     cmp_p.add_argument(
-        "--prefix", default="q",
+        "--prefix",
+        default="q",
         help="Batch mode: image filename prefix (default: q)",
     )
     cmp_p.add_argument(
-        "--subject", default=None,
+        "--subject",
+        default=None,
         help="Subject name (LLM prompt context)",
     )
     cmp_p.add_argument(
-        "--question", default=None,
+        "--question",
+        default=None,
         help="Question text (LLM prompt context)",
     )
     cmp_p.add_argument(
-        "--answer-keywords", default=None, dest="answer_keywords",
+        "--answer-keywords",
+        default=None,
+        dest="answer_keywords",
         help="Key terms (LLM prompt context)",
     )
     cmp_p.add_argument(
-        "--output", default=None,
+        "--output",
+        default=None,
         help="Comparison result YAML output path (required for batch mode)",
     )
     cmp_p.add_argument(
-        "--no-resume", action="store_true", default=False, dest="no_resume",
+        "--no-resume",
+        action="store_true",
+        default=False,
+        dest="no_resume",
         help="Batch mode: ignore previous results, start from scratch",
     )
 
     args = parser.parse_args(argv)
     if getattr(args, "command", None) == "scan":
-        has_source = (
-            getattr(args, "config", None)
-            or getattr(args, "class_id", None)
-            or getattr(args, "provider", None)
-        )
+        has_source = getattr(args, "config", None) or getattr(args, "class_id", None) or getattr(args, "provider", None)
         if not has_source:
-            scan_p.error(
-                "At least one source must be specified: --config, --class, or --provider"
-            )
+            scan_p.error("At least one source must be specified: --config, --class, or --provider")
     if (
         getattr(args, "command", None) == "join"
         and not getattr(args, "class_id", None)
@@ -247,24 +290,20 @@ def main(argv: list[str] | None = None) -> None:
 
     # Apply project config (three-layer merge)
     from forma.project_config import apply_project_config
+
     raw_argv = argv if argv is not None else sys.argv[1:]
     apply_project_config(args, argv=raw_argv)
 
     # BUG-001 fix: reconstruct explicit_keys to distinguish CLI vs forma.yaml
     _explicit = {
-        token.lstrip("-").split("=")[0].replace("-", "_")
-        for token in (raw_argv or [])
-        if token.startswith("--")
+        token.lstrip("-").split("=")[0].replace("-", "_") for token in (raw_argv or []) if token.startswith("--")
     }
 
     if args.command == "scan":
         if getattr(args, "config", None):
             # Legacy --config mode (takes precedence)
             cfg = _load_ocr_config(args.config)
-            num_questions = (
-                args.num_questions if "num_questions" in _explicit
-                else int(cfg.get("num-questions", 2))
-            )
+            num_questions = args.num_questions if "num_questions" in _explicit else int(cfg.get("num-questions", 2))
             crop_coords = None
             raw_coords = cfg.get("crop-coords")
             if raw_coords is not None:
@@ -305,6 +344,7 @@ def main(argv: list[str] | None = None) -> None:
             if not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
+
                     proj_path = find_project_config()
                     if proj_path:
                         proj = load_project_config(proj_path)
@@ -313,15 +353,13 @@ def main(argv: list[str] | None = None) -> None:
                     pass
                 try:
                     from forma.config import get_llm_config, load_config
+
                     app_config = load_config()
                     llm_cfg = get_llm_config(app_config)
                     api_key_from_config = llm_cfg.get("api_key")
                 except Exception:
                     pass
-            resolved_model = (
-                getattr(args, "model", None) if "model" in _explicit
-                else ocr_model_from_config
-            )
+            resolved_model = getattr(args, "model", None) if "model" in _explicit else ocr_model_from_config
 
             # Build LLM context from CLI args
             llm_context = None
@@ -363,7 +401,11 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 week_yaml_path = find_week_config()
             if week_yaml_path is None:
-                print("Error: week.yaml not found.")
+                print(
+                    "Error: week.yaml not found. "
+                    "Use --week-config to specify the path, "
+                    "or create week.yaml in the current directory."
+                )
                 sys.exit(1)
             week_cfg = load_week_config(week_yaml_path)
             resolved = resolve_class_patterns(week_cfg, args.class_id)
@@ -372,8 +414,10 @@ def main(argv: list[str] | None = None) -> None:
             image_dir = str(base_dir / resolved.ocr_image_dir_pattern)
             output_path = str(base_dir / resolved.ocr_ocr_output_pattern)
             num_questions = (
-                args.num_questions if "num_questions" in _explicit
-                else resolved.ocr_num_questions if resolved.ocr_num_questions
+                args.num_questions
+                if "num_questions" in _explicit
+                else resolved.ocr_num_questions
+                if resolved.ocr_num_questions
                 else args.num_questions
             )
 
@@ -389,6 +433,7 @@ def main(argv: list[str] | None = None) -> None:
             if not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
+
                     proj_path = find_project_config()
                     if proj_path:
                         proj = load_project_config(proj_path)
@@ -399,6 +444,7 @@ def main(argv: list[str] | None = None) -> None:
                     logger.debug("Failed to load project config: %s", exc)
                 try:
                     from forma.config import get_llm_config, load_config
+
                     app_config = load_config()
                     llm_cfg = get_llm_config(app_config)
                     api_key_from_config = llm_cfg.get("api_key")
@@ -407,8 +453,7 @@ def main(argv: list[str] | None = None) -> None:
 
             # Resolve OCR review threshold: CLI > week.yaml > default
             ocr_review_threshold = (
-                args.ocr_review_threshold if "ocr_review_threshold" in _explicit
-                else resolved.ocr_review_threshold
+                args.ocr_review_threshold if "ocr_review_threshold" in _explicit else resolved.ocr_review_threshold
             )
 
             # Build LLM Vision kwargs when --provider is given
@@ -418,8 +463,7 @@ def main(argv: list[str] | None = None) -> None:
                 llm_kwargs["llm_provider"] = provider
                 # CLI --model > forma.yaml ocr.ocr_model > provider default
                 llm_kwargs["llm_model"] = (
-                    getattr(args, "model", None) if "model" in _explicit
-                    else ocr_model_from_config
+                    getattr(args, "model", None) if "model" in _explicit else ocr_model_from_config
                 )
                 if api_key_from_config:
                     llm_kwargs["llm_api_key"] = api_key_from_config
@@ -454,6 +498,7 @@ def main(argv: list[str] | None = None) -> None:
                 # also persist to week.yaml for reuse across classes
                 try:
                     from forma.preprocess_imgs import _last_crop_coords
+
                     if _last_crop_coords:
                         save_crop_coords(week_yaml_path, _last_crop_coords)
                 except (ImportError, AttributeError):
@@ -474,7 +519,11 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 week_yaml_path = find_week_config()
             if week_yaml_path is None:
-                print("Error: week.yaml not found.")
+                print(
+                    "Error: week.yaml not found. "
+                    "Use --week-config to specify the path, "
+                    "or create week.yaml in the current directory."
+                )
                 sys.exit(1)
             week_cfg = load_week_config(week_yaml_path)
             resolved = resolve_class_patterns(week_cfg, args.class_id)
@@ -490,13 +539,16 @@ def main(argv: list[str] | None = None) -> None:
             if forms_csv and not Path(forms_csv).is_absolute():
                 forms_csv = str(base_dir / forms_csv)
             student_id_column = (
-                args.student_id_column if "student_id_column" in _explicit
-                else resolved.ocr_student_id_column if resolved.ocr_student_id_column
+                args.student_id_column
+                if "student_id_column" in _explicit
+                else resolved.ocr_student_id_column
+                if resolved.ocr_student_id_column
                 else args.student_id_column
             )
             if spreadsheet_url is None and not args.no_config:
                 try:
                     from forma.project_config import find_project_config, load_project_config
+
                     proj_path = find_project_config()
                     if proj_path:
                         proj = load_project_config(proj_path)
@@ -508,16 +560,12 @@ def main(argv: list[str] | None = None) -> None:
                     logger.debug("Failed to load project config: %s", exc)
 
             if not spreadsheet_url and not forms_csv:
-                print(
-                    "Error: At least one of spreadsheet_url (forma.yaml) or "
-                    "--forms-csv is required."
-                )
+                print("Error: At least one of spreadsheet_url (forma.yaml) or --forms-csv is required.")
                 sys.exit(1)
 
             # Resolve OCR review threshold: CLI > week.yaml > default
             join_threshold = (
-                args.ocr_review_threshold if "ocr_review_threshold" in _explicit
-                else resolved.ocr_review_threshold
+                args.ocr_review_threshold if "ocr_review_threshold" in _explicit else resolved.ocr_review_threshold
             )
 
             run_join_pipeline(
@@ -533,10 +581,7 @@ def main(argv: list[str] | None = None) -> None:
         else:
             # Legacy mode
             if args.spreadsheet_url is None and args.forms_csv is None:
-                print(
-                    "Error: At least one of --spreadsheet-url or "
-                    "--forms-csv is required."
-                )
+                print("Error: At least one of --spreadsheet-url or --forms-csv is required.")
                 sys.exit(1)
             join_threshold = args.ocr_review_threshold or 0.75
             run_join_pipeline(
@@ -703,8 +748,8 @@ def _print_comparison_table(result: object) -> None:
     for fc in result.field_comparisons:
         conf_str = f"{fc.ocr_confidence:.2f}" if fc.ocr_confidence is not None else "N/A"
         match_str = "O" if fc.match else "X"
-        ocr_text = fc.ocr_text[:ocr_w - 2]
-        llm_text = fc.llm_text[:llm_w - 2]
+        ocr_text = fc.ocr_text[: ocr_w - 2]
+        llm_text = fc.llm_text[: llm_w - 2]
         print(
             f"│{fc.field_index:>{idx_w}}│"
             f"{ocr_text:<{ocr_w}}│"
@@ -749,6 +794,7 @@ def main_compare_batch(
                 find_project_config,
                 load_project_config,
             )
+
             proj_path = find_project_config()
             if proj_path:
                 proj = load_project_config(proj_path)

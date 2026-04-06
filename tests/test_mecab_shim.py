@@ -96,9 +96,7 @@ class TestKssIntegration:
         import forma  # noqa: F401 — triggers shim
         import kss
 
-        result = kss.split_sentences(
-            "세포막은 중요하다. 삼투도 중요하다."
-        )
+        result = kss.split_sentences("세포막은 중요하다. 삼투도 중요하다.")
         assert len(result) == 2
         assert "세포막" in result[0]
         assert "삼투" in result[1]

@@ -1,5 +1,6 @@
 # tests/test_exam_generator.py
 """TDD RED tests for ExamPDFGenerator QR code + layout upgrade."""
+
 import os
 import tempfile
 
@@ -12,6 +13,7 @@ from forma.exam_generator import ExamPDFGenerator
 # ──────────────────────────────────────────────────
 # Fixtures
 # ──────────────────────────────────────────────────
+
 
 @pytest.fixture
 def generator() -> ExamPDFGenerator:
@@ -59,11 +61,13 @@ def sample_questions() -> list:
 # Group 1: 입력 검증 (5개)
 # ──────────────────────────────────────────────────
 
+
 class TestInputValidation:
     """FR-VAL-001: input validation tests."""
 
     def test_create_exam_papers_empty_questions_raises(
-        self, generator,
+        self,
+        generator,
     ):
         with pytest.raises(ValueError, match="questions must not be empty"):
             generator.create_exam_papers(
@@ -73,7 +77,9 @@ class TestInputValidation:
             )
 
     def test_create_exam_papers_invalid_num_papers_raises(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with pytest.raises(ValueError, match="num_papers must be a positive"):
             generator.create_exam_papers(
@@ -83,7 +89,8 @@ class TestInputValidation:
             )
 
     def test_create_exam_papers_question_missing_keys_raises(
-        self, generator,
+        self,
+        generator,
     ):
         bad_questions = [{"topic": "개념이해", "text": "문제"}]
         with pytest.raises(ValueError, match="missing keys"):
@@ -94,10 +101,13 @@ class TestInputValidation:
             )
 
     def test_create_exam_papers_student_ids_length_mismatch_raises(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with pytest.raises(
-            ValueError, match="student_ids length",
+            ValueError,
+            match="student_ids length",
         ):
             generator.create_exam_papers(
                 questions=sample_questions,
@@ -107,10 +117,13 @@ class TestInputValidation:
             )
 
     def test_create_exam_papers_form_url_without_placeholder_raises(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with pytest.raises(
-            ValueError, match="student_id.*placeholder",
+            ValueError,
+            match="student_id.*placeholder",
         ):
             generator.create_exam_papers(
                 questions=sample_questions,
@@ -120,7 +133,9 @@ class TestInputValidation:
             )
 
     def test_create_exam_papers_num_papers_zero_raises(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with pytest.raises(ValueError, match="positive"):
             generator.create_exam_papers(
@@ -134,6 +149,7 @@ class TestInputValidation:
 # Group 2: 학생 ID 생성 (2개)
 # ──────────────────────────────────────────────────
 
+
 class TestStudentIdGeneration:
     """FR-QR-003: student ID generation tests."""
 
@@ -144,7 +160,8 @@ class TestStudentIdGeneration:
     def test_generate_student_ids_custom_passthrough(self):
         custom = ["ABC", "DEF"]
         ids = ExamPDFGenerator._generate_student_ids(
-            2, student_ids=custom,
+            2,
+            student_ids=custom,
         )
         assert ids == custom
 
@@ -152,6 +169,7 @@ class TestStudentIdGeneration:
 # ──────────────────────────────────────────────────
 # Group 3: QR 코드 생성 (3개)
 # ──────────────────────────────────────────────────
+
 
 class TestQRCodeGeneration:
     """FR-QR-001, FR-QR-002: QR code generation tests."""
@@ -179,6 +197,7 @@ class TestQRCodeGeneration:
 # ──────────────────────────────────────────────────
 # Group 4: URL 포맷팅 (2개)
 # ──────────────────────────────────────────────────
+
 
 class TestURLFormatting:
     """FR-QR-004: URL formatting tests."""
@@ -214,14 +233,18 @@ class TestURLFormatting:
 # Group 5: 페이지 렌더링 (3개)
 # ──────────────────────────────────────────────────
 
+
 class TestPageRendering:
     """FR-FONT-001/002/003, FR-LAYOUT-001/002: rendering tests."""
 
     def test_draw_page_produces_valid_pdf(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with tempfile.NamedTemporaryFile(
-            suffix=".pdf", delete=False,
+            suffix=".pdf",
+            delete=False,
         ) as f:
             path = f.name
         try:
@@ -239,23 +262,22 @@ class TestPageRendering:
             os.unlink(path)
 
     def test_draw_page_with_qr_produces_larger_pdf(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with tempfile.NamedTemporaryFile(
-            suffix=".pdf", delete=False,
+            suffix=".pdf",
+            delete=False,
         ) as f:
             path_no_qr = f.name
         with tempfile.NamedTemporaryFile(
-            suffix=".pdf", delete=False,
+            suffix=".pdf",
+            delete=False,
         ) as f:
             path_qr = f.name
 
-        template = (
-            "https://forms.example.com/form"
-            "?sid={student_id}"
-            "&course={course_name}"
-            "&week={week_num}"
-        )
+        template = "https://forms.example.com/form?sid={student_id}&course={course_name}&week={week_num}"
         try:
             generator.create_exam_papers(
                 questions=sample_questions,
@@ -295,7 +317,8 @@ class TestPageRendering:
         try:
             mod._HAS_QRCODE = False
             with pytest.raises(
-                ImportError, match="qrcode package",
+                ImportError,
+                match="qrcode package",
             ):
                 ExamPDFGenerator._generate_qr_image("test")
         finally:
@@ -305,6 +328,7 @@ class TestPageRendering:
 # ──────────────────────────────────────────────────
 # Group 5b: 문제별 QR 코드 (3개)
 # ──────────────────────────────────────────────────
+
 
 class TestPerQuestionQR:
     """FR-QR-005: per-question QR code generation tests."""
@@ -319,10 +343,7 @@ class TestPerQuestionQR:
         assert content == "S001|인체구조와기능|1주차|Q1"
 
     def test_format_qr_content_url_with_q_num(self):
-        template = (
-            "https://forms.example.com"
-            "?sid={student_id}&w={week_num}"
-        )
+        template = "https://forms.example.com?sid={student_id}&w={week_num}"
         content = ExamPDFGenerator._format_qr_content(
             student_id="S001",
             course_name="인체구조와기능",
@@ -334,15 +355,15 @@ class TestPerQuestionQR:
         assert "&q=2" in content
 
     def test_create_exam_per_question_qr_produces_pdf(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         """Each question gets its own QR — PDF must be valid."""
-        template = (
-            "https://forms.example.com"
-            "?sid={student_id}&w={week_num}"
-        )
+        template = "https://forms.example.com?sid={student_id}&w={week_num}"
         with tempfile.NamedTemporaryFile(
-            suffix=".pdf", delete=False,
+            suffix=".pdf",
+            delete=False,
         ) as f:
             path = f.name
         try:
@@ -363,14 +384,18 @@ class TestPerQuestionQR:
 # Group 6: 통합 / 하위호환 (2개)
 # ──────────────────────────────────────────────────
 
+
 class TestIntegration:
     """FR-COMPAT-001: backward compatibility tests."""
 
     def test_create_exam_papers_generates_correct_page_count(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         with tempfile.NamedTemporaryFile(
-            suffix=".pdf", delete=False,
+            suffix=".pdf",
+            delete=False,
         ) as f:
             path = f.name
         try:
@@ -379,21 +404,21 @@ class TestIntegration:
                 num_papers=5,
                 output_path=path,
                 student_ids=["S001", "S002", "S003", "S004", "S005"],
-                form_url_template=(
-                    "https://example.com?sid={student_id}"
-                    "&c={course_name}&w={week_num}"
-                ),
+                form_url_template=("https://example.com?sid={student_id}&c={course_name}&w={week_num}"),
             )
             assert os.path.getsize(path) > 0
         finally:
             os.unlink(path)
 
     def test_create_exam_papers_backward_compatible(
-        self, generator, sample_questions,
+        self,
+        generator,
+        sample_questions,
     ):
         """Calling without new params must work identically."""
         with tempfile.NamedTemporaryFile(
-            suffix=".pdf", delete=False,
+            suffix=".pdf",
+            delete=False,
         ) as f:
             path = f.name
         try:

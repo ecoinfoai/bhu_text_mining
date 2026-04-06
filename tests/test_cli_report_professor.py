@@ -61,6 +61,7 @@ class TestBuildParser:
     def test_build_parser_returns_argument_parser(self):
         """_build_parser() returns an argparse.ArgumentParser."""
         import argparse
+
         parser = _build_parser()
         assert isinstance(parser, argparse.ArgumentParser)
 
@@ -69,51 +70,77 @@ class TestBuildParser:
         parser = _build_parser()
         # Parsing without --final should raise SystemExit (missing required arg)
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--config", "config.yaml",
-                "--eval-dir", "eval/",
-                "--output-dir", "out/",
-            ])
+            parser.parse_args(
+                [
+                    "--config",
+                    "config.yaml",
+                    "--eval-dir",
+                    "eval/",
+                    "--output-dir",
+                    "out/",
+                ]
+            )
 
     def test_build_parser_has_required_config_arg(self):
         """Parser includes --config as a required argument."""
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--final", "final.yaml",
-                "--eval-dir", "eval/",
-                "--output-dir", "out/",
-            ])
+            parser.parse_args(
+                [
+                    "--final",
+                    "final.yaml",
+                    "--eval-dir",
+                    "eval/",
+                    "--output-dir",
+                    "out/",
+                ]
+            )
 
     def test_build_parser_has_required_eval_dir_arg(self):
         """Parser includes --eval-dir as a required argument."""
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--final", "final.yaml",
-                "--config", "config.yaml",
-                "--output-dir", "out/",
-            ])
+            parser.parse_args(
+                [
+                    "--final",
+                    "final.yaml",
+                    "--config",
+                    "config.yaml",
+                    "--output-dir",
+                    "out/",
+                ]
+            )
 
     def test_build_parser_has_required_output_dir_arg(self):
         """Parser includes --output-dir as a required argument."""
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--final", "final.yaml",
-                "--config", "config.yaml",
-                "--eval-dir", "eval/",
-            ])
+            parser.parse_args(
+                [
+                    "--final",
+                    "final.yaml",
+                    "--config",
+                    "config.yaml",
+                    "--eval-dir",
+                    "eval/",
+                ]
+            )
 
     def test_build_parser_accepts_all_required_args(self):
         """Parser succeeds with all required args provided."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.final == "final.yaml"
         assert args.config == "config.yaml"
         assert args.eval_dir == "eval/"
@@ -122,116 +149,178 @@ class TestBuildParser:
     def test_build_parser_dpi_default_is_150(self):
         """--dpi defaults to 150 when not provided."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.dpi == 150
 
     def test_build_parser_dpi_accepts_int(self):
         """--dpi accepts an integer value."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--dpi", "300",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--dpi",
+                "300",
+            ]
+        )
         assert args.dpi == 300
         assert isinstance(args.dpi, int)
 
     def test_build_parser_verbose_default_is_false(self):
         """--verbose defaults to False (store_true pattern)."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.verbose is False
 
     def test_build_parser_verbose_flag_sets_true(self):
         """--verbose flag sets verbose to True."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--verbose",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--verbose",
+            ]
+        )
         assert args.verbose is True
 
     def test_build_parser_skip_llm_default_is_false(self):
         """--skip-llm defaults to False."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.skip_llm is False
 
     def test_build_parser_skip_llm_flag_sets_true(self):
         """--skip-llm flag sets skip_llm to True."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--skip-llm",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--skip-llm",
+            ]
+        )
         assert args.skip_llm is True
 
     def test_build_parser_optional_forma_config(self):
         """--forma-config is optional and defaults to None."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.forma_config is None
 
     def test_build_parser_optional_class_name(self):
         """--class-name is optional and defaults to None."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.class_name is None
 
     def test_build_parser_class_name_accepts_string(self):
         """--class-name accepts a string value."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--class-name", "1A분반",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--class-name",
+                "1A분반",
+            ]
+        )
         assert args.class_name == "1A분반"
 
     def test_build_parser_optional_font_path(self):
         """--font-path is optional and defaults to None."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.font_path is None
 
     def test_build_parser_help_text_is_non_empty(self):
@@ -243,24 +332,37 @@ class TestBuildParser:
     def test_build_parser_transcript_dir_optional(self):
         """--transcript-dir is optional and defaults to None (FR-019a)."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+            ]
+        )
         assert args.transcript_dir is None
 
     def test_build_parser_transcript_dir_accepts_string(self):
         """--transcript-dir accepts a path string (FR-019a)."""
         parser = _build_parser()
-        args = parser.parse_args([
-            "--final", "final.yaml",
-            "--config", "config.yaml",
-            "--eval-dir", "eval/",
-            "--output-dir", "out/",
-            "--transcript-dir", "/some/transcript/dir",
-        ])
+        args = parser.parse_args(
+            [
+                "--final",
+                "final.yaml",
+                "--config",
+                "config.yaml",
+                "--eval-dir",
+                "eval/",
+                "--output-dir",
+                "out/",
+                "--transcript-dir",
+                "/some/transcript/dir",
+            ]
+        )
         assert args.transcript_dir == "/some/transcript/dir"
 
 
@@ -272,10 +374,14 @@ class TestBuildParser:
 def _base_argv(cli_env: dict) -> list[str]:
     """Build a complete argv list from cli_env fixture."""
     return [
-        "--final", cli_env["final"],
-        "--config", cli_env["config"],
-        "--eval-dir", cli_env["eval_dir"],
-        "--output-dir", cli_env["output_dir"],
+        "--final",
+        cli_env["final"],
+        "--config",
+        cli_env["config"],
+        "--eval-dir",
+        cli_env["eval_dir"],
+        "--output-dir",
+        cli_env["output_dir"],
         "--skip-llm",
     ]
 
@@ -320,28 +426,33 @@ class TestMain:
 
     def test_main_success_path_exits_0(self, cli_env, monkeypatch):
         """Success path: all mocked correctly → exits with code 0 or returns normally."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 result = main()
@@ -352,28 +463,33 @@ class TestMain:
 
     def test_main_success_calls_generate_pdf(self, cli_env, monkeypatch):
         """Success path: ProfessorPDFReportGenerator.generate_pdf is called once."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 main()
@@ -384,30 +500,35 @@ class TestMain:
 
     def test_main_success_calls_build_professor_report_data(self, cli_env, monkeypatch):
         """Success path: build_professor_report_data is called with loaded students."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
         mock_build = MagicMock(return_value=mock_report_data)
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            mock_build,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                mock_build,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 main()
@@ -422,42 +543,63 @@ class TestMain:
 
     def test_main_missing_final_file_exits_1(self, cli_env, monkeypatch):
         """--final pointing to nonexistent file → sys.exit(1)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", "/nonexistent/path/final.yaml",
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                "/nonexistent/path/final.yaml",
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
 
     def test_main_missing_config_file_exits_1(self, cli_env, monkeypatch):
         """--config pointing to nonexistent file → sys.exit(1)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", cli_env["final"],
-            "--config", "/nonexistent/path/config.yaml",
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                cli_env["final"],
+                "--config",
+                "/nonexistent/path/config.yaml",
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
 
     def test_main_missing_eval_dir_exits_1(self, cli_env, monkeypatch):
         """--eval-dir pointing to nonexistent directory → sys.exit(1)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", "/nonexistent/eval_dir",
-            "--output-dir", cli_env["output_dir"],
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                "/nonexistent/eval_dir",
+                "--output-dir",
+                cli_env["output_dir"],
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
@@ -471,13 +613,19 @@ class TestMain:
         out_dir = tmp_path / "out"
         out_dir.mkdir()
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--config", str(config),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--config",
+                str(config),
+                "--eval-dir",
+                str(eval_dir),
+                "--output-dir",
+                str(out_dir),
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code in (1, 2)
@@ -491,13 +639,19 @@ class TestMain:
         out_dir = tmp_path / "out"
         out_dir.mkdir()
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", str(final_file),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                str(final_file),
+                "--eval-dir",
+                str(eval_dir),
+                "--output-dir",
+                str(out_dir),
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code in (1, 2)
@@ -511,13 +665,19 @@ class TestMain:
         out_dir = tmp_path / "out"
         out_dir.mkdir()
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", str(final_file),
-            "--config", str(config),
-            "--output-dir", str(out_dir),
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                str(final_file),
+                "--config",
+                str(config),
+                "--output-dir",
+                str(out_dir),
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code in (1, 2)
@@ -531,13 +691,19 @@ class TestMain:
         eval_dir = tmp_path / "eval"
         eval_dir.mkdir()
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", str(final_file),
-            "--config", str(config),
-            "--eval-dir", str(eval_dir),
-            "--skip-llm",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                str(final_file),
+                "--config",
+                str(config),
+                "--eval-dir",
+                str(eval_dir),
+                "--skip-llm",
+            ],
+        )
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code in (1, 2)
@@ -548,10 +714,13 @@ class TestMain:
 
     def test_main_insufficient_students_exits_2(self, cli_env, monkeypatch):
         """When load_all_student_data returns <3 students → sys.exit(2)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         # Only 2 students — below the required minimum of 3
         mock_students = _make_mock_students(2)
@@ -567,10 +736,13 @@ class TestMain:
 
     def test_main_zero_students_exits_2(self, cli_env, monkeypatch):
         """When load_all_student_data returns 0 students → sys.exit(2)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         with patch(
             "forma.cli_report_professor.load_all_student_data",
@@ -582,28 +754,33 @@ class TestMain:
 
     def test_main_exactly_3_students_does_not_exit_2(self, cli_env, monkeypatch):
         """When load_all_student_data returns exactly 3 students, no exit(2) raised."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_students = _make_mock_students(3)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 main()
@@ -617,26 +794,37 @@ class TestMain:
 
     def test_main_font_not_found_exits_3(self, cli_env, monkeypatch):
         """--font-path pointing to nonexistent file → sys.exit(3)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--skip-llm",
-            "--font-path", "/nonexistent/NanumGothic.ttf",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--skip-llm",
+                "--font-path",
+                "/nonexistent/NanumGothic.ttf",
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
         ):
             with pytest.raises(SystemExit) as exc_info:
                 main()
@@ -644,10 +832,13 @@ class TestMain:
 
     def test_main_generator_file_not_found_exits_3(self, cli_env, monkeypatch):
         """ProfessorPDFReportGenerator raising FileNotFoundError → sys.exit(3)."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
@@ -656,15 +847,19 @@ class TestMain:
         def _raise_file_not_found(*args, **kwargs):
             raise FileNotFoundError("Korean font not found: /path/NanumGothic.ttf")
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            side_effect=_raise_file_not_found,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                side_effect=_raise_file_not_found,
+            ),
         ):
             with pytest.raises(SystemExit) as exc_info:
                 main()
@@ -674,37 +869,41 @@ class TestMain:
     # --skip-llm behavior
     # -------------------------------------------------------------------------
 
-    def test_main_skip_llm_does_not_call_generate_professor_analysis(
-        self, cli_env, monkeypatch
-    ):
+    def test_main_skip_llm_does_not_call_generate_professor_analysis(self, cli_env, monkeypatch):
         """--skip-llm: generate_professor_analysis is NOT called."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),  # already includes --skip-llm
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),  # already includes --skip-llm
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
         mock_llm_fn = MagicMock()
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
-        ), patch(
-            "forma.cli_report_professor.generate_professor_analysis",
-            mock_llm_fn,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
+            patch(
+                "forma.cli_report_professor.generate_professor_analysis",
+                mock_llm_fn,
+            ),
         ):
             try:
                 main()
@@ -713,41 +912,49 @@ class TestMain:
 
         mock_llm_fn.assert_not_called()
 
-    def test_main_without_skip_llm_calls_generate_professor_analysis(
-        self, cli_env, monkeypatch
-    ):
+    def test_main_without_skip_llm_calls_generate_professor_analysis(self, cli_env, monkeypatch):
         """Without --skip-llm: generate_professor_analysis IS called."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", cli_env["final"],
-            "--config", cli_env["config"],
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            # No --skip-llm
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                cli_env["final"],
+                "--config",
+                cli_env["config"],
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                # No --skip-llm
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
         mock_llm_fn = MagicMock()
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
-        ), patch(
-            "forma.cli_report_professor.generate_professor_analysis",
-            mock_llm_fn,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
+            patch(
+                "forma.cli_report_professor.generate_professor_analysis",
+                mock_llm_fn,
+            ),
         ):
             try:
                 main()
@@ -762,34 +969,40 @@ class TestMain:
 
     def test_main_verbose_sets_logging_debug(self, cli_env, monkeypatch):
         """--verbose flag configures the root logger to DEBUG level."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-            "--verbose",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+                "--verbose",
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
         mock_basic_config = MagicMock()
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
-        ), patch(
-            "logging.basicConfig",
-            mock_basic_config,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
+            patch(
+                "logging.basicConfig",
+                mock_basic_config,
+            ),
         ):
             try:
                 main()
@@ -799,41 +1012,45 @@ class TestMain:
         # Verify that logging was configured with DEBUG level
         calls = mock_basic_config.call_args_list
         assert any(
-            call.kwargs.get("level") == logging.DEBUG
-            or (call.args and call.args[0] == logging.DEBUG)
-            for call in calls
+            call.kwargs.get("level") == logging.DEBUG or (call.args and call.args[0] == logging.DEBUG) for call in calls
         ), f"Expected DEBUG level in logging.basicConfig calls: {calls}"
 
     def test_main_without_verbose_uses_info_level(self, cli_env, monkeypatch):
         """Without --verbose, logging is configured at INFO level."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-            # No --verbose
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+                # No --verbose
+            ],
+        )
 
         mock_students = _make_mock_students(5)
         mock_distributions = MagicMock()
         mock_report_data = _make_mock_professor_report_data()
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
-        )
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
 
         mock_basic_config = MagicMock()
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
-        ), patch(
-            "logging.basicConfig",
-            mock_basic_config,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
+            patch(
+                "logging.basicConfig",
+                mock_basic_config,
+            ),
         ):
             try:
                 main()
@@ -845,12 +1062,8 @@ class TestMain:
         # Should have been called at least once, with INFO level (not DEBUG)
         if calls:
             last_call = calls[-1]
-            level_used = last_call.kwargs.get("level") or (
-                last_call.args[0] if last_call.args else None
-            )
-            assert level_used != logging.DEBUG, (
-                f"Expected INFO (not DEBUG) level in logging.basicConfig: {calls}"
-            )
+            level_used = last_call.kwargs.get("level") or (last_call.args[0] if last_call.args else None)
+            assert level_used != logging.DEBUG, f"Expected INFO (not DEBUG) level in logging.basicConfig: {calls}"
 
 
 # ---------------------------------------------------------------------------
@@ -875,15 +1088,19 @@ class TestTranscriptDir:
         def capture_build(**kwargs):
             return mock_report_data
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            side_effect=lambda *a, **kw: mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                side_effect=lambda *a, **kw: mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 main()
@@ -893,9 +1110,7 @@ class TestTranscriptDir:
         captured["report_data"] = mock_report_data
         return captured
 
-    def test_no_transcript_dir_does_not_call_compute_emphasis_map(
-        self, tmp_path, monkeypatch
-    ):
+    def test_no_transcript_dir_does_not_call_compute_emphasis_map(self, tmp_path, monkeypatch):
         """SC-005: Without --transcript-dir, compute_emphasis_map is not called (backward compat)."""
         final_file = tmp_path / "final.yaml"
         final_file.write_text("[]", encoding="utf-8")
@@ -910,28 +1125,37 @@ class TestTranscriptDir:
         mock_report_data.question_stats = []
 
         argv = [
-            "--final", str(final_file),
-            "--config", str(config_file),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
+            "--final",
+            str(final_file),
+            "--config",
+            str(config_file),
+            "--eval-dir",
+            str(eval_dir),
+            "--output-dir",
+            str(out_dir),
             "--skip-llm",
         ]
 
         monkeypatch.setattr("sys.argv", ["forma-report-professor", *argv])
         mock_students = _make_mock_students(5)
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, MagicMock()),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=MagicMock(),
-        ), patch(
-            "forma.emphasis_map.compute_emphasis_map",
-        ) as mock_cem:
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, MagicMock()),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+            ) as mock_cem,
+        ):
             try:
                 main()
             except SystemExit:
@@ -940,9 +1164,7 @@ class TestTranscriptDir:
         # compute_emphasis_map must NOT be called without --transcript-dir
         mock_cem.assert_not_called()
 
-    def test_transcript_dir_nonexistent_logs_warning(
-        self, tmp_path, monkeypatch, caplog
-    ):
+    def test_transcript_dir_nonexistent_logs_warning(self, tmp_path, monkeypatch, caplog):
         """--transcript-dir pointing to non-existent dir logs a warning and continues."""
         final_file = tmp_path / "final.yaml"
         final_file.write_text("[]", encoding="utf-8")
@@ -955,12 +1177,17 @@ class TestTranscriptDir:
 
         nonexistent = str(tmp_path / "no_such_dir")
         argv = [
-            "--final", str(final_file),
-            "--config", str(config_file),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
+            "--final",
+            str(final_file),
+            "--config",
+            str(config_file),
+            "--eval-dir",
+            str(eval_dir),
+            "--output-dir",
+            str(out_dir),
             "--skip-llm",
-            "--transcript-dir", nonexistent,
+            "--transcript-dir",
+            nonexistent,
         ]
 
         mock_report_data = _make_mock_professor_report_data()
@@ -970,14 +1197,11 @@ class TestTranscriptDir:
             self._run_main_with_mocks(monkeypatch, argv, mock_report_data)
 
         # Should have logged a warning about non-existent dir
-        assert any(
-            "transcript directory not found" in record.message.lower()
-            for record in caplog.records
-        ), f"Expected transcript warning, got: {[r.message for r in caplog.records]}"
+        assert any("transcript directory not found" in record.message.lower() for record in caplog.records), (
+            f"Expected transcript warning, got: {[r.message for r in caplog.records]}"
+        )
 
-    def test_transcript_dir_with_txt_files_calls_compute_emphasis_map(
-        self, tmp_path, monkeypatch
-    ):
+    def test_transcript_dir_with_txt_files_calls_compute_emphasis_map(self, tmp_path, monkeypatch):
         """--transcript-dir with .txt files → compute_emphasis_map is called (FR-019a)."""
         final_file = tmp_path / "final.yaml"
         final_file.write_text("[]", encoding="utf-8")
@@ -1002,12 +1226,17 @@ class TestTranscriptDir:
         mock_report_data.question_stats = [mock_qstat]
 
         argv = [
-            "--final", str(final_file),
-            "--config", str(config_file),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
+            "--final",
+            str(final_file),
+            "--config",
+            str(config_file),
+            "--eval-dir",
+            str(eval_dir),
+            "--output-dir",
+            str(out_dir),
             "--skip-llm",
-            "--transcript-dir", str(transcript_dir),
+            "--transcript-dir",
+            str(transcript_dir),
         ]
 
         mock_emphasis_map = MagicMock()
@@ -1021,22 +1250,28 @@ class TestTranscriptDir:
         mock_distributions = MagicMock()
         mock_generator = MagicMock()
 
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
-        ), patch(
-            "forma.emphasis_map.compute_emphasis_map",
-            return_value=mock_emphasis_map,
-        ) as mock_cem, patch(
-            "forma.lecture_gap_analysis.compute_lecture_gap",
-            return_value=mock_gap_report,
-        ) as mock_clg:
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+                return_value=mock_emphasis_map,
+            ) as mock_cem,
+            patch(
+                "forma.lecture_gap_analysis.compute_lecture_gap",
+                return_value=mock_gap_report,
+            ) as mock_clg,
+        ):
             try:
                 main()
             except SystemExit:
@@ -1057,7 +1292,10 @@ class TestConceptDepsWiring:
     """T048 [US4] concept_dependencies wiring in forma-report-professor CLI."""
 
     def test_deficit_map_passed_to_generate_pdf_when_deps_present(
-        self, cli_env, monkeypatch, tmp_path,
+        self,
+        cli_env,
+        monkeypatch,
+        tmp_path,
     ):
         """When exam YAML has concept_dependencies, deficit_map is passed to generate_pdf (FR-021)."""
         import yaml
@@ -1096,28 +1334,37 @@ class TestConceptDepsWiring:
         mock_report_data = _make_mock_professor_report_data()
         mock_report_data.question_stats = []
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
+
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                cli_env["final"],
+                "--config",
+                str(config_file),
+                "--eval-dir",
+                cli_env["eval_dir"],
+                "--output-dir",
+                cli_env["output_dir"],
+                "--skip-llm",
+            ],
         )
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", cli_env["final"],
-            "--config", str(config_file),
-            "--eval-dir", cli_env["eval_dir"],
-            "--output-dir", cli_env["output_dir"],
-            "--skip-llm",
-        ])
-
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 main()
@@ -1136,7 +1383,9 @@ class TestConceptDepsWiring:
         assert "삼투압" in dm.concept_counts
 
     def test_no_deps_in_yaml_deficit_map_none(
-        self, cli_env, monkeypatch,
+        self,
+        cli_env,
+        monkeypatch,
     ):
         """When exam YAML has no concept_dependencies, deficit_map is None (FR-023)."""
         mock_students = _make_mock_students(5)
@@ -1144,24 +1393,29 @@ class TestConceptDepsWiring:
         mock_report_data = _make_mock_professor_report_data()
         mock_report_data.question_stats = []
         mock_generator = MagicMock()
-        mock_generator.generate_pdf.return_value = str(
-            cli_env["output_dir"] + "/professor_report.pdf"
+        mock_generator.generate_pdf.return_value = str(cli_env["output_dir"] + "/professor_report.pdf")
+
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                *_base_argv(cli_env),
+            ],
         )
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            *_base_argv(cli_env),
-        ])
-
-        with patch(
-            "forma.cli_report_professor.load_all_student_data",
-            return_value=(mock_students, mock_distributions),
-        ), patch(
-            "forma.cli_report_professor.build_professor_report_data",
-            return_value=mock_report_data,
-        ), patch(
-            "forma.cli_report_professor.ProfessorPDFReportGenerator",
-            return_value=mock_generator,
+        with (
+            patch(
+                "forma.cli_report_professor.load_all_student_data",
+                return_value=(mock_students, mock_distributions),
+            ),
+            patch(
+                "forma.cli_report_professor.build_professor_report_data",
+                return_value=mock_report_data,
+            ),
+            patch(
+                "forma.cli_report_professor.ProfessorPDFReportGenerator",
+                return_value=mock_generator,
+            ),
         ):
             try:
                 main()

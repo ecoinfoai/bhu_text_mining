@@ -22,6 +22,8 @@ import os
 import sys
 import warnings
 
+from forma.io_utils import safe_filename
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -56,24 +58,15 @@ def parse_weeks_arg(values: list[str]) -> list[int]:
         if ":" in val:
             parts = val.split(":")
             if len(parts) != 2:
-                msg = (
-                    f"Invalid range format: '{val}'. "
-                    "Use 'start:end'."
-                )
+                msg = f"Invalid range format: '{val}'. Use 'start:end'."
                 raise ValueError(msg)
             try:
                 start, end = int(parts[0]), int(parts[1])
             except ValueError:
-                msg = (
-                    f"Invalid range values: '{val}'. "
-                    "Use integers."
-                )
+                msg = f"Invalid range values: '{val}'. Use integers."
                 raise ValueError(msg) from None
             if start > end:
-                msg = (
-                    f"Invalid range: {start} > {end}. "
-                    "Start must be <= end."
-                )
+                msg = f"Invalid range: {start} > {end}. Start must be <= end."
                 raise ValueError(msg)
             return list(range(start, end + 1))
         try:
@@ -152,52 +145,69 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     # Required args
     parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Longitudinal store YAML file path",
     )
     parser.add_argument(
-        "--student", required=True,
+        "--student",
+        required=True,
         help="Student ID",
     )
     parser.add_argument(
-        "--id-csv", required=True, dest="id_csv",
+        "--id-csv",
+        required=True,
+        dest="id_csv",
         help="Student ID-name-class mapping CSV file path",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="Output PDF file path",
     )
     # Week selection (mutually exclusive)
     week_group = parser.add_mutually_exclusive_group()
     week_group.add_argument(
-        "--week", default=None,
+        "--week",
+        default=None,
         help="(DEPRECATED) Use --weeks instead.",
     )
     week_group.add_argument(
-        "--weeks", nargs="+", default=None,
-        help=(
-            "Week selection: single N (1..N), "
-            "range start:end, or list 1 3 5"
-        ),
+        "--weeks",
+        nargs="+",
+        default=None,
+        help=("Week selection: single N (1..N), range start:end, or list 1 3 5"),
     )
     parser.add_argument(
-        "--font-path", default=None, dest="font_path",
+        "--font-path",
+        default=None,
+        dest="font_path",
         help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--dpi", type=int, default=150,
+        "--dpi",
+        type=int,
+        default=150,
         help="Chart DPI (default: 150)",
     )
     parser.add_argument(
-        "--no-llm", action="store_true", default=False, dest="no_llm",
+        "--no-llm",
+        action="store_true",
+        default=False,
+        dest="no_llm",
         help="Generate report with charts only, no LLM calls",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
     return parser
@@ -219,6 +229,7 @@ def main(argv=None) -> int | None:
     if not args.no_config:
         try:
             from forma.project_config import apply_project_config
+
             raw_argv = argv if argv is not None else sys.argv[1:]
             apply_project_config(args, argv=raw_argv)
         except Exception as exc:
@@ -288,14 +299,18 @@ def main(argv=None) -> int | None:
 
     # Build student data
     student_data = build_student_data(
-        store, args.student, weeks, cohort,
+        store,
+        args.student,
+        weeks,
+        cohort,
         student_name=student_name,
         class_name=class_name,
     )
 
     # Evaluate warnings
     student_warnings, alert_level = evaluate_warnings(
-        student_data, cohort,
+        student_data,
+        cohort,
     )
 
     # LLM interpretation
@@ -308,7 +323,8 @@ def main(argv=None) -> int | None:
             )
 
             anon_summary = anonymize(
-                student_data, student_warnings,
+                student_data,
+                student_warnings,
             )
 
             # Try to create LLM provider from config or environment
@@ -326,11 +342,15 @@ def main(argv=None) -> int | None:
 
     try:
         gen = StudentLongitudinalPDFReportGenerator(
-            font_path=args.font_path, dpi=args.dpi,
+            font_path=args.font_path,
+            dpi=args.dpi,
         )
         result = gen.generate_pdf(
-            student_data, cohort, student_warnings,
-            alert_level, args.output,
+            student_data,
+            cohort,
+            student_warnings,
+            alert_level,
+            args.output,
             llm_texts=llm_texts,
         )
         logger.info("Student report generated: %s", result)
@@ -348,48 +368,65 @@ def _build_batch_parser() -> argparse.ArgumentParser:
         description="Student individual longitudinal PDF report batch generator",
     )
     parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Longitudinal store YAML file path",
     )
     parser.add_argument(
-        "--id-csv", required=True, dest="id_csv",
+        "--id-csv",
+        required=True,
+        dest="id_csv",
         help="Student ID-name-class mapping CSV file path",
     )
     parser.add_argument(
-        "--output-dir", required=True, dest="output_dir",
+        "--output-dir",
+        required=True,
+        dest="output_dir",
         help="Output PDF directory path",
     )
     # Week selection (mutually exclusive)
     batch_week_group = parser.add_mutually_exclusive_group()
     batch_week_group.add_argument(
-        "--week", default=None,
+        "--week",
+        default=None,
         help="(DEPRECATED) Use --weeks instead.",
     )
     batch_week_group.add_argument(
-        "--weeks", nargs="+", default=None,
-        help=(
-            "Week selection: single N (1..N), "
-            "range start:end, or list 1 3 5"
-        ),
+        "--weeks",
+        nargs="+",
+        default=None,
+        help=("Week selection: single N (1..N), range start:end, or list 1 3 5"),
     )
     parser.add_argument(
-        "--font-path", default=None, dest="font_path",
+        "--font-path",
+        default=None,
+        dest="font_path",
         help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--dpi", type=int, default=150,
+        "--dpi",
+        type=int,
+        default=150,
         help="Chart DPI (default: 150)",
     )
     parser.add_argument(
-        "--no-llm", action="store_true", default=False, dest="no_llm",
+        "--no-llm",
+        action="store_true",
+        default=False,
+        dest="no_llm",
         help="Generate report with charts only, no LLM calls",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
     return parser
@@ -411,6 +448,7 @@ def batch_main(argv=None) -> int | None:
     if not args.no_config:
         try:
             from forma.project_config import apply_project_config
+
             raw_argv = argv if argv is not None else sys.argv[1:]
             apply_project_config(args, argv=raw_argv)
         except Exception as exc:
@@ -484,7 +522,8 @@ def batch_main(argv=None) -> int | None:
 
     try:
         gen = StudentLongitudinalPDFReportGenerator(
-            font_path=args.font_path, dpi=args.dpi,
+            font_path=args.font_path,
+            dpi=args.dpi,
         )
     except FileNotFoundError as exc:
         logger.error("PDF generator initialization failed: %s", exc)
@@ -513,14 +552,18 @@ def batch_main(argv=None) -> int | None:
 
             # Build student data
             student_data = build_student_data(
-                store, student_id, weeks, cohort,
+                store,
+                student_id,
+                weeks,
+                cohort,
                 student_name=student_name,
                 class_name=class_name,
             )
 
             # Evaluate warnings
             student_warnings, alert_level = evaluate_warnings(
-                student_data, cohort,
+                student_data,
+                cohort,
             )
 
             # LLM interpretation
@@ -531,23 +574,31 @@ def batch_main(argv=None) -> int | None:
                     from forma.student_longitudinal_llm import generate_interpretation
 
                     anon_summary = anonymize(
-                        student_data, student_warnings,
+                        student_data,
+                        student_warnings,
                     )
                     llm_texts = generate_interpretation(
-                        anon_summary, llm_provider,
+                        anon_summary,
+                        llm_provider,
                     )
                 except Exception as exc:
                     logger.warning(
-                        "Student %s LLM interpretation failed (continuing): %s", student_id, exc,
+                        "Student %s LLM interpretation failed (continuing): %s",
+                        student_id,
+                        exc,
                     )
 
             # Generate PDF
             output_path = os.path.join(
-                args.output_dir, f"{student_id}.pdf",
+                args.output_dir,
+                f"{safe_filename(student_id)}.pdf",
             )
             gen.generate_pdf(
-                student_data, cohort, student_warnings,
-                alert_level, output_path,
+                student_data,
+                cohort,
+                student_warnings,
+                alert_level,
+                output_path,
                 llm_texts=llm_texts,
             )
             success += 1
@@ -568,48 +619,63 @@ def _build_summary_parser() -> argparse.ArgumentParser:
         description="All-student longitudinal summary PDF report generator (table only)",
     )
     parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Longitudinal store YAML file path",
     )
     parser.add_argument(
-        "--id-csv", required=True, dest="id_csv",
+        "--id-csv",
+        required=True,
+        dest="id_csv",
         help="Student ID-name-class mapping CSV file path",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="Output PDF file path",
     )
     # Week selection (mutually exclusive)
     summary_week_group = parser.add_mutually_exclusive_group()
     summary_week_group.add_argument(
-        "--week", default=None,
+        "--week",
+        default=None,
         help="(DEPRECATED) Use --weeks instead.",
     )
     summary_week_group.add_argument(
-        "--weeks", nargs="+", default=None,
-        help=(
-            "Week selection: single N (1..N), "
-            "range start:end, or list 1 3 5"
-        ),
+        "--weeks",
+        nargs="+",
+        default=None,
+        help=("Week selection: single N (1..N), range start:end, or list 1 3 5"),
     )
     parser.add_argument(
-        "--course-name", default="", dest="course_name",
+        "--course-name",
+        default="",
+        dest="course_name",
         help="Course name (displayed on cover)",
     )
     parser.add_argument(
-        "--font-path", default=None, dest="font_path",
+        "--font-path",
+        default=None,
+        dest="font_path",
         help="Korean font file path (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--dpi", type=int, default=150,
+        "--dpi",
+        type=int,
+        default=150,
         help="DPI (default: 150)",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
     return parser
@@ -634,6 +700,7 @@ def summary_main(argv=None) -> int | None:
     if not args.no_config:
         try:
             from forma.project_config import apply_project_config
+
             raw_argv = argv if argv is not None else sys.argv[1:]
             apply_project_config(args, argv=raw_argv)
         except Exception as exc:
@@ -700,10 +767,14 @@ def summary_main(argv=None) -> int | None:
     # Generate PDF
     try:
         gen = CohortSummaryPDFReportGenerator(
-            font_path=args.font_path, dpi=args.dpi,
+            font_path=args.font_path,
+            dpi=args.dpi,
         )
         result = gen.generate_pdf(
-            rows, weeks, args.output, course_name=args.course_name,
+            rows,
+            weeks,
+            args.output,
+            course_name=args.course_name,
         )
         logger.info("Summary report generated: %s", result)
     except FileNotFoundError as exc:

@@ -96,10 +96,7 @@ def compute_emphasis_map(
     else:
         normalized = np.zeros_like(hit_counts)
 
-    concept_scores = {
-        concept: float(np.clip(score, 0.0, 1.0))
-        for concept, score in zip(concepts, normalized)
-    }
+    concept_scores = {concept: float(np.clip(score, 0.0, 1.0)) for concept, score in zip(concepts, normalized)}
 
     return InstructionalEmphasisMap(
         concept_scores=concept_scores,
@@ -132,9 +129,6 @@ def compute_weighted_concept_coverage(
     if total_weight <= 0:
         return 0.0
 
-    weighted_sum = sum(
-        weight * mastery.get(concept, 0.0)
-        for concept, weight in emphasis_map.concept_scores.items()
-    )
+    weighted_sum = sum(weight * mastery.get(concept, 0.0) for concept, weight in emphasis_map.concept_scores.items())
 
     return weighted_sum / total_weight

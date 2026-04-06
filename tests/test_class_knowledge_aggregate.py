@@ -87,9 +87,14 @@ class TestAggregateEdgeDataclass:
         from forma.class_knowledge_aggregate import AggregateEdge
 
         edge = AggregateEdge(
-            subject="X", relation="Y", obj="Z",
-            correct_count=1, error_count=2, missing_count=3,
-            total_students=6, correct_ratio=1 / 6,
+            subject="X",
+            relation="Y",
+            obj="Z",
+            correct_count=1,
+            error_count=2,
+            missing_count=3,
+            total_students=6,
+            correct_ratio=1 / 6,
         )
         assert isinstance(edge.subject, str)
         assert isinstance(edge.relation, str)
@@ -167,12 +172,14 @@ class TestBuildClassKnowledgeAggregate30Students:
                 matched = [edge2]
                 wrong = []
 
-            results.append(_make_comparison_result(
-                student_id=f"S{i:03d}",
-                question_sn=1,
-                matched=matched,
-                wrong_direction=wrong,
-            ))
+            results.append(
+                _make_comparison_result(
+                    student_id=f"S{i:03d}",
+                    question_sn=1,
+                    matched=matched,
+                    wrong_direction=wrong,
+                )
+            )
         return results
 
     def test_total_students(self, master_edges, comparison_results):
@@ -257,10 +264,7 @@ class TestBuildClassKnowledgeAggregateAllMissing:
 
         master = [TripletEdge(subject="A", relation="R", object="B")]
         # 10 students, none have the edge matched or wrong
-        results = [
-            _make_comparison_result(f"S{i}", 1, matched=[], wrong_direction=[])
-            for i in range(10)
-        ]
+        results = [_make_comparison_result(f"S{i}", 1, matched=[], wrong_direction=[]) for i in range(10)]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
 
         assert len(agg.edges) == 1
@@ -280,10 +284,13 @@ class TestBuildClassKnowledgeAggregateSingleStudent:
         from forma.class_knowledge_aggregate import build_class_knowledge_aggregate
 
         master = [TripletEdge(subject="A", relation="R", object="B")]
-        results = [_make_comparison_result(
-            "S001", 1,
-            matched=[TripletEdge(subject="A", relation="R", object="B")],
-        )]
+        results = [
+            _make_comparison_result(
+                "S001",
+                1,
+                matched=[TripletEdge(subject="A", relation="R", object="B")],
+            )
+        ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
 
         assert agg.total_students == 1
@@ -298,11 +305,14 @@ class TestBuildClassKnowledgeAggregateSingleStudent:
         from forma.class_knowledge_aggregate import build_class_knowledge_aggregate
 
         master = [TripletEdge(subject="A", relation="R", object="B")]
-        results = [_make_comparison_result(
-            "S001", 1,
-            # wrong_direction_edges stores the student's reversed edge (B→A, not A→B)
-            wrong_direction=[TripletEdge(subject="B", relation="R", object="A")],
-        )]
+        results = [
+            _make_comparison_result(
+                "S001",
+                1,
+                # wrong_direction_edges stores the student's reversed edge (B→A, not A→B)
+                wrong_direction=[TripletEdge(subject="B", relation="R", object="A")],
+            )
+        ]
         agg = build_class_knowledge_aggregate(master, results, question_sn=1)
 
         edge = agg.edges[0]

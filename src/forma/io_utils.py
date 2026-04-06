@@ -21,6 +21,21 @@ from typing import Any
 import yaml
 
 
+def safe_filename(name: str) -> str:
+    """Sanitize a string for safe use as a filename component.
+
+    Args:
+        name: Raw string (e.g. student ID from YAML).
+
+    Returns:
+        Sanitized string with path separators, parent-directory
+        references, and null bytes removed.
+    """
+    safe = name.replace("/", "_").replace("\\", "_").replace("..", "_")
+    safe = safe.replace("\x00", "")
+    return safe or "unknown"
+
+
 def _atomic_write(
     write_fn,
     path: str | Path,
@@ -87,6 +102,7 @@ def atomic_write_yaml(
         OSError: If the write or lock operation fails.
         TypeError: If data is not YAML-serializable.
     """
+
     def _write(f):
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
 
@@ -112,6 +128,7 @@ def atomic_write_json(
         OSError: If the write or lock operation fails.
         TypeError: If data is not JSON-serializable.
     """
+
     def _write(f):
         json.dump(data, f, ensure_ascii=False, indent=indent)
 
@@ -134,6 +151,7 @@ def atomic_write_text(
     Raises:
         OSError: If the write or lock operation fails.
     """
+
     def _write(f):
         f.write(content)
 

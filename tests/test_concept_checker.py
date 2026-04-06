@@ -120,11 +120,13 @@ class TestComputeTopKMeanSimilarity:
 
     def test_top_k_mean_selects_highest(self):
         """Top-2 mean should be higher than full mean when sims vary."""
-        sent_emb = np.array([
-            [1.0, 0.0],   # sim=1.0 to [1,0]
-            [0.0, 1.0],   # sim=0.0 to [1,0]
-            [0.7, 0.7],   # sim≈0.707
-        ])
+        sent_emb = np.array(
+            [
+                [1.0, 0.0],  # sim=1.0 to [1,0]
+                [0.0, 1.0],  # sim=0.0 to [1,0]
+                [0.7, 0.7],  # sim≈0.707
+            ]
+        )
         concept_emb = np.array([1.0, 0.0])
         result = compute_top_k_mean_similarity(sent_emb, concept_emb, k=2)
         expected = (1.0 + 0.7071) / 2

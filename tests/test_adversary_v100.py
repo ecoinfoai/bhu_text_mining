@@ -115,7 +115,9 @@ def _make_grade_yaml(data: dict, path: str | None = None) -> str:
 
 
 def _make_store_with_trajectory(
-    student_id: str, weeks: list[int], scores: list[float],
+    student_id: str,
+    weeks: list[int],
+    scores: list[float],
 ):
     """Build a LongitudinalStore with ensemble_score trajectory."""
     from forma.evaluation_types import LongitudinalRecord
@@ -125,14 +127,16 @@ def _make_store_with_trajectory(
         path = f.name
     store = LongitudinalStore(path)
     for w, s in zip(weeks, scores):
-        store.add_record(LongitudinalRecord(
-            student_id=student_id,
-            week=w,
-            question_sn=1,
-            scores={"ensemble_score": s},
-            tier_level=1,
-            tier_label="Developing",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id=student_id,
+                week=w,
+                question_sn=1,
+                scores={"ensemble_score": s},
+                tier_level=1,
+                tier_label="Developing",
+            )
+        )
     return store, path
 
 
@@ -288,7 +292,9 @@ class TestInterventionSaboteur:
     def test_load_empty_yaml(self):
         """Loading an empty YAML file should initialize empty."""
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
         ) as f:
             f.write("")
             path = f.name
@@ -302,7 +308,9 @@ class TestInterventionSaboteur:
     def test_load_corrupt_yaml(self):
         """Loading corrupt YAML should raise."""
         with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w",
+            suffix=".yaml",
+            delete=False,
+            mode="w",
         ) as f:
             f.write(":::not valid yaml::: {{{")
             path = f.name
@@ -530,10 +538,7 @@ class TestDAGPoisoner:
 
     def test_1000_node_linear_chain(self):
         """1000-node linear chain should build quickly."""
-        deps = [
-            ConceptDependency(f"C{i:04d}", f"C{i+1:04d}")
-            for i in range(999)
-        ]
+        deps = [ConceptDependency(f"C{i:04d}", f"C{i + 1:04d}") for i in range(999)]
         start = time.time()
         dag = build_and_validate_dag(deps)
         elapsed = time.time() - start
@@ -548,11 +553,13 @@ class TestDAGPoisoner:
 
     def test_unicode_concept_names(self):
         """Korean/CJK concept names should work in DAG."""
-        dag = _make_simple_dag([
-            ("세포막 구조", "물질 이동"),
-            ("물질 이동", "삼투압"),
-            ("삼투압", "체액 균형"),
-        ])
+        dag = _make_simple_dag(
+            [
+                ("세포막 구조", "물질 이동"),
+                ("물질 이동", "삼투압"),
+                ("삼투압", "체액 균형"),
+            ]
+        )
         assert "세포막 구조" in dag.nodes
         assert "체액 균형" in dag.nodes
 
@@ -589,10 +596,12 @@ class TestDAGPoisoner:
 
     def test_parse_valid_entries(self):
         """Valid entries should be parsed correctly."""
-        raw = {"concept_dependencies": [
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ]}
+        raw = {
+            "concept_dependencies": [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        }
         result = parse_concept_dependencies(raw)
         assert len(result) == 2
         assert result[0].prerequisite == "A"
@@ -600,11 +609,13 @@ class TestDAGPoisoner:
 
     def test_parse_malformed_entry_skipped(self, caplog):
         """Entry missing required keys should be skipped with warning."""
-        raw = {"concept_dependencies": [
-            {"prerequisite": "A", "dependent": "B"},
-            {"missing_key": "value"},  # malformed
-            {"prerequisite": "B", "dependent": "C"},
-        ]}
+        raw = {
+            "concept_dependencies": [
+                {"prerequisite": "A", "dependent": "B"},
+                {"missing_key": "value"},  # malformed
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        }
         with caplog.at_level(logging.WARNING):
             result = parse_concept_dependencies(raw)
         assert len(result) == 2
@@ -612,10 +623,12 @@ class TestDAGPoisoner:
 
     def test_parse_none_entry_skipped(self, caplog):
         """None entry in the list should be skipped with warning."""
-        raw = {"concept_dependencies": [
-            {"prerequisite": "A", "dependent": "B"},
-            None,
-        ]}
+        raw = {
+            "concept_dependencies": [
+                {"prerequisite": "A", "dependent": "B"},
+                None,
+            ]
+        }
         with caplog.at_level(logging.WARNING):
             result = parse_concept_dependencies(raw)
         assert len(result) == 1
@@ -632,10 +645,7 @@ class TestDAGPoisoner:
 
     def test_large_cycle_100_nodes(self):
         """100-node cycle should be detected."""
-        deps = [
-            ConceptDependency(f"N{i}", f"N{(i+1) % 100}")
-            for i in range(100)
-        ]
+        deps = [ConceptDependency(f"N{i}", f"N{(i + 1) % 100}") for i in range(100)]
         with pytest.raises(ValueError, match="cycle"):
             build_and_validate_dag(deps)
 
@@ -652,9 +662,11 @@ class TestDAGPoisoner:
 
     def test_concept_with_spaces_and_special_chars(self):
         """Concepts with spaces and punctuation should work."""
-        dag = _make_simple_dag([
-            ("concept A (v1)", "concept B [beta]"),
-        ])
+        dag = _make_simple_dag(
+            [
+                ("concept A (v1)", "concept B [beta]"),
+            ]
+        )
         assert "concept A (v1)" in dag.nodes
 
     def test_empty_string_concept(self):
@@ -669,11 +681,16 @@ class TestDAGPoisoner:
 
     def test_parallel_paths_to_same_node(self):
         """Multiple paths to same node: valid DAG."""
-        dag = _make_simple_dag([
-            ("A", "C"), ("B", "C"),
-            ("A", "D"), ("B", "D"),
-            ("C", "E"), ("D", "E"),
-        ])
+        dag = _make_simple_dag(
+            [
+                ("A", "C"),
+                ("B", "C"),
+                ("A", "D"),
+                ("B", "D"),
+                ("C", "E"),
+                ("D", "E"),
+            ]
+        )
         assert len(dag.nodes) == 5
 
 
@@ -732,10 +749,15 @@ class TestGradeDataCorruptor:
 
     def test_valid_all_grades(self):
         """All 5 valid grades should load successfully."""
-        data = {"sem1": {
-            "S001": "A", "S002": "B", "S003": "C",
-            "S004": "D", "S005": "F",
-        }}
+        data = {
+            "sem1": {
+                "S001": "A",
+                "S002": "B",
+                "S003": "C",
+                "S004": "D",
+                "S005": "F",
+            }
+        }
         path = _make_grade_yaml(data)
         try:
             mapping = load_grade_mapping(path)
@@ -810,7 +832,7 @@ class TestGradeDataCorruptor:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (30, 21))
-        labels = np.array([4]*10 + [3]*10 + [2]*10)  # A, B, C only
+        labels = np.array([4] * 10 + [3] * 10 + [2] * 10)  # A, B, C only
         model = predictor.train(matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10)
         # Only 3 classes learned
         assert set(model.classes).issubset({0, 1, 2, 3, 4})
@@ -820,7 +842,7 @@ class TestGradeDataCorruptor:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (20, 21))
-        labels = np.array([4]*10 + [3]*10)  # only A, B
+        labels = np.array([4] * 10 + [3] * 10)  # only A, B
         model = predictor.train(matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10)
         preds = predictor.predict(model, matrix[:5], [f"S{i}" for i in range(5)])
         for p in preds:
@@ -834,7 +856,7 @@ class TestGradeDataCorruptor:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (20, 21))
-        labels = np.array([4]*5 + [3]*5 + [2]*5 + [1]*5)
+        labels = np.array([4] * 5 + [3] * 5 + [2] * 5 + [1] * 5)
         model = predictor.train(matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10)
 
         with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
@@ -883,7 +905,9 @@ class TestGradeDataCorruptor:
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (5, 21))
         preds = predictor.predict_cold_start(
-            matrix, [f"S{i}" for i in range(5)], list(GRADE_FEATURE_NAMES),
+            matrix,
+            [f"S{i}" for i in range(5)],
+            list(GRADE_FEATURE_NAMES),
         )
         assert len(preds) == 5
         for p in preds:
@@ -896,7 +920,9 @@ class TestGradeDataCorruptor:
         predictor = GradePredictor()
         matrix = np.zeros((3, 21))
         preds = predictor.predict_cold_start(
-            matrix, ["S001", "S002", "S003"], list(GRADE_FEATURE_NAMES),
+            matrix,
+            ["S001", "S002", "S003"],
+            list(GRADE_FEATURE_NAMES),
         )
         for p in preds:
             assert p.predicted_grade in VALID_GRADES
@@ -910,7 +936,9 @@ class TestGradeDataCorruptor:
         matrix = np.zeros((1, 21))
         matrix[0, mean_idx] = 0.95
         preds = predictor.predict_cold_start(
-            matrix, ["S001"], feature_names,
+            matrix,
+            ["S001"],
+            feature_names,
         )
         assert preds[0].predicted_grade == "A"
 
@@ -922,7 +950,9 @@ class TestGradeDataCorruptor:
         matrix = np.zeros((1, 21))
         matrix[0, mean_idx] = 0.1
         preds = predictor.predict_cold_start(
-            matrix, ["S001"], feature_names,
+            matrix,
+            ["S001"],
+            feature_names,
         )
         assert preds[0].predicted_grade == "F"
 
@@ -997,7 +1027,7 @@ class TestPDFCrasher:
         gen = ProfessorPDFReportGenerator()
         preds = [
             GradePrediction(
-                student_id='<S001&"test\'>',
+                student_id="<S001&\"test'>",
                 predicted_grade="A",
                 grade_probabilities={"A": 1.0, "B": 0, "C": 0, "D": 0, "F": 0},
             ),
@@ -1209,8 +1239,13 @@ class TestPDFCrasher:
         from forma.professor_report import ProfessorPDFReportGenerator
 
         gen = ProfessorPDFReportGenerator()
-        preds = [GradePrediction(student_id="S001", predicted_grade="B",
-                                  grade_probabilities={"A": 0.1, "B": 0.5, "C": 0.2, "D": 0.1, "F": 0.1})]
+        preds = [
+            GradePrediction(
+                student_id="S001",
+                predicted_grade="B",
+                grade_probabilities={"A": 0.1, "B": 0.5, "C": 0.2, "D": 0.1, "F": 0.1},
+            )
+        ]
         effects = [InterventionEffect("S001", 1, "면담", 3, 0.4, 0.6, 0.2, True)]
         summaries = [InterventionTypeSummary("면담", 1, 1, 1, 0, 0.2)]
         dag = _make_simple_dag([("A", "B")])
@@ -1231,11 +1266,13 @@ class TestPDFCrasher:
         from forma.professor_report import ProfessorPDFReportGenerator
 
         gen = ProfessorPDFReportGenerator()
-        preds = [GradePrediction(
-            student_id="김" * 100,
-            predicted_grade="A",
-            grade_probabilities={"A": 1.0, "B": 0, "C": 0, "D": 0, "F": 0},
-        )]
+        preds = [
+            GradePrediction(
+                student_id="김" * 100,
+                predicted_grade="A",
+                grade_probabilities={"A": 1.0, "B": 0, "C": 0, "D": 0, "F": 0},
+            )
+        ]
         with tempfile.TemporaryDirectory() as tmpdir:
             out = gen.generate_pdf(
                 report_data=_make_minimal_report_data(),
@@ -1252,8 +1289,10 @@ class TestPDFCrasher:
         summaries = [
             InterventionTypeSummary(
                 intervention_type=itype,
-                n_total=10, n_sufficient=8,
-                n_positive=5, n_negative=3,
+                n_total=10,
+                n_sufficient=8,
+                n_positive=5,
+                n_negative=3,
                 mean_change=0.05 * (i + 1),
             )
             for i, itype in enumerate(INTERVENTION_TYPES)
@@ -1303,7 +1342,8 @@ class TestPDFCrasher:
         dag = _make_simple_dag([("A", "B"), ("B", "C")])
         deficit_map = ClassDeficitMap(
             concept_counts={"A": 0, "B": 0, "C": 0},
-            total_students=50, dag=dag,
+            total_students=50,
+            dag=dag,
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             out = gen.generate_pdf(
@@ -1339,11 +1379,13 @@ class TestPDFCrasher:
         from forma.professor_report import ProfessorPDFReportGenerator
 
         gen = ProfessorPDFReportGenerator()
-        preds = [GradePrediction(
-            student_id="S001",
-            predicted_grade="C",
-            grade_probabilities={"A": 0.1, "B": 0.2, "C": 0.4, "D": 0.2, "F": 0.1},
-        )]
+        preds = [
+            GradePrediction(
+                student_id="S001",
+                predicted_grade="C",
+                grade_probabilities={"A": 0.1, "B": 0.2, "C": 0.4, "D": 0.2, "F": 0.1},
+            )
+        ]
         with tempfile.TemporaryDirectory() as tmpdir:
             out = gen.generate_pdf(
                 report_data=_make_minimal_report_data(),
@@ -1419,7 +1461,7 @@ class TestPDFCrasher:
         from forma.professor_report import ProfessorPDFReportGenerator
 
         gen = ProfessorPDFReportGenerator()
-        edges = [(f"C{i}", f"C{i+1}") for i in range(49)]
+        edges = [(f"C{i}", f"C{i + 1}") for i in range(49)]
         dag = _make_simple_dag(edges)
         counts = {f"C{i}": i for i in range(50)}
         deficit_map = ClassDeficitMap(concept_counts=counts, total_students=100, dag=dag)
@@ -1476,8 +1518,11 @@ class TestPDFCrasher:
 def _make_minimal_report_data():
     """Create minimal ProfessorReportData for PDF generation tests."""
     from forma.professor_report_data import (
-        ProfessorReportData, StudentSummaryRow, QuestionClassStats,
+        ProfessorReportData,
+        StudentSummaryRow,
+        QuestionClassStats,
     )
+
     qstats = [
         QuestionClassStats(
             question_sn=sn,
@@ -1547,7 +1592,7 @@ class TestBoundaryPusher:
 
     def test_learning_path_exactly_20_concepts(self):
         """Exactly 20 deficit concepts: not capped."""
-        edges = [(f"C{i}", f"C{i+1}") for i in range(20)]
+        edges = [(f"C{i}", f"C{i + 1}") for i in range(20)]
         dag = _make_simple_dag(edges)
         # All 21 concepts deficit, but 20 is the cap
         scores = {f"C{i}": 0.0 for i in range(21)}
@@ -1557,7 +1602,7 @@ class TestBoundaryPusher:
 
     def test_learning_path_exactly_21_concepts_capped(self):
         """21 deficit concepts: capped at 20."""
-        edges = [(f"C{i}", f"C{i+1}") for i in range(21)]
+        edges = [(f"C{i}", f"C{i + 1}") for i in range(21)]
         dag = _make_simple_dag(edges)
         scores = {f"C{i}": 0.0 for i in range(22)}
         lp = generate_learning_path("S001", scores, dag, threshold=0.4)
@@ -1630,10 +1675,7 @@ class TestBoundaryPusher:
     def test_class_deficit_map_all_students_deficit(self):
         """All students deficit on all concepts."""
         dag = _make_simple_dag([("A", "B")])
-        scores = {
-            f"S{i}": {"A": 0.1, "B": 0.2}
-            for i in range(50)
-        }
+        scores = {f"S{i}": {"A": 0.1, "B": 0.2} for i in range(50)}
         dm = build_class_deficit_map(scores, dag, threshold=0.4)
         assert dm.concept_counts["A"] == 50
         assert dm.concept_counts["B"] == 50
@@ -1657,7 +1699,9 @@ class TestBoundaryPusher:
     def test_effect_sufficient_data(self):
         """Intervention at week 3 with data weeks 1-5: sufficient data."""
         store, spath = _make_store_with_trajectory(
-            "S001", [1, 2, 3, 4, 5], [0.3, 0.4, 0.5, 0.6, 0.7],
+            "S001",
+            [1, 2, 3, 4, 5],
+            [0.3, 0.4, 0.5, 0.6, 0.7],
         )
         log, lpath = _make_log()
         try:
@@ -1707,9 +1751,12 @@ class TestBoundaryPusher:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (10, 21))
-        labels = np.array([4]*5 + [3]*5)
+        labels = np.array([4] * 5 + [3] * 5)
         model = predictor.train(
-            matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10,
+            matrix,
+            labels,
+            list(GRADE_FEATURE_NAMES),
+            min_students=10,
         )
         assert model.n_students == 10
 
@@ -1718,10 +1765,13 @@ class TestBoundaryPusher:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (9, 21))
-        labels = np.array([4]*5 + [3]*4)
+        labels = np.array([4] * 5 + [3] * 4)
         with pytest.raises(ValueError, match="Insufficient students"):
             predictor.train(
-                matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10,
+                matrix,
+                labels,
+                list(GRADE_FEATURE_NAMES),
+                min_students=10,
             )
 
     def test_cold_start_threshold_085(self):
@@ -1799,10 +1849,7 @@ class TestConcurrentChaos:
                     errors.append(e)
 
         try:
-            threads = [
-                threading.Thread(target=add_batch, args=(i * 20,))
-                for i in range(5)
-            ]
+            threads = [threading.Thread(target=add_batch, args=(i * 20,)) for i in range(5)]
             for t in threads:
                 t.start()
             for t in threads:
@@ -1867,19 +1914,13 @@ class TestConcurrentChaos:
 
         def validate_dag(n_nodes):
             try:
-                deps = [
-                    ConceptDependency(f"C{i}", f"C{i+1}")
-                    for i in range(n_nodes - 1)
-                ]
+                deps = [ConceptDependency(f"C{i}", f"C{i + 1}") for i in range(n_nodes - 1)]
                 dag = build_and_validate_dag(deps)
                 results.append(len(dag.nodes))
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=validate_dag, args=(50 + i * 10,))
-            for i in range(10)
-        ]
+        threads = [threading.Thread(target=validate_dag, args=(50 + i * 10,)) for i in range(10)]
         for t in threads:
             t.start()
         for t in threads:
@@ -1893,7 +1934,7 @@ class TestConcurrentChaos:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (20, 21))
-        labels = np.array([4]*5 + [3]*5 + [2]*5 + [1]*5)
+        labels = np.array([4] * 5 + [3] * 5 + [2] * 5 + [1] * 5)
         model = predictor.train(matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10)
 
         with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
@@ -1931,9 +1972,7 @@ class TestConcurrentChaos:
 
     def test_concurrent_learning_path_generation(self):
         """Concurrent learning path generation: no shared state issues."""
-        dag = _make_simple_dag([
-            (f"C{i}", f"C{i+1}") for i in range(20)
-        ])
+        dag = _make_simple_dag([(f"C{i}", f"C{i + 1}") for i in range(20)])
         errors: list[Exception] = []
         results: list[int] = []
 
@@ -1945,10 +1984,7 @@ class TestConcurrentChaos:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=gen_path, args=(f"S{i:03d}", i * 0.03))
-            for i in range(10)
-        ]
+        threads = [threading.Thread(target=gen_path, args=(f"S{i:03d}", i * 0.03)) for i in range(10)]
         for t in threads:
             t.start()
         for t in threads:
@@ -1960,7 +1996,9 @@ class TestConcurrentChaos:
     def test_concurrent_effect_computation(self):
         """Concurrent intervention effect computation: no crashes."""
         store, spath = _make_store_with_trajectory(
-            "S001", [1, 2, 3, 4, 5], [0.3, 0.4, 0.5, 0.6, 0.7],
+            "S001",
+            [1, 2, 3, 4, 5],
+            [0.3, 0.4, 0.5, 0.6, 0.7],
         )
         log, lpath = _make_log()
         log.add_record("S001", 3, "면담")
@@ -1989,9 +2027,7 @@ class TestConcurrentChaos:
     def test_concurrent_type_summary(self):
         """Concurrent compute_type_summary: deterministic results."""
         effects = [
-            InterventionEffect(f"S{i:03d}", i, INTERVENTION_TYPES[i % 5],
-                               3, 0.4, 0.6, 0.2, True)
-            for i in range(100)
+            InterventionEffect(f"S{i:03d}", i, INTERVENTION_TYPES[i % 5], 3, 0.4, 0.6, 0.2, True) for i in range(100)
         ]
         errors: list[Exception] = []
         results: list[int] = []
@@ -2013,11 +2049,8 @@ class TestConcurrentChaos:
 
     def test_concurrent_class_deficit_map(self):
         """Concurrent build_class_deficit_map: no shared state corruption."""
-        dag = _make_simple_dag([(f"C{i}", f"C{i+1}") for i in range(10)])
-        all_scores = {
-            f"S{i}": {f"C{j}": 0.1 * j for j in range(11)}
-            for i in range(50)
-        }
+        dag = _make_simple_dag([(f"C{i}", f"C{i + 1}") for i in range(10)])
+        all_scores = {f"S{i}": {f"C{j}": 0.1 * j for j in range(11)} for i in range(50)}
         errors: list[Exception] = []
         results: list[int] = []
 
@@ -2152,7 +2185,7 @@ class TestConcurrentChaos:
             try:
                 rng = np.random.RandomState(seed)
                 matrix = rng.uniform(0, 1, (20, 21))
-                labels = np.array([4]*5 + [3]*5 + [2]*5 + [1]*5)
+                labels = np.array([4] * 5 + [3] * 5 + [2] * 5 + [1] * 5)
                 predictor = GradePredictor()
                 model = predictor.train(matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10)
                 models.append(model)
@@ -2175,10 +2208,7 @@ class TestConcurrentChaos:
         def parse(n):
             try:
                 yaml_dict = {
-                    "concept_dependencies": [
-                        {"prerequisite": f"C{i}", "dependent": f"C{i+1}"}
-                        for i in range(n)
-                    ]
+                    "concept_dependencies": [{"prerequisite": f"C{i}", "dependent": f"C{i + 1}"} for i in range(n)]
                 }
                 deps = parse_concept_dependencies(yaml_dict)
                 results.append(len(deps))
@@ -2195,9 +2225,11 @@ class TestConcurrentChaos:
 
     def test_concurrent_grade_mapping_load(self):
         """Concurrent load_grade_mapping: each thread reads correctly."""
-        path = _make_grade_yaml({
-            "sem1": {f"S{i:03d}": ["A", "B", "C", "D", "F"][i % 5] for i in range(50)},
-        })
+        path = _make_grade_yaml(
+            {
+                "sem1": {f"S{i:03d}": ["A", "B", "C", "D", "F"][i % 5] for i in range(50)},
+            }
+        )
         errors: list[Exception] = []
         results: list[int] = []
 
@@ -2226,7 +2258,7 @@ class TestConcurrentChaos:
 
         def build(n):
             try:
-                deps = [ConceptDependency(f"X{i}", f"X{i+1}") for i in range(n)]
+                deps = [ConceptDependency(f"X{i}", f"X{i + 1}") for i in range(n)]
                 dag = build_and_validate_dag(deps)
                 results.append(len(dag.nodes))
             except Exception as e:
@@ -2281,10 +2313,7 @@ class TestConcurrentChaos:
                 errors.append(e)
 
         try:
-            threads = [
-                threading.Thread(target=add_for_student, args=(f"S{i:03d}",))
-                for i in range(10)
-            ]
+            threads = [threading.Thread(target=add_for_student, args=(f"S{i:03d}",)) for i in range(10)]
             for t in threads:
                 t.start()
             for t in threads:
@@ -2297,7 +2326,7 @@ class TestConcurrentChaos:
 
     def test_concurrent_dag_predecessors_successors(self):
         """Concurrent predecessors/successors queries: no crashes."""
-        deps = [ConceptDependency(f"C{i}", f"C{i+1}") for i in range(50)]
+        deps = [ConceptDependency(f"C{i}", f"C{i + 1}") for i in range(50)]
         dag = build_and_validate_dag(deps)
         errors: list[Exception] = []
 
@@ -2308,10 +2337,7 @@ class TestConcurrentChaos:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=query, args=(f"C{i}",))
-            for i in range(51)
-        ]
+        threads = [threading.Thread(target=query, args=(f"C{i}",)) for i in range(51)]
         for t in threads:
             t.start()
         for t in threads:
@@ -2325,7 +2351,7 @@ class TestConcurrentChaos:
 
         def gen(n):
             try:
-                dag = _make_simple_dag([(f"C{i}", f"C{i+1}") for i in range(n)])
+                dag = _make_simple_dag([(f"C{i}", f"C{i + 1}") for i in range(n)])
                 scores = {f"C{i}": 0.1 for i in range(n + 1)}
                 lp = generate_learning_path("S001", scores, dag, threshold=0.4)
                 results.append(len(lp.ordered_path))
@@ -2353,7 +2379,7 @@ class TestUnicodeAttacker:
         """Zero-width joiner (U+200D) in student_id: stored faithfully."""
         log, path = _make_log()
         try:
-            sid = "S\u200D001"
+            sid = "S\u200d001"
             log.add_record(sid, 1, "면담")
             records = log.get_records(student_id=sid)
             assert len(records) == 1
@@ -2365,7 +2391,7 @@ class TestUnicodeAttacker:
         """RTL override (U+202E) in description: stored faithfully."""
         log, path = _make_log()
         try:
-            desc = "\u202Eollebreverse\u202C"
+            desc = "\u202eollebreverse\u202c"
             log.add_record("S001", 1, "면담", description=desc)
             log.save()
             log2 = InterventionLog(path)
@@ -2390,7 +2416,7 @@ class TestUnicodeAttacker:
     def test_hangul_jamo_vs_composed(self):
         """Decomposed vs composed Hangul: treated as different strings."""
         # Composed "한" vs Decomposed "ㅎㅏㄴ"
-        composed = "\ud55c"       # 한
+        composed = "\ud55c"  # 한
         decomposed = "\u3134\u314f\u3131"  # ㄴㅏㄱ (not same as 한)
         dag = _make_simple_dag([(composed, decomposed)])
         assert composed in dag.nodes
@@ -2399,9 +2425,11 @@ class TestUnicodeAttacker:
 
     def test_half_width_katakana_in_concept(self):
         """Half-width katakana (U+FF65-FF9F) in concept names."""
-        dag = _make_simple_dag([
-            ("\uff76\uff80\uff76\uff85", "\uff8b\uff97\uff76\uff9e\uff85"),
-        ])
+        dag = _make_simple_dag(
+            [
+                ("\uff76\uff80\uff76\uff85", "\uff8b\uff97\uff76\uff9e\uff85"),
+            ]
+        )
         assert len(dag.nodes) == 2
 
     def test_combining_diacriticals_in_student_id(self):
@@ -2430,10 +2458,12 @@ class TestUnicodeAttacker:
 
     def test_korean_concept_in_learning_path(self):
         """Korean concepts in learning path: topological sort works."""
-        dag = _make_simple_dag([
-            ("세포막 구조", "물질 이동"),
-            ("물질 이동", "삼투압"),
-        ])
+        dag = _make_simple_dag(
+            [
+                ("세포막 구조", "물질 이동"),
+                ("물질 이동", "삼투압"),
+            ]
+        )
         scores = {"세포막 구조": 0.2, "물질 이동": 0.1, "삼투압": 0.3}
         lp = generate_learning_path("S001", scores, dag, threshold=0.4)
         assert "세포막 구조" in lp.ordered_path
@@ -2455,8 +2485,9 @@ class TestUnicodeAttacker:
     def test_unicode_normalization_distinct(self):
         """NFC vs NFD forms: treated as distinct concepts in DAG."""
         import unicodedata
-        nfc = unicodedata.normalize("NFC", "\uac00")   # 가 (composed)
-        nfd = unicodedata.normalize("NFD", "\uac00")   # 가 (decomposed)
+
+        nfc = unicodedata.normalize("NFC", "\uac00")  # 가 (composed)
+        nfd = unicodedata.normalize("NFD", "\uac00")  # 가 (decomposed)
         # These are visually same but byte-different
         dag = _make_simple_dag([(nfc, "B")])
         assert nfc in dag.nodes
@@ -2491,6 +2522,7 @@ class TestUnicodeAttacker:
     def test_xml_special_chars_in_intervention_type(self):
         """기타 with XML special chars in description for PDF safety."""
         from forma.professor_report import _esc
+
         text = '개입 <유형> & "특수" 문자'
         escaped = _esc(text)
         assert "&lt;" in escaped
@@ -2499,7 +2531,7 @@ class TestUnicodeAttacker:
 
     def test_surrogate_handling(self):
         """Supplementary plane characters (emoji) in DAG concept."""
-        concept = "개념\U0001F4DA"  # books emoji
+        concept = "개념\U0001f4da"  # books emoji
         dag = _make_simple_dag([(concept, "결과")])
         assert concept in dag.nodes
 
@@ -2522,9 +2554,9 @@ class TestUnicodeAttacker:
         """Unicode recorded_by field: stored faithfully."""
         log, path = _make_log()
         try:
-            log.add_record("S001", 1, "면담", recorded_by="김교수님 \U0001F393")
+            log.add_record("S001", 1, "면담", recorded_by="김교수님 \U0001f393")
             records = log.get_records()
-            assert records[0].recorded_by == "김교수님 \U0001F393"
+            assert records[0].recorded_by == "김교수님 \U0001f393"
         finally:
             os.unlink(path)
 
@@ -2583,10 +2615,7 @@ class TestInvariant1000DAG:
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n = rng.randint(2, 20)
-            deps = [
-                ConceptDependency(f"C{i}", f"C{i+1}")
-                for i in range(n - 1)
-            ]
+            deps = [ConceptDependency(f"C{i}", f"C{i + 1}") for i in range(n - 1)]
             dag = build_and_validate_dag(deps)
             assert len(dag.nodes) == n
 
@@ -2595,10 +2624,7 @@ class TestInvariant1000DAG:
         rng = np.random.RandomState(42)
         for _ in range(1000):
             n = rng.randint(3, 15)
-            deps = [
-                ConceptDependency(f"C{i}", f"C{i+1}")
-                for i in range(n - 1)
-            ]
+            deps = [ConceptDependency(f"C{i}", f"C{i + 1}") for i in range(n - 1)]
             dag = build_and_validate_dag(deps)
             scores = {f"C{i}": rng.uniform(0, 0.39) for i in range(n)}
             lp = generate_learning_path("S001", scores, dag, threshold=0.4)
@@ -2621,7 +2647,9 @@ class TestInvariant1000GradePredictor:
             n = rng.randint(1, 5)
             matrix = rng.uniform(-1, 2, (n, 21))
             preds = predictor.predict_cold_start(
-                matrix, [f"S{i}" for i in range(n)], feature_names,
+                matrix,
+                [f"S{i}" for i in range(n)],
+                feature_names,
             )
             for p in preds:
                 assert p.predicted_grade in VALID_GRADES
@@ -2635,7 +2663,9 @@ class TestInvariant1000GradePredictor:
             n = rng.randint(1, 5)
             matrix = rng.uniform(-1, 2, (n, 21))
             preds = predictor.predict_cold_start(
-                matrix, [f"S{i}" for i in range(n)], feature_names,
+                matrix,
+                [f"S{i}" for i in range(n)],
+                feature_names,
             )
             for p in preds:
                 total = sum(p.grade_probabilities.values())
@@ -2646,7 +2676,7 @@ class TestInvariant1000GradePredictor:
         predictor = GradePredictor()
         rng = np.random.RandomState(42)
         matrix = rng.uniform(0, 1, (30, 21))
-        labels = np.array([4]*8 + [3]*7 + [2]*7 + [1]*4 + [0]*4)
+        labels = np.array([4] * 8 + [3] * 7 + [2] * 7 + [1] * 4 + [0] * 4)
         model = predictor.train(matrix, labels, list(GRADE_FEATURE_NAMES), min_students=10)
         for _ in range(100):
             n = rng.randint(1, 10)
@@ -2676,11 +2706,16 @@ class TestInvariant1000InterventionEffect:
                 weeks = list(range(1, 7))
                 scores_vals = rng.uniform(0, 1, 6).tolist()
                 for w, s in zip(weeks, scores_vals):
-                    store.add_record(LongitudinalRecord(
-                        student_id="S001", week=w, question_sn=1,
-                        scores={"ensemble_score": s},
-                        tier_level=1, tier_label="Dev",
-                    ))
+                    store.add_record(
+                        LongitudinalRecord(
+                            student_id="S001",
+                            week=w,
+                            question_sn=1,
+                            scores={"ensemble_score": s},
+                            tier_level=1,
+                            tier_label="Dev",
+                        )
+                    )
                 log = InterventionLog(lpath)
                 log.add_record("S001", 3, "면담")
 
@@ -2706,16 +2741,18 @@ class TestInvariant1000InterventionEffect:
                     change = rng.uniform(-0.5, 0.5)
                 else:
                     change = None
-                effects.append(InterventionEffect(
-                    student_id=f"S{i}",
-                    intervention_id=i,
-                    intervention_type=INTERVENTION_TYPES[i % 5],
-                    intervention_week=3,
-                    pre_mean=0.5 if sufficient else None,
-                    post_mean=(0.5 + change) if sufficient else None,
-                    score_change=change,
-                    sufficient_data=sufficient,
-                ))
+                effects.append(
+                    InterventionEffect(
+                        student_id=f"S{i}",
+                        intervention_id=i,
+                        intervention_type=INTERVENTION_TYPES[i % 5],
+                        intervention_week=3,
+                        pre_mean=0.5 if sufficient else None,
+                        post_mean=(0.5 + change) if sufficient else None,
+                        score_change=change,
+                        sufficient_data=sufficient,
+                    )
+                )
             summaries = compute_type_summary(effects)
             for s in summaries:
                 assert s.n_positive + s.n_negative <= s.n_sufficient

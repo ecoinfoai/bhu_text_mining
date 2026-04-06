@@ -64,9 +64,7 @@ class TestReportSubcommands:
         captured = capsys.readouterr()
         help_text = captured.out
         for report_type in ("student", "professor", "longitudinal", "warning", "batch"):
-            assert report_type in help_text, (
-                f"'{report_type}' not found in report help output"
-            )
+            assert report_type in help_text, f"'{report_type}' not found in report help output"
 
 
 class TestTrainSubcommands:
@@ -80,9 +78,7 @@ class TestTrainSubcommands:
         captured = capsys.readouterr()
         help_text = captured.out
         for train_type in ("risk", "grade"):
-            assert train_type in help_text, (
-                f"'{train_type}' not found in train help output"
-            )
+            assert train_type in help_text, f"'{train_type}' not found in train help output"
 
 
 class TestGlobalOptions:

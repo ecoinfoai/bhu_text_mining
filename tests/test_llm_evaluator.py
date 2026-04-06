@@ -61,7 +61,9 @@ class TestLLMEvaluatorInit:
         mock_factory, mock_prov = mock_provider
         evaluator = LLMEvaluator(api_key="test-key-abc", provider="gemini")
         mock_factory.assert_called_once_with(
-            provider="gemini", api_key="test-key-abc", model=None,
+            provider="gemini",
+            api_key="test-key-abc",
+            model=None,
         )
         assert evaluator.n_calls == 3
 
@@ -80,7 +82,9 @@ class TestLLMEvaluatorInit:
         mock_factory, _ = mock_provider
         LLMEvaluator(api_key="k", provider="anthropic")
         mock_factory.assert_called_once_with(
-            provider="anthropic", api_key="k", model=None,
+            provider="anthropic",
+            api_key="k",
+            model=None,
         )
 
     def test_init_custom_model(self, mock_provider):
@@ -88,7 +92,9 @@ class TestLLMEvaluatorInit:
         mock_factory, _ = mock_provider
         LLMEvaluator(api_key="k", model="custom-model")
         mock_factory.assert_called_once_with(
-            provider="gemini", api_key="k", model="custom-model",
+            provider="gemini",
+            api_key="k",
+            model="custom-model",
         )
 
     def test_n_calls_zero_raises(self, mock_provider):
@@ -193,9 +199,9 @@ class TestEvaluateResponse:
         """Median of [2, 2, 3] == 2.0."""
         _, mock_prov = mock_provider
         mock_prov.generate.side_effect = [
-            VALID_YAML_RESPONSE,   # score=2
-            VALID_YAML_RESPONSE,   # score=2
-            HIGH_SCORE_RESPONSE,   # score=3
+            VALID_YAML_RESPONSE,  # score=2
+            VALID_YAML_RESPONSE,  # score=2
+            HIGH_SCORE_RESPONSE,  # score=3
         ]
         evaluator = LLMEvaluator(api_key="k")
         result = self._call_evaluate(evaluator)
@@ -266,6 +272,7 @@ class TestComputeICC21:
     def test_perfect_agreement_icc_equals_one(self):
         """Identical ratings → ICC(2,1) = 1.0."""
         import numpy as np
+
         ratings = np.array([[2, 2, 2], [3, 3, 3], [1, 1, 1]], dtype=float)
         icc = compute_icc_2_1(ratings)
         assert icc == pytest.approx(1.0, abs=1e-6)
@@ -273,6 +280,7 @@ class TestComputeICC21:
     def test_random_ratings_icc_in_range(self):
         """Random ratings → ICC in [-1, 1]."""
         import numpy as np
+
         rng = np.random.default_rng(42)
         ratings = rng.integers(1, 4, size=(10, 3)).astype(float)
         icc = compute_icc_2_1(ratings)
@@ -281,6 +289,7 @@ class TestComputeICC21:
     def test_icc_returns_float(self):
         """Return type is Python float."""
         import numpy as np
+
         ratings = np.array([[1, 2, 3], [2, 2, 2]], dtype=float)
         assert isinstance(compute_icc_2_1(ratings), float)
 

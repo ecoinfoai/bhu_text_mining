@@ -189,12 +189,15 @@ class TestComputeConceptEmphasis:
         mock_emphasis = MagicMock()
         mock_emphasis.concept_scores = {"세포막": 0.8, "인지질": 0.6}
 
-        with patch(
-            "forma.emphasis_map.compute_emphasis_map",
-            return_value=mock_emphasis,
-        ), patch(
-            "kss.split_sentences",
-            return_value=["세포막은 인지질 이중층으로 구성된다."],
+        with (
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+                return_value=mock_emphasis,
+            ),
+            patch(
+                "kss.split_sentences",
+                return_value=["세포막은 인지질 이중층으로 구성된다."],
+            ),
         ):
             from forma.domain_coverage_analyzer import compute_concept_emphasis
 
@@ -228,12 +231,15 @@ class TestComputeConceptEmphasis:
                 mock.concept_scores = {"세포막": 0.7}
             return mock
 
-        with patch(
-            "forma.emphasis_map.compute_emphasis_map",
-            side_effect=mock_emphasis_fn,
-        ), patch(
-            "kss.split_sentences",
-            return_value=["세포막은 중요하다."],
+        with (
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+                side_effect=mock_emphasis_fn,
+            ),
+            patch(
+                "kss.split_sentences",
+                return_value=["세포막은 중요하다."],
+            ),
         ):
             from forma.domain_coverage_analyzer import compute_concept_emphasis
 
@@ -266,12 +272,15 @@ class TestComputeConceptEmphasis:
         mock_emphasis = MagicMock()
         mock_emphasis.concept_scores = {"세포막": 0.8}
 
-        with patch(
-            "forma.emphasis_map.compute_emphasis_map",
-            return_value=mock_emphasis,
-        ), patch(
-            "kss.split_sentences",
-            return_value=["세포막은 중요하다."],
+        with (
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+                return_value=mock_emphasis,
+            ),
+            patch(
+                "kss.split_sentences",
+                return_value=["세포막은 중요하다."],
+            ),
         ):
             from forma.domain_coverage_analyzer import compute_concept_emphasis
 
@@ -457,11 +466,13 @@ class TestCoverageYAMLIO:
         ]
         scope = TeachingScope(chapters=["3장"])
         classified = classify_concepts(concepts, emphasis, scope)
-        extras = [ExtraConcept(
-            name="염증",
-            section_mentions={"A": 5},
-            example_sentence="염증 반응",
-        )]
+        extras = [
+            ExtraConcept(
+                name="염증",
+                section_mentions={"A": 5},
+                example_sentence="염증 반응",
+            )
+        ]
 
         original = build_coverage_result(classified, extras, week=2, chapters=["3장"])
 
@@ -476,7 +487,8 @@ class TestCoverageYAMLIO:
         assert loaded.skipped_count == original.skipped_count
         assert loaded.extra_count == original.extra_count
         assert loaded.effective_coverage_rate == pytest.approx(
-            original.effective_coverage_rate, abs=0.001,
+            original.effective_coverage_rate,
+            abs=0.001,
         )
         assert len(loaded.classified_concepts) == len(original.classified_concepts)
         assert len(loaded.extra_concepts) == len(original.extra_concepts)
@@ -731,12 +743,15 @@ class TestAnalyzeDeliveryWithFallback:
         mock_emphasis = MagicMock()
         mock_emphasis.concept_scores = {"표피": 0.5}
 
-        with patch(
-            "forma.domain_coverage_analyzer.analyze_delivery_llm",
-            side_effect=RuntimeError("LLM unavailable"),
-        ), patch(
-            "forma.emphasis_map.compute_emphasis_map",
-            return_value=mock_emphasis,
+        with (
+            patch(
+                "forma.domain_coverage_analyzer.analyze_delivery_llm",
+                side_effect=RuntimeError("LLM unavailable"),
+            ),
+            patch(
+                "forma.emphasis_map.compute_emphasis_map",
+                return_value=mock_emphasis,
+            ),
         ):
             from forma.domain_coverage_analyzer import (
                 analyze_delivery_with_fallback,
@@ -812,7 +827,9 @@ class TestDeliveryResult:
         ]
         scope = TeachingScope(chapters=["3장"])
         result = build_delivery_result_v2(
-            deliveries, scope, ["c1", "c2", "c3"],
+            deliveries,
+            scope,
+            ["c1", "c2", "c3"],
         )
         # 2 delivered out of 3
         assert result.effective_delivery_rate == pytest.approx(2 / 3, abs=0.01)
@@ -827,7 +844,9 @@ class TestDeliveryResult:
         ]
         scope = TeachingScope(chapters=["3장"])
         result = build_delivery_result_v2(
-            deliveries, scope, ["c1", "c2"],
+            deliveries,
+            scope,
+            ["c1", "c2"],
         )
         assert result.per_section_rate["A"] == pytest.approx(0.5, abs=0.01)
         assert result.per_section_rate["B"] == pytest.approx(1.0, abs=0.01)
@@ -863,7 +882,8 @@ class TestDeliveryYAMLIO:
         assert loaded.week == original.week
         assert loaded.chapters == original.chapters
         assert loaded.effective_delivery_rate == pytest.approx(
-            original.effective_delivery_rate, abs=0.001,
+            original.effective_delivery_rate,
+            abs=0.001,
         )
         assert len(loaded.deliveries) == 2
         assert loaded.deliveries[0].concept == "c1"
@@ -908,12 +928,15 @@ class TestBuildDomainNetwork:
         mock_graph.nodes["세포막"]["frequency"] = 2
         mock_graph.nodes["인지질"]["frequency"] = 2
 
-        with patch(
-            "forma.network_analysis.extract_keywords",
-            return_value=["세포막", "인지질", "세포막", "인지질"],
-        ), patch(
-            "forma.network_analysis.create_network",
-            return_value=mock_graph,
+        with (
+            patch(
+                "forma.network_analysis.extract_keywords",
+                return_value=["세포막", "인지질", "세포막", "인지질"],
+            ),
+            patch(
+                "forma.network_analysis.create_network",
+                return_value=mock_graph,
+            ),
         ):
             net = build_domain_network(
                 text="세포막은 인지질로 구성. 오늘은 세포막을 배운다.",
@@ -1031,14 +1054,18 @@ class TestComputeEmbeddingSignal:
         """Returns combined score from max cosine similarity + key_term mean."""
         # Concept embedding (1 vector), transcript sentence embeddings (3 vectors)
         concept_vec = np.array([[1.0, 0.0, 0.0]])
-        sentence_vecs = np.array([
-            [0.9, 0.1, 0.0],   # high similarity
-            [0.0, 1.0, 0.0],   # low similarity
-            [0.5, 0.5, 0.0],   # medium similarity
-        ])
-        key_term_vecs = np.array([
-            [0.8, 0.2, 0.0],   # key_term 1 embedding
-        ])
+        sentence_vecs = np.array(
+            [
+                [0.9, 0.1, 0.0],  # high similarity
+                [0.0, 1.0, 0.0],  # low similarity
+                [0.5, 0.5, 0.0],  # medium similarity
+            ]
+        )
+        key_term_vecs = np.array(
+            [
+                [0.8, 0.2, 0.0],  # key_term 1 embedding
+            ]
+        )
         # Mock: first call for concept vs sentences, second for key_terms vs sentences
         call_count = [0]
 
@@ -1263,21 +1290,30 @@ class TestComputeEnsembleQuality:
         bad_weights = {"embedding": 0.5, "term_coverage": 0.5, "density": 0.5, "llm": 0.5}
         with pytest.raises(ValueError, match="sum"):
             compute_ensemble_quality(
-                s_emb=0.5, s_term=0.5, s_density=0.5, s_llm=0.5,
+                s_emb=0.5,
+                s_term=0.5,
+                s_density=0.5,
+                s_llm=0.5,
                 weights=bad_weights,
             )
 
     def test_all_zeros_returns_zero(self) -> None:
         """All zero signals → 0.0."""
         result = compute_ensemble_quality(
-            s_emb=0.0, s_term=0.0, s_density=0.0, s_llm=0.0,
+            s_emb=0.0,
+            s_term=0.0,
+            s_density=0.0,
+            s_llm=0.0,
         )
         assert result == pytest.approx(0.0)
 
     def test_all_ones_returns_one(self) -> None:
         """All perfect signals → 1.0."""
         result = compute_ensemble_quality(
-            s_emb=1.0, s_term=1.0, s_density=1.0, s_llm=1.0,
+            s_emb=1.0,
+            s_term=1.0,
+            s_density=1.0,
+            s_llm=1.0,
         )
         assert result == pytest.approx(1.0)
 
@@ -1340,12 +1376,15 @@ deliveries:
         # Mock embeddings to be deterministic
         dummy_emb = np.array([[1.0, 0.0, 0.0]])
 
-        with patch(
-            "forma.llm_provider.create_provider",
-            return_value=mock_provider,
-        ), patch(
-            "forma.domain_coverage_analyzer.encode_texts",
-            return_value=dummy_emb,
+        with (
+            patch(
+                "forma.llm_provider.create_provider",
+                return_value=mock_provider,
+            ),
+            patch(
+                "forma.domain_coverage_analyzer.encode_texts",
+                return_value=dummy_emb,
+            ),
         ):
             from forma.domain_coverage_analyzer import analyze_delivery_llm
 
@@ -1361,9 +1400,7 @@ deliveries:
         scores = da.signal_scores
         assert isinstance(scores, dict)
         expected_keys = {"embedding", "term_coverage", "density", "llm"}
-        assert expected_keys == set(scores.keys()), (
-            f"Expected keys {expected_keys}, got {set(scores.keys())}"
-        )
+        assert expected_keys == set(scores.keys()), f"Expected keys {expected_keys}, got {set(scores.keys())}"
         # All signal scores should be in [0, 1]
         for key, val in scores.items():
             assert 0.0 <= val <= 1.0, f"signal_scores[{key}]={val} out of range"
@@ -1377,12 +1414,15 @@ deliveries:
 
         mock_provider = MagicMock()
 
-        with patch(
-            "forma.llm_provider.create_provider",
-            return_value=mock_provider,
-        ), patch(
-            "forma.domain_coverage_analyzer.encode_texts",
-            return_value=dummy_emb,
+        with (
+            patch(
+                "forma.llm_provider.create_provider",
+                return_value=mock_provider,
+            ),
+            patch(
+                "forma.domain_coverage_analyzer.encode_texts",
+                return_value=dummy_emb,
+            ),
         ):
             from forma.domain_coverage_analyzer import analyze_delivery_llm
 
@@ -1494,12 +1534,15 @@ deliveries:
                 # sentence embeddings (unrelated topic)
                 return np.array([[0.0, 1.0, 0.0]] * len(texts)) if texts else np.array([[0.0, 1.0, 0.0]])
 
-        with patch(
-            "forma.llm_provider.create_provider",
-            return_value=mock_provider,
-        ), patch(
-            "forma.domain_coverage_analyzer.encode_texts",
-            side_effect=mock_encode,
+        with (
+            patch(
+                "forma.llm_provider.create_provider",
+                return_value=mock_provider,
+            ),
+            patch(
+                "forma.domain_coverage_analyzer.encode_texts",
+                side_effect=mock_encode,
+            ),
         ):
             from forma.domain_coverage_analyzer import analyze_delivery_llm
 
@@ -1536,9 +1579,7 @@ class TestDeliveryRubric:
         for tier_label in ["0.8", "0.5", "0.2", "0.0"]:
             if tier_label in _DELIVERY_RUBRIC:
                 tier_count += 1
-        assert tier_count == 4, (
-            f"Expected 4 scoring tiers in rubric, found {tier_count}"
-        )
+        assert tier_count == 4, f"Expected 4 scoring tiers in rubric, found {tier_count}"
 
     def test_rubric_included_in_prompt(self) -> None:
         """build_delivery_prompt() output includes rubric text."""
@@ -1555,9 +1596,7 @@ class TestDeliveryRubric:
         """All 4 tier ranges are present in the rubric."""
         tier_ranges = ["0.8~1.0", "0.5~0.7", "0.2~0.4", "0.0~0.1"]
         for tier_range in tier_ranges:
-            assert tier_range in _DELIVERY_RUBRIC, (
-                f"Tier range '{tier_range}' not found in _DELIVERY_RUBRIC"
-            )
+            assert tier_range in _DELIVERY_RUBRIC, f"Tier range '{tier_range}' not found in _DELIVERY_RUBRIC"
 
 
 # ================================================================
@@ -1610,13 +1649,11 @@ class TestChunkTranscriptWithOverlap:
             if check_len > 0:
                 # The overlap region should share content
                 for offset in range(0, len(chunk_end) - 100, 100):
-                    snippet = chunk_end[offset:offset + 100]
+                    snippet = chunk_end[offset : offset + 100]
                     if snippet in result[i + 1]:
                         overlap_found = True
                         break
-            assert overlap_found, (
-                f"No overlap detected between chunk {i} and chunk {i+1}"
-            )
+            assert overlap_found, f"No overlap detected between chunk {i} and chunk {i + 1}"
 
     def test_split_at_sentence_boundary(self) -> None:
         """Chunks don't split mid-sentence."""
@@ -1685,16 +1722,20 @@ deliveries:
 
         dummy_emb = np.array([[1.0, 0.0, 0.0]])
 
-        with patch(
-            "forma.llm_provider.create_provider",
-            return_value=mock_provider,
-        ), patch(
-            "forma.domain_coverage_analyzer.encode_texts",
-            return_value=dummy_emb,
-        ), patch(
-            "forma.domain_coverage_analyzer._chunk_transcript_with_overlap",
-            wraps=_chunk_transcript_with_overlap,
-        ) as mock_chunk:
+        with (
+            patch(
+                "forma.llm_provider.create_provider",
+                return_value=mock_provider,
+            ),
+            patch(
+                "forma.domain_coverage_analyzer.encode_texts",
+                return_value=dummy_emb,
+            ),
+            patch(
+                "forma.domain_coverage_analyzer._chunk_transcript_with_overlap",
+                wraps=_chunk_transcript_with_overlap,
+            ) as mock_chunk,
+        ):
             from forma.domain_coverage_analyzer import analyze_delivery_llm
 
             analyze_delivery_llm(
@@ -1727,9 +1768,9 @@ deliveries:
                     section_id="A",
                 )
 
-        assert result == [] or all(
-            d.delivery_status == "미전달" for d in result
-        ), "Empty transcript should return empty list or all NOT_DELIVERED"
+        assert result == [] or all(d.delivery_status == "미전달" for d in result), (
+            "Empty transcript should return empty list or all NOT_DELIVERED"
+        )
 
     def test_best_quality_across_chunks(self, tmp_path) -> None:
         """Same concept in 2 chunks with quality 0.6 and 0.8 → final based on 0.8."""
@@ -1772,12 +1813,15 @@ deliveries:
 
         dummy_emb = np.array([[1.0, 0.0, 0.0]])
 
-        with patch(
-            "forma.llm_provider.create_provider",
-            return_value=mock_provider,
-        ), patch(
-            "forma.domain_coverage_analyzer.encode_texts",
-            return_value=dummy_emb,
+        with (
+            patch(
+                "forma.llm_provider.create_provider",
+                return_value=mock_provider,
+            ),
+            patch(
+                "forma.domain_coverage_analyzer.encode_texts",
+                return_value=dummy_emb,
+            ),
         ):
             from forma.domain_coverage_analyzer import analyze_delivery_llm
 
@@ -1790,9 +1834,7 @@ deliveries:
         assert len(result) >= 1
         # The best chunk's quality (0.8) should be reflected, not the worst (0.6)
         best = max(r.delivery_quality for r in result if r.concept == "표피의 4층 구조")
-        assert best >= 0.7, (
-            f"Expected best quality >= 0.7 from chunk merging, got {best}"
-        )
+        assert best >= 0.7, f"Expected best quality >= 0.7 from chunk merging, got {best}"
 
 
 # ================================================================
@@ -1812,14 +1854,16 @@ def _build_4section_deliveries() -> list[DeliveryAnalysis]:
     concepts = ["표피의 4층 구조", "진피의 구조", "피부 보호 기능"]
     for section, quals in qualities.items():
         for concept, quality in zip(concepts, quals):
-            deliveries.append(DeliveryAnalysis(
-                concept=concept,
-                section_id=section,
-                delivery_status="충분히 설명" if quality >= 0.5 else "부분 전달",
-                delivery_quality=quality,
-                evidence="",
-                depth="",
-            ))
+            deliveries.append(
+                DeliveryAnalysis(
+                    concept=concept,
+                    section_id=section,
+                    delivery_status="충분히 설명" if quality >= 0.5 else "부분 전달",
+                    delivery_quality=quality,
+                    evidence="",
+                    depth="",
+                )
+            )
     return deliveries
 
 
@@ -1861,6 +1905,7 @@ class TestDeliveryPairwiseComparisons:
             DeliveryAnalysis("c1", "A", "충분히 설명", 0.9, "", ""),
         ]
         import logging as _logging
+
         with caplog.at_level(_logging.WARNING):
             comparisons = compute_delivery_pairwise_comparisons(deliveries)
         assert comparisons == []
@@ -1911,5 +1956,6 @@ class TestDeliverySectionComparisonSerialization:
         assert loaded.week == result.week
         assert len(loaded.deliveries) == len(result.deliveries)
         assert loaded.effective_delivery_rate == pytest.approx(
-            result.effective_delivery_rate, abs=0.001,
+            result.effective_delivery_rate,
+            abs=0.001,
         )

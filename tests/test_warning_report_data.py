@@ -6,7 +6,6 @@ T038 [US3]: Risk type classification, union inclusion, intervention mapping, ord
 from __future__ import annotations
 
 
-
 class TestRiskType:
     """Tests for RiskType enum."""
 

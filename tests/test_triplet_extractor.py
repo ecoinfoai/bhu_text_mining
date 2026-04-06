@@ -18,10 +18,12 @@ from forma.triplet_extractor import TripletExtractor
 # Helpers
 # ---------------------------------------------------------------------------
 
-SAMPLE_JSON_RESPONSE = json.dumps([
-    {"subject": "수용체", "relation": "감지하다", "object": "한계점"},
-    {"subject": "통합센터", "relation": "명령하다", "object": "효과기"},
-])
+SAMPLE_JSON_RESPONSE = json.dumps(
+    [
+        {"subject": "수용체", "relation": "감지하다", "object": "한계점"},
+        {"subject": "통합센터", "relation": "명령하다", "object": "효과기"},
+    ]
+)
 
 SAMPLE_JSON_WITH_MARKDOWN = f"```json\n{SAMPLE_JSON_RESPONSE}\n```"
 
@@ -59,11 +61,16 @@ class TestTripletExtractor:
         prov = _make_provider(responses)
 
         # Mock embeddings: identical triplets → high similarity
-        mock_encode.return_value = np.array([
-            [1.0, 0.0], [0.0, 1.0],  # call 0
-            [1.0, 0.0], [0.0, 1.0],  # call 1
-            [1.0, 0.0], [0.0, 1.0],  # call 2
-        ])
+        mock_encode.return_value = np.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],  # call 0
+                [1.0, 0.0],
+                [0.0, 1.0],  # call 1
+                [1.0, 0.0],
+                [0.0, 1.0],  # call 2
+            ]
+        )
 
         ext = TripletExtractor(prov)
         result = ext.extract("s001", 1, "질문?", "학생 답변", ["수용체", "통합센터"])
@@ -112,10 +119,12 @@ class TestTripletExtractor:
         """Items missing required keys are skipped."""
         prov = _make_provider([])
         ext = TripletExtractor(prov)
-        data = json.dumps([
-            {"subject": "A", "relation": "r"},  # missing object
-            {"subject": "B", "relation": "r", "object": "C"},  # valid
-        ])
+        data = json.dumps(
+            [
+                {"subject": "A", "relation": "r"},  # missing object
+                {"subject": "B", "relation": "r", "object": "C"},  # valid
+            ]
+        )
         triplets = ext._parse_triplets(data)
         assert len(triplets) == 1
         assert triplets[0].subject == "B"

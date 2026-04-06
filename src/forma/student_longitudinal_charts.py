@@ -75,8 +75,9 @@ def build_coverage_trend_chart(
     weeks = student_data.weeks
     if not weeks:
         q_label = "개념이해" if qsn == 1 else "적용"
-        ax.text(0.5, 0.5, f"문제 {qsn} ({q_label}) — 데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=12)
+        ax.text(
+            0.5, 0.5, f"문제 {qsn} ({q_label}) — 데이터 없음", ha="center", va="center", fontproperties=fp, fontsize=12
+        )
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -117,16 +118,20 @@ def build_coverage_trend_chart(
     # Draw student line plot
     if student_weeks:
         ax.plot(
-            student_weeks, student_vals,
-            "o-", color="#1565C0", linewidth=2, markersize=6,
-            label="학생", zorder=5,
+            student_weeks,
+            student_vals,
+            "o-",
+            color="#1565C0",
+            linewidth=2,
+            markersize=6,
+            label="학생",
+            zorder=5,
         )
 
     q_label = "개념이해" if qsn == 1 else "적용"
     ax.set_xlabel("주차", fontproperties=fp, fontsize=9)
     ax.set_ylabel("개념 커버리지", fontproperties=fp, fontsize=9)
-    ax.set_title(f"문제 {qsn} — 개념 커버리지 추세 ({q_label})",
-                 fontproperties=fp, fontsize=11)
+    ax.set_title(f"문제 {qsn} — 개념 커버리지 추세 ({q_label})", fontproperties=fp, fontsize=11)
     ax.set_ylim(0, 1.05)
     ax.set_xticks(weeks)
     ax.set_xticklabels([str(w) for w in weeks], fontproperties=fp)
@@ -165,8 +170,7 @@ def build_component_breakdown_chart(
 
     weeks = student_data.weeks
     if not weeks:
-        ax.text(0.5, 0.5, "항목별 데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=12)
+        ax.text(0.5, 0.5, "항목별 데이터 없음", ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -185,8 +189,7 @@ def build_component_breakdown_chart(
             q_map = student_data.scores_by_week.get(w, {})
             metric_vals = [s[metric] for s in q_map.values() if metric in s]
             vals.append(sum(metric_vals) / len(metric_vals) if metric_vals else 0.0)
-        ax.bar(x + idx * bar_width, vals, bar_width,
-               label=metric_labels[idx], color=metric_colors[idx], alpha=0.85)
+        ax.bar(x + idx * bar_width, vals, bar_width, label=metric_labels[idx], color=metric_colors[idx], alpha=0.85)
 
     ax.set_xlabel("주차", fontproperties=fp, fontsize=9)
     ax.set_ylabel("점수 [0, 1]", fontproperties=fp, fontsize=9)
@@ -202,8 +205,7 @@ def build_component_breakdown_chart(
         rv = [s["rasch_ability"] for s in q_map.values() if "rasch_ability" in s]
         rasch_vals.append(sum(rv) / len(rv) if rv else 0.0)
 
-    ax2.plot(x + bar_width, rasch_vals, "s--", color=rasch_color,
-             linewidth=1.5, markersize=5, label="Rasch 능력치")
+    ax2.plot(x + bar_width, rasch_vals, "s--", color=rasch_color, linewidth=1.5, markersize=5, label="Rasch 능력치")
     ax2.set_ylabel("Rasch 능력치", fontproperties=fp, fontsize=9, color=rasch_color)
     ax2.tick_params(axis="y", labelcolor=rasch_color)
 
@@ -247,8 +249,7 @@ def build_cohort_position_chart(
 
     weeks = student_data.weeks
     if not weeks:
-        ax.text(0.5, 0.5, "상대 위치 데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=12)
+        ax.text(0.5, 0.5, "상대 위치 데이터 없음", ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -288,8 +289,12 @@ def build_cohort_position_chart(
 
     if student_weeks:
         ax.plot(
-            student_weeks, student_scores,
-            "*", color="red", markersize=14, zorder=10,
+            student_weeks,
+            student_scores,
+            "*",
+            color="red",
+            markersize=14,
+            zorder=10,
             label="학생",
         )
 
@@ -372,9 +377,9 @@ def build_warning_table(
     badge_y = n_signals + 2
     circle = plt.Circle((1, badge_y), 0.4, color=color, zorder=5)
     ax.add_patch(circle)
-    ax.text(2, badge_y, f"경고 수준: {label}",
-            fontproperties=fp, fontsize=12, fontweight="bold",
-            va="center", color=color)
+    ax.text(
+        2, badge_y, f"경고 수준: {label}", fontproperties=fp, fontsize=12, fontweight="bold", va="center", color=color
+    )
 
     # Signal list
     for i, signal in enumerate(warnings):
@@ -386,12 +391,9 @@ def build_warning_table(
             marker = "\u2713"  # checkmark
             sig_color = "#2E7D32"
 
-        ax.text(1, y, marker, fontsize=14, va="center", ha="center",
-                color=sig_color, fontweight="bold")
-        ax.text(2, y, signal.name,
-                fontproperties=fp, fontsize=9, va="center", color="#333333")
-        ax.text(6, y, signal.detail,
-                fontproperties=fp, fontsize=8, va="center", color="#666666")
+        ax.text(1, y, marker, fontsize=14, va="center", ha="center", color=sig_color, fontweight="bold")
+        ax.text(2, y, signal.name, fontproperties=fp, fontsize=9, va="center", color="#333333")
+        ax.text(6, y, signal.detail, fontproperties=fp, fontsize=8, va="center", color="#666666")
 
     fig.tight_layout()
     return _save_fig(fig, dpi=dpi)

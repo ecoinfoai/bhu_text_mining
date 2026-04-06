@@ -32,10 +32,8 @@ def _mock_font_properties_factory(fname=None):
 @pytest.fixture(autouse=True)
 def _patch_chart_fonts():
     """Auto-mock font discovery and FontProperties for all chart tests."""
-    p1 = patch("forma.longitudinal_report_charts.find_korean_font",
-               return_value="/fake/NanumGothic.ttf")
-    p2 = patch("forma.longitudinal_report_charts.FontProperties",
-               side_effect=_mock_font_properties_factory)
+    p1 = patch("forma.longitudinal_report_charts.find_korean_font", return_value="/fake/NanumGothic.ttf")
+    p2 = patch("forma.longitudinal_report_charts.FontProperties", side_effect=_mock_font_properties_factory)
     p1.start()
     p2.start()
     yield
@@ -48,10 +46,10 @@ def _patch_chart_fonts():
 # ---------------------------------------------------------------------------
 
 
-def _make_trajectory(student_id, weekly_scores, overall_trend=0.0,
-                     is_persistent_risk=False, risk_weeks=None):
+def _make_trajectory(student_id, weekly_scores, overall_trend=0.0, is_persistent_risk=False, risk_weeks=None):
     """Build a StudentTrajectory for testing."""
     from forma.longitudinal_report_data import StudentTrajectory
+
     return StudentTrajectory(
         student_id=student_id,
         weekly_scores=weekly_scores,
@@ -64,6 +62,7 @@ def _make_trajectory(student_id, weekly_scores, overall_trend=0.0,
 def _make_concept_change(concept, start, end):
     """Build a ConceptMasteryChange for testing."""
     from forma.longitudinal_report_data import ConceptMasteryChange
+
     return ConceptMasteryChange(
         concept=concept,
         week_start_ratio=start,
@@ -87,8 +86,9 @@ def _make_summary(
         trajectories = [
             _make_trajectory("S001", {1: 0.3, 2: 0.4, 3: 0.5, 4: 0.6}),
             _make_trajectory("S002", {1: 0.7, 2: 0.72, 3: 0.75, 4: 0.80}),
-            _make_trajectory("S003", {1: 0.2, 2: 0.25, 3: 0.3, 4: 0.35},
-                             is_persistent_risk=True, risk_weeks=[1, 2, 3, 4]),
+            _make_trajectory(
+                "S003", {1: 0.2, 2: 0.25, 3: 0.3, 4: 0.35}, is_persistent_risk=True, risk_weeks=[1, 2, 3, 4]
+            ),
         ]
     if class_weekly_averages is None:
         class_weekly_averages = {1: 0.4, 2: 0.46, 3: 0.52, 4: 0.58}
@@ -124,6 +124,7 @@ class TestTrajectoryLineChart:
     def test_returns_png(self):
         """Chart returns valid PNG bytes in BytesIO."""
         from forma.longitudinal_report_charts import build_trajectory_line_chart
+
         summary = _make_summary()
         result = build_trajectory_line_chart(summary)
         assert isinstance(result, io.BytesIO)
@@ -168,8 +169,7 @@ class TestTrajectoryLineChart:
         summary = _make_summary(
             trajectories=[
                 _make_trajectory("S001", {1: 0.5, 2: 0.6}, is_persistent_risk=False),
-                _make_trajectory("S003", {1: 0.2, 2: 0.25}, is_persistent_risk=True,
-                                 risk_weeks=[1, 2]),
+                _make_trajectory("S003", {1: 0.2, 2: 0.25}, is_persistent_risk=True, risk_weeks=[1, 2]),
             ],
             class_weekly_averages={1: 0.35, 2: 0.425},
             period_weeks=[1, 2],
@@ -204,6 +204,7 @@ class TestClassWeekHeatmap:
     def test_returns_png(self):
         """Heatmap returns valid PNG bytes."""
         from forma.longitudinal_report_charts import build_class_week_heatmap
+
         summary = _make_summary()
         result = build_class_week_heatmap(summary)
         assert isinstance(result, io.BytesIO)
@@ -246,9 +247,7 @@ class TestClassWeekHeatmap:
         trajectories = []
         for i in range(120):
             score = 0.01 + (i / 120) * 0.99
-            trajectories.append(
-                _make_trajectory(f"S{i:03d}", {1: score, 2: score + 0.01})
-            )
+            trajectories.append(_make_trajectory(f"S{i:03d}", {1: score, 2: score + 0.01}))
 
         summary = _make_summary(
             trajectories=trajectories,
@@ -302,6 +301,7 @@ class TestConceptMasteryBarChart:
     def test_returns_png(self):
         """Bar chart returns valid PNG bytes."""
         from forma.longitudinal_report_charts import build_concept_mastery_bar_chart
+
         summary = _make_summary()
         result = build_concept_mastery_bar_chart(summary)
         assert isinstance(result, io.BytesIO)
@@ -348,10 +348,7 @@ class TestConceptMasteryBarChart:
         """10+ concepts — chart should handle vertical sizing."""
         from forma.longitudinal_report_charts import build_concept_mastery_bar_chart
 
-        changes = [
-            _make_concept_change(f"concept_{i}", 0.3 + i * 0.02, 0.5 + i * 0.03)
-            for i in range(15)
-        ]
+        changes = [_make_concept_change(f"concept_{i}", 0.3 + i * 0.02, 0.5 + i * 0.03) for i in range(15)]
         summary = _make_summary(concept_changes=changes)
         result = build_concept_mastery_bar_chart(summary)
         assert result.read()[:4] == PNG_HEADER
@@ -369,10 +366,7 @@ class TestHeatmapEdgeCases:
         """All students score 0.5 every week — no division by zero in color normalization."""
         from forma.longitudinal_report_charts import build_class_week_heatmap
 
-        trajectories = [
-            _make_trajectory(f"S{i:03d}", {1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5})
-            for i in range(10)
-        ]
+        trajectories = [_make_trajectory(f"S{i:03d}", {1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5}) for i in range(10)]
         summary = _make_summary(
             trajectories=trajectories,
             class_weekly_averages={1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5},
@@ -414,10 +408,7 @@ class TestHeatmapEdgeCases:
         """Exactly 100 students — no truncation needed (boundary case)."""
         from forma.longitudinal_report_charts import build_class_week_heatmap
 
-        trajectories = [
-            _make_trajectory(f"S{i:03d}", {1: i / 100, 2: (i + 1) / 100})
-            for i in range(100)
-        ]
+        trajectories = [_make_trajectory(f"S{i:03d}", {1: i / 100, 2: (i + 1) / 100}) for i in range(100)]
         summary = _make_summary(
             trajectories=trajectories,
             class_weekly_averages={1: 0.5, 2: 0.51},
@@ -432,10 +423,7 @@ class TestHeatmapEdgeCases:
         """101 students — triggers truncation (boundary case)."""
         from forma.longitudinal_report_charts import build_class_week_heatmap
 
-        trajectories = [
-            _make_trajectory(f"S{i:03d}", {1: i / 101, 2: (i + 1) / 101})
-            for i in range(101)
-        ]
+        trajectories = [_make_trajectory(f"S{i:03d}", {1: i / 101, 2: (i + 1) / 101}) for i in range(101)]
         summary = _make_summary(
             trajectories=trajectories,
             class_weekly_averages={1: 0.5, 2: 0.51},
@@ -545,8 +533,14 @@ class TestInterventionEffectChart:
 
         effects = [
             InterventionEffect(
-                f"S{i:03d}", i, "면담", 3,
-                0.30 + i * 0.02, 0.50 + i * 0.02, 0.20, True,
+                f"S{i:03d}",
+                i,
+                "면담",
+                3,
+                0.30 + i * 0.02,
+                0.50 + i * 0.02,
+                0.20,
+                True,
             )
             for i in range(15)
         ]
@@ -601,7 +595,9 @@ class TestClassHeatmapSubplots:
             "B": {"S2": {1: 0.6, 2: 0.7}, "S3": {1: 0.65, 2: 0.75}},
         }
         result = build_class_heatmap_subplots(
-            class_data, ["A", "B"], (1, 2),
+            class_data,
+            ["A", "B"],
+            (1, 2),
         )
         data = result.read()
         assert data[:4] == PNG_HEADER
@@ -623,13 +619,12 @@ class TestClassHeatmapSubplots:
             build_class_heatmap_subplots,
         )
 
-        class_data = {
-            c: {f"S{i}": {1: 0.5} for i in range(3)}
-            for c in ["A", "B", "C", "D"]
-        }
+        class_data = {c: {f"S{i}": {1: 0.5} for i in range(3)} for c in ["A", "B", "C", "D"]}
         # 2:3 = 6 slots, 4 classes → 2 empty
         result = build_class_heatmap_subplots(
-            class_data, ["A", "B", "C", "D"], (2, 3),
+            class_data,
+            ["A", "B", "C", "D"],
+            (2, 3),
         )
         data = result.read()
         assert data[:4] == PNG_HEADER
@@ -668,21 +663,31 @@ class TestMasteryHeatmap5PlusWeeks:
         # mastery_data: {concept: {week: ratio}}
         mastery_data = {
             "항상성": {
-                1: 0.6, 2: 0.65, 3: 0.7,
-                4: 0.75, 5: 0.8,
+                1: 0.6,
+                2: 0.65,
+                3: 0.7,
+                4: 0.75,
+                5: 0.8,
             },
             "삼투": {
-                1: 0.4, 2: 0.45, 3: 0.5,
-                4: 0.55, 5: 0.6,
+                1: 0.4,
+                2: 0.45,
+                3: 0.5,
+                4: 0.55,
+                5: 0.6,
             },
             "확산": {
-                1: 0.5, 2: 0.5, 3: 0.55,
-                4: 0.6, 5: 0.65,
+                1: 0.5,
+                2: 0.5,
+                3: 0.55,
+                4: 0.6,
+                5: 0.65,
             },
         }
         weeks = [1, 2, 3, 4, 5]
         result = build_concept_mastery_heatmap(
-            mastery_data, weeks,
+            mastery_data,
+            weeks,
         )
         assert isinstance(result, io.BytesIO)
         data = result.read()
@@ -718,7 +723,9 @@ class TestMasteryTopNFiltering:
         }
         weeks = [1, 2, 3, 4, 5]
         result = build_concept_mastery_heatmap(
-            mastery_data, weeks, top_n=2,
+            mastery_data,
+            weeks,
+            top_n=2,
         )
         data = result.read()
         assert data[:4] == PNG_HEADER

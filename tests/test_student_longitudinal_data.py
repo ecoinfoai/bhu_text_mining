@@ -174,12 +174,8 @@ class TestStudentLongitudinalData:
     def test_trend_slope_positive(self, tmp_path):
         """Increasing scores should produce positive slope and '상승' direction."""
         records = [
-            _make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.3 + w * 0.1)
-            for w in range(1, 5)
-        ] + [
-            _make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5)
-            for w in range(1, 5)
-        ]
+            _make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.3 + w * 0.1) for w in range(1, 5)
+        ] + [_make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5) for w in range(1, 5)]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1, 2, 3, 4])
         data = build_student_data(store, "s001", weeks=[1, 2, 3, 4], cohort=cohort)
@@ -191,12 +187,8 @@ class TestStudentLongitudinalData:
     def test_trend_slope_negative(self, tmp_path):
         """Decreasing scores should produce negative slope and '하강' direction."""
         records = [
-            _make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.9 - w * 0.1)
-            for w in range(1, 5)
-        ] + [
-            _make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5)
-            for w in range(1, 5)
-        ]
+            _make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.9 - w * 0.1) for w in range(1, 5)
+        ] + [_make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5) for w in range(1, 5)]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1, 2, 3, 4])
         data = build_student_data(store, "s001", weeks=[1, 2, 3, 4], cohort=cohort)
@@ -207,12 +199,8 @@ class TestStudentLongitudinalData:
 
     def test_trend_slope_stable(self, tmp_path):
         """Flat scores should produce near-zero slope and '정체' direction."""
-        records = [
-            _make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.5)
-            for w in range(1, 5)
-        ] + [
-            _make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5)
-            for w in range(1, 5)
+        records = [_make_record(student_id="s001", week=w, question_sn=1, ensemble_score=0.5) for w in range(1, 5)] + [
+            _make_record(student_id="s002", week=w, question_sn=1, ensemble_score=0.5) for w in range(1, 5)
         ]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1, 2, 3, 4])
@@ -239,9 +227,7 @@ class TestStudentLongitudinalData:
         """Student at top of cohort should have high percentile."""
         records = []
         for i in range(1, 11):
-            records.append(
-                _make_record(student_id=f"s{i:03d}", week=1, question_sn=1, ensemble_score=i * 0.1)
-            )
+            records.append(_make_record(student_id=f"s{i:03d}", week=1, question_sn=1, ensemble_score=i * 0.1))
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1])
         # s010 has ensemble=1.0, highest
@@ -285,9 +271,7 @@ class TestWarningSignals:
         """Percentile < 20 → low_percentile triggered (critical) → 경고."""
         records = []
         for i in range(1, 11):
-            records.append(
-                _make_record(student_id=f"s{i:03d}", week=1, question_sn=1, ensemble_score=0.5 + i * 0.05)
-            )
+            records.append(_make_record(student_id=f"s{i:03d}", week=1, question_sn=1, ensemble_score=0.5 + i * 0.05))
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1])
         # s001 has the lowest score
@@ -304,8 +288,11 @@ class TestWarningSignals:
         # Student with low concept_coverage but decent ensemble_score
         records = [
             _make_record(
-                student_id="s001", week=w, question_sn=1,
-                concept_coverage=0.2, ensemble_score=0.6,
+                student_id="s001",
+                week=w,
+                question_sn=1,
+                concept_coverage=0.2,
+                ensemble_score=0.6,
             )
             for w in range(1, 4)
         ]
@@ -314,8 +301,11 @@ class TestWarningSignals:
             for w in range(1, 4):
                 records.append(
                     _make_record(
-                        student_id=f"s{i:03d}", week=w, question_sn=1,
-                        concept_coverage=0.8, ensemble_score=0.5 + i * 0.02,
+                        student_id=f"s{i:03d}",
+                        week=w,
+                        question_sn=1,
+                        concept_coverage=0.8,
+                        ensemble_score=0.5 + i * 0.02,
                     )
                 )
         store = _build_store(tmp_path, records)
@@ -333,8 +323,11 @@ class TestWarningSignals:
         """All metrics healthy → no signals triggered → 정상."""
         records = [
             _make_record(
-                student_id="s001", week=w, question_sn=1,
-                concept_coverage=0.8, ensemble_score=0.7,
+                student_id="s001",
+                week=w,
+                question_sn=1,
+                concept_coverage=0.8,
+                ensemble_score=0.7,
             )
             for w in range(1, 4)
         ]
@@ -342,8 +335,11 @@ class TestWarningSignals:
             for w in range(1, 4):
                 records.append(
                     _make_record(
-                        student_id=f"s{i:03d}", week=w, question_sn=1,
-                        concept_coverage=0.8, ensemble_score=0.5,
+                        student_id=f"s{i:03d}",
+                        week=w,
+                        question_sn=1,
+                        concept_coverage=0.8,
+                        ensemble_score=0.5,
                     )
                 )
         store = _build_store(tmp_path, records)
@@ -386,8 +382,11 @@ class TestWarningSignals:
             for w in range(1, 4):
                 records.append(
                     _make_record(
-                        student_id=f"s{i:03d}", week=w, question_sn=1,
-                        concept_coverage=0.8, ensemble_score=0.4,
+                        student_id=f"s{i:03d}",
+                        week=w,
+                        question_sn=1,
+                        concept_coverage=0.8,
+                        ensemble_score=0.4,
                     )
                 )
         store = _build_store(tmp_path, records)
@@ -520,34 +519,53 @@ class TestBuildStudentDataTopicGrouping:
         """When records have topic, scores_by_week uses topic keys."""
         records = [
             LongitudinalRecord(
-                student_id="s001", week=1, question_sn=1,
+                student_id="s001",
+                week=1,
+                question_sn=1,
                 scores={"ensemble_score": 0.6},
-                tier_level=2, tier_label="P",
-                topic="개념이해", class_id="A",
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
             ),
             LongitudinalRecord(
-                student_id="s001", week=1, question_sn=2,
+                student_id="s001",
+                week=1,
+                question_sn=2,
                 scores={"ensemble_score": 0.8},
-                tier_level=3, tier_label="A",
-                topic="적용", class_id="A",
+                tier_level=3,
+                tier_label="A",
+                topic="적용",
+                class_id="A",
             ),
             LongitudinalRecord(
-                student_id="s001", week=2, question_sn=1,
+                student_id="s001",
+                week=2,
+                question_sn=1,
                 scores={"ensemble_score": 0.7},
-                tier_level=2, tier_label="P",
-                topic="개념이해", class_id="A",
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
             ),
             LongitudinalRecord(
-                student_id="s001", week=2, question_sn=2,
+                student_id="s001",
+                week=2,
+                question_sn=2,
                 scores={"ensemble_score": 0.9},
-                tier_level=3, tier_label="A",
-                topic="적용", class_id="A",
+                tier_level=3,
+                tier_label="A",
+                topic="적용",
+                class_id="A",
             ),
         ]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1, 2])
         data = build_student_data(
-            store, "s001", weeks=[1, 2], cohort=cohort,
+            store,
+            "s001",
+            weeks=[1, 2],
+            cohort=cohort,
         )
 
         # topic_scores should be populated
@@ -571,18 +589,25 @@ class TestBuildStudentDataFallbackNoTopic:
         """Legacy records without topic: topic_scores is None."""
         records = [
             _make_record(
-                student_id="s001", week=1, question_sn=1,
+                student_id="s001",
+                week=1,
+                question_sn=1,
                 ensemble_score=0.6,
             ),
             _make_record(
-                student_id="s001", week=2, question_sn=1,
+                student_id="s001",
+                week=2,
+                question_sn=1,
                 ensemble_score=0.7,
             ),
         ]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1, 2])
         data = build_student_data(
-            store, "s001", weeks=[1, 2], cohort=cohort,
+            store,
+            "s001",
+            weeks=[1, 2],
+            cohort=cohort,
         )
 
         assert data.topic_scores is None
@@ -642,25 +667,34 @@ class TestTopicScoreAveraging:
         """Two questions with same topic in week 1 → averaged."""
         records = [
             LongitudinalRecord(
-                student_id="s001", week=1, question_sn=1,
+                student_id="s001",
+                week=1,
+                question_sn=1,
                 scores={"ensemble_score": 0.4},
-                tier_level=1, tier_label="D",
-                topic="개념이해", class_id="A",
+                tier_level=1,
+                tier_label="D",
+                topic="개념이해",
+                class_id="A",
             ),
             LongitudinalRecord(
-                student_id="s001", week=1, question_sn=2,
+                student_id="s001",
+                week=1,
+                question_sn=2,
                 scores={"ensemble_score": 0.6},
-                tier_level=2, tier_label="P",
-                topic="개념이해", class_id="A",
+                tier_level=2,
+                tier_label="P",
+                topic="개념이해",
+                class_id="A",
             ),
         ]
         store = _build_store(tmp_path, records)
         cohort = build_cohort_distribution(store, weeks=[1])
         data = build_student_data(
-            store, "s001", weeks=[1], cohort=cohort,
+            store,
+            "s001",
+            weeks=[1],
+            cohort=cohort,
         )
 
         assert data.topic_scores is not None
-        assert data.topic_scores["개념이해"][1] == pytest.approx(
-            0.5
-        )
+        assert data.topic_scores["개념이해"][1] == pytest.approx(0.5)

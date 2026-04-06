@@ -28,8 +28,14 @@ logger = logging.getLogger(__name__)
 
 # Section color palette (up to 8 sections)
 _SECTION_COLORS = [
-    "#1565C0", "#2E7D32", "#F57F17", "#C62828",
-    "#6A1B9A", "#00695C", "#E65100", "#37474F",
+    "#1565C0",
+    "#2E7D32",
+    "#F57F17",
+    "#C62828",
+    "#6A1B9A",
+    "#00695C",
+    "#E65100",
+    "#37474F",
 ]
 
 

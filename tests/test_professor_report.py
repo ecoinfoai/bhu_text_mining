@@ -113,8 +113,7 @@ def _make_professor_report_data() -> ProfessorReportData:
         _make_student_summary_row("S002", "이영희", "2026100002", 0.72, "Proficient"),
         _make_student_summary_row("S003", "박민준", "2026100003", 0.65, "Proficient"),
         _make_student_summary_row("S004", "최수진", "2026100004", 0.50, "Developing"),
-        _make_student_summary_row("S005", "정하늘", "2026100005", 0.30, "Beginning",
-                                  is_at_risk=True),
+        _make_student_summary_row("S005", "정하늘", "2026100005", 0.30, "Beginning", is_at_risk=True),
     ]
 
     return ProfessorReportData(
@@ -261,9 +260,7 @@ class TestBuildCoverPage:
 
         story = generator._build_cover_page(report_data)
         paragraphs = [f for f in story if isinstance(f, Paragraph)]
-        assert len(paragraphs) > 0, (
-            "_build_cover_page must include at least one Paragraph flowable"
-        )
+        assert len(paragraphs) > 0, "_build_cover_page must include at least one Paragraph flowable"
 
     def test_cover_page_contains_table_flowable(self, generator, report_data):
         """_build_cover_page includes at least one Table flowable for metadata."""
@@ -271,9 +268,7 @@ class TestBuildCoverPage:
 
         story = generator._build_cover_page(report_data)
         tables = [f for f in story if isinstance(f, Table)]
-        assert len(tables) > 0, (
-            "_build_cover_page must include a Table flowable for metadata"
-        )
+        assert len(tables) > 0, "_build_cover_page must include a Table flowable for metadata"
 
     def test_cover_page_class_name_in_story_content(self, generator, report_data):
         """class_name '1A' appears somewhere in the cover page story content."""
@@ -285,9 +280,7 @@ class TestBuildCoverPage:
         # Collect text from Paragraph objects
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
-        assert "1A" in all_text, (
-            "class_name '1A' must appear in a Paragraph in the cover page story"
-        )
+        assert "1A" in all_text, "class_name '1A' must appear in a Paragraph in the cover page story"
 
     def test_cover_page_exam_title_in_story_content(self, generator, report_data):
         """exam_title appears somewhere in the cover page story content."""
@@ -297,9 +290,7 @@ class TestBuildCoverPage:
         paragraphs = [f for f in story if isinstance(f, Paragraph)]
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
-        assert "Ch01 서론 형성평가" in all_text, (
-            "exam_title must appear in the cover page story content"
-        )
+        assert "Ch01 서론 형성평가" in all_text, "exam_title must appear in the cover page story content"
 
     def test_cover_page_week_num_in_story_content(self, generator, report_data):
         """week_num appears somewhere in the cover page story content."""
@@ -310,9 +301,7 @@ class TestBuildCoverPage:
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
         # Week number 1 should appear in the story
-        assert "1" in all_text, (
-            "week_num must appear in the cover page story content"
-        )
+        assert "1" in all_text, "week_num must appear in the cover page story content"
 
 
 # ===========================================================================
@@ -359,9 +348,7 @@ class TestBuildSummarySection:
 
         story = generator._build_summary_section(report_data)
         paragraphs = [f for f in story if isinstance(f, Paragraph)]
-        assert len(paragraphs) > 0, (
-            "_build_summary_section must include at least one Paragraph flowable"
-        )
+        assert len(paragraphs) > 0, "_build_summary_section must include at least one Paragraph flowable"
 
     def test_summary_section_contains_image_flowable(self, generator, report_data):
         """_build_summary_section includes at least one Image flowable from charts."""
@@ -372,9 +359,7 @@ class TestBuildSummarySection:
 
         story = generator._build_summary_section(report_data)
         images = [f for f in story if isinstance(f, Image)]
-        assert len(images) > 0, (
-            "_build_summary_section must embed at least one chart Image flowable"
-        )
+        assert len(images) > 0, "_build_summary_section must embed at least one chart Image flowable"
 
     def test_summary_section_mean_in_story_content(self, generator, report_data):
         """class_ensemble_mean (0.65) appears in Paragraph content of summary section."""
@@ -388,9 +373,7 @@ class TestBuildSummarySection:
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
         # class_ensemble_mean=0.65; check that "0.65" appears in text
-        assert "0.65" in all_text, (
-            "class_ensemble_mean value '0.65' must appear in summary section content"
-        )
+        assert "0.65" in all_text, "class_ensemble_mean value '0.65' must appear in summary section content"
 
     def test_summary_section_std_in_story_content(self, generator, report_data):
         """class_ensemble_std (0.12) appears in Paragraph content of summary section."""
@@ -403,9 +386,7 @@ class TestBuildSummarySection:
         paragraphs = [f for f in story if isinstance(f, Paragraph)]
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
-        assert "0.12" in all_text, (
-            "class_ensemble_std value '0.12' must appear in summary section content"
-        )
+        assert "0.12" in all_text, "class_ensemble_std value '0.12' must appear in summary section content"
 
     def test_summary_section_median_in_story_content(self, generator, report_data):
         """class_ensemble_median (0.67) appears in Paragraph content of summary section."""
@@ -418,9 +399,7 @@ class TestBuildSummarySection:
         paragraphs = [f for f in story if isinstance(f, Paragraph)]
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
-        assert "0.67" in all_text, (
-            "class_ensemble_median value '0.67' must appear in summary section content"
-        )
+        assert "0.67" in all_text, "class_ensemble_median value '0.67' must appear in summary section content"
 
     def test_summary_section_at_risk_info_in_story(self, generator, report_data):
         """n_at_risk or pct_at_risk appears in summary section content."""
@@ -435,9 +414,7 @@ class TestBuildSummarySection:
 
         # n_at_risk=1 or pct_at_risk=20.0 should appear somewhere
         at_risk_mentioned = ("1" in all_text) or ("20" in all_text)
-        assert at_risk_mentioned, (
-            "At-risk information (n_at_risk or pct_at_risk) must appear in summary section"
-        )
+        assert at_risk_mentioned, "At-risk information (n_at_risk or pct_at_risk) must appear in summary section"
 
     def test_summary_section_n_students_in_story(self, generator, report_data):
         """n_students (5) is referenced in the summary section content."""
@@ -450,9 +427,7 @@ class TestBuildSummarySection:
         paragraphs = [f for f in story if isinstance(f, Paragraph)]
         all_text = " ".join(str(p.text) for p in paragraphs if hasattr(p, "text"))
 
-        assert "5" in all_text, (
-            "n_students value '5' must appear somewhere in summary section content"
-        )
+        assert "5" in all_text, "n_students value '5' must appear somewhere in summary section content"
 
 
 # ===========================================================================
@@ -593,9 +568,7 @@ class TestBuildComparisonTable:
         story = gen._build_comparison_table(report_data)
         tables = [f for f in story if isinstance(f, Table)]
 
-        assert len(tables) > 0, (
-            "_build_comparison_table must include at least one Table flowable"
-        )
+        assert len(tables) > 0, "_build_comparison_table must include at least one Table flowable"
 
     def test_student_count_in_rows(self, mock_font):
         """All 3 students have rows represented in the comparison table."""
@@ -633,6 +606,7 @@ class TestBuildComparisonTable:
         student_name_order = []
         if hasattr(main_table, "_cellvalues"):
             from reportlab.platypus import Paragraph
+
             for row in main_table._cellvalues:
                 for cell in row:
                     cell_text = ""
@@ -666,8 +640,7 @@ class TestBuildComparisonTable:
         korean_levels = ("상", "중상", "중하", "하")
         found_korean = any(lvl in all_table_text for lvl in korean_levels)
         assert found_korean, (
-            f"Korean level labels (상/중상/중하/하) must appear in comparison table. "
-            f"Found text: {all_table_text[:200]}"
+            f"Korean level labels (상/중상/중하/하) must appear in comparison table. Found text: {all_table_text[:200]}"
         )
 
         # English level names must NOT be the primary labels in cells
@@ -696,8 +669,7 @@ class TestBuildComparisonTable:
         # Either images exist (lollipop implemented) or story is still non-empty
         # (graceful skip). Both are acceptable.
         assert isinstance(story, list) and len(story) > 0, (
-            "_build_comparison_table must return a non-empty story "
-            "whether or not the lollipop chart is implemented"
+            "_build_comparison_table must return a non-empty story whether or not the lollipop chart is implemented"
         )
 
     # ------------------------------------------------------------------
@@ -826,9 +798,7 @@ class TestBuildComparisonTable:
         assert len(tables) > 0
 
         all_table_text = " ".join(self._extract_table_text(t) for t in tables)
-        assert "커버리지" in all_table_text, (
-            "With exactly 3 questions (3-col layout), '커버리지' must appear"
-        )
+        assert "커버리지" in all_table_text, "With exactly 3 questions (3-col layout), '커버리지' must appear"
 
     def test_empty_student_rows_does_not_crash(self, mock_font):
         """_build_comparison_table with zero students must not raise an exception."""
@@ -1064,8 +1034,7 @@ class TestAtRiskVisualIndicators:
         # S002 이위험 is at-risk and is the 2nd student (rank 2, data row index 1)
         rank_text = self._extract_rank_cell_text(table, row_index=1)
         assert "!" not in rank_text, (
-            f"At-risk student rank cell must NOT contain '!' prefix. "
-            f"Got rank cell text: {rank_text!r}"
+            f"At-risk student rank cell must NOT contain '!' prefix. Got rank cell text: {rank_text!r}"
         )
 
     def test_non_at_risk_row_no_exclamation(self, mock_font):
@@ -1084,8 +1053,7 @@ class TestAtRiskVisualIndicators:
         # S001 김철수 is NOT at-risk (rank 1, data row index 0)
         rank_text = self._extract_rank_cell_text(table, row_index=0)
         assert "!" not in rank_text, (
-            f"Non-at-risk student rank cell must NOT contain '!'. "
-            f"Got rank cell text: {rank_text!r}"
+            f"Non-at-risk student rank cell must NOT contain '!'. Got rank cell text: {rank_text!r}"
         )
 
     def test_at_risk_row_background_red(self, mock_font):
@@ -1228,12 +1196,8 @@ class TestBuildAtRiskSummary:
 
         result = gen._build_at_risk_summary(report_data)
 
-        assert isinstance(result, list), (
-            "_build_at_risk_summary must return a list"
-        )
-        assert len(result) > 0, (
-            "_build_at_risk_summary must return a non-empty list of flowables"
-        )
+        assert isinstance(result, list), "_build_at_risk_summary must return a list"
+        assert len(result) > 0, "_build_at_risk_summary must return a non-empty list of flowables"
 
     def test_contains_at_risk_count(self, mock_font):
         """Flowables returned by _build_at_risk_summary contain the at-risk count.
@@ -1248,16 +1212,10 @@ class TestBuildAtRiskSummary:
 
         result = gen._build_at_risk_summary(report_data)
 
-        assert isinstance(result, list) and len(result) > 0, (
-            "_build_at_risk_summary must return a non-empty list"
-        )
+        assert isinstance(result, list) and len(result) > 0, "_build_at_risk_summary must return a non-empty list"
 
         # Collect all text from Paragraph flowables
-        all_text = " ".join(
-            str(f.text)
-            for f in result
-            if isinstance(f, Paragraph) and hasattr(f, "text")
-        )
+        all_text = " ".join(str(f.text) for f in result if isinstance(f, Paragraph) and hasattr(f, "text"))
 
         # n_at_risk=1 — '1' must appear somewhere in the text
         assert str(report_data.n_at_risk) in all_text, (
@@ -1310,11 +1268,7 @@ class TestBuildLlmAnalysisPage:
         """Collect all Paragraph .text values joined into a single string."""
         from reportlab.platypus import Paragraph
 
-        return " ".join(
-            str(f.text)
-            for f in flowables
-            if isinstance(f, Paragraph) and hasattr(f, "text")
-        )
+        return " ".join(str(f.text) for f in flowables if isinstance(f, Paragraph) and hasattr(f, "text"))
 
     def test_returns_flowables(self, mock_font):
         """_build_llm_analysis_page returns a non-empty list of flowables.
@@ -1326,12 +1280,8 @@ class TestBuildLlmAnalysisPage:
 
         result = gen._build_llm_analysis_page(report_data)
 
-        assert isinstance(result, list), (
-            "_build_llm_analysis_page must return a list"
-        )
-        assert len(result) > 0, (
-            "_build_llm_analysis_page must return a non-empty list of flowables"
-        )
+        assert isinstance(result, list), "_build_llm_analysis_page must return a list"
+        assert len(result) > 0, "_build_llm_analysis_page must return a non-empty list of flowables"
 
     def test_overall_assessment_content_present(self, mock_font):
         """A Paragraph flowable contains the overall_assessment text.
@@ -1363,8 +1313,7 @@ class TestBuildLlmAnalysisPage:
 
         all_text = self._collect_paragraph_text(result)
         assert report_data.teaching_suggestions not in all_text, (
-            f"teaching_suggestions text must NOT appear (section was removed). "
-            f"Got: {all_text!r}"
+            f"teaching_suggestions text must NOT appear (section was removed). Got: {all_text!r}"
         )
 
     def test_model_metadata_displayed(self, mock_font):
@@ -1380,8 +1329,7 @@ class TestBuildLlmAnalysisPage:
 
         all_text = self._collect_paragraph_text(result)
         assert report_data.llm_model_used in all_text, (
-            f"llm_model_used value '{report_data.llm_model_used}' must appear "
-            f"in a flowable text. Got: {all_text!r}"
+            f"llm_model_used value '{report_data.llm_model_used}' must appear in a flowable text. Got: {all_text!r}"
         )
 
     def test_fallback_notice_when_failed(self, mock_font):
@@ -1497,11 +1445,7 @@ class TestBuildQuestionDetailPage:
         """Collect all Paragraph .text values joined into a single string."""
         from reportlab.platypus import Paragraph
 
-        return " ".join(
-            str(f.text)
-            for f in flowables
-            if isinstance(f, Paragraph) and hasattr(f, "text")
-        )
+        return " ".join(str(f.text) for f in flowables if isinstance(f, Paragraph) and hasattr(f, "text"))
 
     def test_returns_flowables(self, mock_font):
         """_build_question_detail_page returns a non-empty list of flowables.
@@ -1514,12 +1458,8 @@ class TestBuildQuestionDetailPage:
 
         result = gen._build_question_detail_page(stats, mock_chart_gen)
 
-        assert isinstance(result, list), (
-            "_build_question_detail_page must return a list"
-        )
-        assert len(result) > 0, (
-            "_build_question_detail_page must return a non-empty list of flowables"
-        )
+        assert isinstance(result, list), "_build_question_detail_page must return a list"
+        assert len(result) > 0, "_build_question_detail_page must return a non-empty list of flowables"
 
     def test_stats_table_present(self, mock_font):
         """A Table flowable appears in the result from _build_question_detail_page.
@@ -1539,8 +1479,7 @@ class TestBuildQuestionDetailPage:
 
         tables = [f for f in result if isinstance(f, Table)]
         assert len(tables) > 0, (
-            "_build_question_detail_page must include at least one Table flowable "
-            "for the question statistics summary"
+            "_build_question_detail_page must include at least one Table flowable for the question statistics summary"
         )
 
     def test_chart_embedded(self, mock_font):
@@ -1561,8 +1500,7 @@ class TestBuildQuestionDetailPage:
         result = gen._build_question_detail_page(stats, mock_chart_gen)
 
         assert isinstance(result, list) and len(result) > 0, (
-            "_build_question_detail_page must return a non-empty list "
-            "whether or not the chart Image is embedded"
+            "_build_question_detail_page must return a non-empty list whether or not the chart Image is embedded"
         )
 
         # If chart IS embedded, it must be a proper Image flowable
@@ -1582,9 +1520,7 @@ class TestBuildQuestionDetailPage:
         from reportlab.platypus import Table, Paragraph
 
         gen = _make_generator_for_question_detail(mock_font)
-        stats = _make_question_stats(
-            concept_mastery_rates={"항상성": 0.80, "음성되먹임": 0.45}
-        )
+        stats = _make_question_stats(concept_mastery_rates={"항상성": 0.80, "음성되먹임": 0.45})
         mock_chart_gen = _make_mock_chart_gen_for_detail()
 
         result = gen._build_question_detail_page(stats, mock_chart_gen)
@@ -1660,6 +1596,7 @@ class TestBuildQuestionDetailPage:
 
         # Also collect text from Table cells
         from reportlab.platypus import Table, Paragraph as _Paragraph
+
         all_text = all_para_text
         for f in result:
             if isinstance(f, Table) and hasattr(f, "_cellvalues"):
@@ -1672,8 +1609,7 @@ class TestBuildQuestionDetailPage:
 
         misconception_text = "삼투와 확산 혼동"
         assert misconception_text in all_text, (
-            f"Misconception text '{misconception_text}' must appear in flowables. "
-            f"Got: {all_text[:400]!r}"
+            f"Misconception text '{misconception_text}' must appear in flowables. Got: {all_text[:400]!r}"
         )
 
     def test_empty_misconceptions_no_crash(self, mock_font):
@@ -1692,8 +1628,7 @@ class TestBuildQuestionDetailPage:
         result = gen._build_question_detail_page(stats, mock_chart_gen)
 
         assert isinstance(result, list) and len(result) > 0, (
-            "_build_question_detail_page must return a non-empty list "
-            "even when misconception_frequencies is empty"
+            "_build_question_detail_page must return a non-empty list even when misconception_frequencies is empty"
         )
 
     def test_question_number_in_output(self, mock_font):
@@ -1716,6 +1651,7 @@ class TestBuildQuestionDetailPage:
 
         # Also collect text from Table cells
         from reportlab.platypus import Table, Paragraph as _Paragraph
+
         for f in result:
             if isinstance(f, Table) and hasattr(f, "_cellvalues"):
                 for row in f._cellvalues:
@@ -1726,8 +1662,7 @@ class TestBuildQuestionDetailPage:
                             all_text += " " + str(cell.text)
 
         assert "7" in all_text, (
-            f"question_sn value '7' must appear somewhere in the flowable text. "
-            f"Got: {all_text[:400]!r}"
+            f"question_sn value '7' must appear somewhere in the flowable text. Got: {all_text[:400]!r}"
         )
 
 
@@ -1742,6 +1677,7 @@ def _make_generator_for_edge(tmp_font_path: str) -> "ProfessorPDFReportGenerator
         with patch("forma.font_utils.pdfmetrics.registerFont"):
             with patch("forma.font_utils.TTFont"):
                 from forma.professor_report import ProfessorPDFReportGenerator
+
                 return ProfessorPDFReportGenerator(font_path=tmp_font_path)
 
 
@@ -1751,6 +1687,7 @@ class TestEscFunction:
     def test_esc_ampersand(self):
         """_esc escapes '&' to '&amp;'."""
         from forma.professor_report import _esc
+
         result = _esc("AT&T")
         assert "&amp;" in result
         assert "&T" not in result
@@ -1758,6 +1695,7 @@ class TestEscFunction:
     def test_esc_less_than(self):
         """_esc escapes '<' to '&lt;'."""
         from forma.professor_report import _esc
+
         result = _esc("<script>")
         assert "&lt;" in result
         assert "<script>" not in result
@@ -1765,12 +1703,14 @@ class TestEscFunction:
     def test_esc_greater_than(self):
         """_esc escapes '>' to '&gt;'."""
         from forma.professor_report import _esc
+
         result = _esc("1>0")
         assert "&gt;" in result
 
     def test_esc_double_quote(self):
         """_esc handles double quote (no change by xml.sax.saxutils.escape by default)."""
         from forma.professor_report import _esc
+
         result = _esc('say "hello"')
         # xml.sax.saxutils.escape does NOT escape " by default
         assert isinstance(result, str)
@@ -1779,6 +1719,7 @@ class TestEscFunction:
     def test_esc_single_quote(self):
         """_esc handles single quote (no change by xml.sax.saxutils.escape by default)."""
         from forma.professor_report import _esc
+
         result = _esc("it's fine")
         assert isinstance(result, str)
         assert "fine" in result
@@ -1786,6 +1727,7 @@ class TestEscFunction:
     def test_esc_mixed_special_chars(self):
         """_esc handles a string with mixed special XML characters."""
         from forma.professor_report import _esc
+
         raw = '<Alice & "Bob" <> Carol>'
         result = _esc(raw)
         assert "&lt;" in result
@@ -1864,6 +1806,7 @@ class TestLongAIResponseHandling:
             with patch("forma.font_utils.pdfmetrics.registerFont"):
                 with patch("forma.font_utils.TTFont"):
                     from forma.professor_report import ProfessorPDFReportGenerator
+
                     return ProfessorPDFReportGenerator(font_path=mock_font)
 
     def test_2000_char_overall_assessment_no_crash(self, mock_font):
@@ -1922,48 +1865,56 @@ class TestPerformanceBenchmark:
             score_q1 = round((i % 10) * 0.1, 1)
             score_q2 = round(((i + 3) % 10) * 0.1, 1)
             level_q1 = (
-                "Advanced" if score_q1 >= 0.85
-                else "Proficient" if score_q1 >= 0.65
-                else "Developing" if score_q1 >= 0.45
+                "Advanced"
+                if score_q1 >= 0.85
+                else "Proficient"
+                if score_q1 >= 0.65
+                else "Developing"
+                if score_q1 >= 0.45
                 else "Beginning"
             )
             level_q2 = (
-                "Advanced" if score_q2 >= 0.85
-                else "Proficient" if score_q2 >= 0.65
-                else "Developing" if score_q2 >= 0.45
+                "Advanced"
+                if score_q2 >= 0.85
+                else "Proficient"
+                if score_q2 >= 0.65
+                else "Developing"
+                if score_q2 >= 0.45
                 else "Beginning"
             )
-            students.append(StudentReportData(
-                student_id=f"S{i:03d}",
-                real_name=f"학생{i:03d}",
-                student_number=f"2026{i:03d}",
-                class_name="1A",
-                course_name="생리학",
-                chapter_name="Chapter 1",
-                week_num=1,
-                questions=[
-                    QuestionReportData(
-                        question_sn=1,
-                        question_text="항상성의 정의를 서술하시오.",
-                        ensemble_score=score_q1,
-                        understanding_level=level_q1,
-                        concept_coverage=0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=["개념 오류"] if score_q1 < 0.45 else [],
-                    ),
-                    QuestionReportData(
-                        question_sn=2,
-                        question_text="음성 되먹임의 예를 드시오.",
-                        ensemble_score=score_q2,
-                        understanding_level=level_q2,
-                        concept_coverage=0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=[],
-                    ),
-                ],
-            ))
+            students.append(
+                StudentReportData(
+                    student_id=f"S{i:03d}",
+                    real_name=f"학생{i:03d}",
+                    student_number=f"2026{i:03d}",
+                    class_name="1A",
+                    course_name="생리학",
+                    chapter_name="Chapter 1",
+                    week_num=1,
+                    questions=[
+                        QuestionReportData(
+                            question_sn=1,
+                            question_text="항상성의 정의를 서술하시오.",
+                            ensemble_score=score_q1,
+                            understanding_level=level_q1,
+                            concept_coverage=0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=["개념 오류"] if score_q1 < 0.45 else [],
+                        ),
+                        QuestionReportData(
+                            question_sn=2,
+                            question_text="음성 되먹임의 예를 드시오.",
+                            ensemble_score=score_q2,
+                            understanding_level=level_q2,
+                            concept_coverage=0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=[],
+                        ),
+                    ],
+                )
+            )
 
         dists = compute_class_distributions(students)
         report_data = build_professor_report_data(
@@ -1991,11 +1942,10 @@ class TestPerformanceBenchmark:
         pdf_path = gen.generate_pdf(report_data, str(tmp_path))
         elapsed = time.perf_counter() - start
 
-        assert elapsed < 60.0, (
-            f"PDF generation for 200 students took {elapsed:.1f}s — expected < 60s (SC-001)"
-        )
+        assert elapsed < 60.0, f"PDF generation for 200 students took {elapsed:.1f}s — expected < 60s (SC-001)"
         assert pdf_path.endswith(".pdf")
         import os
+
         assert os.path.exists(pdf_path)
         assert os.path.getsize(pdf_path) > 0
 
@@ -2188,18 +2138,27 @@ class TestClassifiedMisconceptionTable:
         stats.classified_misconceptions = [
             ClassifiedMisconception(
                 pattern=MisconceptionPattern.CAUSAL_REVERSAL,
-                master_edge=None, student_edge=None, concept=None,
-                confidence=0.85, description="Reversed",
+                master_edge=None,
+                student_edge=None,
+                concept=None,
+                confidence=0.85,
+                description="Reversed",
             ),
             ClassifiedMisconception(
                 pattern=MisconceptionPattern.INCLUSION_ERROR,
-                master_edge=None, student_edge=None, concept=None,
-                confidence=0.9, description="Inclusion error",
+                master_edge=None,
+                student_edge=None,
+                concept=None,
+                confidence=0.9,
+                description="Inclusion error",
             ),
             ClassifiedMisconception(
                 pattern=MisconceptionPattern.CONCEPT_ABSENCE,
-                master_edge=None, student_edge=None, concept="항상성",
-                confidence=0.75, description="Missing: 항상성",
+                master_edge=None,
+                student_edge=None,
+                concept="항상성",
+                confidence=0.75,
+                description="Missing: 항상성",
             ),
         ]
         mock_chart_gen = _make_mock_chart_gen_for_detail()
@@ -2221,8 +2180,11 @@ class TestClassifiedMisconceptionTable:
         stats.classified_misconceptions = [
             ClassifiedMisconception(
                 pattern=MisconceptionPattern.CAUSAL_REVERSAL,
-                master_edge=None, student_edge=None, concept=None,
-                confidence=0.85, description="Test",
+                master_edge=None,
+                student_edge=None,
+                concept=None,
+                confidence=0.85,
+                description="Test",
             ),
         ]
         mock_chart_gen = _make_mock_chart_gen_for_detail()
@@ -2347,11 +2309,15 @@ class TestEmphasisComparisonSection:
         report_data.class_emphasis_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A": 0.9, "B": 0.5},
-                threshold_used=0.65, n_sentences=10, n_concepts=2,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=2,
             ),
             "1B": InstructionalEmphasisMap(
                 concept_scores={"A": 0.7, "B": 0.8},
-                threshold_used=0.65, n_sentences=10, n_concepts=2,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=2,
             ),
         }
         result = gen._build_emphasis_comparison_section(report_data)
@@ -2375,7 +2341,9 @@ class TestEmphasisComparisonSection:
         report_data.class_emphasis_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A": 0.9, "B": 0.5},
-                threshold_used=0.65, n_sentences=10, n_concepts=2,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=2,
             ),
         }
         result = gen._build_emphasis_comparison_section(report_data)
@@ -2390,11 +2358,15 @@ class TestEmphasisComparisonSection:
         report_data.class_emphasis_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"항상성": 0.9, "세포": 0.3},
-                threshold_used=0.65, n_sentences=10, n_concepts=2,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=2,
             ),
             "1B": InstructionalEmphasisMap(
                 concept_scores={"항상성": 0.5, "세포": 0.3},
-                threshold_used=0.65, n_sentences=10, n_concepts=2,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=2,
             ),
         }
         result = gen._build_emphasis_comparison_section(report_data)
@@ -2413,11 +2385,15 @@ class TestEmphasisComparisonSection:
         report_data.class_emphasis_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A": 0.90},
-                threshold_used=0.65, n_sentences=10, n_concepts=1,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=1,
             ),
             "1B": InstructionalEmphasisMap(
                 concept_scores={"A": 0.70},
-                threshold_used=0.65, n_sentences=10, n_concepts=1,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=1,
             ),
         }
         result = gen._build_emphasis_comparison_section(report_data)
@@ -2437,11 +2413,15 @@ class TestEmphasisComparisonSection:
         report_data.class_emphasis_maps = {
             "1A": InstructionalEmphasisMap(
                 concept_scores={"A<B>C&D": 0.9},
-                threshold_used=0.65, n_sentences=10, n_concepts=1,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=1,
             ),
             "1B": InstructionalEmphasisMap(
                 concept_scores={"A<B>C&D": 0.5},
-                threshold_used=0.65, n_sentences=10, n_concepts=1,
+                threshold_used=0.65,
+                n_sentences=10,
+                n_concepts=1,
             ),
         }
         # Should not raise XML parsing error
@@ -2538,10 +2518,12 @@ class TestBuildClassGraphSection:
         from forma.class_knowledge_aggregate import AggregateEdge
 
         gen = _make_generator_for_question_detail(mock_font)
-        agg = _make_test_aggregate(edges=[
-            AggregateEdge("A", "R1", "B", 28, 1, 1, 30, 0.93),
-            AggregateEdge("B", "R2", "C", 27, 2, 1, 30, 0.90),
-        ])
+        agg = _make_test_aggregate(
+            edges=[
+                AggregateEdge("A", "R1", "B", 28, 1, 1, 30, 0.93),
+                AggregateEdge("B", "R2", "C", 27, 2, 1, 30, 0.90),
+            ]
+        )
         chart_buf = io.BytesIO(b"fake_png_data")
         story = []
         gen._build_class_graph_section(story, agg, chart_buf)
@@ -2726,32 +2708,37 @@ class TestBackwardCompatV073:
         for i in range(5):
             score = round(0.4 + i * 0.1, 2)
             level = (
-                "Advanced" if score >= 0.85
-                else "Proficient" if score >= 0.65
-                else "Developing" if score >= 0.45
+                "Advanced"
+                if score >= 0.85
+                else "Proficient"
+                if score >= 0.65
+                else "Developing"
+                if score >= 0.45
                 else "Beginning"
             )
-            students.append(StudentReportData(
-                student_id=f"S{i:03d}",
-                real_name=f"학생{i:03d}",
-                student_number=f"2026{i:04d}",
-                class_name="1A",
-                course_name="생리학",
-                chapter_name="Chapter 1",
-                week_num=1,
-                questions=[
-                    QuestionReportData(
-                        question_sn=1,
-                        question_text="항상성의 정의를 서술하시오.",
-                        ensemble_score=score,
-                        understanding_level=level,
-                        concept_coverage=0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=[],
-                    ),
-                ],
-            ))
+            students.append(
+                StudentReportData(
+                    student_id=f"S{i:03d}",
+                    real_name=f"학생{i:03d}",
+                    student_number=f"2026{i:04d}",
+                    class_name="1A",
+                    course_name="생리학",
+                    chapter_name="Chapter 1",
+                    week_num=1,
+                    questions=[
+                        QuestionReportData(
+                            question_sn=1,
+                            question_text="항상성의 정의를 서술하시오.",
+                            ensemble_score=score,
+                            understanding_level=level,
+                            concept_coverage=0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=[],
+                        ),
+                    ],
+                )
+            )
 
         dists = compute_class_distributions(students)
         report_data = build_professor_report_data(
@@ -2802,32 +2789,37 @@ class TestRiskMovementSection:
         for i in range(5):
             score = round(0.4 + i * 0.1, 2)
             level = (
-                "Advanced" if score >= 0.85
-                else "Proficient" if score >= 0.65
-                else "Developing" if score >= 0.45
+                "Advanced"
+                if score >= 0.85
+                else "Proficient"
+                if score >= 0.65
+                else "Developing"
+                if score >= 0.45
                 else "Beginning"
             )
-            students.append(StudentReportData(
-                student_id=f"S{i:03d}",
-                real_name=f"학생{i:03d}",
-                student_number=f"2026{i:04d}",
-                class_name="1A",
-                course_name="생리학",
-                chapter_name="Chapter 1",
-                week_num=2,
-                questions=[
-                    QuestionReportData(
-                        question_sn=1,
-                        question_text="항상성의 정의를 서술하시오.",
-                        ensemble_score=score,
-                        understanding_level=level,
-                        concept_coverage=0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=[],
-                    ),
-                ],
-            ))
+            students.append(
+                StudentReportData(
+                    student_id=f"S{i:03d}",
+                    real_name=f"학생{i:03d}",
+                    student_number=f"2026{i:04d}",
+                    class_name="1A",
+                    course_name="생리학",
+                    chapter_name="Chapter 1",
+                    week_num=2,
+                    questions=[
+                        QuestionReportData(
+                            question_sn=1,
+                            question_text="항상성의 정의를 서술하시오.",
+                            ensemble_score=score,
+                            understanding_level=level,
+                            concept_coverage=0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=[],
+                        ),
+                    ],
+                )
+            )
 
         dists = compute_class_distributions(students)
         report_data = build_professor_report_data(
@@ -2847,7 +2839,8 @@ class TestRiskMovementSection:
 
         gen = ProfessorPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            report_data, str(tmp_path),
+            report_data,
+            str(tmp_path),
             risk_movement=risk_movement,
         )
         assert pdf_path.endswith(".pdf")
@@ -2867,27 +2860,29 @@ class TestRiskMovementSection:
 
         students = []
         for i in range(3):
-            students.append(StudentReportData(
-                student_id=f"S{i:03d}",
-                real_name=f"학생{i:03d}",
-                student_number=f"2026{i:04d}",
-                class_name="1A",
-                course_name="생리학",
-                chapter_name="Chapter 1",
-                week_num=1,
-                questions=[
-                    QuestionReportData(
-                        question_sn=1,
-                        question_text="항상성의 정의를 서술하시오.",
-                        ensemble_score=0.60,
-                        understanding_level="Developing",
-                        concept_coverage=0.5,
-                        llm_median_score=2.0,
-                        rasch_theta=0.0,
-                        misconceptions=[],
-                    ),
-                ],
-            ))
+            students.append(
+                StudentReportData(
+                    student_id=f"S{i:03d}",
+                    real_name=f"학생{i:03d}",
+                    student_number=f"2026{i:04d}",
+                    class_name="1A",
+                    course_name="생리학",
+                    chapter_name="Chapter 1",
+                    week_num=1,
+                    questions=[
+                        QuestionReportData(
+                            question_sn=1,
+                            question_text="항상성의 정의를 서술하시오.",
+                            ensemble_score=0.60,
+                            understanding_level="Developing",
+                            concept_coverage=0.5,
+                            llm_median_score=2.0,
+                            rasch_theta=0.0,
+                            misconceptions=[],
+                        ),
+                    ],
+                )
+            )
 
         dists = compute_class_distributions(students)
         report_data = build_professor_report_data(
@@ -2941,8 +2936,21 @@ class TestCrossSectionComparisonSection:
             ],
             pairwise_comparisons=[
                 SectionComparison(
-                    "A", "B", 30, 25, 0.7, 0.65, 0.1, 0.12,
-                    "welch_t", 1.8, 0.07, None, 0.45, "small", False,
+                    "A",
+                    "B",
+                    30,
+                    25,
+                    0.7,
+                    0.65,
+                    0.1,
+                    0.12,
+                    "welch_t",
+                    1.8,
+                    0.07,
+                    None,
+                    0.45,
+                    "small",
+                    False,
                 ),
             ],
             concept_mastery_by_section={
@@ -3013,9 +3021,11 @@ class TestDeficitMapSection:
         from forma.learning_path import ClassDeficitMap
         from forma.professor_report import ProfessorPDFReportGenerator
 
-        dag = build_and_validate_dag([
-            ConceptDependency(prerequisite="세포막", dependent="삼투압"),
-        ])
+        dag = build_and_validate_dag(
+            [
+                ConceptDependency(prerequisite="세포막", dependent="삼투압"),
+            ]
+        )
         deficit_map = ClassDeficitMap(
             concept_counts={"세포막": 1, "삼투압": 3},
             total_students=5,
@@ -3024,7 +3034,8 @@ class TestDeficitMapSection:
         report_data = self._make_report_data()
         gen = ProfessorPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            report_data, str(tmp_path),
+            report_data,
+            str(tmp_path),
             deficit_map=deficit_map,
         )
         assert pdf_path.endswith(".pdf")
@@ -3098,7 +3109,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_build_grade_prediction_section_returns_flowables(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """_build_grade_prediction_section returns non-empty story list."""
         from forma.professor_report import ProfessorPDFReportGenerator
@@ -3114,7 +3129,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_contains_heading(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes '학기말 성적 예측' heading."""
         from reportlab.platypus import Paragraph
@@ -3133,7 +3152,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_contains_student_table(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes a Table flowable with per-student rows."""
         from reportlab.platypus import Table
@@ -3151,7 +3174,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_contains_disclaimer(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes FR-032 disclaimer text."""
         from reportlab.platypus import Paragraph
@@ -3170,7 +3197,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_cold_start_label_displayed(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Cold-start predictions show '규칙 기반' label."""
         from reportlab.platypus import Paragraph, Table
@@ -3196,7 +3227,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_probability_distribution_in_table(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Table shows probability distribution for each student."""
         from reportlab.platypus import Paragraph, Table
@@ -3221,7 +3256,11 @@ class TestGradePredictionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_empty_predictions_shows_no_data(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Empty predictions list returns story with '예측 데이터 없음'."""
         from reportlab.platypus import Paragraph
@@ -3244,7 +3283,8 @@ class TestGradePredictionSection:
         report_data = self._make_report_data_with_grades(predictions)
         gen = ProfessorPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            report_data, str(tmp_path),
+            report_data,
+            str(tmp_path),
             grade_predictions=predictions,
         )
         assert pdf_path.endswith(".pdf")
@@ -3340,7 +3380,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_build_intervention_section_returns_flowables(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """_build_intervention_section returns non-empty story list."""
         from forma.professor_report import ProfessorPDFReportGenerator
@@ -3357,7 +3401,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_contains_heading(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes '개입 이력 및 효과' heading (FR-010)."""
         from reportlab.platypus import Paragraph
@@ -3377,7 +3425,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_contains_disclaimer(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes FR-014 disclaimer about correlation."""
         from reportlab.platypus import Paragraph
@@ -3397,7 +3449,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_section_contains_effect_table(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes per-student effect table."""
         from reportlab.platypus import Table
@@ -3416,7 +3472,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_insufficient_data_displayed(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Insufficient data effects show '데이터 부족' in table (FR-012)."""
         from reportlab.platypus import Paragraph, Table
@@ -3441,7 +3501,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_type_summary_table(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Section includes type summary table with 면담/보충학습 entries."""
         from reportlab.platypus import Table
@@ -3460,7 +3524,11 @@ class TestInterventionSection:
     @patch("forma.font_utils.pdfmetrics.registerFont")
     @patch("forma.font_utils.TTFont")
     def test_empty_effects_shows_no_records(
-        self, mock_ttfont, mock_register, mock_find, mock_exists,
+        self,
+        mock_ttfont,
+        mock_register,
+        mock_find,
+        mock_exists,
     ):
         """Empty effects list shows '기록 없음' message."""
         from reportlab.platypus import Paragraph
@@ -3484,7 +3552,8 @@ class TestInterventionSection:
         report_data = _make_professor_report_data()
         gen = ProfessorPDFReportGenerator()
         pdf_path = gen.generate_pdf(
-            report_data, str(tmp_path),
+            report_data,
+            str(tmp_path),
             intervention_effects=effects,
             intervention_type_summaries=type_summaries,
         )

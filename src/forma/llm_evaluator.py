@@ -107,12 +107,11 @@ class LLMEvaluator:
         provider: str = "gemini",
     ) -> None:
         if n_calls < 1:
-            raise ValueError(
-                f"n_calls must be >= 1, got {n_calls}. "
-                "Use n_calls=1 for single-call mode."
-            )
+            raise ValueError(f"n_calls must be >= 1, got {n_calls}. Use n_calls=1 for single-call mode.")
         self.provider = create_provider(
-            provider=provider, api_key=api_key, model=model,
+            provider=provider,
+            api_key=api_key,
+            model=model,
         )
         self.model = self.provider.model_name
         self.n_calls = n_calls
@@ -139,7 +138,7 @@ class LLMEvaluator:
         if yaml_str.startswith("```"):
             first_nl = yaml_str.find("\n")
             if first_nl != -1:
-                yaml_str = yaml_str[first_nl + 1:]
+                yaml_str = yaml_str[first_nl + 1 :]
         if yaml_str.endswith("```"):
             yaml_str = yaml_str[:-3]
         return yaml_str.strip()
@@ -173,7 +172,7 @@ class LLMEvaluator:
             elif ": '" in stripped and not stripped.endswith("'"):
                 colon_idx = line.index(": '")
                 key_part = line[: colon_idx + 2]  # "key: "
-                value = line[colon_idx + 2:]
+                value = line[colon_idx + 2 :]
                 value = value.replace('"', '\\"')
                 line = f'{key_part}"{value}"'
             sanitized.append(line)
@@ -292,9 +291,7 @@ class LLMEvaluator:
             pass
 
         raise ValueError(
-            f"All YAML parsing strategies failed in "
-            f"_parse_yaml_response(). "
-            f"Raw response: {response_text[:300]}"
+            f"All YAML parsing strategies failed in _parse_yaml_response(). Raw response: {response_text[:300]}"
         )
 
     def _single_call(
@@ -331,14 +328,16 @@ class LLMEvaluator:
                 f"Using fallback low-confidence result.",
                 stacklevel=2,
             )
-            self.failed_calls.append(FailedCall(
-                student_id=student_id,
-                question_sn=question_sn,
-                call_index=call_index,
-                error_type=type(exc).__name__,
-                error_message=str(exc)[:200],
-                prompt=prompt,
-            ))
+            self.failed_calls.append(
+                FailedCall(
+                    student_id=student_id,
+                    question_sn=question_sn,
+                    call_index=call_index,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc)[:200],
+                    prompt=prompt,
+                )
+            )
             return LLMJudgeResult(
                 student_id=student_id,
                 question_sn=question_sn,
@@ -373,10 +372,7 @@ class LLMEvaluator:
         misconceptions = parsed.get("misconceptions") or []
         if isinstance(misconceptions, str):
             misconceptions = [misconceptions] if misconceptions else []
-        misconceptions = [
-            str(m) if not isinstance(m, str) else m
-            for m in misconceptions
-        ]
+        misconceptions = [str(m) if not isinstance(m, str) else m for m in misconceptions]
 
         return LLMJudgeResult(
             student_id=student_id,
@@ -432,13 +428,15 @@ class LLMEvaluator:
 
         calls: list[LLMJudgeResult] = []
         if self.n_calls == 1:
-            calls.append(self._single_call(
-                prompt=prompt,
-                student_id=student_id,
-                question_sn=question_sn,
-                call_index=1,
-                system_instruction=RUBRIC_SYSTEM_INSTRUCTION,
-            ))
+            calls.append(
+                self._single_call(
+                    prompt=prompt,
+                    student_id=student_id,
+                    question_sn=question_sn,
+                    call_index=1,
+                    system_instruction=RUBRIC_SYSTEM_INSTRUCTION,
+                )
+            )
         else:
             with ThreadPoolExecutor(max_workers=self.n_calls) as executor:
                 futures = {
@@ -517,10 +515,7 @@ class LLMEvaluator:
                 misconceptions = parsed.get("misconceptions") or []
                 if isinstance(misconceptions, str):
                     misconceptions = [misconceptions] if misconceptions else []
-                misconceptions = [
-                    str(m) if not isinstance(m, str) else m
-                    for m in misconceptions
-                ]
+                misconceptions = [str(m) if not isinstance(m, str) else m for m in misconceptions]
 
                 new_result = LLMJudgeResult(
                     student_id=fc.student_id,

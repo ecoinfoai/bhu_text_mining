@@ -295,7 +295,10 @@ class TestE2EPrepareAndSend:
         # Step 1: Dry-run (no password needed)
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
         dry_log = send_emails(
-            staging_dir, template_path, smtp_config_path, dry_run=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            dry_run=True,
         )
         assert dry_log.dry_run is True
         assert dry_log.success == 2
@@ -335,15 +338,23 @@ class TestE2EPrepareAndSend:
         call_count = 0
 
         class FailSecondSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 2:
                     raise Exception("SMTP error for second")
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", FailSecondSMTP)
         log1 = send_emails(staging_dir, template_path, smtp_config_path)
@@ -355,7 +366,10 @@ class TestE2EPrepareAndSend:
         # Retry: only the failed student
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
         log2 = send_emails(
-            staging_dir, template_path, smtp_config_path, retry_failed=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            retry_failed=True,
         )
 
         assert log2.total == 1
@@ -456,12 +470,18 @@ class TestCliE2E:
         smtp_config_path = _create_smtp_config(tmp_path)
 
         # CLI: prepare
-        main([
-            "--no-config", "prepare",
-            "--manifest", manifest_path,
-            "--roster", roster_path,
-            "--output-dir", staging_dir,
-        ])
+        main(
+            [
+                "--no-config",
+                "prepare",
+                "--manifest",
+                manifest_path,
+                "--roster",
+                roster_path,
+                "--output-dir",
+                staging_dir,
+            ]
+        )
         captured = capsys.readouterr()
         assert "2 students" in captured.out
         assert "ready=2" in captured.out
@@ -470,12 +490,18 @@ class TestCliE2E:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "test_pw")
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
-        main([
-            "--no-config", "send",
-            "--staged", staging_dir,
-            "--template", template_path,
-            "--smtp-config", smtp_config_path,
-        ])
+        main(
+            [
+                "--no-config",
+                "send",
+                "--staged",
+                staging_dir,
+                "--template",
+                template_path,
+                "--smtp-config",
+                smtp_config_path,
+            ]
+        )
         captured = capsys.readouterr()
         assert "2/2 succeeded" in captured.out
 
@@ -494,18 +520,34 @@ class TestCliE2E:
         smtp_config_path = _create_smtp_config(tmp_path)
 
         # Prepare
-        main(["--no-config", "prepare",
-              "--manifest", manifest_path,
-              "--roster", roster_path,
-              "--output-dir", staging_dir])
+        main(
+            [
+                "--no-config",
+                "prepare",
+                "--manifest",
+                manifest_path,
+                "--roster",
+                roster_path,
+                "--output-dir",
+                staging_dir,
+            ]
+        )
 
         # Send with dry-run (no password needed)
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
-        main(["--no-config", "send",
-              "--staged", staging_dir,
-              "--template", template_path,
-              "--smtp-config", smtp_config_path,
-              "--dry-run"])
+        main(
+            [
+                "--no-config",
+                "send",
+                "--staged",
+                staging_dir,
+                "--template",
+                template_path,
+                "--smtp-config",
+                smtp_config_path,
+                "--dry-run",
+            ]
+        )
         captured = capsys.readouterr()
         assert "DRY-RUN" in captured.out
 

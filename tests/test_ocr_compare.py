@@ -20,12 +20,9 @@ from forma.ocr_compare import (
 # ---------------------------------------------------------------------------
 
 SAMPLE_OCR_FIELDS = [
-    {"infer_text": "세포", "infer_confidence": 0.98, "bounding_poly": None,
-     "type": "", "line_break": False},
-    {"infer_text": "분열", "infer_confidence": 0.95, "bounding_poly": None,
-     "type": "", "line_break": False},
-    {"infer_text": "과정", "infer_confidence": 0.70, "bounding_poly": None,
-     "type": "", "line_break": True},
+    {"infer_text": "세포", "infer_confidence": 0.98, "bounding_poly": None, "type": "", "line_break": False},
+    {"infer_text": "분열", "infer_confidence": 0.95, "bounding_poly": None, "type": "", "line_break": False},
+    {"infer_text": "과정", "infer_confidence": 0.70, "bounding_poly": None, "type": "", "line_break": True},
 ]
 
 
@@ -109,9 +106,9 @@ class TestAlignOcrLlmTokens:
         ocr_tokens = ["세포", "분렬", "과정"]  # 분렬 is OCR error
         llm_text = "세포 분열 과정"
         result = align_ocr_llm_tokens(ocr_tokens, llm_text)
-        assert result[0][2] is True   # 세포 matches
+        assert result[0][2] is True  # 세포 matches
         assert result[1][2] is False  # 분렬 ≠ 분열
-        assert result[2][2] is True   # 과정 matches
+        assert result[2][2] is True  # 과정 matches
 
     def test_llm_has_extra_tokens(self):
         """LLM may produce more tokens than OCR fields."""
@@ -178,10 +175,20 @@ class TestCompareSingleImage:
         naver_raw = {
             "infer_result": "SUCCESS",
             "fields": [
-                {"infer_text": "세포", "infer_confidence": 0.98,
-                 "bounding_poly": None, "type": "", "line_break": False},
-                {"infer_text": "분렬", "infer_confidence": 0.40,
-                 "bounding_poly": None, "type": "", "line_break": False},
+                {
+                    "infer_text": "세포",
+                    "infer_confidence": 0.98,
+                    "bounding_poly": None,
+                    "type": "",
+                    "line_break": False,
+                },
+                {
+                    "infer_text": "분렬",
+                    "infer_confidence": 0.40,
+                    "bounding_poly": None,
+                    "type": "",
+                    "line_break": False,
+                },
             ],
             "field_count": 2,
             "confidence_mean": 0.69,
@@ -239,10 +246,8 @@ class TestCompareSingleImage:
         naver_raw = {
             "infer_result": "SUCCESS",
             "fields": [
-                {"infer_text": "a", "infer_confidence": 0.9,
-                 "bounding_poly": None, "type": "", "line_break": False},
-                {"infer_text": "b", "infer_confidence": 0.9,
-                 "bounding_poly": None, "type": "", "line_break": False},
+                {"infer_text": "a", "infer_confidence": 0.9, "bounding_poly": None, "type": "", "line_break": False},
+                {"infer_text": "b", "infer_confidence": 0.9, "bounding_poly": None, "type": "", "line_break": False},
             ],
             "field_count": 2,
             "confidence_mean": 0.9,
@@ -311,6 +316,7 @@ class TestCliCompareParser:
 
     def test_parse_compare_basic(self):
         from forma.cli_ocr import _parse_args
+
         args = _parse_args(["compare", "--image", "test.jpg"])
         assert args.command == "compare"
         assert args.image == "test.jpg"
@@ -319,21 +325,37 @@ class TestCliCompareParser:
 
     def test_parse_compare_with_provider(self):
         from forma.cli_ocr import _parse_args
-        args = _parse_args([
-            "compare", "--image", "test.jpg",
-            "--provider", "anthropic", "--model", "claude-sonnet-4-6",
-        ])
+
+        args = _parse_args(
+            [
+                "compare",
+                "--image",
+                "test.jpg",
+                "--provider",
+                "anthropic",
+                "--model",
+                "claude-sonnet-4-6",
+            ]
+        )
         assert args.provider == "anthropic"
         assert args.model == "claude-sonnet-4-6"
 
     def test_parse_compare_with_context(self):
         from forma.cli_ocr import _parse_args
-        args = _parse_args([
-            "compare", "--image", "test.jpg",
-            "--subject", "생물학",
-            "--question", "세포 분열",
-            "--answer-keywords", "유사분열",
-        ])
+
+        args = _parse_args(
+            [
+                "compare",
+                "--image",
+                "test.jpg",
+                "--subject",
+                "생물학",
+                "--question",
+                "세포 분열",
+                "--answer-keywords",
+                "유사분열",
+            ]
+        )
         assert args.subject == "생물학"
         assert args.question == "세포 분열"
         assert args.answer_keywords == "유사분열"

@@ -16,6 +16,7 @@ import threading
 from unittest.mock import patch
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import pytest  # noqa: E402
@@ -121,10 +122,7 @@ class TestChartEdgeCaseHunter:
 
     def test_all_edges_below_min_ratio(self, chart_gen):
         """All edges below min_ratio_to_show -> fallback PNG, not crash."""
-        edges = [
-            _make_edge(subject=f"S{i}", obj=f"O{i}", correct_ratio=0.01)
-            for i in range(5)
-        ]
+        edges = [_make_edge(subject=f"S{i}", obj=f"O{i}", correct_ratio=0.01) for i in range(5)]
         agg = _make_aggregate(edges=edges)
         buf = chart_gen.build_class_knowledge_graph_chart(agg, min_ratio_to_show=0.05)
         data = buf.getvalue()
@@ -328,10 +326,7 @@ class TestChartPDFKiller:
 
     def test_50_edges_chart(self, chart_gen):
         """50 edges renders without crash or overflow."""
-        edges = [
-            _make_edge(subject=f"S{i}", obj=f"O{i}", correct_ratio=0.1 + (i % 10) * 0.09)
-            for i in range(50)
-        ]
+        edges = [_make_edge(subject=f"S{i}", obj=f"O{i}", correct_ratio=0.1 + (i % 10) * 0.09) for i in range(50)]
         agg = _make_aggregate(edges=edges, total_students=100)
         buf = chart_gen.build_class_knowledge_graph_chart(agg)
         assert len(buf.getvalue()) > 0

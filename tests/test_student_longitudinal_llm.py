@@ -182,9 +182,7 @@ class TestGenerateInterpretation:
             assert isinstance(value, str), f"{key} should be str"
             assert len(value) > 0, f"{key} should not be empty"
             # Each value should contain Korean
-            assert any("\uac00" <= ch <= "\ud7a3" for ch in value), (
-                f"{key} should contain Korean characters"
-            )
+            assert any("\uac00" <= ch <= "\ud7a3" for ch in value), f"{key} should contain Korean characters"
 
     def test_provider_called_with_system_instruction(self):
         from forma.student_longitudinal_llm import generate_interpretation

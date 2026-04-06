@@ -52,10 +52,7 @@ class TestCleanTextbookText:
 
     def test_removes_human_anatomy_markers(self) -> None:
         """'H U M A N  A N A T O M Y  &  P H Y S I O L O G Y' markers removed."""
-        raw = (
-            "H U M A N  A N A T O M Y  &  P H Y S I O L O G Y\n"
-            "표피는 피부의 가장 바깥층이다."
-        )
+        raw = "H U M A N  A N A T O M Y  &  P H Y S I O L O G Y\n표피는 피부의 가장 바깥층이다."
         result = clean_textbook_text(raw)
         assert "H U M A N" not in result
         assert "표피는 피부의 가장 바깥층이다." in result

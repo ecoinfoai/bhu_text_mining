@@ -28,25 +28,39 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", required=True, dest="output_dir", help="PDF output directory path")
     # Optional args
     parser.add_argument("--forma-config", default=None, dest="forma_config", help="Forma config file path")
-    parser.add_argument("--class-name", default=None, dest="class_name", help="Class name (auto-extracted from filename)")
+    parser.add_argument(
+        "--class-name", default=None, dest="class_name", help="Class name (auto-extracted from filename)"
+    )
     parser.add_argument("--skip-llm", action="store_true", dest="skip_llm", default=False, help="Skip AI analysis")
     parser.add_argument("--font-path", default=None, dest="font_path", help="Korean font file path")
     parser.add_argument("--dpi", type=int, default=150, help="Chart DPI (default: 150)")
     parser.add_argument("--verbose", action="store_true", default=False, help="Enable verbose logging")
-    parser.add_argument("--no-config", action="store_true", default=False, dest="no_config",
-                        help="Skip forma.yaml config file")
-    parser.add_argument("--model", default=None, dest="model_path",
-                        help="Drop risk prediction model file path (.pkl)")
-    parser.add_argument("--transcript-dir", default=None, dest="transcript_dir",
-                        help="Lecture transcript text file directory path")
-    parser.add_argument("--longitudinal-store", default=None, dest="longitudinal_store",
-                        help="Longitudinal store YAML path (risk group change display)")
-    parser.add_argument("--week", type=int, default=None,
-                        help="Current week number")
-    parser.add_argument("--grade-model", default=None, dest="grade_model_path",
-                        help="Grade prediction model file path (.pkl, from forma-train-grade)")
-    parser.add_argument("--intervention-log", default=None, dest="intervention_log",
-                        help="Intervention log YAML path (enables intervention effect analysis)")
+    parser.add_argument(
+        "--no-config", action="store_true", default=False, dest="no_config", help="Skip forma.yaml config file"
+    )
+    parser.add_argument("--model", default=None, dest="model_path", help="Drop risk prediction model file path (.pkl)")
+    parser.add_argument(
+        "--transcript-dir", default=None, dest="transcript_dir", help="Lecture transcript text file directory path"
+    )
+    parser.add_argument(
+        "--longitudinal-store",
+        default=None,
+        dest="longitudinal_store",
+        help="Longitudinal store YAML path (risk group change display)",
+    )
+    parser.add_argument("--week", type=int, default=None, help="Current week number")
+    parser.add_argument(
+        "--grade-model",
+        default=None,
+        dest="grade_model_path",
+        help="Grade prediction model file path (.pkl, from forma-train-grade)",
+    )
+    parser.add_argument(
+        "--intervention-log",
+        default=None,
+        dest="intervention_log",
+        help="Intervention log YAML path (enables intervention effect analysis)",
+    )
     return parser
 
 
@@ -56,6 +70,7 @@ def main() -> int | None:
 
     # Apply project config (three-layer merge)
     from forma.project_config import apply_project_config
+
     apply_project_config(args, argv=sys.argv[1:])
 
     # Configure logging
@@ -88,6 +103,7 @@ def main() -> int | None:
 
     # Load student data
     import yaml
+
     try:
         students, distributions = load_all_student_data(args.final, args.config, args.eval_dir)
     except yaml.YAMLError:
@@ -120,6 +136,7 @@ def main() -> int | None:
     if args.longitudinal_store:
         try:
             from forma.longitudinal_store import LongitudinalStore
+
             long_store = LongitudinalStore(args.longitudinal_store)
             long_store.load()
         except Exception as exc:
@@ -191,24 +208,30 @@ def main() -> int | None:
                     for me in q.graph_master_edges:
                         master_edges_set.add((me.subject, me.relation, me.object))
 
-                    comparison_results.append(GraphComparisonResult(
-                        student_id=student.student_id,
-                        question_sn=qsn,
-                        precision=0.0, recall=0.0, f1=q.graph_comparison_f1,
-                        matched_edges=q.graph_matched_edges,
-                        missing_edges=q.graph_missing_edges,
-                        extra_edges=q.graph_extra_edges,
-                        wrong_direction_edges=q.graph_wrong_direction_edges,
-                    ))
+                    comparison_results.append(
+                        GraphComparisonResult(
+                            student_id=student.student_id,
+                            question_sn=qsn,
+                            precision=0.0,
+                            recall=0.0,
+                            f1=q.graph_comparison_f1,
+                            matched_edges=q.graph_matched_edges,
+                            missing_edges=q.graph_missing_edges,
+                            extra_edges=q.graph_extra_edges,
+                            wrong_direction_edges=q.graph_wrong_direction_edges,
+                        )
+                    )
 
             if comparison_results and master_edges_set:
                 from forma.evaluation_types import TripletEdge
+
                 master_edges_list = [
-                    TripletEdge(subject=s, relation=r, object=o)
-                    for s, r, o in sorted(master_edges_set)
+                    TripletEdge(subject=s, relation=r, object=o) for s, r, o in sorted(master_edges_set)
                 ]
                 agg = build_class_knowledge_aggregate(
-                    master_edges_list, comparison_results, qsn,
+                    master_edges_list,
+                    comparison_results,
+                    qsn,
                 )
                 report_data.class_knowledge_aggregates.append(agg)
                 qstat.class_knowledge_aggregate = agg
@@ -226,7 +249,9 @@ def main() -> int | None:
                 qstat.misconception_clusters = clusters
                 logger.info(
                     "Question %d misconception clustering: %d inputs -> %d clusters",
-                    qstat.question_sn, len(classified), len(clusters),
+                    qstat.question_sn,
+                    len(classified),
+                    len(clusters),
                 )
     except Exception as exc:
         logger.warning("Misconception clustering failed (continuing): %s", exc)
@@ -261,14 +286,12 @@ def main() -> int | None:
                     report_data.emphasis_map = emphasis_map
                     logger.info(
                         "Emphasis map generated: %d concepts, %d sentences",
-                        emphasis_map.n_concepts, emphasis_map.n_sentences,
+                        emphasis_map.n_concepts,
+                        emphasis_map.n_sentences,
                     )
 
                     # Lecture concepts = concepts with emphasis score > 0
-                    lecture_concepts: set[str] = {
-                        c for c, score in emphasis_map.concept_scores.items()
-                        if score > 0.0
-                    }
+                    lecture_concepts: set[str] = {c for c, score in emphasis_map.concept_scores.items() if score > 0.0}
 
                     # Student missing rates from concept_mastery_rates
                     student_missing_rates: dict[str, float] = {}
@@ -301,6 +324,7 @@ def main() -> int | None:
         provider = None
         try:
             import anthropic  # noqa: PLC0415
+
             provider = anthropic.Anthropic()
         except Exception as exc:
             logger.warning("LLM client creation failed: %s", exc)
@@ -318,7 +342,9 @@ def main() -> int | None:
                     for cluster in qstat.misconception_clusters:
                         if not cluster.correction_point:
                             correction = generate_cluster_correction(
-                                cluster, cluster.centroid_edge, provider,
+                                cluster,
+                                cluster.centroid_edge,
+                                provider,
                             )
                             cluster.correction_point = correction
             except Exception as exc:
@@ -331,15 +357,11 @@ def main() -> int | None:
             from forma.professor_report_data import compute_risk_movement
 
             # Current at-risk students from report_data
-            current_risk = {
-                r.student_id for r in report_data.student_rows if r.is_at_risk
-            }
+            current_risk = {r.student_id for r in report_data.student_rows if r.is_at_risk}
 
             # Previous week at-risk: find the most recent week before args.week
             previous_risk: set[str] = set()
-            all_weeks = sorted({
-                d["week"] for d in long_store._records.values()
-            })
+            all_weeks = sorted({d["week"] for d in long_store._records.values()})
             prev_weeks = [w for w in all_weeks if w < args.week]
             if prev_weeks:
                 prev_week = prev_weeks[-1]
@@ -367,31 +389,36 @@ def main() -> int | None:
             sys.exit(1)
         try:
             from forma.risk_predictor import (
-                FeatureExtractor, RiskPredictor, load_model,
+                FeatureExtractor,
+                RiskPredictor,
+                load_model,
             )
 
             trained_model = load_model(args.model_path)
             predictor = RiskPredictor()
 
             if long_store is not None:
-                weeks_list = sorted({
-                    r.week for r in long_store.get_all_records()
-                })
+                weeks_list = sorted({r.week for r in long_store.get_all_records()})
                 extractor = FeatureExtractor()
                 matrix, feat_names, student_ids = extractor.extract(
-                    long_store, weeks_list,
+                    long_store,
+                    weeks_list,
                 )
                 if matrix.shape[0] > 0:
                     if feat_names == trained_model.feature_names:
                         preds = predictor.predict(
-                            trained_model, matrix, student_ids,
+                            trained_model,
+                            matrix,
+                            student_ids,
                         )
                     else:
                         logger.warning(
                             "Model feature mismatch — using cold start prediction",
                         )
                         preds = predictor.predict_cold_start(
-                            matrix, student_ids, feat_names,
+                            matrix,
+                            student_ids,
+                            feat_names,
                         )
                     report_data.risk_predictions = preds
                     logger.info("Drop risk prediction complete: %d students", len(preds))
@@ -408,7 +435,9 @@ def main() -> int | None:
             sys.exit(1)
         try:
             from forma.grade_predictor import (
-                GradeFeatureExtractor, GradePredictor, load_grade_model,
+                GradeFeatureExtractor,
+                GradePredictor,
+                load_grade_model,
             )
 
             trained_grade_model = load_grade_model(args.grade_model_path)
@@ -418,19 +447,24 @@ def main() -> int | None:
                 g_weeks = sorted({r.week for r in long_store.get_all_records()})
                 g_extractor = GradeFeatureExtractor()
                 g_matrix, g_feat_names, g_student_ids = g_extractor.extract(
-                    long_store, g_weeks,
+                    long_store,
+                    g_weeks,
                 )
                 if g_matrix.shape[0] > 0:
                     if g_feat_names == trained_grade_model.feature_names:
                         grade_predictions = grade_predictor.predict(
-                            trained_grade_model, g_matrix, g_student_ids,
+                            trained_grade_model,
+                            g_matrix,
+                            g_student_ids,
                         )
                     else:
                         logger.warning(
                             "Grade model feature mismatch — using cold start prediction",
                         )
                         grade_predictions = grade_predictor.predict_cold_start(
-                            g_matrix, g_student_ids, g_feat_names,
+                            g_matrix,
+                            g_student_ids,
+                            g_feat_names,
                         )
                     report_data.grade_predictions = grade_predictions
                     logger.info("Grade prediction complete: %d students", len(grade_predictions))
@@ -477,7 +511,9 @@ def main() -> int | None:
     # Generate PDF report
     try:
         ProfessorPDFReportGenerator(font_path=args.font_path, dpi=args.dpi).generate_pdf(
-            report_data, args.output_dir, risk_movement=risk_movement,
+            report_data,
+            args.output_dir,
+            risk_movement=risk_movement,
             grade_predictions=grade_predictions,
             deficit_map=deficit_map,
             deficit_map_chart=deficit_map_chart,

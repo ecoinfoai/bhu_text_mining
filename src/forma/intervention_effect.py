@@ -91,48 +91,49 @@ def compute_intervention_effects(
 
     for rec in records:
         trajectory = store.get_student_trajectory(
-            rec.student_id, "ensemble_score",
+            rec.student_id,
+            "ensemble_score",
         )
         # trajectory is list of (week, score) tuples
         week_scores = {w: s for w, s in trajectory}
 
         # Compute pre weeks: (intervention_week - window) .. (intervention_week - 1)
-        pre_weeks = [
-            rec.week - i for i in range(1, window + 1)
-        ]
+        pre_weeks = [rec.week - i for i in range(1, window + 1)]
         pre_scores = [week_scores[w] for w in pre_weeks if w in week_scores]
 
         # Compute post weeks: (intervention_week + 1) .. (intervention_week + window)
-        post_weeks = [
-            rec.week + i for i in range(1, window + 1)
-        ]
+        post_weeks = [rec.week + i for i in range(1, window + 1)]
         post_scores = [week_scores[w] for w in post_weeks if w in week_scores]
 
         if len(pre_scores) >= window and len(post_scores) >= window:
             pre_mean = sum(pre_scores) / len(pre_scores)
             post_mean = sum(post_scores) / len(post_scores)
             score_change = post_mean - pre_mean
-            effects.append(InterventionEffect(
-                student_id=rec.student_id,
-                intervention_id=rec.id,
-                intervention_type=rec.intervention_type,
-                intervention_week=rec.week,
-                pre_mean=pre_mean,
-                post_mean=post_mean,
-                score_change=score_change,
-                sufficient_data=True,
-            ))
+            effects.append(
+                InterventionEffect(
+                    student_id=rec.student_id,
+                    intervention_id=rec.id,
+                    intervention_type=rec.intervention_type,
+                    intervention_week=rec.week,
+                    pre_mean=pre_mean,
+                    post_mean=post_mean,
+                    score_change=score_change,
+                    sufficient_data=True,
+                )
+            )
         else:
-            effects.append(InterventionEffect(
-                student_id=rec.student_id,
-                intervention_id=rec.id,
-                intervention_type=rec.intervention_type,
-                intervention_week=rec.week,
-                pre_mean=None,
-                post_mean=None,
-                score_change=None,
-                sufficient_data=False,
-            ))
+            effects.append(
+                InterventionEffect(
+                    student_id=rec.student_id,
+                    intervention_id=rec.id,
+                    intervention_type=rec.intervention_type,
+                    intervention_week=rec.week,
+                    pre_mean=None,
+                    post_mean=None,
+                    score_change=None,
+                    sufficient_data=False,
+                )
+            )
 
     return effects
 
@@ -164,13 +165,15 @@ def compute_type_summary(
         n_negative = sum(1 for c in changes if c < 0)
         mean_change = sum(changes) / len(changes) if changes else 0.0
 
-        summaries.append(InterventionTypeSummary(
-            intervention_type=itype,
-            n_total=len(group),
-            n_sufficient=len(sufficient),
-            n_positive=n_positive,
-            n_negative=n_negative,
-            mean_change=mean_change,
-        ))
+        summaries.append(
+            InterventionTypeSummary(
+                intervention_type=itype,
+                n_total=len(group),
+                n_sufficient=len(sufficient),
+                n_positive=n_positive,
+                n_negative=n_negative,
+                mean_change=mean_change,
+            )
+        )
 
     return summaries

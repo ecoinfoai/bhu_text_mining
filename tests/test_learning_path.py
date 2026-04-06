@@ -7,7 +7,6 @@ Covers FR-018, FR-019, FR-020, FR-021, FR-022.
 from __future__ import annotations
 
 
-
 # ---------------------------------------------------------------------------
 # T037: generate_learning_path tests (FR-018, FR-019, FR-022)
 # ---------------------------------------------------------------------------
@@ -20,10 +19,7 @@ class TestGenerateLearningPath:
         """Helper: build a ConceptDependencyDAG from list of dicts."""
         from forma.concept_dependency import ConceptDependency, build_and_validate_dag
 
-        deps = [
-            ConceptDependency(prerequisite=d["prerequisite"], dependent=d["dependent"])
-            for d in dep_dicts
-        ]
+        deps = [ConceptDependency(prerequisite=d["prerequisite"], dependent=d["dependent"]) for d in dep_dicts]
         return build_and_validate_dag(deps)
 
     def test_basic_learning_path(self):
@@ -31,11 +27,13 @@ class TestGenerateLearningPath:
         from forma.learning_path import generate_learning_path
 
         # DAG: A → B → C → D
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-            {"prerequisite": "C", "dependent": "D"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+                {"prerequisite": "C", "dependent": "D"},
+            ]
+        )
         # Student has deficit in C and D (scores below threshold)
         student_scores = {"A": 0.8, "B": 0.7, "C": 0.2, "D": 0.1}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
@@ -50,10 +48,12 @@ class TestGenerateLearningPath:
         from forma.learning_path import generate_learning_path
 
         # DAG: A → B → C
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        )
         # Student only has deficit in C, but B is also unmastered
         student_scores = {"A": 0.8, "B": 0.3, "C": 0.2}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
@@ -67,9 +67,11 @@ class TestGenerateLearningPath:
         """All concepts above threshold → empty path."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         student_scores = {"A": 0.9, "B": 0.8}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
         assert path.ordered_path == []
@@ -80,10 +82,7 @@ class TestGenerateLearningPath:
         from forma.learning_path import generate_learning_path
 
         # Long chain: C0 → C1 → ... → C29 (30 nodes)
-        dag = self._make_dag([
-            {"prerequisite": f"C{i}", "dependent": f"C{i+1}"}
-            for i in range(29)
-        ])
+        dag = self._make_dag([{"prerequisite": f"C{i}", "dependent": f"C{i + 1}"} for i in range(29)])
         # All concepts are deficit
         student_scores = {f"C{i}": 0.1 for i in range(30)}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
@@ -94,10 +93,12 @@ class TestGenerateLearningPath:
         """Path under 20 concepts is not capped."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        )
         student_scores = {"A": 0.1, "B": 0.2, "C": 0.3}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
         assert path.capped is False
@@ -106,9 +107,11 @@ class TestGenerateLearningPath:
         """Default threshold is 0.4."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         # B is at 0.39, just below default 0.4
         student_scores = {"A": 0.8, "B": 0.39}
         path = generate_learning_path("s001", student_scores, dag)
@@ -118,9 +121,11 @@ class TestGenerateLearningPath:
         """Score exactly at threshold is NOT a deficit."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         student_scores = {"A": 0.8, "B": 0.4}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
         assert "B" not in path.ordered_path
@@ -129,9 +134,11 @@ class TestGenerateLearningPath:
         """Concept in DAG but not in student_scores → treated as deficit."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         # B has no score entry
         student_scores = {"A": 0.8}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
@@ -141,12 +148,14 @@ class TestGenerateLearningPath:
         """Diamond DAG (A→B, A→C, B→D, C→D): all deficit → topological order."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "A", "dependent": "C"},
-            {"prerequisite": "B", "dependent": "D"},
-            {"prerequisite": "C", "dependent": "D"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "A", "dependent": "C"},
+                {"prerequisite": "B", "dependent": "D"},
+                {"prerequisite": "C", "dependent": "D"},
+            ]
+        )
         student_scores = {"A": 0.1, "B": 0.2, "C": 0.2, "D": 0.1}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
         assert "A" in path.ordered_path
@@ -168,10 +177,12 @@ class TestGenerateLearningPath:
         """deficit_concepts contains all concepts below threshold."""
         from forma.learning_path import generate_learning_path
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        )
         student_scores = {"A": 0.8, "B": 0.2, "C": 0.1}
         path = generate_learning_path("s001", student_scores, dag, threshold=0.4)
         assert set(path.deficit_concepts) == {"B", "C"}
@@ -211,20 +222,19 @@ class TestBuildClassDeficitMap:
     def _make_dag(self, dep_dicts):
         from forma.concept_dependency import ConceptDependency, build_and_validate_dag
 
-        deps = [
-            ConceptDependency(prerequisite=d["prerequisite"], dependent=d["dependent"])
-            for d in dep_dicts
-        ]
+        deps = [ConceptDependency(prerequisite=d["prerequisite"], dependent=d["dependent"]) for d in dep_dicts]
         return build_and_validate_dag(deps)
 
     def test_basic_deficit_map(self):
         """Counts students with deficit per concept."""
         from forma.learning_path import build_class_deficit_map
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        )
         all_scores = {
             "s001": {"A": 0.8, "B": 0.2, "C": 0.1},
             "s002": {"A": 0.9, "B": 0.5, "C": 0.3},
@@ -243,9 +253,11 @@ class TestBuildClassDeficitMap:
         """All students mastered → all counts 0."""
         from forma.learning_path import build_class_deficit_map
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         all_scores = {
             "s001": {"A": 0.9, "B": 0.8},
         }
@@ -257,9 +269,11 @@ class TestBuildClassDeficitMap:
         """ClassDeficitMap stores reference to the DAG."""
         from forma.learning_path import build_class_deficit_map
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         all_scores = {"s001": {"A": 0.1, "B": 0.1}}
         deficit_map = build_class_deficit_map(all_scores, dag, threshold=0.4)
         assert deficit_map.dag is dag
@@ -268,9 +282,11 @@ class TestBuildClassDeficitMap:
         """Empty student scores → total_students=0, all counts 0."""
         from forma.learning_path import build_class_deficit_map
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         deficit_map = build_class_deficit_map({}, dag, threshold=0.4)
         assert deficit_map.total_students == 0
 
@@ -278,9 +294,11 @@ class TestBuildClassDeficitMap:
         """Concept in DAG but not in student scores → counted as deficit."""
         from forma.learning_path import build_class_deficit_map
 
-        dag = self._make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = self._make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         all_scores = {"s001": {"A": 0.8}}  # B missing
         deficit_map = build_class_deficit_map(all_scores, dag, threshold=0.4)
         assert deficit_map.concept_counts["B"] == 1

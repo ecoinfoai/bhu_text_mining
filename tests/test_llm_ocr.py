@@ -128,9 +128,11 @@ class TestComputeWordConfidence:
 
     def test_single_token_word(self):
         """A word that maps to exactly one token."""
-        logprobs = self._make_logprobs_result([
-            {"token": "hello", "log_probability": math.log(0.9)},
-        ])
+        logprobs = self._make_logprobs_result(
+            [
+                {"token": "hello", "log_probability": math.log(0.9)},
+            ]
+        )
         result = compute_word_confidence(logprobs, "hello")
         assert len(result) == 1
         assert result[0].word == "hello"
@@ -144,11 +146,13 @@ class TestComputeWordConfidence:
         # = (0.8 * 0.9 * 0.7)^(1/3)
         p1, p2, p3 = 0.8, 0.9, 0.7
         expected = (p1 * p2 * p3) ** (1.0 / 3.0)
-        logprobs = self._make_logprobs_result([
-            {"token": "세포", "log_probability": math.log(p1)},
-            {"token": "막", "log_probability": math.log(p2)},
-            {"token": "은", "log_probability": math.log(p3)},
-        ])
+        logprobs = self._make_logprobs_result(
+            [
+                {"token": "세포", "log_probability": math.log(p1)},
+                {"token": "막", "log_probability": math.log(p2)},
+                {"token": "은", "log_probability": math.log(p3)},
+            ]
+        )
         result = compute_word_confidence(logprobs, "세포막은")
         assert len(result) == 1
         assert result[0].word == "세포막은"
@@ -157,11 +161,13 @@ class TestComputeWordConfidence:
 
     def test_multiple_words(self):
         """Multiple space-separated words each get their own WordConfidence."""
-        logprobs = self._make_logprobs_result([
-            {"token": "hello", "log_probability": math.log(0.9)},
-            {"token": " ", "log_probability": math.log(0.99)},
-            {"token": "world", "log_probability": math.log(0.8)},
-        ])
+        logprobs = self._make_logprobs_result(
+            [
+                {"token": "hello", "log_probability": math.log(0.9)},
+                {"token": " ", "log_probability": math.log(0.99)},
+                {"token": "world", "log_probability": math.log(0.8)},
+            ]
+        )
         result = compute_word_confidence(logprobs, "hello world")
         assert len(result) == 2
         assert result[0].word == "hello"
@@ -181,9 +187,11 @@ class TestComputeWordConfidence:
     def test_confidence_clamped_0_to_1(self):
         """Confidence values are clamped to [0.0, 1.0]."""
         # log_probability = 0.0 means exp(0) = 1.0 (max)
-        logprobs = self._make_logprobs_result([
-            {"token": "hi", "log_probability": 0.0},
-        ])
+        logprobs = self._make_logprobs_result(
+            [
+                {"token": "hi", "log_probability": 0.0},
+            ]
+        )
         result = compute_word_confidence(logprobs, "hi")
         assert result[0].confidence <= 1.0
         assert result[0].confidence >= 0.0
@@ -325,7 +333,8 @@ class TestExtractTextViaLlm:
 
         mock_provider = MagicMock()
         mock_provider.generate_with_image_full.return_value = self._make_full_response(
-            text="hello", logprobs_result=logprobs,
+            text="hello",
+            logprobs_result=logprobs,
         )
         mock_provider.model_name = "gemini-2.5-flash"
 
@@ -472,6 +481,7 @@ class TestExtractTextFallbackChain:
 
     def _make_full_response(self, text="ok", finish_reason="STOP", **kw):
         from forma.llm_provider import LLMFullResponse
+
         return LLMFullResponse(
             text=text,
             logprobs_result=kw.get("logprobs_result"),

@@ -19,13 +19,19 @@ class TestFormaInit:
     def test_generates_yaml_template(self, tmp_path: Path, monkeypatch):
         """forma init creates a forma.yaml file with valid YAML content."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         # Mock interactive prompts to return defaults
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         assert output_path.exists()
@@ -39,12 +45,18 @@ class TestFormaInit:
     def test_template_contains_expected_sections(self, tmp_path: Path, monkeypatch):
         """Generated template includes project, classes, paths, etc. sections."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         content = output_path.read_text(encoding="utf-8")
@@ -56,12 +68,18 @@ class TestFormaInit:
     def test_template_has_comments(self, tmp_path: Path, monkeypatch):
         """Generated template has comment lines (#) explaining settings."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         content = output_path.read_text(encoding="utf-8")
@@ -73,12 +91,18 @@ class TestFormaInit:
         output_path = tmp_path / "forma.yaml"
         output_path.write_text("existing: true\n", encoding="utf-8")
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 1
@@ -91,12 +115,19 @@ class TestFormaInit:
         output_path = tmp_path / "forma.yaml"
         output_path.write_text("existing: true\n", encoding="utf-8")
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path), "--force",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+                "--force",
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         content = output_path.read_text(encoding="utf-8")
@@ -108,12 +139,18 @@ class TestFormaInit:
     def test_custom_output_path(self, tmp_path: Path, monkeypatch):
         """forma init --output custom_path.yaml writes to custom path."""
         custom = tmp_path / "my_config.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(custom),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(custom),
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         assert custom.exists()
@@ -125,6 +162,7 @@ class TestFormaInit:
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         assert (tmp_path / "forma.yaml").exists()
@@ -132,13 +170,19 @@ class TestFormaInit:
     def test_interactive_course_name(self, tmp_path: Path, monkeypatch):
         """Interactive prompt for course_name populates the template."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         responses = iter(["인체구조와기능", "", "", ""])
         with patch("builtins.input", side_effect=lambda _="": next(responses, "")):
             from forma.cli_init import main
+
             main()
 
         parsed = yaml.safe_load(output_path.read_text(encoding="utf-8"))
@@ -147,14 +191,20 @@ class TestFormaInit:
     def test_generated_yaml_is_loadable(self, tmp_path: Path, monkeypatch):
         """Generated config can be loaded by load_project_config."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         # Provide valid interactive input
         responses = iter(["테스트과목", "2026", "1", "A,B"])
         with patch("builtins.input", side_effect=lambda _="": next(responses, "")):
             from forma.cli_init import main
+
             main()
 
         from forma.project_config import load_project_config, validate_project_config
@@ -168,12 +218,18 @@ class TestFormaInit:
     def test_template_excludes_week_specific_fields(self, tmp_path: Path, monkeypatch):
         """Slimmed template must NOT contain week-specific fields."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         content = output_path.read_text(encoding="utf-8")
@@ -197,12 +253,18 @@ class TestFormaInit:
     def test_template_contains_semester_fields(self, tmp_path: Path, monkeypatch):
         """Slimmed template must contain semester-level fields."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         with patch("builtins.input", return_value=""):
             from forma.cli_init import main
+
             main()
 
         content = output_path.read_text(encoding="utf-8")
@@ -222,13 +284,19 @@ class TestFormaInit:
     def test_generated_yaml_utf8(self, tmp_path: Path, monkeypatch):
         """Generated file uses UTF-8 encoding for Korean content."""
         output_path = tmp_path / "forma.yaml"
-        monkeypatch.setattr("sys.argv", [
-            "forma-init", "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-init",
+                "--output",
+                str(output_path),
+            ],
+        )
 
         responses = iter(["해부학", "", "", ""])
         with patch("builtins.input", side_effect=lambda _="": next(responses, "")):
             from forma.cli_init import main
+
             main()
 
         content = output_path.read_bytes()

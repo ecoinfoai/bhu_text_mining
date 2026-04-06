@@ -59,9 +59,14 @@ def _build_test_store(tmp_path) -> LongitudinalStore:
     }
     for sid, scores in students.items():
         for week_idx, score in enumerate(scores, start=1):
-            store.add_record(_make_record(
-                sid, week_idx, score, concept_scores_map.get(week_idx),
-            ))
+            store.add_record(
+                _make_record(
+                    sid,
+                    week_idx,
+                    score,
+                    concept_scores_map.get(week_idx),
+                )
+            )
     return store
 
 
@@ -103,22 +108,22 @@ class TestLongitudinalPDFReportGeneratorMocked:
 
     @patch("forma.font_utils.TTFont")
     @patch("forma.font_utils.pdfmetrics")
-    @patch("forma.longitudinal_report.find_korean_font",
-           return_value="/fake/NanumGothic.ttf")
+    @patch("forma.longitudinal_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
     def test_init_registers_fonts(self, mock_find, mock_metrics, mock_ttfont):
         """Constructor should register Korean fonts."""
         from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
         with patch("os.path.exists", return_value=True):
             _gen = LongitudinalPDFReportGenerator()
         assert mock_metrics.registerFont.called
 
     @patch("forma.font_utils.TTFont")
     @patch("forma.font_utils.pdfmetrics")
-    @patch("forma.longitudinal_report.find_korean_font",
-           return_value="/fake/NanumGothic.ttf")
+    @patch("forma.longitudinal_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
     def test_explicit_font_path(self, mock_find, mock_metrics, mock_ttfont):
         """Constructor with explicit font_path should use it."""
         from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
         with patch("os.path.exists", return_value=True):
             _gen = LongitudinalPDFReportGenerator(font_path="/custom/font.ttf")
         # Should use /custom/font.ttf, not call find_korean_font
@@ -126,8 +131,7 @@ class TestLongitudinalPDFReportGeneratorMocked:
 
     @patch("forma.font_utils.TTFont")
     @patch("forma.font_utils.pdfmetrics")
-    @patch("forma.longitudinal_report.find_korean_font",
-           return_value="/fake/NanumGothic.ttf")
+    @patch("forma.longitudinal_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
     def test_story_has_multiple_flowables(self, mock_find, mock_metrics, mock_ttfont):
         """Generated story should have multiple flowable elements."""
         from forma.longitudinal_report import LongitudinalPDFReportGenerator
@@ -143,8 +147,7 @@ class TestLongitudinalPDFReportGeneratorMocked:
 
     @patch("forma.font_utils.TTFont")
     @patch("forma.font_utils.pdfmetrics")
-    @patch("forma.longitudinal_report.find_korean_font",
-           return_value="/fake/NanumGothic.ttf")
+    @patch("forma.longitudinal_report.find_korean_font", return_value="/fake/NanumGothic.ttf")
     def test_cover_page_contains_class_name(self, mock_find, mock_metrics, mock_ttfont):
         """Cover page should include class_name in content."""
         from forma.longitudinal_report import LongitudinalPDFReportGenerator
@@ -433,16 +436,25 @@ class TestTopicStatisticsSection:
         ]
         trends = [
             TopicTrendResult(
-                "개념이해", 0.67, 0.03,
-                0.72, 0.02, 3,
+                "개념이해",
+                0.67,
+                0.03,
+                0.72,
+                0.02,
+                3,
             ),
             TopicTrendResult(
-                "적용", 0.82, 0.01,
-                0.85, 0.01, 3,
+                "적용",
+                0.82,
+                0.01,
+                0.85,
+                0.01,
+                3,
             ),
         ]
         flowables = gen._build_topic_statistics_section(
-            stats, trends,
+            stats,
+            trends,
         )
         assert isinstance(flowables, list)
         assert len(flowables) > 0
@@ -474,6 +486,8 @@ class TestMasteryInterpretationGuide:
             MASTERY_INTERPRETATION_GUIDE,
         )
 
-        assert "비율" in MASTERY_INTERPRETATION_GUIDE \
-            or "delta" in MASTERY_INTERPRETATION_GUIDE.lower() \
+        assert (
+            "비율" in MASTERY_INTERPRETATION_GUIDE
+            or "delta" in MASTERY_INTERPRETATION_GUIDE.lower()
             or "변화" in MASTERY_INTERPRETATION_GUIDE
+        )

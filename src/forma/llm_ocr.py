@@ -229,7 +229,8 @@ def validate_llm_recognition(
 def _build_vision_response(full_resp: Any) -> LLMVisionResponse:
     """Convert an LLMFullResponse to LLMVisionResponse with computed confidences."""
     word_confs = compute_word_confidence(
-        full_resp.logprobs_result, full_resp.text,
+        full_resp.logprobs_result,
+        full_resp.text,
     )
     conf_mean: float | None = None
     conf_min: float | None = None
@@ -242,16 +243,14 @@ def _build_vision_response(full_resp: Any) -> LLMVisionResponse:
     if full_resp.logprobs_result is not None:
         chosen = getattr(full_resp.logprobs_result, "chosen_candidates", None)
         if chosen:
-            logprobs_raw = [
-                {"token": c.token, "log_probability": c.log_probability}
-                for c in chosen
-            ]
+            logprobs_raw = [{"token": c.token, "log_probability": c.log_probability} for c in chosen]
 
     safety_raw: list[dict] | None = None
     if full_resp.safety_ratings is not None:
         safety_raw = [
             {"category": str(getattr(r, "category", r)), "probability": str(getattr(r, "probability", ""))}
-            if not isinstance(r, dict) else r
+            if not isinstance(r, dict)
+            else r
             for r in full_resp.safety_ratings
         ]
 
@@ -315,7 +314,8 @@ def extract_text_via_llm(
         image_name = os.path.basename(image_path)
         print(
             f"\r  [{idx + 1}/{total}] {image_name}",
-            end="", flush=True,
+            end="",
+            flush=True,
         )
 
         try:
@@ -345,12 +345,15 @@ def extract_text_via_llm(
 
             # Validate and retry if invalid
             validation = validate_llm_recognition(
-                full_resp.text, full_resp.finish_reason, None,
+                full_resp.text,
+                full_resp.finish_reason,
+                None,
             )
             if not validation["valid"]:
                 logger.warning(
                     "LLM recognition validation failed (%s): %s — retrying",
-                    image_path, "; ".join(validation["warnings"]),
+                    image_path,
+                    "; ".join(validation["warnings"]),
                 )
                 full_resp = llm.generate_with_image_full(
                     prompt=prompt,
@@ -367,17 +370,16 @@ def extract_text_via_llm(
             # Show preview of recognized text
             preview = full_resp.text[:40].replace("\n", " ")
             print(
-                f"\r  [{idx + 1}/{total}] {image_name} — OK: {preview}..."
-                + " " * 10,
-                end="", flush=True,
+                f"\r  [{idx + 1}/{total}] {image_name} — OK: {preview}..." + " " * 10,
+                end="",
+                flush=True,
             )
             print()  # newline after each result
 
         except Exception as exc:
             err_count += 1
             print(
-                f"\r  [{idx + 1}/{total}] {image_name} — ERROR"
-                + " " * 20,
+                f"\r  [{idx + 1}/{total}] {image_name} — ERROR" + " " * 20,
             )
             logger.warning("LLM recognition failed: %s — %s", image_path, exc)
             results[image_path] = LLMVisionResponse(
@@ -394,22 +396,17 @@ def extract_text_via_llm(
     print(f"  Done: {ok_count}/{total} succeeded, {err_count} failed")
 
     # Collect MAX_TOKENS truncated results for selective retry
-    truncated = [
-        path for path, resp in results.items()
-        if "MAX_TOKENS" in (resp.finish_reason or "")
-    ]
+    truncated = [path for path, resp in results.items() if "MAX_TOKENS" in (resp.finish_reason or "")]
     if truncated:
         print(f"\n  WARNING: {len(truncated)} image(s) truncated due to token limit:")
         for path in truncated:
             name = os.path.basename(path)
             text_preview = results[path].text[:30].replace("\n", " ")
-            print(f"    - {name}: \"{text_preview}...\"")
+            print(f'    - {name}: "{text_preview}..."')
 
         if sys.stdin.isatty():
             try:
-                answer = input(
-                    f"\n  Retry {len(truncated)} image(s) with max_tokens=2048? (y/N): "
-                ).strip().lower()
+                answer = input(f"\n  Retry {len(truncated)} image(s) with max_tokens=2048? (y/N): ").strip().lower()
             except (EOFError, KeyboardInterrupt):
                 answer = "n"
         else:
@@ -424,7 +421,8 @@ def extract_text_via_llm(
                 name = os.path.basename(path)
                 print(
                     f"\r  [{retry_idx + 1}/{len(truncated)}] {name}",
-                    end="", flush=True,
+                    end="",
+                    flush=True,
                 )
                 try:
                     full_resp = llm.generate_with_image_full(
@@ -437,13 +435,11 @@ def extract_text_via_llm(
                     results[path] = vision_resp
                     preview = full_resp.text[:40].replace("\n", " ")
                     print(
-                        f"\r  [{retry_idx + 1}/{len(truncated)}] {name}"
-                        f" — OK: {preview}..." + " " * 10,
+                        f"\r  [{retry_idx + 1}/{len(truncated)}] {name} — OK: {preview}..." + " " * 10,
                     )
                 except Exception as exc:
                     print(
-                        f"\r  [{retry_idx + 1}/{len(truncated)}] {name}"
-                        f" — ERROR" + " " * 20,
+                        f"\r  [{retry_idx + 1}/{len(truncated)}] {name} — ERROR" + " " * 20,
                     )
                     logger.warning("Retry failed: %s — %s", path, exc)
             print("  Retry complete")

@@ -3,6 +3,7 @@
 Produces 4 chart types as PNG io.BytesIO buffers for embedding in ReportLab PDFs.
 Uses matplotlib Agg backend — no display server required. No LLM API calls.
 """
+
 from __future__ import annotations
 
 import io
@@ -98,7 +99,9 @@ class ProfessorReportChartGenerator:
         return _save_fig(fig, dpi=self._dpi)
 
     def confidence_histogram(
-        self, scores: list[float], bins: int = 10,
+        self,
+        scores: list[float],
+        bins: int = 10,
     ) -> io.BytesIO:
         """Histogram of OCR confidence scores with mean line and threshold marker.
 
@@ -113,9 +116,13 @@ class ProfessorReportChartGenerator:
 
         if not scores:
             ax.text(
-                0.5, 0.5, "데이터 없음",
-                ha="center", va="center",
-                fontproperties=self._font_prop, fontsize=12,
+                0.5,
+                0.5,
+                "데이터 없음",
+                ha="center",
+                va="center",
+                fontproperties=self._font_prop,
+                fontsize=12,
             )
             ax.set_xlim(0, 1.0)
             return _save_fig(fig, dpi=self._dpi)
@@ -125,13 +132,19 @@ class ProfessorReportChartGenerator:
 
         if len(scores_arr) == 1 or np.std(scores_arr) == 0:
             ax.bar(
-                [scores_arr[0]], [len(scores_arr)],
-                width=0.05, color="#1565C0", alpha=0.7,
+                [scores_arr[0]],
+                [len(scores_arr)],
+                width=0.05,
+                color="#1565C0",
+                alpha=0.7,
             )
         else:
             ax.hist(
-                scores_arr, bins=bins,
-                color="#1565C0", alpha=0.7, edgecolor="white",
+                scores_arr,
+                bins=bins,
+                color="#1565C0",
+                alpha=0.7,
+                edgecolor="white",
             )
 
         ax.axvline(mean_val, color="orange", linestyle="--", label="평균")
@@ -275,33 +288,24 @@ class ProfessorReportChartGenerator:
         """
         if not mastery_data:
             fig, ax = plt.subplots(figsize=(6, 2))
-            ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center",
-                    transform=ax.transAxes)
+            ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center", transform=ax.transAxes)
             ax.axis("off")
             return _save_fig(fig, dpi=self._dpi)
 
         # Collect all concepts across all questions
-        all_concepts = sorted({
-            concept
-            for q_data in mastery_data.values()
-            for concept in q_data
-        })
+        all_concepts = sorted({concept for q_data in mastery_data.values() for concept in q_data})
         question_sns = sorted(mastery_data.keys())
 
         if not all_concepts:
             fig, ax = plt.subplots(figsize=(6, 2))
-            ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center",
-                    transform=ax.transAxes)
+            ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center", transform=ax.transAxes)
             ax.axis("off")
             return _save_fig(fig, dpi=self._dpi)
 
         # Build matrix
-        matrix = np.array([
-            [mastery_data[sn].get(c, 0.0) for c in all_concepts]
-            for sn in question_sns
-        ])
+        matrix = np.array([[mastery_data[sn].get(c, 0.0) for c in all_concepts] for sn in question_sns])
 
-        fig_width = 160 / 25.4   # 160mm — matches PDF embedding width
+        fig_width = 160 / 25.4  # 160mm — matches PDF embedding width
         fig_height = max(2, len(all_concepts) * 0.5 + 1)
         fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
@@ -326,8 +330,7 @@ class ProfessorReportChartGenerator:
         """
         if not rows:
             fig, ax = plt.subplots(figsize=(8, 2))
-            ax.text(0.5, 0.5, "학생 데이터 없음", ha="center", va="center",
-                    transform=ax.transAxes)
+            ax.text(0.5, 0.5, "학생 데이터 없음", ha="center", va="center", transform=ax.transAxes)
             ax.axis("off")
             return _save_fig(fig, dpi=self._dpi)
 
@@ -347,7 +350,7 @@ class ProfessorReportChartGenerator:
         names = [r.real_name for r in display_rows]
         at_risk_flags = [getattr(r, "is_at_risk", False) for r in display_rows]
 
-        fig_w = 160 / 25.4   # 160mm — matches PDF embedding width
+        fig_w = 160 / 25.4  # 160mm — matches PDF embedding width
         fig_height = max(2, len(display_rows) * 0.18 + 0.5)  # ~4.6mm per row
         fig, ax = plt.subplots(figsize=(fig_w, fig_height))
 
@@ -362,8 +365,9 @@ class ProfessorReportChartGenerator:
         # Gap indicator
         if gap_marker is not None:
             ax.axhline(y=gap_marker - 0.5, color="gray", linestyle="--", alpha=0.5)
-            ax.text(0.5, gap_marker - 0.5, "···", ha="center", va="center",
-                    fontproperties=fp, fontsize=12, color="gray")
+            ax.text(
+                0.5, gap_marker - 0.5, "···", ha="center", va="center", fontproperties=fp, fontsize=12, color="gray"
+            )
 
         ax.set_yticks(y_positions)
         ax.set_yticklabels(names, fontproperties=fp, fontsize=8)
@@ -389,8 +393,7 @@ class ProfessorReportChartGenerator:
         fp = self._font_prop
 
         if total == 0:
-            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
-                    transform=ax.transAxes, fontproperties=fp)
+            ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center", transform=ax.transAxes, fontproperties=fp)
             ax.axis("off")
             ax.set_title(f"Q{question_sn} 수준 분포", fontproperties=fp)
             return _save_fig(fig, dpi=self._dpi)
@@ -402,8 +405,16 @@ class ProfessorReportChartGenerator:
             color = _LEVEL_COLORS.get(level, "#CCCCCC")
             ax.barh(0, pct, left=left, color=color, height=0.5, label=level)
             if pct > 0.05:
-                ax.text(left + pct / 2, 0, f"{pct:.0%}", ha="center", va="center",
-                        fontsize=8, fontproperties=fp, color="white" if pct > 0.1 else "black")
+                ax.text(
+                    left + pct / 2,
+                    0,
+                    f"{pct:.0%}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    fontproperties=fp,
+                    color="white" if pct > 0.1 else "black",
+                )
             left += pct
 
         ax.set_xlim(0, 1)
@@ -441,19 +452,20 @@ class ProfessorReportChartGenerator:
         """
         import networkx as nx
 
-        display_edges = [
-            e for e in aggregate.edges
-            if e.correct_ratio >= min_ratio_to_show
-        ]
+        display_edges = [e for e in aggregate.edges if e.correct_ratio >= min_ratio_to_show]
 
         fig, ax = plt.subplots(figsize=(160 / 25.4, 100 / 25.4))
         fp = self._font_prop
 
         if not display_edges:
             ax.text(
-                0.5, 0.5, "표시할 데이터 없음",
-                ha="center", va="center",
-                fontproperties=fp, fontsize=12,
+                0.5,
+                0.5,
+                "표시할 데이터 없음",
+                ha="center",
+                va="center",
+                fontproperties=fp,
+                fontsize=12,
             )
             ax.axis("off")
             return _save_fig(fig, dpi=self._dpi)
@@ -484,13 +496,19 @@ class ProfessorReportChartGenerator:
         pos = nx.spring_layout(G, seed=42)
 
         nx.draw_networkx_nodes(
-            G, pos, ax=ax,
-            node_color="#E3F2FD", node_size=800, edgecolors="#1565C0",
+            G,
+            pos,
+            ax=ax,
+            node_color="#E3F2FD",
+            node_size=800,
+            edgecolors="#1565C0",
         )
 
         for i, (u, v) in enumerate(G.edges()):
             nx.draw_networkx_edges(
-                G, pos, ax=ax,
+                G,
+                pos,
+                ax=ax,
                 edgelist=[(u, v)],
                 edge_color=[edge_colors[i]],
                 width=edge_widths[i],
@@ -501,24 +519,27 @@ class ProfessorReportChartGenerator:
             )
 
         nx.draw_networkx_labels(
-            G, pos, ax=ax,
+            G,
+            pos,
+            ax=ax,
             font_family=fp.get_name() if hasattr(fp, "get_name") else "sans-serif",
             font_size=9,
         )
 
-        edge_labels = {
-            (e.subject, e.obj): f"{e.relation}\n({e.correct_ratio:.0%})"
-            for e in display_edges
-        }
+        edge_labels = {(e.subject, e.obj): f"{e.relation}\n({e.correct_ratio:.0%})" for e in display_edges}
         nx.draw_networkx_edge_labels(
-            G, pos, edge_labels=edge_labels, ax=ax,
+            G,
+            pos,
+            edge_labels=edge_labels,
+            ax=ax,
             font_size=7,
             font_family=fp.get_name() if hasattr(fp, "get_name") else "sans-serif",
         )
 
         ax.set_title(
             f"학급 지식 지도 — 문제 {aggregate.question_sn}",
-            fontproperties=fp, fontsize=11,
+            fontproperties=fp,
+            fontsize=11,
         )
         ax.axis("off")
         fig.tight_layout()

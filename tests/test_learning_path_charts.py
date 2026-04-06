@@ -37,10 +37,7 @@ def _make_dag(dep_dicts):
     """Helper: build a ConceptDependencyDAG from list of dicts."""
     from forma.concept_dependency import ConceptDependency, build_and_validate_dag
 
-    deps = [
-        ConceptDependency(prerequisite=d["prerequisite"], dependent=d["dependent"])
-        for d in dep_dicts
-    ]
+    deps = [ConceptDependency(prerequisite=d["prerequisite"], dependent=d["dependent"]) for d in dep_dicts]
     return build_and_validate_dag(deps)
 
 
@@ -58,10 +55,12 @@ class TestBuildLearningPathChart:
         from forma.learning_path import LearningPath
         from forma.learning_path_charts import build_learning_path_chart
 
-        dag = _make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ])
+        dag = _make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        )
         lp = LearningPath(
             student_id="s001",
             deficit_concepts=["B", "C"],
@@ -78,9 +77,11 @@ class TestBuildLearningPathChart:
         from forma.learning_path import LearningPath
         from forma.learning_path_charts import build_learning_path_chart
 
-        dag = _make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = _make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         lp = LearningPath(
             student_id="s001",
             deficit_concepts=[],
@@ -97,9 +98,11 @@ class TestBuildLearningPathChart:
         from forma.learning_path import LearningPath
         from forma.learning_path_charts import build_learning_path_chart
 
-        dag = _make_dag([
-            {"prerequisite": "세포막 구조", "dependent": "물질 이동"},
-        ])
+        dag = _make_dag(
+            [
+                {"prerequisite": "세포막 구조", "dependent": "물질 이동"},
+            ]
+        )
         lp = LearningPath(
             student_id="s001",
             deficit_concepts=["물질 이동"],
@@ -125,10 +128,12 @@ class TestBuildDeficitMapChart:
         from forma.learning_path import ClassDeficitMap
         from forma.learning_path_charts import build_deficit_map_chart
 
-        dag = _make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-            {"prerequisite": "B", "dependent": "C"},
-        ])
+        dag = _make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+                {"prerequisite": "B", "dependent": "C"},
+            ]
+        )
         deficit_map = ClassDeficitMap(
             concept_counts={"A": 2, "B": 5, "C": 8},
             total_students=10,
@@ -144,9 +149,11 @@ class TestBuildDeficitMapChart:
         from forma.learning_path import ClassDeficitMap
         from forma.learning_path_charts import build_deficit_map_chart
 
-        dag = _make_dag([
-            {"prerequisite": "A", "dependent": "B"},
-        ])
+        dag = _make_dag(
+            [
+                {"prerequisite": "A", "dependent": "B"},
+            ]
+        )
         deficit_map = ClassDeficitMap(
             concept_counts={"A": 0, "B": 0},
             total_students=10,
@@ -162,10 +169,7 @@ class TestBuildDeficitMapChart:
         from forma.learning_path import ClassDeficitMap
         from forma.learning_path_charts import build_deficit_map_chart
 
-        dag = _make_dag([
-            {"prerequisite": f"C{i}", "dependent": f"C{i+1}"}
-            for i in range(25)
-        ])
+        dag = _make_dag([{"prerequisite": f"C{i}", "dependent": f"C{i + 1}"} for i in range(25)])
         counts = {f"C{i}": i for i in range(26)}
         deficit_map = ClassDeficitMap(
             concept_counts=counts,
@@ -182,9 +186,11 @@ class TestBuildDeficitMapChart:
         from forma.learning_path import ClassDeficitMap
         from forma.learning_path_charts import build_deficit_map_chart
 
-        dag = _make_dag([
-            {"prerequisite": "X", "dependent": "Y"},
-        ])
+        dag = _make_dag(
+            [
+                {"prerequisite": "X", "dependent": "Y"},
+            ]
+        )
         deficit_map = ClassDeficitMap(
             concept_counts={"X": 1, "Y": 3},
             total_students=5,

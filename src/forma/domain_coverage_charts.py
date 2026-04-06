@@ -36,8 +36,7 @@ __all__ = [
 ]
 
 # Section color palette
-_SECTION_COLORS = ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0",
-                   "#F44336", "#00BCD4", "#795548", "#607D8B"]
+_SECTION_COLORS = ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0", "#F44336", "#00BCD4", "#795548", "#607D8B"]
 
 
 def _get_font_props(font_path: str | None) -> FontProperties | None:
@@ -98,9 +97,7 @@ def build_coverage_bar_chart(
     values = [result.effective_coverage_rate]
     colors = ["#333333"]
 
-    for i, (section, rate) in enumerate(
-        sorted(result.per_section_coverage.items())
-    ):
+    for i, (section, rate) in enumerate(sorted(result.per_section_coverage.items())):
         labels.append(f"{section}반")
         values.append(rate)
         colors.append(_SECTION_COLORS[i % len(_SECTION_COLORS)])
@@ -186,13 +183,24 @@ def build_emphasis_bias_scatter(
 
     if covered_x:
         ax.scatter(
-            covered_x, covered_y, c="#4CAF50", alpha=0.7,
-            label="다룸 (COVERED)", s=50, edgecolors="white",
+            covered_x,
+            covered_y,
+            c="#4CAF50",
+            alpha=0.7,
+            label="다룸 (COVERED)",
+            s=50,
+            edgecolors="white",
         )
     if gap_x:
         ax.scatter(
-            gap_x, gap_y, c="#F44336", alpha=0.7,
-            label="누락 위험 (GAP)", s=50, marker="x", linewidths=2,
+            gap_x,
+            gap_y,
+            c="#F44336",
+            alpha=0.7,
+            label="누락 위험 (GAP)",
+            s=50,
+            marker="x",
+            linewidths=2,
         )
 
     ax.set_xlabel("교과서 빈도", fontproperties=fp)
@@ -203,9 +211,14 @@ def build_emphasis_bias_scatter(
     if result.emphasis_bias_correlation is not None:
         rho_text = f"Spearman ρ = {result.emphasis_bias_correlation:.3f}"
         ax.text(
-            0.95, 0.95, rho_text,
-            transform=ax.transAxes, ha="right", va="top",
-            fontsize=10, fontproperties=fp,
+            0.95,
+            0.95,
+            rho_text,
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=10,
+            fontproperties=fp,
             bbox={"boxstyle": "round", "facecolor": "#f0f0f0", "alpha": 0.8},
         )
 
@@ -253,10 +266,7 @@ def build_section_variance_heatmap(
     fp = _get_font_props(font_path)
 
     # Collect concepts with emphasis data, sorted by std descending
-    with_emphasis = [
-        cc for cc in result.classified_concepts
-        if cc.emphasis is not None and cc.emphasis.std_score > 0
-    ]
+    with_emphasis = [cc for cc in result.classified_concepts if cc.emphasis is not None and cc.emphasis.std_score > 0]
     with_emphasis.sort(key=lambda cc: cc.emphasis.std_score, reverse=True)
     with_emphasis = with_emphasis[:max_concepts]
 
@@ -264,8 +274,13 @@ def build_section_variance_heatmap(
         # Create empty chart
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.text(
-            0.5, 0.5, "분반 간 편차 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "분반 간 편차 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.set_title("분반 간 강조도 편차", fontproperties=fp, fontsize=14)
         return save_fig(fig, dpi=dpi)
@@ -302,12 +317,13 @@ def build_section_variance_heatmap(
         for j in range(len(sections_sorted)):
             val = matrix[i, j]
             color = "white" if val < 0.3 or val > 0.7 else "black"
-            ax.text(j, i, f"{val:.2f}", ha="center", va="center",
-                    fontsize=7, color=color)
+            ax.text(j, i, f"{val:.2f}", ha="center", va="center", fontsize=7, color=color)
 
     ax.set_title(
         "분반 간 강조도 편차",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
     cbar.set_label("강조도", fontproperties=fp)
@@ -360,8 +376,13 @@ def build_network_comparison_chart(
 
         if not G.nodes():
             ax.text(
-                0.5, 0.5, "데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=14,
+                0.5,
+                0.5,
+                "데이터 없음",
+                ha="center",
+                va="center",
+                fontproperties=fp,
+                fontsize=14,
             )
             ax.set_title(title, fontproperties=fp, fontsize=12)
             ax.axis("off")
@@ -381,37 +402,48 @@ def build_network_comparison_chart(
                 edge_styles.append("solid")
 
         # Draw normal edges
-        normal_edges = [
-            (u, v) for u, v in G.edges()
-            if not highlight_missing or (u, v) not in highlight_missing
-        ]
+        normal_edges = [(u, v) for u, v in G.edges() if not highlight_missing or (u, v) not in highlight_missing]
         if normal_edges:
             nx.draw_networkx_edges(
-                G, pos, edgelist=normal_edges,
-                edge_color="#999999", alpha=0.6, ax=ax,
+                G,
+                pos,
+                edgelist=normal_edges,
+                edge_color="#999999",
+                alpha=0.6,
+                ax=ax,
             )
 
         # Draw missing edges in red dashed
         if highlight_missing:
-            missing_in_graph = [
-                (u, v) for u, v in G.edges()
-                if (u, v) in highlight_missing
-            ]
+            missing_in_graph = [(u, v) for u, v in G.edges() if (u, v) in highlight_missing]
             if missing_in_graph:
                 nx.draw_networkx_edges(
-                    G, pos, edgelist=missing_in_graph,
-                    edge_color="#F44336", style="dashed",
-                    alpha=0.8, width=2, ax=ax,
+                    G,
+                    pos,
+                    edgelist=missing_in_graph,
+                    edge_color="#F44336",
+                    style="dashed",
+                    alpha=0.8,
+                    width=2,
+                    ax=ax,
                 )
 
         nx.draw_networkx_nodes(
-            G, pos, node_color="#4CAF50", node_size=300,
-            alpha=0.8, ax=ax,
+            G,
+            pos,
+            node_color="#4CAF50",
+            node_size=300,
+            alpha=0.8,
+            ax=ax,
         )
         _ff = _get_font_family(fp)
         _label_kw = {"font_family": _ff} if _ff else {}
         nx.draw_networkx_labels(
-            G, pos, font_size=8, ax=ax, **_label_kw,
+            G,
+            pos,
+            font_size=8,
+            ax=ax,
+            **_label_kw,
         )
 
         ax.set_title(title, fontproperties=fp, fontsize=12, fontweight="bold")
@@ -430,7 +462,9 @@ def build_network_comparison_chart(
 
     fig.suptitle(
         "핵심 용어 네트워크 비교",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     fig.tight_layout()
 
@@ -467,9 +501,7 @@ def build_delivery_bar_chart(
     values = [result.effective_delivery_rate]
     colors = ["#333333"]
 
-    for i, (section, rate) in enumerate(
-        sorted(result.per_section_rate.items())
-    ):
+    for i, (section, rate) in enumerate(sorted(result.per_section_rate.items())):
         labels.append(f"{section}반")
         values.append(rate)
         colors.append(_SECTION_COLORS[i % len(_SECTION_COLORS)])
@@ -557,12 +589,18 @@ def build_delivery_heatmap(
     if not concept_section:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.text(
-            0.5, 0.5, "전달 분석 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "전달 분석 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.set_title(
             "분반별 개념 전달 품질",
-            fontproperties=fp, fontsize=14,
+            fontproperties=fp,
+            fontsize=14,
         )
         return save_fig(fig, dpi=dpi)
 
@@ -596,13 +634,20 @@ def build_delivery_heatmap(
             val = matrix[i, j]
             color = "white" if val < 0.3 or val > 0.7 else "black"
             ax.text(
-                j, i, f"{val:.2f}",
-                ha="center", va="center", fontsize=7, color=color,
+                j,
+                i,
+                f"{val:.2f}",
+                ha="center",
+                va="center",
+                fontsize=7,
+                color=color,
             )
 
     ax.set_title(
         "분반별 개념 전달 품질",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
     cbar.set_label("전달 품질", fontproperties=fp)
@@ -690,8 +735,13 @@ def build_topic_delivery_stacked_chart(
     if not topic_counts:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.text(
-            0.5, 0.5, "계층 전달 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "계층 전달 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.set_title("대주제별 전달 현황", fontproperties=fp, fontsize=14)
         return save_fig(fig, dpi=dpi)
@@ -707,13 +757,21 @@ def build_topic_delivery_stacked_chart(
 
     ax.barh(y_pos, fully, color="#4CAF50", label="충분히 설명", edgecolor="white")
     ax.barh(
-        y_pos, partial, left=fully,
-        color="#FF9800", label="부분 전달", edgecolor="white",
+        y_pos,
+        partial,
+        left=fully,
+        color="#FF9800",
+        label="부분 전달",
+        edgecolor="white",
     )
     left_partial = [f + p for f, p in zip(fully, partial)]
     ax.barh(
-        y_pos, not_del, left=left_partial,
-        color="#F44336", label="미전달", edgecolor="white",
+        y_pos,
+        not_del,
+        left=left_partial,
+        color="#F44336",
+        label="미전달",
+        edgecolor="white",
     )
 
     ax.set_yticks(y_pos)
@@ -721,7 +779,9 @@ def build_topic_delivery_stacked_chart(
     ax.set_xlabel("개념-분반 수", fontproperties=fp)
     ax.set_title(
         "대주제별 전달 현황",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     if fp:
         ax.legend(prop=fp)
@@ -804,22 +864,25 @@ def build_hierarchical_coverage_chart(
     fp = _get_font_props(font_path)
 
     topic_section_qualities, sections_sorted = _compute_topic_section_qualities(
-        result, hierarchy,
+        result,
+        hierarchy,
     )
 
     if not sections_sorted or not topic_section_qualities:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.text(
-            0.5, 0.5, "계층 커버리지 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "계층 커버리지 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.set_title("대주제별 분반 전달율", fontproperties=fp, fontsize=14)
         return save_fig(fig, dpi=dpi)
 
-    topics = [
-        mt.name for mt in hierarchy.major_topics
-        if mt.name in topic_section_qualities
-    ]
+    topics = [mt.name for mt in hierarchy.major_topics if mt.name in topic_section_qualities]
     if not topics:
         topics = list(topic_section_qualities.keys())
 
@@ -839,8 +902,12 @@ def build_hierarchical_coverage_chart(
             quals = topic_section_qualities.get(topic, {}).get(section, [])
             values.append(sum(quals) / len(quals) if quals else 0.0)
         ax.barh(
-            y_positions, values, height=bar_height * 0.9,
-            color=color, label=f"{section}반", edgecolor="white",
+            y_positions,
+            values,
+            height=bar_height * 0.9,
+            color=color,
+            label=f"{section}반",
+            edgecolor="white",
         )
 
     ax.set_yticks(
@@ -851,7 +918,9 @@ def build_hierarchical_coverage_chart(
     ax.set_xlabel("평균 전달 품질", fontproperties=fp)
     ax.set_title(
         "대주제별 분반 전달율",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     if fp:
         ax.legend(prop=fp)
@@ -907,8 +976,13 @@ def build_grouped_quality_heatmap(
     if not concept_section:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.text(
-            0.5, 0.5, "전달 분석 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "전달 분석 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.set_title("계층 전달 품질 히트맵", fontproperties=fp, fontsize=14)
         return save_fig(fig, dpi=dpi)
@@ -992,13 +1066,20 @@ def build_grouped_quality_heatmap(
             val = matrix[i, j]
             color = "white" if val < 0.4 else "black"
             ax.text(
-                j, i, f"{val:.2f}",
-                ha="center", va="center", fontsize=7, color=color,
+                j,
+                i,
+                f"{val:.2f}",
+                ha="center",
+                va="center",
+                fontsize=7,
+                color=color,
             )
 
     ax.set_title(
         "계층 전달 품질 히트맵",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
     cbar.set_label("전달 품질", fontproperties=fp)
@@ -1050,7 +1131,8 @@ def build_concept_network_chart(
         )
     for edge in network.edges:
         G.add_edge(
-            edge.source, edge.target,
+            edge.source,
+            edge.target,
             relationship=edge.relationship,
             weight=edge.weight,
         )
@@ -1059,8 +1141,13 @@ def build_concept_network_chart(
 
     if not G.nodes():
         ax.text(
-            0.5, 0.5, "네트워크 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "네트워크 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.axis("off")
         return save_fig(fig, dpi=dpi)
@@ -1069,30 +1156,33 @@ def build_concept_network_chart(
 
     # Node colors (cividis) and sizes
     cmap = plt.cm.cividis
-    node_colors = [
-        cmap(G.nodes[n].get("delivery_quality", 0.0)) for n in G.nodes()
-    ]
-    node_sizes = [
-        _IMPORTANCE_SIZE.get(G.nodes[n].get("importance", "low"), 150)
-        for n in G.nodes()
-    ]
+    node_colors = [cmap(G.nodes[n].get("delivery_quality", 0.0)) for n in G.nodes()]
+    node_sizes = [_IMPORTANCE_SIZE.get(G.nodes[n].get("importance", "low"), 150) for n in G.nodes()]
 
     # Draw edges by type
     for rel_type, color in _EDGE_TYPE_COLORS.items():
-        edge_list = [
-            (u, v) for u, v, d in G.edges(data=True)
-            if d.get("relationship") == rel_type
-        ]
+        edge_list = [(u, v) for u, v, d in G.edges(data=True) if d.get("relationship") == rel_type]
         if edge_list:
             widths = [G[u][v]["weight"] * 2.5 for u, v in edge_list]
             nx.draw_networkx_edges(
-                G, pos, edgelist=edge_list,
-                edge_color=color, width=widths, alpha=0.6, ax=ax,
+                G,
+                pos,
+                edgelist=edge_list,
+                edge_color=color,
+                width=widths,
+                alpha=0.6,
+                ax=ax,
             )
 
     nx.draw_networkx_nodes(
-        G, pos, node_color=node_colors, node_size=node_sizes,
-        alpha=0.85, ax=ax, edgecolors="white", linewidths=0.5,
+        G,
+        pos,
+        node_color=node_colors,
+        node_size=node_sizes,
+        alpha=0.85,
+        ax=ax,
+        edgecolors="white",
+        linewidths=0.5,
     )
 
     # Labels truncated to 15 chars
@@ -1103,7 +1193,9 @@ def build_concept_network_chart(
 
     ax.set_title(
         "개념 네트워크 그래프",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     ax.axis("off")
 
@@ -1153,8 +1245,13 @@ def build_concept_network_comparison(
     if n_sections == 0:
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.text(
-            0.5, 0.5, "비교 데이터 없음",
-            ha="center", va="center", fontproperties=fp, fontsize=14,
+            0.5,
+            0.5,
+            "비교 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=14,
         )
         ax.axis("off")
         return save_fig(fig, dpi=dpi)
@@ -1166,7 +1263,9 @@ def build_concept_network_comparison(
         nrows, ncols = 2, 2
 
     fig, axes = plt.subplots(
-        nrows, ncols, figsize=(6 * ncols, 5 * nrows),
+        nrows,
+        ncols,
+        figsize=(6 * ncols, 5 * nrows),
     )
     if n_sections == 1:
         axes = [axes]
@@ -1179,7 +1278,8 @@ def build_concept_network_comparison(
         G.add_node(node.concept, importance=node.importance)
     for edge in network.edges:
         G.add_edge(
-            edge.source, edge.target,
+            edge.source,
+            edge.target,
             relationship=edge.relationship,
             weight=edge.weight,
         )
@@ -1190,7 +1290,9 @@ def build_concept_network_comparison(
     for idx, section in enumerate(sections):
         ax = axes[idx]
         overlaid = overlay_delivery(
-            network, deliveries_by_section[section], section,
+            network,
+            deliveries_by_section[section],
+            section,
         )
 
         if not G.nodes():
@@ -1202,27 +1304,32 @@ def build_concept_network_comparison(
         # Node colors from overlaid delivery quality
         quality_map = {n.concept: n.delivery_quality for n in overlaid.nodes}
         node_colors = [cmap(quality_map.get(n, 0.0)) for n in G.nodes()]
-        node_sizes = [
-            _IMPORTANCE_SIZE.get(G.nodes[n].get("importance", "low"), 150)
-            for n in G.nodes()
-        ]
+        node_sizes = [_IMPORTANCE_SIZE.get(G.nodes[n].get("importance", "low"), 150) for n in G.nodes()]
 
         # Draw edges
         for rel_type, color in _EDGE_TYPE_COLORS.items():
-            edge_list = [
-                (u, v) for u, v, d in G.edges(data=True)
-                if d.get("relationship") == rel_type
-            ]
+            edge_list = [(u, v) for u, v, d in G.edges(data=True) if d.get("relationship") == rel_type]
             if edge_list:
                 widths = [G[u][v]["weight"] * 2.5 for u, v in edge_list]
                 nx.draw_networkx_edges(
-                    G, pos, edgelist=edge_list,
-                    edge_color=color, width=widths, alpha=0.6, ax=ax,
+                    G,
+                    pos,
+                    edgelist=edge_list,
+                    edge_color=color,
+                    width=widths,
+                    alpha=0.6,
+                    ax=ax,
                 )
 
         nx.draw_networkx_nodes(
-            G, pos, node_color=node_colors, node_size=node_sizes,
-            alpha=0.85, ax=ax, edgecolors="white", linewidths=0.5,
+            G,
+            pos,
+            node_color=node_colors,
+            node_size=node_sizes,
+            alpha=0.85,
+            ax=ax,
+            edgecolors="white",
+            linewidths=0.5,
         )
 
         labels = {n: n[:15] for n in G.nodes()}
@@ -1230,7 +1337,10 @@ def build_concept_network_comparison(
         nx.draw_networkx_labels(G, pos, labels=labels, font_size=7, ax=ax, **_label_kw)
 
         ax.set_title(
-            f"{section}반", fontproperties=fp, fontsize=12, fontweight="bold",
+            f"{section}반",
+            fontproperties=fp,
+            fontsize=12,
+            fontweight="bold",
         )
         ax.axis("off")
 
@@ -1240,7 +1350,9 @@ def build_concept_network_comparison(
 
     fig.suptitle(
         "분반별 개념 네트워크 비교",
-        fontproperties=fp, fontsize=14, fontweight="bold",
+        fontproperties=fp,
+        fontsize=14,
+        fontweight="bold",
     )
     fig.tight_layout()
 

@@ -138,9 +138,7 @@ class RaschAnalyzer:
         self._fitted = True
         return self
 
-    def ability_estimates(
-        self, X: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def ability_estimates(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Estimate person ability (WLE) for each student.
 
         Uses an iterative WLE approximation.  For the full Warm (1989)
@@ -156,10 +154,7 @@ class RaschAnalyzer:
             RuntimeError: If called before fit().
         """
         if not self._fitted:
-            raise RuntimeError(
-                "RaschAnalyzer.ability_estimates() called before fit(). "
-                "Call fit(X) first."
-            )
+            raise RuntimeError("RaschAnalyzer.ability_estimates() called before fit(). Call fit(X) first.")
         n_students, n_items = X.shape
         b = self.item_difficulties_
         thetas = np.zeros(n_students)
@@ -230,17 +225,13 @@ class LCAAnalyzer:
         3
     """
 
-    exploratory_warning: str = (
-        "이 분류는 탐색적이며, 표본 크기 제한으로 신뢰도가 낮습니다"
-    )
+    exploratory_warning: str = "이 분류는 탐색적이며, 표본 크기 제한으로 신뢰도가 낮습니다"
 
     def __init__(self, max_classes: int = 4) -> None:
         self.max_classes = max_classes
         self._best_k: Optional[int] = None
 
-    def fit_predict(
-        self, X: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def fit_predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Fit categorical LCA and return class labels and probabilities.
 
         Selects the number of classes (2 … max_classes) by BIC.
@@ -257,10 +248,7 @@ class LCAAnalyzer:
             RuntimeError: If stepmix is not installed.
         """
         if StepMix is None:
-            raise RuntimeError(
-                "stepmix is not installed. Install it with: "
-                "uv add stepmix"
-            )
+            raise RuntimeError("stepmix is not installed. Install it with: uv add stepmix")
 
         best_bic = float("inf")
         best_labels = np.zeros(X.shape[0], dtype=int)
@@ -310,9 +298,7 @@ def compute_concept_matrix(
         >>> mat.shape
         (2, 3)
     """
-    result_map: dict[tuple[str, str], int] = {
-        (r.student_id, r.concept): int(r.is_present) for r in results
-    }
+    result_map: dict[tuple[str, str], int] = {(r.student_id, r.concept): int(r.is_present) for r in results}
     n_s = len(student_ids)
     n_c = len(concepts)
     mat = np.zeros((n_s, n_c), dtype=int)

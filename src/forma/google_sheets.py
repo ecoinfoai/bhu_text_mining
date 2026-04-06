@@ -1,5 +1,6 @@
 # src/google_sheets.py
 """Google Sheets OAuth2 integration for fetching form responses."""
+
 from __future__ import annotations
 
 import os
@@ -40,9 +41,7 @@ def fetch_sheet_as_records(
         ) from exc
 
     if not os.path.exists(credentials_path):
-        raise FileNotFoundError(
-            f"OAuth2 credentials file not found: {credentials_path!r}"
-        )
+        raise FileNotFoundError(f"OAuth2 credentials file not found: {credentials_path!r}")
 
     cache_dir = Path(token_cache_dir).expanduser()
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -59,7 +58,8 @@ def fetch_sheet_as_records(
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                credentials_path, SCOPES,
+                credentials_path,
+                SCOPES,
             )
             creds = flow.run_local_server(port=0)
         token_path.write_text(creds.to_json())
@@ -71,6 +71,4 @@ def fetch_sheet_as_records(
         worksheet = sheet.sheet1
         return worksheet.get_all_records()
     except Exception as exc:
-        raise RuntimeError(
-            f"Failed to fetch Google Sheet: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to fetch Google Sheet: {exc}") from exc

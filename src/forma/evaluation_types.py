@@ -157,9 +157,7 @@ class StatisticalResult:
     rasch_item_difficulty: Optional[float] = None
     lca_class: Optional[int] = None
     lca_class_probability: Optional[float] = None
-    lca_exploratory_warning: str = (
-        "이 분류는 탐색적이며, 표본 크기 제한으로 신뢰도가 낮습니다"
-    )
+    lca_exploratory_warning: str = "이 분류는 탐색적이며, 표본 크기 제한으로 신뢰도가 낮습니다"
 
 
 @dataclass
@@ -367,6 +365,7 @@ class LongitudinalRecord:
         recorded_at: ISO 8601 timestamp of snapshot creation. v2 field.
         topic: Question category from exam YAML (e.g. "개념이해").
         class_id: Section identifier (e.g. "A", "B").
+        semester: Semester label (e.g. "2026-1") for semester isolation.
     """
 
     student_id: str
@@ -385,6 +384,7 @@ class LongitudinalRecord:
     ocr_confidence_min: Optional[float] = None
     topic: Optional[str] = None
     class_id: Optional[str] = None
+    semester: Optional[str] = None
 
 
 @dataclass

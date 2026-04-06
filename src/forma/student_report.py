@@ -70,46 +70,58 @@ class StudentPDFReportGenerator:
         register_korean_fonts(font_path)
 
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "KoreanTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-        ))
-        self._styles.add(ParagraphStyle(
-            "KoreanHeading",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-        ))
-        self._styles.add(ParagraphStyle(
-            "KoreanSubheading",
-            parent=self._styles["Heading3"],
-            fontName="NanumGothicBold",
-            fontSize=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "KoreanBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=11,
-            leading=16,
-        ))
-        self._styles.add(ParagraphStyle(
-            "KoreanSmall",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=9,
-            leading=13,
-        ))
-        self._styles.add(ParagraphStyle(
-            "KoreanAnswerText",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=9,
-            leading=13,
-            wordWrap="CJK",
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "KoreanTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "KoreanHeading",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "KoreanSubheading",
+                parent=self._styles["Heading3"],
+                fontName="NanumGothicBold",
+                fontSize=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "KoreanBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=11,
+                leading=16,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "KoreanSmall",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=9,
+                leading=13,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "KoreanAnswerText",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=9,
+                leading=13,
+                wordWrap="CJK",
+            )
+        )
 
         self._chart_gen = ReportChartGenerator(
             font_path=font_path,
@@ -176,9 +188,7 @@ class StudentPDFReportGenerator:
 
         # Learning path section (v0.10.0 US4, FR-020, FR-023)
         if learning_path is not None:
-            story.extend(
-                self._build_learning_path_section(learning_path, learning_path_chart)
-            )
+            story.extend(self._build_learning_path_section(learning_path, learning_path_chart))
 
         # Grade trend section (v0.10.0 US6, FR-031)
         if grade_trend is not None:
@@ -197,35 +207,39 @@ class StudentPDFReportGenerator:
         """Build section showing score changes from previous week."""
         story = []
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            _esc("전주 대비 변화"),
-            self._styles["KoreanHeading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("전주 대비 변화"),
+                self._styles["KoreanHeading"],
+            )
+        )
 
         rows = [["항목", "현재 점수", "이전 점수", "변화"]]
         overall = weekly_deltas.get("overall")
         if overall:
             prev = f"{overall.previous_score:.2f}" if overall.previous_score is not None else "-"
             delta_str = f"{overall.delta:+.2f}" if overall.delta is not None else "-"
-            rows.append(["종합", f"{overall.current_score:.2f}", prev,
-                         f"{overall.delta_symbol} {delta_str}"])
+            rows.append(["종합", f"{overall.current_score:.2f}", prev, f"{overall.delta_symbol} {delta_str}"])
 
         for key, wd in weekly_deltas.items():
             if key == "overall":
                 continue
             prev = f"{wd.previous_score:.2f}" if wd.previous_score is not None else "-"
             delta_str = f"{wd.delta:+.2f}" if wd.delta is not None else "-"
-            rows.append([f"문제 {key}", f"{wd.current_score:.2f}", prev,
-                         f"{wd.delta_symbol} {delta_str}"])
+            rows.append([f"문제 {key}", f"{wd.current_score:.2f}", prev, f"{wd.delta_symbol} {delta_str}"])
 
         if len(rows) > 1:
             tbl = Table(rows, colWidths=[40 * mm, 30 * mm, 30 * mm, 40 * mm])
-            tbl.setStyle(TableStyle([
-                ("FONT", (0, 0), (-1, -1), "NanumGothic", 8),
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-                ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-            ]))
+            tbl.setStyle(
+                TableStyle(
+                    [
+                        ("FONT", (0, 0), (-1, -1), "NanumGothic", 8),
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+                    ]
+                )
+            )
             story.append(tbl)
 
         return story
@@ -234,10 +248,12 @@ class StudentPDFReportGenerator:
         """Build section showing weekly score trajectory chart."""
         story = []
         story.append(Spacer(1, 3 * mm))
-        story.append(Paragraph(
-            _esc("주차별 점수 추이"),
-            self._styles["KoreanHeading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("주차별 점수 추이"),
+                self._styles["KoreanHeading"],
+            )
+        )
         trajectory_chart.seek(0)
         img = Image(trajectory_chart, width=120 * mm, height=60 * mm)
         story.append(img)
@@ -262,17 +278,21 @@ class StudentPDFReportGenerator:
         """
         story: list = []
         story.append(Spacer(1, 5 * mm))
-        story.append(Paragraph(
-            _esc("추천 학습 경로"),
-            self._styles["KoreanHeading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("추천 학습 경로"),
+                self._styles["KoreanHeading"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         if not learning_path.ordered_path:
-            story.append(Paragraph(
-                _esc("추가 학습 불필요 — 모든 개념이 숙달되었습니다."),
-                self._styles["KoreanBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("추가 학습 불필요 — 모든 개념이 숙달되었습니다."),
+                    self._styles["KoreanBody"],
+                )
+            )
             return story
 
         # Ordered concept table
@@ -282,20 +302,26 @@ class StudentPDFReportGenerator:
             rows.append([str(i), _esc(concept)])
 
         tbl = Table(rows, colWidths=[20 * mm, 130 * mm])
-        tbl.setStyle(TableStyle([
-            ("FONT", (0, 0), (-1, -1), "NanumGothic", 9),
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("ALIGN", (0, 0), (0, -1), "CENTER"),
-        ]))
+        tbl.setStyle(
+            TableStyle(
+                [
+                    ("FONT", (0, 0), (-1, -1), "NanumGothic", 9),
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                ]
+            )
+        )
         story.append(tbl)
 
         if learning_path.capped:
             story.append(Spacer(1, 2 * mm))
-            story.append(Paragraph(
-                _esc("※ 결손 개념이 많아 상위 20개만 표시합니다."),
-                self._styles["KoreanBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("※ 결손 개념이 많아 상위 20개만 표시합니다."),
+                    self._styles["KoreanBody"],
+                )
+            )
 
         # DAG chart (if provided)
         if learning_path_chart is not None:
@@ -321,16 +347,15 @@ class StudentPDFReportGenerator:
         """
         story: list = []
         story.append(Spacer(1, 5 * mm))
-        story.append(Paragraph(
-            _esc("학습 추이 예측"),
-            self._styles["KoreanHeading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("학습 추이 예측"),
+                self._styles["KoreanHeading"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
-        trend_text = (
-            f"현재 학습 추이가 유지되면 "
-            f"{_esc(grade_trend)}으로 예상됩니다."
-        )
+        trend_text = f"현재 학습 추이가 유지되면 {_esc(grade_trend)}으로 예상됩니다."
         story.append(Paragraph(trend_text, self._styles["KoreanBody"]))
 
         return story
@@ -342,10 +367,12 @@ class StudentPDFReportGenerator:
         """Build the report header with student info."""
         story = []
 
-        story.append(Paragraph(
-            _esc("학생 개인별 평가 리포트"),
-            self._styles["KoreanTitle"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("학생 개인별 평가 리포트"),
+                self._styles["KoreanTitle"],
+            )
+        )
 
         # Course and chapter info
         info_parts = []
@@ -356,10 +383,12 @@ class StudentPDFReportGenerator:
         if student_data.week_num:
             info_parts.append(f"주차: {student_data.week_num}주차")
         if info_parts:
-            story.append(Paragraph(
-                " | ".join(info_parts),
-                self._styles["KoreanBody"],
-            ))
+            story.append(
+                Paragraph(
+                    " | ".join(info_parts),
+                    self._styles["KoreanBody"],
+                )
+            )
 
         story.append(Spacer(1, 5 * mm))
 
@@ -387,15 +416,19 @@ class StudentPDFReportGenerator:
             info_data,
             colWidths=[20 * mm, 40 * mm, 15 * mm, 35 * mm, 15 * mm, 35 * mm],
         )
-        info_table.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-            ("BACKGROUND", (0, 0), (0, 0), HexColor("#F0F0F0")),
-            ("BACKGROUND", (2, 0), (2, 0), HexColor("#F0F0F0")),
-            ("BACKGROUND", (4, 0), (4, 0), HexColor("#F0F0F0")),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ]))
+        info_table.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("BACKGROUND", (0, 0), (0, 0), HexColor("#F0F0F0")),
+                    ("BACKGROUND", (2, 0), (2, 0), HexColor("#F0F0F0")),
+                    ("BACKGROUND", (4, 0), (4, 0), HexColor("#F0F0F0")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
         story.append(info_table)
         story.append(Spacer(1, 8 * mm))
 
@@ -409,17 +442,17 @@ class StudentPDFReportGenerator:
         """Build the summary section with overall charts and table."""
         story = []
 
-        story.append(Paragraph(
-            _esc("종합 평가 요약"),
-            self._styles["KoreanHeading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("종합 평가 요약"),
+                self._styles["KoreanHeading"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Overall box-whisker chart
         if distributions.overall_ensemble:
-            avg_score = sum(
-                q.ensemble_score for q in student_data.questions
-            ) / max(len(student_data.questions), 1)
+            avg_score = sum(q.ensemble_score for q in student_data.questions) / max(len(student_data.questions), 1)
             buf = self._chart_gen.score_boxplot(
                 distributions.overall_ensemble,
                 avg_score,
@@ -458,7 +491,9 @@ class StudentPDFReportGenerator:
             labels = ["개념 커버리지", "LLM 루브릭", "Rasch 능력치"]
 
             radar_buf = self._chart_gen.radar_chart(
-                student_axes, class_avg_axes, labels,
+                student_axes,
+                class_avg_axes,
+                labels,
             )
             try:
                 story.append(Image(radar_buf, width=90 * mm, height=90 * mm))
@@ -478,39 +513,45 @@ class StudentPDFReportGenerator:
             rows = [header]
             for q in student_data.questions:
                 level_color = _LEVEL_COLORS.get(
-                    q.understanding_level, HexColor("#000000"),
+                    q.understanding_level,
+                    HexColor("#000000"),
                 )
-                rows.append([
-                    Paragraph(
-                        f"Q{q.question_sn}",
-                        self._styles["KoreanBody"],
-                    ),
-                    Paragraph(
-                        f"{q.ensemble_score:.2f}",
-                        self._styles["KoreanBody"],
-                    ),
-                    Paragraph(
-                        f'<font color="{level_color.hexval()}">'
-                        f"{_esc(q.understanding_level)}</font>",
-                        self._styles["KoreanBody"],
-                    ),
-                    Paragraph(
-                        f"{q.concept_coverage:.0%}",
-                        self._styles["KoreanBody"],
-                    ),
-                ])
+                rows.append(
+                    [
+                        Paragraph(
+                            f"Q{q.question_sn}",
+                            self._styles["KoreanBody"],
+                        ),
+                        Paragraph(
+                            f"{q.ensemble_score:.2f}",
+                            self._styles["KoreanBody"],
+                        ),
+                        Paragraph(
+                            f'<font color="{level_color.hexval()}">{_esc(q.understanding_level)}</font>',
+                            self._styles["KoreanBody"],
+                        ),
+                        Paragraph(
+                            f"{q.concept_coverage:.0%}",
+                            self._styles["KoreanBody"],
+                        ),
+                    ]
+                )
 
             summary_table = Table(
                 rows,
                 colWidths=[30 * mm, 35 * mm, 45 * mm, 50 * mm],
             )
-            summary_table.setStyle(TableStyle([
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E8E8E8")),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            summary_table.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E8E8E8")),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(summary_table)
 
         story.append(Spacer(1, 5 * mm))
@@ -528,10 +569,12 @@ class StudentPDFReportGenerator:
         story.append(PageBreak())
 
         # Question heading
-        story.append(Paragraph(
-            _esc(f"문항 {qsn}"),
-            self._styles["KoreanHeading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"문항 {qsn}"),
+                self._styles["KoreanHeading"],
+            )
+        )
         story.append(Spacer(1, 3 * mm))
 
         # Understanding badge
@@ -547,10 +590,12 @@ class StudentPDFReportGenerator:
             story.append(Spacer(1, 5 * mm))
 
         # Side-by-side answer comparison table
-        story.append(Paragraph(
-            _esc("답안 비교"),
-            self._styles["KoreanSubheading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("답안 비교"),
+                self._styles["KoreanSubheading"],
+            )
+        )
         answer_data = [
             [
                 Paragraph("모범답안", self._styles["KoreanSmall"]),
@@ -568,15 +613,19 @@ class StudentPDFReportGenerator:
             ],
         ]
         answer_table = Table(answer_data, colWidths=[85 * mm, 85 * mm])
-        answer_table.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E8E8E8")),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        answer_table.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E8E8E8")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(answer_table)
         story.append(Spacer(1, 5 * mm))
 
@@ -587,11 +636,13 @@ class StudentPDFReportGenerator:
             )
             concept_height = max(30, len(question_data.concepts) * 20)
             try:
-                story.append(Image(
-                    concept_buf,
-                    width=160 * mm,
-                    height=concept_height * mm / 25.4 * 25.4,
-                ))
+                story.append(
+                    Image(
+                        concept_buf,
+                        width=160 * mm,
+                        height=concept_height * mm / 25.4 * 25.4,
+                    )
+                )
                 story.append(Spacer(1, 5 * mm))
             except Exception:
                 logger.debug("Skipping concept coverage image (could not load)")
@@ -631,10 +682,12 @@ class StudentPDFReportGenerator:
                 buf.seek(0)
                 story.append(Image(buf, width=160 * mm, height=100 * mm))
                 if omitted > 0:
-                    story.append(Paragraph(
-                        f"추가 {omitted}개 엣지 생략",
-                        self._styles["KoreanSmall"],
-                    ))
+                    story.append(
+                        Paragraph(
+                            f"추가 {omitted}개 엣지 생략",
+                            self._styles["KoreanSmall"],
+                        )
+                    )
             except Exception as exc:
                 logger.warning("Graph diagram rendering failed: %s", exc)
 
@@ -644,56 +697,72 @@ class StudentPDFReportGenerator:
             hub_data = [["개념", "중심성", "포함"]]  # header row
             for entry in hub_gap_entries:
                 presence = "O" if entry.student_present else "X"
-                hub_data.append([
-                    entry.concept,
-                    f"{entry.degree_centrality:.3f}",
-                    presence,
-                ])
+                hub_data.append(
+                    [
+                        entry.concept,
+                        f"{entry.degree_centrality:.3f}",
+                        presence,
+                    ]
+                )
 
             hub_table = Table(hub_data, colWidths=[80 * mm, 40 * mm, 30 * mm])
-            hub_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#404040")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-                ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            hub_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#404040")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                        ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(hub_table)
             story.append(Spacer(1, 5 * mm))
 
         # Feedback text
-        story.append(Paragraph(
-            _esc("피드백"),
-            self._styles["KoreanSubheading"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("피드백"),
+                self._styles["KoreanSubheading"],
+            )
+        )
 
         sections = parse_feedback_sections(question_data.feedback_text)
         for section_name, section_text in sections.items():
-            story.append(Paragraph(
-                f"<b>[{_esc(section_name)}]</b>",
-                self._styles["KoreanBody"],
-            ))
-            story.append(Paragraph(
-                _esc(section_text),
-                self._styles["KoreanBody"],
-            ))
+            story.append(
+                Paragraph(
+                    f"<b>[{_esc(section_name)}]</b>",
+                    self._styles["KoreanBody"],
+                )
+            )
+            story.append(
+                Paragraph(
+                    _esc(section_text),
+                    self._styles["KoreanBody"],
+                )
+            )
             story.append(Spacer(1, 2 * mm))
 
         # Misconceptions
         if question_data.misconceptions:
             story.append(Spacer(1, 3 * mm))
-            story.append(Paragraph(
-                _esc("감지된 오개념"),
-                self._styles["KoreanSubheading"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("감지된 오개념"),
+                    self._styles["KoreanSubheading"],
+                )
+            )
             for m in question_data.misconceptions:
-                story.append(Paragraph(
-                    f"• {_esc(m)}",
-                    self._styles["KoreanBody"],
-                ))
+                story.append(
+                    Paragraph(
+                        f"• {_esc(m)}",
+                        self._styles["KoreanBody"],
+                    )
+                )
 
         return story
 

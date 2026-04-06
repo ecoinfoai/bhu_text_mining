@@ -16,12 +16,14 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import networkx as nx
 import yaml
 
+from forma.io_utils import atomic_write_yaml
 from forma.lecture_preprocessor import CleanedTranscript, build_stopwords
 from forma.network_analysis import extract_keywords, create_network
 from forma.emphasis_map import compute_emphasis_map
@@ -38,6 +40,7 @@ def _ensure_kss() -> Any:
     global kss
     if kss is None:
         import warnings
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning)
             import kss as _kss
@@ -48,6 +51,7 @@ def _ensure_kss() -> Any:
 # ------------------------------------------------------------------
 # Dataclasses
 # ------------------------------------------------------------------
+
 
 @dataclass
 class TopicSummary:
@@ -122,6 +126,7 @@ class AnalysisResult:
 # Network visualization (headless, saves to file)
 # ------------------------------------------------------------------
 
+
 def _save_network_image(
     G: nx.Graph,
     output_path: Path,
@@ -144,27 +149,39 @@ def _save_network_image(
     frequencies = nx.get_node_attributes(G, "frequency")
     max_frequency = max(frequencies.values()) if frequencies else 1
 
-    node_sizes = [
-        1000 * (freq / max_frequency) for freq in frequencies.values()
-    ]
+    node_sizes = [1000 * (freq / max_frequency) for freq in frequencies.values()]
 
     weights = list(nx.get_edge_attributes(G, "weight").values())
     max_weight = max(weights) if weights else 1
     edge_widths = [3 * (weight / max_weight) for weight in weights]
 
     nx.draw_networkx_nodes(
-        G, pos, node_size=node_sizes, node_color="skyblue", alpha=0.9, ax=ax,
+        G,
+        pos,
+        node_size=node_sizes,
+        node_color="skyblue",
+        alpha=0.9,
+        ax=ax,
     )
     nx.draw_networkx_edges(
-        G, pos, width=edge_widths, edge_color="gray", alpha=0.5, ax=ax,
+        G,
+        pos,
+        width=edge_widths,
+        edge_color="gray",
+        alpha=0.5,
+        ax=ax,
     )
 
     for node, (x, y) in pos.items():
         freq = frequencies.get(node, 1)
         font_size = 10 + 15 * (freq / max_frequency)
         ax.text(
-            x, y, s=node, fontsize=font_size,
-            horizontalalignment="center", verticalalignment="center",
+            x,
+            y,
+            s=node,
+            fontsize=font_size,
+            horizontalalignment="center",
+            verticalalignment="center",
         )
 
     ax.set_title(title)
@@ -214,7 +231,9 @@ def analyze_transcript(
         keywords = extract_keywords(text, stopwords)
         keyword_frequencies = dict(Counter(keywords))
         sorted_kw = sorted(
-            keyword_frequencies.items(), key=lambda x: x[1], reverse=True,
+            keyword_frequencies.items(),
+            key=lambda x: x[1],
+            reverse=True,
         )
         top_keywords = [kw for kw, _ in sorted_kw[:top_n]]
     except Exception:
@@ -227,6 +246,7 @@ def analyze_transcript(
         if G.number_of_nodes() > 0:
             # Save to a temp location; caller can move if needed
             import tempfile
+
             net_path = Path(tempfile.mktemp(suffix=".png", prefix="keyword_net_"))
             _save_network_image(G, net_path)
             network_image_path = net_path
@@ -247,9 +267,7 @@ def analyze_transcript(
     topics: list[TopicSummary] | None = None
     topic_skipped_reason: str | None = None
     if sentence_count < _MIN_SENTENCES_FOR_TOPICS:
-        topic_skipped_reason = (
-            f"Insufficient sentences ({sentence_count} < {_MIN_SENTENCES_FOR_TOPICS})"
-        )
+        topic_skipped_reason = f"Insufficient sentences ({sentence_count} < {_MIN_SENTENCES_FOR_TOPICS})"
     else:
         try:
             from forma.topic_analysis import (
@@ -257,6 +275,7 @@ def analyze_transcript(
                 analyze_topics_with_bertopic,
                 generate_topic_keywords_table,
             )
+
             env_config = {
                 "umap": {"n_neighbors": 5, "n_components": 2, "random_state": 42},
                 "hdbscan": {"min_cluster_size": 3},
@@ -277,12 +296,14 @@ def analyze_transcript(
                     if t == tid:
                         rep_sentence = sentences[i]
                         break
-                topics.append(TopicSummary(
-                    topic_id=tid,
-                    keywords=kw_list,
-                    sentence_count=topic_counter.get(tid, 0),
-                    representative_sentence=rep_sentence,
-                ))
+                topics.append(
+                    TopicSummary(
+                        topic_id=tid,
+                        keywords=kw_list,
+                        sentence_count=topic_counter.get(tid, 0),
+                        representative_sentence=rep_sentence,
+                    )
+                )
         except Exception:
             logger.warning("Topic modeling failed", exc_info=True)
             topic_skipped_reason = "Topic modeling error"
@@ -329,11 +350,9 @@ def analyze_transcript(
     else:
         try:
             from forma.lecture_processor import extract_triplets_from_lecture
+
             raw_triplets = extract_triplets_from_lecture(text, provider)
-            triplets = [
-                {"subject": t.subject, "relation": t.relation, "object": t.object}
-                for t in raw_triplets
-            ]
+            triplets = [{"subject": t.subject, "relation": t.relation, "object": t.object} for t in raw_triplets]
         except Exception:
             logger.warning("Triplet extraction failed", exc_info=True)
             triplet_skipped_reason = "Triplet extraction error"
@@ -359,6 +378,7 @@ def analyze_transcript(
 # YAML serialization
 # ------------------------------------------------------------------
 
+
 def save_analysis_result(result: AnalysisResult, output_dir: Path) -> Path:
     """Serialize AnalysisResult to a YAML file.
 
@@ -376,8 +396,7 @@ def save_analysis_result(result: AnalysisResult, output_dir: Path) -> Path:
     output_path = output_dir / filename
 
     data = _result_to_dict(result)
-    with open(output_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+    atomic_write_yaml(data, output_path)
 
     return output_path
 

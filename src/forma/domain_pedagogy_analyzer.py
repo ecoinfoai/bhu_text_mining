@@ -89,8 +89,7 @@ class PedagogyAnalysis:
 # ----------------------------------------------------------------
 
 _PEDAGOGY_SYSTEM_INSTRUCTION = (
-    "당신은 대학 강의 화법 분석 전문가입니다. "
-    "도메인 지식이 아닌 교수자의 화법 패턴만 분석해주세요."
+    "당신은 대학 강의 화법 분석 전문가입니다. 도메인 지식이 아닌 교수자의 화법 패턴만 분석해주세요."
 )
 
 _PEDAGOGY_PROMPT_TEMPLATE = """\
@@ -192,14 +191,16 @@ def _parse_pedagogy_response(
         expr = item.get("expression", "")
         if not expr:
             continue
-        habitual.append(HabitualExpression(
-            expression=expr,
-            frequency_per_minute=float(
-                item.get("frequency_per_minute", 0.0),
-            ),
-            total_count=int(item.get("total_count", 0)),
-            recommendation=item.get("recommendation", "정상 범위"),
-        ))
+        habitual.append(
+            HabitualExpression(
+                expression=expr,
+                frequency_per_minute=float(
+                    item.get("frequency_per_minute", 0.0),
+                ),
+                total_count=int(item.get("total_count", 0)),
+                recommendation=item.get("recommendation", "정상 범위"),
+            )
+        )
 
     # Parse effective patterns
     patterns: list[EffectivePattern] = []
@@ -212,11 +213,13 @@ def _parse_pedagogy_response(
         examples = item.get("examples", [])
         if not isinstance(examples, list):
             examples = [str(examples)]
-        patterns.append(EffectivePattern(
-            pattern_type=ptype,
-            count=int(item.get("count", 0)),
-            examples=examples[:3],
-        ))
+        patterns.append(
+            EffectivePattern(
+                pattern_type=ptype,
+                count=int(item.get("count", 0)),
+                examples=examples[:3],
+            )
+        )
 
     domain_ratio = float(data.get("domain_ratio", 0.0))
     domain_ratio = max(0.0, min(1.0, domain_ratio))
@@ -275,7 +278,9 @@ def analyze_pedagogy_llm(
         )
     except Exception:
         logger.warning(
-            "Section %s pedagogy analysis LLM call failed", section_id, exc_info=True,
+            "Section %s pedagogy analysis LLM call failed",
+            section_id,
+            exc_info=True,
         )
         return PedagogyAnalysis(section_id=section_id)
 

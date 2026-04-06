@@ -26,10 +26,7 @@ def validate_question_config(question: dict[str, Any]) -> list[str]:
     # question_type validation
     qtype = question.get("question_type", "essay")
     if qtype not in ("essay", "short_answer"):
-        errors.append(
-            f"Q{sn}: question_type must be 'essay' or 'short_answer', "
-            f"got {qtype!r}"
-        )
+        errors.append(f"Q{sn}: question_type must be 'essay' or 'short_answer', got {qtype!r}")
 
     # knowledge_graph validation
     kg = question.get("knowledge_graph")
@@ -40,16 +37,11 @@ def validate_question_config(question: dict[str, Any]) -> list[str]:
         else:
             for i, edge in enumerate(edges):
                 if not isinstance(edge, dict):
-                    errors.append(
-                        f"Q{sn}: edge[{i}] must be a dict with "
-                        "subject/relation/object"
-                    )
+                    errors.append(f"Q{sn}: edge[{i}] must be a dict with subject/relation/object")
                     continue
                 for key in ("subject", "relation", "object"):
                     if key not in edge:
-                        errors.append(
-                            f"Q{sn}: edge[{i}] missing required key '{key}'"
-                        )
+                        errors.append(f"Q{sn}: edge[{i}] missing required key '{key}'")
 
     # rubric_tiers validation
     tiers = question.get("rubric_tiers")
@@ -60,17 +52,14 @@ def validate_question_config(question: dict[str, Any]) -> list[str]:
             f1 = tier.get("min_graph_f1", 0.0)
             if f1 > 0.95:
                 warnings.warn(
-                    f"Q{sn}: {level_key}.min_graph_f1={f1} > 0.95 is "
-                    "very strict; students may never reach this tier.",
+                    f"Q{sn}: {level_key}.min_graph_f1={f1} > 0.95 is very strict; students may never reach this tier.",
                     stacklevel=2,
                 )
 
     return errors
 
 
-def validate_edge_answer_ratio(
-    question: dict[str, Any], answer_limit_chars: int = 200
-) -> list[str]:
+def validate_edge_answer_ratio(question: dict[str, Any], answer_limit_chars: int = 200) -> list[str]:
     """Warn if edge count is too high relative to answer length limit.
 
     Args:

@@ -613,26 +613,36 @@ class TestConceptNetworkChart:
 
         nodes = [
             ConceptNode(
-                concept="표피 구조", chapter="3장", importance="high",
-                major_topic="피부", delivery_quality=0.9, delivery_status="충분히 설명",
+                concept="표피 구조",
+                chapter="3장",
+                importance="high",
+                major_topic="피부",
+                delivery_quality=0.9,
+                delivery_status="충분히 설명",
                 key_terms=["표피", "각질층"],
             ),
             ConceptNode(
-                concept="진피 기능", chapter="3장", importance="medium",
-                major_topic="피부", delivery_quality=0.5, delivery_status="부분 전달",
+                concept="진피 기능",
+                chapter="3장",
+                importance="medium",
+                major_topic="피부",
+                delivery_quality=0.5,
+                delivery_status="부분 전달",
                 key_terms=["진피", "콜라겐"],
             ),
             ConceptNode(
-                concept="피하조직", chapter="3장", importance="low",
-                major_topic="피부", delivery_quality=0.0, delivery_status="미전달",
+                concept="피하조직",
+                chapter="3장",
+                importance="low",
+                major_topic="피부",
+                delivery_quality=0.0,
+                delivery_status="미전달",
                 key_terms=["피하"],
             ),
         ]
         edges = [
-            ConceptEdge(source="표피 구조", target="진피 기능",
-                        relationship="shared_terms", weight=0.5),
-            ConceptEdge(source="표피 구조", target="피하조직",
-                        relationship="semantic", weight=0.7),
+            ConceptEdge(source="표피 구조", target="진피 기능", relationship="shared_terms", weight=0.5),
+            ConceptEdge(source="표피 구조", target="피하조직", relationship="semantic", weight=0.7),
         ]
         network = ConceptNetwork(nodes=nodes, edges=edges)
         buf = build_concept_network_chart(network)
@@ -645,52 +655,97 @@ class TestConceptNetworkChart:
 
         nodes = [
             ConceptNode(
-                concept="표피 구조", chapter="3장", importance="high",
-                major_topic="피부", key_terms=["표피"],
+                concept="표피 구조",
+                chapter="3장",
+                importance="high",
+                major_topic="피부",
+                key_terms=["표피"],
             ),
             ConceptNode(
-                concept="진피 기능", chapter="3장", importance="medium",
-                major_topic="피부", key_terms=["진피"],
+                concept="진피 기능",
+                chapter="3장",
+                importance="medium",
+                major_topic="피부",
+                key_terms=["진피"],
             ),
         ]
         edges = [
-            ConceptEdge(source="표피 구조", target="진피 기능",
-                        relationship="shared_terms", weight=0.6),
+            ConceptEdge(source="표피 구조", target="진피 기능", relationship="shared_terms", weight=0.6),
         ]
         network = ConceptNetwork(nodes=nodes, edges=edges)
 
         deliveries_by_section = {
             "A": [
-                DeliveryAnalysis(concept="표피 구조", section_id="A",
-                                 delivery_status="충분히 설명", delivery_quality=0.9,
-                                 evidence="", depth=""),
-                DeliveryAnalysis(concept="진피 기능", section_id="A",
-                                 delivery_status="부분 전달", delivery_quality=0.5,
-                                 evidence="", depth=""),
+                DeliveryAnalysis(
+                    concept="표피 구조",
+                    section_id="A",
+                    delivery_status="충분히 설명",
+                    delivery_quality=0.9,
+                    evidence="",
+                    depth="",
+                ),
+                DeliveryAnalysis(
+                    concept="진피 기능",
+                    section_id="A",
+                    delivery_status="부분 전달",
+                    delivery_quality=0.5,
+                    evidence="",
+                    depth="",
+                ),
             ],
             "B": [
-                DeliveryAnalysis(concept="표피 구조", section_id="B",
-                                 delivery_status="부분 전달", delivery_quality=0.6,
-                                 evidence="", depth=""),
-                DeliveryAnalysis(concept="진피 기능", section_id="B",
-                                 delivery_status="미전달", delivery_quality=0.0,
-                                 evidence="", depth=""),
+                DeliveryAnalysis(
+                    concept="표피 구조",
+                    section_id="B",
+                    delivery_status="부분 전달",
+                    delivery_quality=0.6,
+                    evidence="",
+                    depth="",
+                ),
+                DeliveryAnalysis(
+                    concept="진피 기능",
+                    section_id="B",
+                    delivery_status="미전달",
+                    delivery_quality=0.0,
+                    evidence="",
+                    depth="",
+                ),
             ],
             "C": [
-                DeliveryAnalysis(concept="표피 구조", section_id="C",
-                                 delivery_status="충분히 설명", delivery_quality=0.85,
-                                 evidence="", depth=""),
-                DeliveryAnalysis(concept="진피 기능", section_id="C",
-                                 delivery_status="충분히 설명", delivery_quality=0.8,
-                                 evidence="", depth=""),
+                DeliveryAnalysis(
+                    concept="표피 구조",
+                    section_id="C",
+                    delivery_status="충분히 설명",
+                    delivery_quality=0.85,
+                    evidence="",
+                    depth="",
+                ),
+                DeliveryAnalysis(
+                    concept="진피 기능",
+                    section_id="C",
+                    delivery_status="충분히 설명",
+                    delivery_quality=0.8,
+                    evidence="",
+                    depth="",
+                ),
             ],
             "D": [
-                DeliveryAnalysis(concept="표피 구조", section_id="D",
-                                 delivery_status="미전달", delivery_quality=0.1,
-                                 evidence="", depth=""),
-                DeliveryAnalysis(concept="진피 기능", section_id="D",
-                                 delivery_status="미전달", delivery_quality=0.0,
-                                 evidence="", depth=""),
+                DeliveryAnalysis(
+                    concept="표피 구조",
+                    section_id="D",
+                    delivery_status="미전달",
+                    delivery_quality=0.1,
+                    evidence="",
+                    depth="",
+                ),
+                DeliveryAnalysis(
+                    concept="진피 기능",
+                    section_id="D",
+                    delivery_status="미전달",
+                    delivery_quality=0.0,
+                    evidence="",
+                    depth="",
+                ),
             ],
         }
 

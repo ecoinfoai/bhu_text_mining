@@ -150,7 +150,7 @@ class TestComputeEdgeJaccard:
         from forma.knowledge_graph_analysis import compute_edge_jaccard
 
         G_ref = _make_triangle()  # A-B, B-C, C-A
-        G_stu = _make_edge_ab()   # A-B only
+        G_stu = _make_edge_ab()  # A-B only
         jac = compute_edge_jaccard(G_ref, G_stu)
         assert 0.0 < jac < 1.0
 

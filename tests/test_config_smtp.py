@@ -120,25 +120,29 @@ class TestGetSmtpConfigErrors:
         from forma.config import get_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            get_smtp_config({
-                "smtp": {
-                    "server": "s",
-                    "sender_email": "a@b.com",
-                    "port": 0,
+            get_smtp_config(
+                {
+                    "smtp": {
+                        "server": "s",
+                        "sender_email": "a@b.com",
+                        "port": 0,
+                    }
                 }
-            })
+            )
 
     def test_invalid_email_raises_valueerror(self):
         """smtp section with email without '@' raises ValueError."""
         from forma.config import get_smtp_config
 
         with pytest.raises(ValueError, match="sender_email"):
-            get_smtp_config({
-                "smtp": {
-                    "server": "s",
-                    "sender_email": "no-at-sign",
+            get_smtp_config(
+                {
+                    "smtp": {
+                        "server": "s",
+                        "sender_email": "no-at-sign",
+                    }
                 }
-            })
+            )
 
 
 # ---------------------------------------------------------------------------

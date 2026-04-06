@@ -270,19 +270,14 @@ def identify_at_risk(
 
     # Criterion 1: overall_ensemble_mean < 0.45
     if row.overall_ensemble_mean < 0.45:
-        reasons.append(
-            f"전체 점수 {row.overall_ensemble_mean:.2f} (기준: 0.45 미만)"
-        )
+        reasons.append(f"전체 점수 {row.overall_ensemble_mean:.2f} (기준: 0.45 미만)")
 
     # Criterion 2: z_score < -1.0 (skip if class_std == 0)
     if class_std != 0 and row.z_score < -1.0:
         reasons.append(f"Z-점수 {row.z_score:.2f} (기준: -1.0 미만)")
 
     # Criterion 3: all per_question_levels are "Beginning" (not empty)
-    if (
-        len(row.per_question_levels) > 0
-        and all(v == "Beginning" for v in row.per_question_levels.values())
-    ):
+    if len(row.per_question_levels) > 0 and all(v == "Beginning" for v in row.per_question_levels.values()):
         reasons.append("모든 문항 '하' 수준")
 
     # Criterion 4: any per_question_coverage == 0.0 (skip if empty)
@@ -294,15 +289,11 @@ def identify_at_risk(
     # Criterion 5: total misconceptions >= 3 AND overall_level != "Advanced"
     total_misconceptions = sum(misconception_counts.values())
     if total_misconceptions >= 3 and row.overall_level != "Advanced":
-        reasons.append(
-            f"오개념 {total_misconceptions}개 (기준: 3개 이상, 비Advanced)"
-        )
+        reasons.append(f"오개념 {total_misconceptions}개 (기준: 3개 이상, 비Advanced)")
 
     # Criterion 6: mean coverage < 0.30 (skip if empty)
     if len(row.per_question_coverages) > 0:
-        avg = sum(row.per_question_coverages.values()) / len(
-            row.per_question_coverages
-        )
+        avg = sum(row.per_question_coverages.values()) / len(row.per_question_coverages)
         if avg < 0.30:
             reasons.append(f"평균 커버리지 {avg:.1%} (기준: 30% 미만)")
 
@@ -345,6 +336,7 @@ def get_conditional_bg_color(score: float, mean: float, std: float) -> "Color":
         white otherwise or if std == 0.
     """
     from reportlab.lib.colors import HexColor, white
+
     indicator = compute_conditional_indicator(score, mean, std)
     if indicator == "+":
         return HexColor("#E8F5E9")
@@ -473,9 +465,7 @@ def merge_professor_report_data(
             q_ensemble_std = 0.0
             q_ensemble_median = 0.0
 
-        q_concept_coverage_mean = (
-            float(np.nanmean(np.array(cov_scores, dtype=float))) if cov_scores else 0.0
-        )
+        q_concept_coverage_mean = float(np.nanmean(np.array(cov_scores, dtype=float))) if cov_scores else 0.0
 
         # Take question metadata, concept mastery rates, hub_gap_entries,
         # llm_score_mean, rasch_theta_mean from per-report question stats
@@ -514,9 +504,7 @@ def merge_professor_report_data(
 
         # Average concept mastery rates across sections
         concept_mastery_rates: dict[str, float] = {
-            concept: sum(rates) / len(rates)
-            for concept, rates in concept_mastery_map.items()
-            if rates
+            concept: sum(rates) / len(rates) for concept, rates in concept_mastery_map.items() if rates
         }
 
         # Sort misconception frequencies desc
@@ -668,9 +656,7 @@ def build_professor_report_data(
     if class_std == 0.0:
         z_scores = [0.0] * len(students)
     else:
-        z_scores = [
-            (mean - class_mean) / class_std for mean in student_overall_means
-        ]
+        z_scores = [(mean - class_mean) / class_std for mean in student_overall_means]
 
     # ------------------------------------------------------------------
     # Step 4: Collect unique question_sn set
@@ -703,17 +689,9 @@ def build_professor_report_data(
             q_ensemble_std = 0.0
             q_ensemble_median = 0.0
 
-        q_concept_coverage_mean = (
-            float(np.nanmean(np.array(cov_scores, dtype=float))) if cov_scores else 0.0
-        )
-        q_llm_score_mean = (
-            float(np.nanmean(np.array(llm_scores, dtype=float))) if llm_scores else 0.0
-        )
-        q_rasch_theta_mean = (
-            float(np.nanmean(np.array(rasch_thetas, dtype=float)))
-            if rasch_thetas
-            else 0.0
-        )
+        q_concept_coverage_mean = float(np.nanmean(np.array(cov_scores, dtype=float))) if cov_scores else 0.0
+        q_llm_score_mean = float(np.nanmean(np.array(llm_scores, dtype=float))) if llm_scores else 0.0
+        q_rasch_theta_mean = float(np.nanmean(np.array(rasch_thetas, dtype=float))) if rasch_thetas else 0.0
 
         # Level distribution for this question
         level_dist: dict[str, int] = {lvl: 0 for lvl in _CANONICAL_LEVELS}
@@ -737,9 +715,7 @@ def build_professor_report_data(
 
                 # Concept mastery rates
                 for concept_detail in q.concepts:
-                    concept_present_map.setdefault(
-                        concept_detail.concept, []
-                    ).append(concept_detail.is_present)
+                    concept_present_map.setdefault(concept_detail.concept, []).append(concept_detail.is_present)
 
                 # Misconceptions
                 for m in q.misconceptions:

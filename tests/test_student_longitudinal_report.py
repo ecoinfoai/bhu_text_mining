@@ -219,7 +219,12 @@ class TestStudentLongitudinalPDFReportGenerator:
 
         gen = StudentLongitudinalPDFReportGenerator(dpi=72)
         result = gen.generate_pdf(
-            student, cohort, warnings, level, output, llm_texts=llm_texts,
+            student,
+            cohort,
+            warnings,
+            level,
+            output,
+            llm_texts=llm_texts,
         )
         assert os.path.isfile(result)
         assert os.path.getsize(result) > 0
@@ -272,15 +277,20 @@ class TestStudentLongitudinalPDFReportGenerator:
         # With LLM
         llm_texts = {
             "coverage": "이 학생의 개념 커버리지는 상승 추세를 보이고 있으며 "
-                        "Q1과 Q2 모두에서 꾸준한 향상이 관찰됩니다.",
+            "Q1과 Q2 모두에서 꾸준한 향상이 관찰됩니다.",
             "component": "항목별 점수가 전반적으로 균형을 이루고 있으며 "
-                         "특히 개념 커버리지와 LLM 루브릭 간 격차가 줄어들고 있습니다.",
+            "특히 개념 커버리지와 LLM 루브릭 간 격차가 줄어들고 있습니다.",
             "position": "전체 수강생 중 중상위권에 위치하며 백분위가 꾸준히 상승하고 있습니다.",
             "warning": "현재 경고 수준은 정상이며 모든 지표가 안정적입니다.",
         }
         out_with_llm = str(tmp_path / "with_llm.pdf")
         gen.generate_pdf(
-            student, cohort, warnings, level, out_with_llm, llm_texts=llm_texts,
+            student,
+            cohort,
+            warnings,
+            level,
+            out_with_llm,
+            llm_texts=llm_texts,
         )
         size_with_llm = os.path.getsize(out_with_llm)
 
@@ -299,7 +309,12 @@ class TestStudentLongitudinalPDFReportGenerator:
         gen = StudentLongitudinalPDFReportGenerator(dpi=72)
         out = str(tmp_path / "no_llm_explicit.pdf")
         result = gen.generate_pdf(
-            student, cohort, warnings, level, out, llm_texts=None,
+            student,
+            cohort,
+            warnings,
+            level,
+            out,
+            llm_texts=None,
         )
         assert os.path.isfile(result)
         assert os.path.getsize(result) > 0

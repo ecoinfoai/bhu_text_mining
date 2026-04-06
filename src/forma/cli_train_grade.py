@@ -28,31 +28,43 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Train semester grade prediction model",
     )
     parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Longitudinal store YAML file path",
     )
     parser.add_argument(
-        "--grades", required=True,
+        "--grades",
+        required=True,
         help="Grade mapping YAML file path",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="Output model file path (.pkl)",
     )
     parser.add_argument(
-        "--semester", default=None,
+        "--semester",
+        default=None,
         help="Semester label to use (defaults to last semester)",
     )
     parser.add_argument(
-        "--min-students", type=int, default=10, dest="min_students",
+        "--min-students",
+        type=int,
+        default=10,
+        dest="min_students",
         help="Minimum number of students (default: 10)",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     return parser
@@ -70,6 +82,7 @@ def main(argv=None) -> None:
     # Apply project config
     if not args.no_config:
         from forma.project_config import apply_project_config
+
         raw_argv = argv if argv is not None else sys.argv[1:]
         apply_project_config(args, argv=raw_argv)
 
@@ -93,7 +106,10 @@ def main(argv=None) -> None:
 
     all_records = store.get_all_records()
     if not all_records:
-        print("Error: Store contains no records", file=sys.stderr)
+        print(
+            "Error: Store contains no records. Run forma-backfill-longitudinal first to populate the store.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     all_weeks = sorted({r.week for r in all_records})
@@ -114,7 +130,10 @@ def main(argv=None) -> None:
         sys.exit(1)
 
     if not grade_mapping:
-        print("Error: Grade mapping is empty", file=sys.stderr)
+        print(
+            "Error: Grade mapping is empty. Provide a YAML file with student_id → grade mappings.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Select semester
@@ -143,7 +162,9 @@ def main(argv=None) -> None:
     # Extract features
     extractor = GradeFeatureExtractor()
     matrix, feature_names, student_ids = extractor.extract(
-        store, all_weeks, grade_history=grade_history,
+        store,
+        all_weeks,
+        grade_history=grade_history,
     )
 
     # Build labels: only students that have grades in the selected semester
@@ -158,8 +179,7 @@ def main(argv=None) -> None:
 
     if len(valid_indices) < args.min_students:
         print(
-            f"Error: Insufficient students with grades: "
-            f"{len(valid_indices)} < {args.min_students}",
+            f"Error: Insufficient students with grades: {len(valid_indices)} < {args.min_students}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -178,7 +198,9 @@ def main(argv=None) -> None:
     predictor = GradePredictor()
     try:
         model = predictor.train(
-            X_train, labels, feature_names,
+            X_train,
+            labels,
+            feature_names,
             min_students=args.min_students,
             n_weeks=len(all_weeks),
         )

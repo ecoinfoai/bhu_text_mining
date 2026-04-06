@@ -87,3 +87,22 @@ eval:
 
   # 학생별 PDF 보고서 생성 (true/false)
   generate_reports: false
+
+# ── forma lecture ──────────────────────────────────────────────────────────────
+# STT 강의 녹취록을 분석하고 분반 간 비교를 수행합니다.
+lecture:
+  # 녹취록 파일 패턴 ({class}는 분반 식별자로 치환됨)
+  # 예: --class A → "transcript_classA_week1.txt"
+  transcript_pattern: "transcript_class{class}_week1.txt"
+
+  # 개념 목록 참조 파일 (exam YAML, 키워드 매칭에 사용)
+  concept_source: "../question_bank/Ch01_Introduction_FormativeTest.yaml"
+
+  # 분석 결과 출력 디렉토리 ({class}는 분반 식별자로 치환됨)
+  output_dir: "lecture_results_{class}"
+
+  # 추가 불용어 목록 (도메인 특화 불용어)
+  extra_stopwords: []
+
+  # 추가 약어 목록 (분석 시 보존할 약어)
+  # extra_abbreviations: ["DNA", "RNA", "ATP"]

@@ -86,7 +86,7 @@ class TestSecurityPipelineIntegration:
         from forma.delivery_prepare import sanitize_filename
         from forma.report_utils import sanitize_filename_report
 
-        attack = "\u200B\u200C\u200D\uFEFF"
+        attack = "\u200b\u200c\u200d\ufeff"
         assert sanitize_filename(attack) == "_unnamed"
         assert sanitize_filename_report(attack) == "_unnamed"
 
@@ -334,22 +334,30 @@ class TestSecurityPipelineExpanded:
         (report_dir / "S002.pdf").write_text("content")
 
         manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(yaml.dump({
-            "report_source": {
-                "directory": str(report_dir),
-                "file_patterns": ["{student_id}.pdf"],
-            }
-        }))
+        manifest_path.write_text(
+            yaml.dump(
+                {
+                    "report_source": {
+                        "directory": str(report_dir),
+                        "file_patterns": ["{student_id}.pdf"],
+                    }
+                }
+            )
+        )
 
         roster_path = tmp_path / "roster.yaml"
-        roster_path.write_text(yaml.dump({
-            "class_name": "IntegrationClass",
-            "students": [
-                {"student_id": "S001", "name": "Alice", "email": "alice@test.com"},
-                {"student_id": "S002", "name": "Bob", "email": "bob@test.com"},
-                {"student_id": "S003", "name": "Charlie", "email": ""},
-            ],
-        }))
+        roster_path.write_text(
+            yaml.dump(
+                {
+                    "class_name": "IntegrationClass",
+                    "students": [
+                        {"student_id": "S001", "name": "Alice", "email": "alice@test.com"},
+                        {"student_id": "S002", "name": "Bob", "email": "bob@test.com"},
+                        {"student_id": "S003", "name": "Charlie", "email": ""},
+                    ],
+                }
+            )
+        )
 
         output_dir = tmp_path / "staging"
         summary = prepare_delivery(str(manifest_path), str(roster_path), str(output_dir))
@@ -459,7 +467,8 @@ class TestDataIntegrityExpanded:
                 log.load()
                 log.add_record(
                     student_id=f"S{thread_id:03d}",
-                    week=1, intervention_type="면담",
+                    week=1,
+                    intervention_type="면담",
                     description=f"Thread {thread_id}",
                 )
                 log.save()
@@ -496,7 +505,9 @@ class TestDataIntegrityExpanded:
             sent_at="2026-01-01T00:00:00Z",
             smtp_server="smtp.test.com",
             dry_run=False,
-            total=0, success=0, failed=0,
+            total=0,
+            success=0,
+            failed=0,
             results=[],
         )
 

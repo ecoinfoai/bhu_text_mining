@@ -1,5 +1,6 @@
 # tests/test_cli_ocr.py
 """Tests for src/cli_ocr.py bhu-ocr CLI."""
+
 from __future__ import annotations
 
 import csv
@@ -21,9 +22,7 @@ def ocr_config_yaml(tmp_path):
 
     # Also create the referenced naver config
     naver_cfg = tmp_path / "naver.json"
-    naver_cfg.write_text(
-        _json.dumps({"secret_key": "k", "api_url": "https://fake/api"})
-    )
+    naver_cfg.write_text(_json.dumps({"secret_key": "k", "api_url": "https://fake/api"}))
     cfg = {
         "image-dir": str(tmp_path / "scans"),
         "naver-ocr-config": str(naver_cfg),
@@ -76,18 +75,19 @@ class TestParseArgs:
         assert args.num_questions is None
 
     def test_scan_num_questions_override(self, ocr_config_yaml):
-        args = _parse_args(
-            ["scan", "--config", ocr_config_yaml, "--num-questions", "3"]
-        )
+        args = _parse_args(["scan", "--config", ocr_config_yaml, "--num-questions", "3"])
         assert args.num_questions == 3
 
     def test_join_subcommand_parsed_with_csv(self, tmp_path):
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "results.yaml",
-                "--forms-csv", "responses.csv",
-                "--output", "final.yaml",
+                "--ocr-results",
+                "results.yaml",
+                "--forms-csv",
+                "responses.csv",
+                "--output",
+                "final.yaml",
             ]
         )
         assert args.command == "join"
@@ -101,9 +101,12 @@ class TestParseArgs:
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "r.yaml",
-                "--output", "o.yaml",
-                "--spreadsheet-url", url,
+                "--ocr-results",
+                "r.yaml",
+                "--output",
+                "o.yaml",
+                "--spreadsheet-url",
+                url,
             ]
         )
         assert args.spreadsheet_url == url
@@ -113,9 +116,12 @@ class TestParseArgs:
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "r.yaml",
-                "--forms-csv", "f.csv",
-                "--output", "o.yaml",
+                "--ocr-results",
+                "r.yaml",
+                "--forms-csv",
+                "f.csv",
+                "--output",
+                "o.yaml",
             ]
         )
         assert args.student_id_column == "student_id"
@@ -124,10 +130,14 @@ class TestParseArgs:
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "r.yaml",
-                "--forms-csv", "f.csv",
-                "--output", "o.yaml",
-                "--student-id-column", "sid",
+                "--ocr-results",
+                "r.yaml",
+                "--forms-csv",
+                "f.csv",
+                "--output",
+                "o.yaml",
+                "--student-id-column",
+                "sid",
             ]
         )
         assert args.student_id_column == "sid"
@@ -136,9 +146,12 @@ class TestParseArgs:
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "r.yaml",
-                "--output", "o.yaml",
-                "--forms-csv", "f.csv",
+                "--ocr-results",
+                "r.yaml",
+                "--output",
+                "o.yaml",
+                "--forms-csv",
+                "f.csv",
             ]
         )
         assert args.credentials == "credentials.json"
@@ -147,10 +160,14 @@ class TestParseArgs:
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "r.yaml",
-                "--output", "o.yaml",
-                "--forms-csv", "f.csv",
-                "--credentials", "my_creds.json",
+                "--ocr-results",
+                "r.yaml",
+                "--output",
+                "o.yaml",
+                "--forms-csv",
+                "f.csv",
+                "--credentials",
+                "my_creds.json",
             ]
         )
         assert args.credentials == "my_creds.json"
@@ -159,10 +176,14 @@ class TestParseArgs:
         args = _parse_args(
             [
                 "join",
-                "--ocr-results", "r.yaml",
-                "--output", "o.yaml",
-                "--forms-csv", "f.csv",
-                "--manual-mapping", "mapping.yaml",
+                "--ocr-results",
+                "r.yaml",
+                "--output",
+                "o.yaml",
+                "--forms-csv",
+                "f.csv",
+                "--manual-mapping",
+                "mapping.yaml",
             ]
         )
         assert args.manual_mapping == "mapping.yaml"
@@ -245,9 +266,7 @@ class TestMainScan:
             main(["scan", "--config", ocr_config_yaml])
         assert mock_scan.call_args.kwargs["num_questions"] == 2
 
-    def test_main_scan_cli_num_questions_overrides_config(
-        self, ocr_config_yaml
-    ):
+    def test_main_scan_cli_num_questions_overrides_config(self, ocr_config_yaml):
         with patch(
             "forma.cli_ocr.run_scan_pipeline",
             return_value=[],
@@ -255,8 +274,10 @@ class TestMainScan:
             main(
                 [
                     "scan",
-                    "--config", ocr_config_yaml,
-                    "--num-questions", "4",
+                    "--config",
+                    ocr_config_yaml,
+                    "--num-questions",
+                    "4",
                 ]
             )
         assert mock_scan.call_args.kwargs["num_questions"] == 4
@@ -268,9 +289,7 @@ class TestMainScan:
 
 
 class TestMainJoin:
-    def test_main_join_calls_pipeline_with_csv(
-        self, ocr_results_yaml, forms_csv, tmp_path
-    ):
+    def test_main_join_calls_pipeline_with_csv(self, ocr_results_yaml, forms_csv, tmp_path):
         out = str(tmp_path / "final.yaml")
         with patch(
             "forma.cli_ocr.run_join_pipeline",
@@ -279,9 +298,12 @@ class TestMainJoin:
             main(
                 [
                     "join",
-                    "--ocr-results", ocr_results_yaml,
-                    "--forms-csv", forms_csv,
-                    "--output", out,
+                    "--ocr-results",
+                    ocr_results_yaml,
+                    "--forms-csv",
+                    forms_csv,
+                    "--output",
+                    out,
                 ]
             )
         mock_join.assert_called_once()
@@ -292,9 +314,7 @@ class TestMainJoin:
         assert call_kwargs["spreadsheet_url"] is None
         assert call_kwargs["student_id_column"] == "student_id"
 
-    def test_main_join_with_spreadsheet_url(
-        self, ocr_results_yaml, tmp_path
-    ):
+    def test_main_join_with_spreadsheet_url(self, ocr_results_yaml, tmp_path):
         out = str(tmp_path / "final.yaml")
         url = "https://docs.google.com/spreadsheets/d/abc"
         with patch(
@@ -304,18 +324,19 @@ class TestMainJoin:
             main(
                 [
                     "join",
-                    "--ocr-results", ocr_results_yaml,
-                    "--output", out,
-                    "--spreadsheet-url", url,
+                    "--ocr-results",
+                    ocr_results_yaml,
+                    "--output",
+                    out,
+                    "--spreadsheet-url",
+                    url,
                 ]
             )
         call_kwargs = mock_join.call_args.kwargs
         assert call_kwargs["spreadsheet_url"] == url
         assert call_kwargs["forms_csv_path"] is None
 
-    def test_main_join_custom_student_id_column(
-        self, ocr_results_yaml, forms_csv, tmp_path
-    ):
+    def test_main_join_custom_student_id_column(self, ocr_results_yaml, forms_csv, tmp_path):
         out = str(tmp_path / "final.yaml")
         with patch(
             "forma.cli_ocr.run_join_pipeline",
@@ -324,15 +345,17 @@ class TestMainJoin:
             main(
                 [
                     "join",
-                    "--ocr-results", ocr_results_yaml,
-                    "--forms-csv", forms_csv,
-                    "--output", out,
-                    "--student-id-column", "sid",
+                    "--ocr-results",
+                    ocr_results_yaml,
+                    "--forms-csv",
+                    forms_csv,
+                    "--output",
+                    out,
+                    "--student-id-column",
+                    "sid",
                 ]
             )
-        assert (
-            mock_join.call_args.kwargs["student_id_column"] == "sid"
-        )
+        assert mock_join.call_args.kwargs["student_id_column"] == "sid"
 
     def test_main_join_no_source_exits(self, ocr_results_yaml, tmp_path):
         """Exit with error when neither --spreadsheet-url nor --forms-csv."""
@@ -341,14 +364,14 @@ class TestMainJoin:
             main(
                 [
                     "join",
-                    "--ocr-results", ocr_results_yaml,
-                    "--output", out,
+                    "--ocr-results",
+                    ocr_results_yaml,
+                    "--output",
+                    out,
                 ]
             )
 
-    def test_main_join_passes_manual_mapping(
-        self, ocr_results_yaml, forms_csv, tmp_path
-    ):
+    def test_main_join_passes_manual_mapping(self, ocr_results_yaml, forms_csv, tmp_path):
         out = str(tmp_path / "final.yaml")
         mapping = str(tmp_path / "mapping.yaml")
         with patch(
@@ -358,15 +381,17 @@ class TestMainJoin:
             main(
                 [
                     "join",
-                    "--ocr-results", ocr_results_yaml,
-                    "--forms-csv", forms_csv,
-                    "--output", out,
-                    "--manual-mapping", mapping,
+                    "--ocr-results",
+                    ocr_results_yaml,
+                    "--forms-csv",
+                    forms_csv,
+                    "--output",
+                    out,
+                    "--manual-mapping",
+                    mapping,
                 ]
             )
-        assert (
-            mock_join.call_args.kwargs["manual_mapping_path"] == mapping
-        )
+        assert mock_join.call_args.kwargs["manual_mapping_path"] == mapping
 
 
 # ──────────────────────────────────────────────────
@@ -424,27 +449,41 @@ class TestScanLLMArgs:
 
     def test_parse_scan_context_args(self):
         """--subject, --question, --answer-keywords are parsed."""
-        args = _parse_args([
-            "scan", "--provider", "gemini",
-            "--subject", "생물학",
-            "--question", "세포막을 설명하시오",
-            "--answer-keywords", "인지질,이중층",
-        ])
+        args = _parse_args(
+            [
+                "scan",
+                "--provider",
+                "gemini",
+                "--subject",
+                "생물학",
+                "--question",
+                "세포막을 설명하시오",
+                "--answer-keywords",
+                "인지질,이중층",
+            ]
+        )
         assert args.subject == "생물학"
         assert args.question == "세포막을 설명하시오"
         assert args.answer_keywords == "인지질,이중층"
 
     def test_parse_scan_class_with_provider(self):
         """--class and --provider can coexist (LLM Vision via week.yaml)."""
-        args = _parse_args([
-            "scan", "--class", "A", "--provider", "anthropic",
-        ])
+        args = _parse_args(
+            [
+                "scan",
+                "--class",
+                "A",
+                "--provider",
+                "anthropic",
+            ]
+        )
         assert args.class_id == "A"
         assert args.provider == "anthropic"
 
     def test_main_scan_class_with_provider_passes_llm(self, tmp_path):
         """main() passes llm_provider when both --class and --provider given."""
         from types import SimpleNamespace
+
         mock_resolved = SimpleNamespace(
             ocr_image_dir_pattern="images_A",
             ocr_ocr_output_pattern="scan_A.yaml",
@@ -453,17 +492,22 @@ class TestScanLLMArgs:
             ocr_review_threshold=0.75,
         )
         (tmp_path / "images_A").mkdir()
-        with patch(
-            "forma.cli_ocr.run_scan_pipeline",
-            return_value=[],
-        ) as mock_scan, patch(
-            "forma.week_config.find_week_config",
-            return_value=tmp_path / "week.yaml",
-        ), patch(
-            "forma.week_config.load_week_config",
-        ), patch(
-            "forma.week_config.resolve_class_patterns",
-            return_value=mock_resolved,
+        with (
+            patch(
+                "forma.cli_ocr.run_scan_pipeline",
+                return_value=[],
+            ) as mock_scan,
+            patch(
+                "forma.week_config.find_week_config",
+                return_value=tmp_path / "week.yaml",
+            ),
+            patch(
+                "forma.week_config.load_week_config",
+            ),
+            patch(
+                "forma.week_config.resolve_class_patterns",
+                return_value=mock_resolved,
+            ),
         ):
             main(["--no-config", "scan", "--class", "A", "--provider", "anthropic"])
 
@@ -476,12 +520,20 @@ class TestScanLLMArgs:
             "forma.cli_ocr.run_scan_pipeline",
             return_value=[],
         ) as mock_scan:
-            main([
-                "--no-config", "scan", "--provider", "gemini",
-                "--subject", "생물학",
-                "--question", "세포막을 설명하시오",
-                "--answer-keywords", "인지질,이중층",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "scan",
+                    "--provider",
+                    "gemini",
+                    "--subject",
+                    "생물학",
+                    "--question",
+                    "세포막을 설명하시오",
+                    "--answer-keywords",
+                    "인지질,이중층",
+                ]
+            )
 
         call_kwargs = mock_scan.call_args.kwargs
         ctx = call_kwargs.get("llm_context")

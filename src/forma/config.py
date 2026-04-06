@@ -52,9 +52,7 @@ def load_config(config_path: str | None = None) -> dict:
             with open(expanded, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if not isinstance(data, dict):
-                raise ValueError(
-                    f"config.json must be a JSON object ({{...}}), got {type(data).__name__}"
-                )
+                raise ValueError(f"config.json must be a JSON object ({{...}}), got {type(data).__name__}")
             for key in data:
                 if key not in _EXPECTED_SECTIONS:
                     logger.warning("Unknown key in config.json: '%s'", key)
@@ -74,18 +72,14 @@ def load_config(config_path: str | None = None) -> dict:
             with open(dep_expanded, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if not isinstance(data, dict):
-                raise ValueError(
-                    f"config.json must be a JSON object ({{...}}), got {type(data).__name__}"
-                )
+                raise ValueError(f"config.json must be a JSON object ({{...}}), got {type(data).__name__}")
             for key in data:
                 if key not in _EXPECTED_SECTIONS:
                     logger.warning("Unknown key in config.json: '%s'", key)
             return data
 
     searched = [os.path.expanduser(p) for p in candidates]
-    raise FileNotFoundError(
-        f"No config file found. Searched: {searched}"
-    )
+    raise FileNotFoundError(f"No config file found. Searched: {searched}")
 
 
 def get_naver_ocr_config(config: dict) -> tuple[str, str]:
@@ -225,6 +219,7 @@ def get_quality_weights(config: dict) -> dict[str, float]:
             except (TypeError, ValueError):
                 logger.warning(
                     "quality_weights.%s has invalid value, using default: %s",
-                    key, overrides[key],
+                    key,
+                    overrides[key],
                 )
     return result

@@ -69,9 +69,7 @@ def convert_join_file(
         join_data = yaml.safe_load(f)
 
     if not isinstance(join_data, list):
-        raise ValueError(
-            f"Expected a list of dicts in join file, got {type(join_data).__name__}"
-        )
+        raise ValueError(f"Expected a list of dicts in join file, got {type(join_data).__name__}")
 
     result = convert_join_to_responses(join_data, questions_used)
 
@@ -107,8 +105,7 @@ def filter_exam_config(
     missing = set(questions_used) - available
     if missing:
         raise KeyError(
-            f"questions_used contains sn {sorted(missing)} "
-            f"not found in exam config. Available: {sorted(available)}"
+            f"questions_used contains sn {sorted(missing)} not found in exam config. Available: {sorted(available)}"
         )
 
     filtered = dict(config_data)

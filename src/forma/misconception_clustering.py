@@ -134,15 +134,17 @@ def cluster_misconceptions(
         # Centroid edge from representative
         centroid_edge = classified[rep_idx].master_edge
 
-        regular_clusters.append(MisconceptionCluster(
-            cluster_id=label,
-            pattern=majority_pattern,
-            representative_error=classified[rep_idx].description,
-            member_count=len(member_indices),
-            student_errors=student_errors,
-            correction_point="",
-            centroid_edge=centroid_edge,
-        ))
+        regular_clusters.append(
+            MisconceptionCluster(
+                cluster_id=label,
+                pattern=majority_pattern,
+                representative_error=classified[rep_idx].description,
+                member_count=len(member_indices),
+                student_errors=student_errors,
+                correction_point="",
+                centroid_edge=centroid_edge,
+            )
+        )
 
     # Merge small clusters into OTHER (cluster_id=-1)
     if other_items:
@@ -156,15 +158,17 @@ def cluster_misconceptions(
         student_errors = [classified[idx].description for idx in other_items]
         centroid_edge = classified[rep_idx].master_edge
 
-        regular_clusters.append(MisconceptionCluster(
-            cluster_id=-1,
-            pattern=majority_pattern,
-            representative_error=classified[rep_idx].description,
-            member_count=len(other_items),
-            student_errors=student_errors,
-            correction_point="",
-            centroid_edge=centroid_edge,
-        ))
+        regular_clusters.append(
+            MisconceptionCluster(
+                cluster_id=-1,
+                pattern=majority_pattern,
+                representative_error=classified[rep_idx].description,
+                member_count=len(other_items),
+                student_errors=student_errors,
+                correction_point="",
+                centroid_edge=centroid_edge,
+            )
+        )
 
     # Sort by member_count descending
     regular_clusters.sort(key=lambda c: c.member_count, reverse=True)

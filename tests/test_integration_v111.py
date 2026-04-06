@@ -48,16 +48,18 @@ def _create_staged_dir(tmp_path, n_students=2):
         with zipfile.ZipFile(str(zip_path), "w") as zf:
             zf.writestr(f"{sid}_report.pdf", f"PDF content for {sid}")
 
-        details.append({
-            "student_id": sid,
-            "name": name,
-            "email": email,
-            "status": "ready",
-            "matched_files": [f"{sid}_report.pdf"],
-            "zip_path": str(zip_path),
-            "zip_size_bytes": os.path.getsize(str(zip_path)),
-            "message": "",
-        })
+        details.append(
+            {
+                "student_id": sid,
+                "name": name,
+                "email": email,
+                "status": "ready",
+                "matched_files": [f"{sid}_report.pdf"],
+                "zip_path": str(zip_path),
+                "zip_size_bytes": os.path.getsize(str(zip_path)),
+                "message": "",
+            }
+        )
 
     summary = {
         "prepared_at": "2026-03-11T12:00:00+09:00",
@@ -77,26 +79,32 @@ def _create_staged_dir(tmp_path, n_students=2):
 def _write_template(tmp_path):
     """Write a simple email template."""
     tpl = tmp_path / "template.yaml"
-    tpl.write_text(textwrap.dedent("""\
+    tpl.write_text(
+        textwrap.dedent("""\
         subject: "[Integration] Report for {student_name}"
         body: |
           Dear {student_name},
           Your {class_name} report is attached.
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     return str(tpl)
 
 
 def _write_smtp_yaml(tmp_path, server="yaml.smtp.com"):
     """Write a YAML-format SMTP config."""
     cfg = tmp_path / "smtp.yaml"
-    cfg.write_text(textwrap.dedent(f"""\
+    cfg.write_text(
+        textwrap.dedent(f"""\
         smtp_server: "{server}"
         smtp_port: 587
         sender_email: "yaml@test.com"
         sender_name: "YAML Sender"
         use_tls: true
         send_interval_sec: 0
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     return str(cfg)
 
 
@@ -289,34 +297,49 @@ class TestCliFormaJsonFallback:
 
         # Manifest
         mf = tmp_path / "manifest.yaml"
-        mf.write_text(textwrap.dedent(f"""\
+        mf.write_text(
+            textwrap.dedent(f"""\
             report_source:
               directory: "{report_dir}"
               file_patterns:
                 - "{{student_id}}_report.pdf"
-        """), encoding="utf-8")
+        """),
+            encoding="utf-8",
+        )
 
         # Roster
         roster = tmp_path / "roster.yaml"
-        roster.write_text(yaml.dump({
-            "class_name": "IT-04",
-            "students": [
-                {"student_id": "s001", "name": "A", "email": "a@u.kr"},
-                {"student_id": "s002", "name": "B", "email": "b@u.kr"},
-            ],
-        }, allow_unicode=True), encoding="utf-8")
+        roster.write_text(
+            yaml.dump(
+                {
+                    "class_name": "IT-04",
+                    "students": [
+                        {"student_id": "s001", "name": "A", "email": "a@u.kr"},
+                        {"student_id": "s002", "name": "B", "email": "b@u.kr"},
+                    ],
+                },
+                allow_unicode=True,
+            ),
+            encoding="utf-8",
+        )
 
         output_dir = str(tmp_path / "staging")
         template_path = _write_template(tmp_path)
 
         # Step 1: prepare
         try:
-            main([
-                "--no-config", "prepare",
-                "--manifest", str(mf),
-                "--roster", str(roster),
-                "--output-dir", output_dir,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    str(mf),
+                    "--roster",
+                    str(roster),
+                    "--output-dir",
+                    output_dir,
+                ]
+            )
         except SystemExit:
             pass
 
@@ -334,12 +357,17 @@ class TestCliFormaJsonFallback:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         try:
-            main([
-                "--no-config", "send",
-                "--staged", output_dir,
-                "--template", template_path,
-                "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    output_dir,
+                    "--template",
+                    template_path,
+                    "--dry-run",
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -374,12 +402,17 @@ class TestCliFormaJsonFallback:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged,
-                    "--template", tpl,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        tpl,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
@@ -407,11 +440,16 @@ class TestCliFormaJsonFallback:
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
         try:
-            main([
-                "--no-config", "send",
-                "--staged", staged,
-                "--template", tpl,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    tpl,
+                ]
+            )
         except SystemExit as e:
             assert e.code == 0
 
@@ -442,13 +480,19 @@ class TestCliDeprecationPath:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged,
-                    "--template", tpl,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        tpl,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit as e:
                 assert e.code == 0
 
@@ -473,13 +517,19 @@ class TestCliDeprecationPath:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged,
-                    "--template", tpl,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        tpl,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
@@ -502,13 +552,19 @@ class TestCliDeprecationPath:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged,
-                    "--template", tpl,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        tpl,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit as e:
                 assert e.code == 0
 
@@ -557,13 +613,19 @@ class TestMixedSmtpSources:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged,
-                    "--template", tpl,
-                    "--smtp-config", smtp_path,
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        tpl,
+                        "--smtp-config",
+                        smtp_path,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit as e:
                 assert e.code == 0
 
@@ -601,12 +663,18 @@ class TestMixedSmtpSources:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged,
-                    "--template", tpl,
-                    "--smtp-config", smtp_path,
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        tpl,
+                        "--smtp-config",
+                        smtp_path,
+                    ]
+                )
             except SystemExit as e:
                 assert e.code == 0
 
@@ -633,17 +701,20 @@ class TestMissingSmtpBothSources:
 
         monkeypatch.setattr(
             "forma.config.load_config",
-            lambda config_path=None: (_ for _ in ()).throw(
-                FileNotFoundError("No config file found")
-            ),
+            lambda config_path=None: (_ for _ in ()).throw(FileNotFoundError("No config file found")),
         )
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged,
-                "--template", tpl,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    tpl,
+                ]
+            )
         assert exc_info.value.code == 2
 
         captured = capsys.readouterr()
@@ -664,11 +735,16 @@ class TestMissingSmtpBothSources:
         )
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged,
-                "--template", tpl,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    tpl,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_forma_json_smtp_not_dict_exit_2(self, tmp_path, monkeypatch):
@@ -684,11 +760,16 @@ class TestMissingSmtpBothSources:
         )
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged,
-                "--template", tpl,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    tpl,
+                ]
+            )
         assert exc_info.value.code == 2
 
 
@@ -704,11 +785,13 @@ class TestFormaJsonInvalidSmtp:
         """Port=0 in forma.json smtp -> ValueError."""
         from forma.config import get_smtp_config
 
-        config = {"smtp": {
-            "server": "smtp.test.com",
-            "port": 0,
-            "sender_email": "a@b.com",
-        }}
+        config = {
+            "smtp": {
+                "server": "smtp.test.com",
+                "port": 0,
+                "sender_email": "a@b.com",
+            }
+        }
         with pytest.raises(ValueError, match="smtp_port"):
             get_smtp_config(config)
 
@@ -732,11 +815,13 @@ class TestFormaJsonInvalidSmtp:
         """sender_email without '@' -> ValueError."""
         from forma.config import get_smtp_config
 
-        config = {"smtp": {
-            "server": "smtp.test.com",
-            "port": 587,
-            "sender_email": "no-at-sign",
-        }}
+        config = {
+            "smtp": {
+                "server": "smtp.test.com",
+                "port": 587,
+                "sender_email": "no-at-sign",
+            }
+        }
         with pytest.raises(ValueError, match="sender_email"):
             get_smtp_config(config)
 
@@ -744,11 +829,13 @@ class TestFormaJsonInvalidSmtp:
         """Port > 65535 -> ValueError."""
         from forma.config import get_smtp_config
 
-        config = {"smtp": {
-            "server": "smtp.test.com",
-            "port": 99999,
-            "sender_email": "a@b.com",
-        }}
+        config = {
+            "smtp": {
+                "server": "smtp.test.com",
+                "port": 99999,
+                "sender_email": "a@b.com",
+            }
+        }
         with pytest.raises(ValueError, match="smtp_port"):
             get_smtp_config(config)
 
@@ -761,19 +848,26 @@ class TestFormaJsonInvalidSmtp:
 
         monkeypatch.setattr(
             "forma.config.load_config",
-            lambda config_path=None: {"smtp": {
-                "server": "smtp.test.com",
-                "port": 0,
-                "sender_email": "a@b.com",
-            }},
+            lambda config_path=None: {
+                "smtp": {
+                    "server": "smtp.test.com",
+                    "port": 0,
+                    "sender_email": "a@b.com",
+                }
+            },
         )
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged,
-                "--template", tpl,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    tpl,
+                ]
+            )
         assert exc_info.value.code == 2
 
 
@@ -789,7 +883,9 @@ class TestCIWorkflowValidation:
     def _load_ci_yaml(self):
         ci_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
-            ".github", "workflows", "ci.yml",
+            ".github",
+            "workflows",
+            "ci.yml",
         )
         assert os.path.exists(ci_path), f"CI workflow file not found: {ci_path}"
         with open(ci_path, encoding="utf-8") as f:
@@ -820,20 +916,14 @@ class TestCIWorkflowValidation:
         """Test job has a JDK setup step (for KoNLPy)."""
         test_job = self.ci["jobs"]["test"]
         steps = test_job.get("steps", [])
-        jdk_steps = [
-            s for s in steps
-            if "setup-java" in str(s.get("uses", ""))
-        ]
+        jdk_steps = [s for s in steps if "setup-java" in str(s.get("uses", ""))]
         assert len(jdk_steps) >= 1, "JDK setup step not found"
 
     def test_codecov_upload_step_exists(self):
         """Test job has a Codecov upload step."""
         test_job = self.ci["jobs"]["test"]
         steps = test_job.get("steps", [])
-        codecov_steps = [
-            s for s in steps
-            if "codecov" in str(s.get("uses", "")).lower()
-        ]
+        codecov_steps = [s for s in steps if "codecov" in str(s.get("uses", "")).lower()]
         assert len(codecov_steps) >= 1, "Codecov upload step not found"
 
     def test_lint_job_runs_ruff(self):
@@ -841,9 +931,7 @@ class TestCIWorkflowValidation:
         lint_job = self.ci["jobs"]["lint"]
         steps = lint_job.get("steps", [])
         ruff_steps = [
-            s for s in steps
-            if "ruff" in str(s.get("run", "")).lower()
-               or "ruff" in str(s.get("name", "")).lower()
+            s for s in steps if "ruff" in str(s.get("run", "")).lower() or "ruff" in str(s.get("name", "")).lower()
         ]
         assert len(ruff_steps) >= 1, "Ruff check step not found in lint job"
 
@@ -864,12 +952,14 @@ class TestPyprojectTomlValidation:
         )
         assert os.path.exists(pyproject_path), "pyproject.toml not found"
         import tomllib
+
         with open(pyproject_path, "rb") as f:
             self.config = tomllib.load(f)
 
     def test_version_is_set(self):
         """Version field exists and follows semver format."""
         import re
+
         version = self.config["project"]["version"]
         assert re.match(r"^\d+\.\d+\.\d+", version), f"Invalid version format: {version}"
 
@@ -925,6 +1015,7 @@ class TestJsonFieldMapValidation:
         from forma.delivery_send import SmtpConfig
 
         import dataclasses
+
         smtp_fields = {f.name for f in dataclasses.fields(SmtpConfig)}
         mapped_fields = set(JSON_FIELD_MAP.values())
         assert mapped_fields == smtp_fields

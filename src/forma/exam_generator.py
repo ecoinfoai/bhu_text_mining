@@ -43,8 +43,7 @@ class ExamPDFGenerator:
             font_path = self._find_font()
         if not os.path.exists(font_path):
             raise FileNotFoundError(
-                f"Font not found: {font_path}\n"
-                f"Specify a font_path argument or install NanumGothic."
+                f"Font not found: {font_path}\nSpecify a font_path argument or install NanumGothic."
             )
         pdfmetrics.registerFont(
             TTFont("NanumGothic", font_path),
@@ -178,8 +177,7 @@ class ExamPDFGenerator:
                 return f"{base}|Q{q_num}"
             return base
         url = (
-            form_url_template
-            .replace("{student_id}", quote(student_id, safe=""))
+            form_url_template.replace("{student_id}", quote(student_id, safe=""))
             .replace("{course_name}", quote(course_name, safe=""))
             .replace("{week_num}", str(week_num))
         )
@@ -208,9 +206,7 @@ class ExamPDFGenerator:
         """
         if not _HAS_QRCODE:
             raise ImportError(
-                "qrcode package is required. Install: "
-                "pip install 'qrcode[pil]>=7.0'. "
-                "[_generate_qr_image]"
+                "qrcode package is required. Install: pip install 'qrcode[pil]>=7.0'. [_generate_qr_image]"
             )
         qr = qrcode.QRCode(
             version=None,
@@ -255,22 +251,22 @@ class ExamPDFGenerator:
         c.setFillGray(0)
         y -= 10 * mm
         c.setFont("NanumGothic", 10)
-        line1 = (
-            f"{year}학년도 {grade}학년 "
-            f"{semester}학기 {course_name}"
-        )
+        line1 = f"{year}학년도 {grade}학년 {semester}학기 {course_name}"
         c.drawCentredString(self.page_width / 2, y, line1)
         y -= 7 * mm
         c.setFont(
-            "NanumGothicBold", self.FONT_SIZE_TITLE,
+            "NanumGothicBold",
+            self.FONT_SIZE_TITLE,
         )
         line2 = f"{week_num}주차 형성평가"
         c.drawCentredString(self.page_width / 2, y, line2)
         y -= 8 * mm
         c.setLineWidth(1)
         c.line(
-            self.margin, y,
-            self.page_width - self.margin, y,
+            self.margin,
+            y,
+            self.page_width - self.margin,
+            y,
         )
         return y
 
@@ -294,21 +290,27 @@ class ExamPDFGenerator:
         c.drawString(ul2 + 25 * mm, y, "학번:")
         ul3 = ul2 + 40 * mm
         c.line(
-            ul3, y - 1 * mm,
-            self.page_width - self.margin, y - 1 * mm,
+            ul3,
+            y - 1 * mm,
+            self.page_width - self.margin,
+            y - 1 * mm,
         )
         # Line 2: 이름
         y -= 8 * mm
         c.drawString(self.margin, y, "이름:")
         c.line(
-            ul1, y - 1 * mm,
-            ul1 + 40 * mm, y - 1 * mm,
+            ul1,
+            y - 1 * mm,
+            ul1 + 40 * mm,
+            y - 1 * mm,
         )
         y -= 6 * mm
         c.setLineWidth(0.5)
         c.line(
-            self.margin, y,
-            self.page_width - self.margin, y,
+            self.margin,
+            y,
+            self.page_width - self.margin,
+            y,
         )
         return y
 
@@ -329,7 +331,9 @@ class ExamPDFGenerator:
         c.setFont("NanumGothicBold", body)
         c.setFillGray(0.3)
         c.drawString(
-            self.margin, y, f"[{question['topic']}]",
+            self.margin,
+            y,
+            f"[{question['topic']}]",
         )
         c.setFillGray(0)
         y -= 6 * mm
@@ -346,10 +350,7 @@ class ExamPDFGenerator:
         ah = self.ANSWER_HEIGHT_MM * mm
         qr_mm = self.QR_SIZE_MM * mm
         if qr_image is not None:
-            ans_w = (
-                self.page_width - 2 * self.margin
-                - qr_mm - 5 * mm
-            )
+            ans_w = self.page_width - 2 * self.margin - qr_mm - 5 * mm
         else:
             ans_w = self.page_width - 2 * self.margin
         c.setStrokeGray(0.7)
@@ -408,8 +409,10 @@ class ExamPDFGenerator:
         for i in range(1, self.ANSWER_NUM_LINES + 1):
             ly = y - i * spacing
             c.line(
-                self.margin + 2 * mm, ly,
-                self.margin + ans_w - 2 * mm, ly,
+                self.margin + 2 * mm,
+                ly,
+                self.margin + ans_w - 2 * mm,
+                ly,
             )
 
     def _place_qr(
@@ -428,7 +431,11 @@ class ExamPDFGenerator:
         qr_y = y - ah + (ah - qr_mm) / 2
         reader = ImageReader(qr_image)
         c.drawImage(
-            reader, qr_x, qr_y, qr_mm, qr_mm,
+            reader,
+            qr_x,
+            qr_y,
+            qr_mm,
+            qr_mm,
         )
 
     def _draw_footer(self, c: canvas.Canvas) -> None:
@@ -458,19 +465,28 @@ class ExamPDFGenerator:
     ) -> None:
         """Draw a single exam page with per-question QR codes."""
         y = self._draw_header(
-            c, paper_num, year, grade,
-            semester, course_name, week_num,
+            c,
+            paper_num,
+            year,
+            grade,
+            semester,
+            course_name,
+            week_num,
         )
         y = self._draw_student_info(c, y)
         for q_num, q in enumerate(questions, 1):
             qr_img = None
             if student_id and form_url_template:
                 content = self._format_qr_content(
-                    student_id, course_name, week_num,
-                    form_url_template, q_num=q_num,
+                    student_id,
+                    course_name,
+                    week_num,
+                    form_url_template,
+                    q_num=q_num,
                 )
                 qr_img = self._generate_qr_image(
-                    content, self.QR_SIZE_MM,
+                    content,
+                    self.QR_SIZE_MM,
                 )
             y = self._draw_question(c, y, q_num, q, qr_img)
         self._draw_footer(c)
@@ -488,19 +504,9 @@ class ExamPDFGenerator:
             ValueError: on invalid num_papers or template.
         """
         if not isinstance(num_papers, int) or num_papers < 1:
-            raise ValueError(
-                "num_papers must be a positive integer, "
-                f"got {num_papers!r}. [create_exam_papers]"
-            )
-        if (
-            form_url_template is not None
-            and "{student_id}" not in form_url_template
-        ):
-            raise ValueError(
-                "form_url_template must contain "
-                "'{student_id}' placeholder. "
-                "[create_exam_papers]"
-            )
+            raise ValueError(f"num_papers must be a positive integer, got {num_papers!r}. [create_exam_papers]")
+        if form_url_template is not None and "{student_id}" not in form_url_template:
+            raise ValueError("form_url_template must contain '{student_id}' placeholder. [create_exam_papers]")
 
     # ── main entry point ─────────────────────────
 
@@ -536,12 +542,19 @@ class ExamPDFGenerator:
         self._validate_inputs(num_papers, form_url_template)
         self._validate_questions(questions)
         ids = self._generate_student_ids(
-            num_papers, student_ids,
+            num_papers,
+            student_ids,
         )
         self._render_pdf(
-            questions, ids, output_path,
-            year, grade, semester,
-            course_name, week_num, form_url_template,
+            questions,
+            ids,
+            output_path,
+            year,
+            grade,
+            semester,
+            course_name,
+            week_num,
+            form_url_template,
         )
 
     def _render_pdf(
@@ -560,15 +573,17 @@ class ExamPDFGenerator:
         c = canvas.Canvas(output_path, pagesize=A4)
         for i, sid in enumerate(ids):
             self._draw_page(
-                c, questions, i + 1,
-                year, grade, semester,
-                course_name, week_num,
+                c,
+                questions,
+                i + 1,
+                year,
+                grade,
+                semester,
+                course_name,
+                week_num,
                 student_id=sid if form_url_template else None,
                 form_url_template=form_url_template,
             )
             c.showPage()
         c.save()
-        print(
-            f"Generated {len(ids)} exam papers: "
-            f"{output_path}"
-        )
+        print(f"Generated {len(ids)} exam papers: {output_path}")

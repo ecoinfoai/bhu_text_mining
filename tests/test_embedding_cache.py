@@ -15,9 +15,7 @@ class TestGetEncoder:
     def test_get_encoder_returns_same_instance(self):
         """Test that two calls with same model return the same object."""
         mock_model = MagicMock()
-        with patch(
-            "forma.embedding_cache.SentenceTransformer", return_value=mock_model
-        ) as mock_cls:
+        with patch("forma.embedding_cache.SentenceTransformer", return_value=mock_model) as mock_cls:
             from forma.embedding_cache import get_encoder
 
             get_encoder.cache_clear()

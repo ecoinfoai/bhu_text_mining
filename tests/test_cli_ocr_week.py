@@ -62,6 +62,7 @@ def _write_forma_yaml(path: Path, **overrides) -> Path:
 # T034: scan --class A resolves image_dir_pattern correctly
 # ---------------------------------------------------------------------------
 
+
 class TestScanClassResolution:
     """Test that scan --class resolves patterns."""
 
@@ -86,6 +87,7 @@ class TestScanClassResolution:
 # T035: crop coords saved after interactive selection
 # ---------------------------------------------------------------------------
 
+
 class TestCropCoordsSave:
     """Test crop coords are saved to week.yaml."""
 
@@ -106,6 +108,7 @@ class TestCropCoordsSave:
 # T036: existing crop coords reused without prompting
 # ---------------------------------------------------------------------------
 
+
 class TestCropCoordsReuse:
     """Test saved crop coords are reused."""
 
@@ -125,6 +128,7 @@ class TestCropCoordsReuse:
 # ---------------------------------------------------------------------------
 # T037: --recrop forces interactive picker
 # ---------------------------------------------------------------------------
+
 
 class TestRecropFlag:
     """Test --recrop flag forces re-selection."""
@@ -148,6 +152,7 @@ class TestRecropFlag:
 # T038: error when {class} in pattern but --class not provided
 # ---------------------------------------------------------------------------
 
+
 class TestClassPatternError:
     """Test error when {class} present but --class not given."""
 
@@ -167,6 +172,7 @@ class TestClassPatternError:
 # T038a: exit code 2 when resolved image dir does not exist
 # ---------------------------------------------------------------------------
 
+
 class TestImageDirNotFound:
     """Test error when resolved image directory doesn't exist."""
 
@@ -185,6 +191,7 @@ class TestImageDirNotFound:
 # ---------------------------------------------------------------------------
 # T045: join --class A resolves OCR and join output paths
 # ---------------------------------------------------------------------------
+
 
 class TestJoinClassResolution:
     """Test join --class resolves paths."""
@@ -206,6 +213,7 @@ class TestJoinClassResolution:
 # ---------------------------------------------------------------------------
 # T046: spreadsheet_url from forma.yaml; CSV fallback from week.yaml
 # ---------------------------------------------------------------------------
+
 
 class TestDataSourcePriority:
     """Test join data source priority."""
@@ -231,6 +239,7 @@ class TestDataSourcePriority:
 # T047: error when neither Sheets URL nor CSV configured
 # ---------------------------------------------------------------------------
 
+
 class TestNoDataSource:
     """Test error when no data source for join."""
 
@@ -255,6 +264,7 @@ class TestNoDataSource:
 # ---------------------------------------------------------------------------
 # T047a: exit code 2 when resolved OCR results file not found
 # ---------------------------------------------------------------------------
+
 
 class TestOcrResultsNotFound:
     """Test error when resolved OCR results file doesn't exist."""

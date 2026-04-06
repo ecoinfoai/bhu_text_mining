@@ -69,8 +69,7 @@ def compute_lecture_gap(
     high_miss_overlap: list[str] = []
     if student_missing_rates and missed:
         high_miss_overlap = sorted(
-            concept for concept in missed
-            if student_missing_rates.get(concept, 0.0) >= miss_threshold
+            concept for concept in missed if student_missing_rates.get(concept, 0.0) >= miss_threshold
         )
 
     return LectureGapReport(
@@ -115,10 +114,7 @@ def compute_cross_class_emphasis_variance(
     # Compute per-concept stdev and per-class scores
     results: list[tuple[str, float, dict[str, float]]] = []
     for concept in all_concepts:
-        per_class = {
-            cls: em.concept_scores.get(concept, 0.0)
-            for cls, em in class_emphasis_maps.items()
-        }
+        per_class = {cls: em.concept_scores.get(concept, 0.0) for cls, em in class_emphasis_maps.items()}
         stdev = float(np.std(list(per_class.values())))
         results.append((concept, stdev, per_class))
 

@@ -26,6 +26,7 @@ def _make_cleaned(text: str = "세포막 단백질 인지질") -> CleanedTranscr
 
 def _make_analysis_result():
     from forma.lecture_analyzer import AnalysisResult
+
     return AnalysisResult(
         class_id="A",
         week=1,
@@ -51,7 +52,11 @@ class TestMainAnalyze:
     @patch("forma.cli_lecture.save_analysis_result")
     @patch("forma.cli_lecture.preprocess_transcript")
     def test_analyze_basic(
-        self, mock_preprocess, mock_save, mock_analyze, mock_report_cls,
+        self,
+        mock_preprocess,
+        mock_save,
+        mock_analyze,
+        mock_report_cls,
         tmp_path: Path,
     ) -> None:
         """Creates output files with valid args."""
@@ -66,13 +71,20 @@ class TestMainAnalyze:
         mock_report_cls.return_value = MagicMock()
 
         from forma.cli_lecture import main_analyze
-        main_analyze([
-            "--input", str(input_file),
-            "--output", str(output_dir),
-            "--class", "A",
-            "--week", "1",
-            "--no-triplets",
-        ])
+
+        main_analyze(
+            [
+                "--input",
+                str(input_file),
+                "--output",
+                str(output_dir),
+                "--class",
+                "A",
+                "--week",
+                "1",
+                "--no-triplets",
+            ]
+        )
 
         mock_preprocess.assert_called_once()
         mock_analyze.assert_called_once()
@@ -82,7 +94,11 @@ class TestMainAnalyze:
     @patch("forma.cli_lecture.save_analysis_result")
     @patch("forma.cli_lecture.preprocess_transcript")
     def test_analyze_with_concepts(
-        self, mock_preprocess, mock_save, mock_analyze, mock_report_cls,
+        self,
+        mock_preprocess,
+        mock_save,
+        mock_analyze,
+        mock_report_cls,
         tmp_path: Path,
     ) -> None:
         """--concepts flag triggers concept coverage."""
@@ -93,6 +109,7 @@ class TestMainAnalyze:
 
         concepts_file = tmp_path / "concepts.yaml"
         import yaml
+
         concepts_file.write_text(
             yaml.dump({"concepts": ["세포막", "단백질"]}, allow_unicode=True),
             encoding="utf-8",
@@ -104,14 +121,22 @@ class TestMainAnalyze:
         mock_report_cls.return_value = MagicMock()
 
         from forma.cli_lecture import main_analyze
-        main_analyze([
-            "--input", str(input_file),
-            "--output", str(output_dir),
-            "--class", "A",
-            "--week", "1",
-            "--concepts", str(concepts_file),
-            "--no-triplets",
-        ])
+
+        main_analyze(
+            [
+                "--input",
+                str(input_file),
+                "--output",
+                str(output_dir),
+                "--class",
+                "A",
+                "--week",
+                "1",
+                "--concepts",
+                str(concepts_file),
+                "--no-triplets",
+            ]
+        )
 
         # analyze_transcript should have been called with concepts
         call_kwargs = mock_analyze.call_args
@@ -123,8 +148,13 @@ class TestMainAnalyze:
     @patch("forma.cli_lecture.load_analysis_result")
     @patch("forma.cli_lecture.preprocess_transcript")
     def test_analyze_no_cache(
-        self, mock_preprocess, mock_load, mock_save, mock_analyze,
-        mock_report_cls, tmp_path: Path,
+        self,
+        mock_preprocess,
+        mock_load,
+        mock_save,
+        mock_analyze,
+        mock_report_cls,
+        tmp_path: Path,
     ) -> None:
         """--no-cache forces recompute even if cache exists."""
         input_file = tmp_path / "lecture.txt"
@@ -138,14 +168,21 @@ class TestMainAnalyze:
         mock_report_cls.return_value = MagicMock()
 
         from forma.cli_lecture import main_analyze
-        main_analyze([
-            "--input", str(input_file),
-            "--output", str(output_dir),
-            "--class", "A",
-            "--week", "1",
-            "--no-cache",
-            "--no-triplets",
-        ])
+
+        main_analyze(
+            [
+                "--input",
+                str(input_file),
+                "--output",
+                str(output_dir),
+                "--class",
+                "A",
+                "--week",
+                "1",
+                "--no-cache",
+                "--no-triplets",
+            ]
+        )
 
         # With --no-cache, load_analysis_result should NOT be called
         mock_load.assert_not_called()
@@ -157,13 +194,19 @@ class TestMainAnalyze:
         output_dir.mkdir()
 
         from forma.cli_lecture import main_analyze
+
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--output", str(output_dir),
-                "--class", "A",
-                "--week", "1",
-                "--no-triplets",
-            ])
+            main_analyze(
+                [
+                    "--output",
+                    str(output_dir),
+                    "--class",
+                    "A",
+                    "--week",
+                    "1",
+                    "--no-triplets",
+                ]
+            )
 
     def test_analyze_path_traversal(self, tmp_path: Path) -> None:
         """../ in path -> SystemExit with Korean error."""
@@ -171,14 +214,21 @@ class TestMainAnalyze:
         output_dir.mkdir()
 
         from forma.cli_lecture import main_analyze
+
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--input", "../../../etc/passwd",
-                "--output", str(output_dir),
-                "--class", "A",
-                "--week", "1",
-                "--no-triplets",
-            ])
+            main_analyze(
+                [
+                    "--input",
+                    "../../../etc/passwd",
+                    "--output",
+                    str(output_dir),
+                    "--class",
+                    "A",
+                    "--week",
+                    "1",
+                    "--no-triplets",
+                ]
+            )
 
     def test_analyze_empty_transcript(self, tmp_path: Path) -> None:
         """Empty file -> SystemExit with Korean error."""
@@ -188,14 +238,21 @@ class TestMainAnalyze:
         output_dir.mkdir()
 
         from forma.cli_lecture import main_analyze
+
         with pytest.raises(SystemExit):
-            main_analyze([
-                "--input", str(input_file),
-                "--output", str(output_dir),
-                "--class", "A",
-                "--week", "1",
-                "--no-triplets",
-            ])
+            main_analyze(
+                [
+                    "--input",
+                    str(input_file),
+                    "--output",
+                    str(output_dir),
+                    "--class",
+                    "A",
+                    "--week",
+                    "1",
+                    "--no-triplets",
+                ]
+            )
 
 
 def _make_analysis_result_for(class_id: str, week: int = 1):
@@ -227,7 +284,10 @@ class TestMainCompare:
     @patch("forma.cli_lecture.LectureReportGenerator")
     @patch("forma.cli_lecture.load_analysis_result")
     def test_compare_basic(
-        self, mock_load, mock_report_cls, tmp_path: Path,
+        self,
+        mock_load,
+        mock_report_cls,
+        tmp_path: Path,
     ) -> None:
         """--input-dir, --week, --classes, --output produces comparison files."""
         input_dir = tmp_path / "analyses"
@@ -239,17 +299,26 @@ class TestMainCompare:
             (input_dir / f"analysis_{cid}_w1.yaml").write_text("stub", encoding="utf-8")
 
         mock_load.side_effect = lambda p: _make_analysis_result_for(
-            p.stem.split("_")[1], 1,
+            p.stem.split("_")[1],
+            1,
         )
         mock_report_cls.return_value = MagicMock()
 
         from forma.cli_lecture import main_compare
-        main_compare([
-            "--input-dir", str(input_dir),
-            "--week", "1",
-            "--classes", "A", "B",
-            "--output", str(output_dir),
-        ])
+
+        main_compare(
+            [
+                "--input-dir",
+                str(input_dir),
+                "--week",
+                "1",
+                "--classes",
+                "A",
+                "B",
+                "--output",
+                str(output_dir),
+            ]
+        )
 
         assert mock_load.call_count == 2
 
@@ -260,13 +329,20 @@ class TestMainCompare:
         output_dir = tmp_path / "out"
 
         from forma.cli_lecture import main_compare
+
         with pytest.raises(SystemExit):
-            main_compare([
-                "--input-dir", str(input_dir),
-                "--week", "1",
-                "--classes", "A",
-                "--output", str(output_dir),
-            ])
+            main_compare(
+                [
+                    "--input-dir",
+                    str(input_dir),
+                    "--week",
+                    "1",
+                    "--classes",
+                    "A",
+                    "--output",
+                    str(output_dir),
+                ]
+            )
 
     def test_compare_missing_analysis(self, tmp_path: Path) -> None:
         """Missing analysis YAML exits with Korean error."""
@@ -275,18 +351,29 @@ class TestMainCompare:
         output_dir = tmp_path / "out"
 
         from forma.cli_lecture import main_compare
+
         with pytest.raises(SystemExit):
-            main_compare([
-                "--input-dir", str(input_dir),
-                "--week", "1",
-                "--classes", "A", "B",
-                "--output", str(output_dir),
-            ])
+            main_compare(
+                [
+                    "--input-dir",
+                    str(input_dir),
+                    "--week",
+                    "1",
+                    "--classes",
+                    "A",
+                    "B",
+                    "--output",
+                    str(output_dir),
+                ]
+            )
 
     @patch("forma.cli_lecture.LectureReportGenerator")
     @patch("forma.cli_lecture.load_analysis_result")
     def test_compare_with_concepts(
-        self, mock_load, mock_report_cls, tmp_path: Path,
+        self,
+        mock_load,
+        mock_report_cls,
+        tmp_path: Path,
     ) -> None:
         """--concepts flag triggers concept gap analysis."""
         input_dir = tmp_path / "analyses"
@@ -297,7 +384,8 @@ class TestMainCompare:
             (input_dir / f"analysis_{cid}_w1.yaml").write_text("stub", encoding="utf-8")
 
         mock_load.side_effect = lambda p: _make_analysis_result_for(
-            p.stem.split("_")[1], 1,
+            p.stem.split("_")[1],
+            1,
         )
         mock_report_cls.return_value = MagicMock()
 
@@ -308,13 +396,22 @@ class TestMainCompare:
         )
 
         from forma.cli_lecture import main_compare
-        main_compare([
-            "--input-dir", str(input_dir),
-            "--week", "1",
-            "--classes", "A", "B",
-            "--output", str(output_dir),
-            "--concepts", str(concepts_file),
-        ])
+
+        main_compare(
+            [
+                "--input-dir",
+                str(input_dir),
+                "--week",
+                "1",
+                "--classes",
+                "A",
+                "B",
+                "--output",
+                str(output_dir),
+                "--concepts",
+                str(concepts_file),
+            ]
+        )
 
         assert mock_load.call_count == 2
 
@@ -327,8 +424,12 @@ class TestMainClassCompare:
     @patch("forma.cli_lecture.merge_analyses")
     @patch("forma.cli_lecture.load_analysis_result")
     def test_class_compare_basic(
-        self, mock_load, mock_merge, mock_save_merged,
-        mock_report_cls, tmp_path: Path,
+        self,
+        mock_load,
+        mock_merge,
+        mock_save_merged,
+        mock_report_cls,
+        tmp_path: Path,
     ) -> None:
         """--input-dir, --weeks, --classes, --output produces merged + comparison files."""
         input_dir = tmp_path / "analyses"
@@ -339,7 +440,8 @@ class TestMainClassCompare:
         for cid in ("A", "B"):
             for w in (1, 2):
                 (input_dir / f"analysis_{cid}_w{w}.yaml").write_text(
-                    "stub", encoding="utf-8",
+                    "stub",
+                    encoding="utf-8",
                 )
 
         mock_load.side_effect = lambda p: _make_analysis_result_for(
@@ -362,12 +464,20 @@ class TestMainClassCompare:
 
         from forma.cli_lecture import main_class_compare
 
-        main_class_compare([
-            "--input-dir", str(input_dir),
-            "--weeks", "1", "2",
-            "--classes", "A", "B",
-            "--output", str(output_dir),
-        ])
+        main_class_compare(
+            [
+                "--input-dir",
+                str(input_dir),
+                "--weeks",
+                "1",
+                "2",
+                "--classes",
+                "A",
+                "B",
+                "--output",
+                str(output_dir),
+            ]
+        )
 
         # Should load 4 analysis files (2 classes x 2 weeks)
         assert mock_load.call_count == 4
@@ -383,12 +493,19 @@ class TestMainClassCompare:
         from forma.cli_lecture import main_class_compare
 
         with pytest.raises(SystemExit):
-            main_class_compare([
-                "--input-dir", str(input_dir),
-                "--weeks", "1", "2",
-                "--classes", "A",
-                "--output", str(output_dir),
-            ])
+            main_class_compare(
+                [
+                    "--input-dir",
+                    str(input_dir),
+                    "--weeks",
+                    "1",
+                    "2",
+                    "--classes",
+                    "A",
+                    "--output",
+                    str(output_dir),
+                ]
+            )
 
     def test_class_compare_missing_analysis(self, tmp_path: Path) -> None:
         """Missing per-session analysis YAML exits with Korean error."""
@@ -399,26 +516,39 @@ class TestMainClassCompare:
         # Only create files for class A, not B
         for w in (1, 2):
             (input_dir / f"analysis_A_w{w}.yaml").write_text(
-                "stub", encoding="utf-8",
+                "stub",
+                encoding="utf-8",
             )
 
         from forma.cli_lecture import main_class_compare
 
         with pytest.raises(SystemExit):
-            main_class_compare([
-                "--input-dir", str(input_dir),
-                "--weeks", "1", "2",
-                "--classes", "A", "B",
-                "--output", str(output_dir),
-            ])
+            main_class_compare(
+                [
+                    "--input-dir",
+                    str(input_dir),
+                    "--weeks",
+                    "1",
+                    "2",
+                    "--classes",
+                    "A",
+                    "B",
+                    "--output",
+                    str(output_dir),
+                ]
+            )
 
     @patch("forma.cli_lecture.LectureReportGenerator")
     @patch("forma.cli_lecture.save_merged_analysis")
     @patch("forma.cli_lecture.merge_analyses")
     @patch("forma.cli_lecture.load_analysis_result")
     def test_class_compare_with_concepts(
-        self, mock_load, mock_merge, mock_save_merged,
-        mock_report_cls, tmp_path: Path,
+        self,
+        mock_load,
+        mock_merge,
+        mock_save_merged,
+        mock_report_cls,
+        tmp_path: Path,
     ) -> None:
         """--concepts flag triggers concept gap analysis in merged comparison."""
         input_dir = tmp_path / "analyses"
@@ -428,7 +558,8 @@ class TestMainClassCompare:
         for cid in ("A", "B"):
             for w in (1, 2):
                 (input_dir / f"analysis_{cid}_w{w}.yaml").write_text(
-                    "stub", encoding="utf-8",
+                    "stub",
+                    encoding="utf-8",
                 )
 
         mock_load.side_effect = lambda p: _make_analysis_result_for(
@@ -457,10 +588,19 @@ class TestMainClassCompare:
 
         from forma.cli_lecture import main_class_compare
 
-        main_class_compare([
-            "--input-dir", str(input_dir),
-            "--weeks", "1", "2",
-            "--classes", "A", "B",
-            "--output", str(output_dir),
-            "--concepts", str(concepts_file),
-        ])
+        main_class_compare(
+            [
+                "--input-dir",
+                str(input_dir),
+                "--weeks",
+                "1",
+                "2",
+                "--classes",
+                "A",
+                "B",
+                "--output",
+                str(output_dir),
+                "--concepts",
+                str(concepts_file),
+            ]
+        )

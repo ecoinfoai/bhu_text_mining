@@ -16,6 +16,7 @@ import statistics
 
 import yaml
 
+from forma.io_utils import atomic_write_yaml
 from forma.lecture_analyzer import AnalysisResult
 
 logger = logging.getLogger(__name__)
@@ -83,10 +84,7 @@ def compare_sections(
         ValueError: If fewer than 2 sections provided.
     """
     if len(analyses) < 2:
-        raise ValueError(
-            f"At least 2 sections required for comparison. "
-            f"Provided: {len(analyses)}"
-        )
+        raise ValueError(f"At least 2 sections required for comparison. Provided: {len(analyses)}")
 
     # 1. Exclusive keywords (FR-017)
     section_top_n: dict[str, set[str]] = {}
@@ -131,10 +129,7 @@ def compare_sections(
     if len(section_emphasis) >= 2:
         variance_entries: list[EmphasisVarianceEntry] = []
         for concept in all_concepts_set:
-            scores = {
-                sid: se.get(concept, 0.0)
-                for sid, se in section_emphasis.items()
-            }
+            scores = {sid: se.get(concept, 0.0) for sid, se in section_emphasis.items()}
             stdev = statistics.pstdev(list(scores.values()))
             variance_entries.append(
                 EmphasisVarianceEntry(
@@ -194,8 +189,7 @@ def save_comparison_result(
         "comparison_timestamp": result.comparison_timestamp,
     }
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+    atomic_write_yaml(data, output_path)
 
     return output_path
 

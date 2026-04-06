@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 
-
 from forma.longitudinal_store import (
     _infer_class_id,
 )

@@ -9,6 +9,7 @@ from bertopic import BERTopic
 from umap import UMAP
 from hdbscan import HDBSCAN
 from sentence_transformers import SentenceTransformer
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     import kss
@@ -104,9 +105,7 @@ def configure_bertopic(env_config: dict) -> BERTopic:
     )
 
 
-def analyze_topics_with_bertopic(
-    topic_model: BERTopic, sentences: list[str]
-) -> tuple[list[int], list[float]]:
+def analyze_topics_with_bertopic(topic_model: BERTopic, sentences: list[str]) -> tuple[list[int], list[float]]:
     """
     Analyze topics in a set of sentences using BERTopic.
 
@@ -129,9 +128,7 @@ def analyze_topics_with_bertopic(
     return topics, probs
 
 
-def generate_topic_dataframe(
-    sentences: list[str], topics: list[int], keys: list[str]
-) -> pd.DataFrame:
+def generate_topic_dataframe(sentences: list[str], topics: list[int], keys: list[str]) -> pd.DataFrame:
     """
     Generate a DataFrame summarizing topic assignments for sentences.
 
@@ -172,9 +169,7 @@ def generate_topic_dataframe(
     return df
 
 
-def generate_topic_keywords_table(
-    topic_model: BERTopic, _sentences: list[str], _topics: list[int]
-) -> pd.DataFrame:
+def generate_topic_keywords_table(topic_model: BERTopic, _sentences: list[str], _topics: list[int]) -> pd.DataFrame:
     """
     Generate a table of topic keywords from the BERTopic model.
 

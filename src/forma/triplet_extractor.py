@@ -42,10 +42,7 @@ class TripletExtractor:
         n_calls: int = N_CALLS,
     ) -> None:
         if n_calls < 1:
-            raise ValueError(
-                f"n_calls must be >= 1, got {n_calls}. "
-                "Use n_calls=1 for single-call mode (no consensus)."
-            )
+            raise ValueError(f"n_calls must be >= 1, got {n_calls}. Use n_calls=1 for single-call mode (no consensus).")
         self._provider = provider
         self._threshold = consensus_threshold
         self._n_calls = n_calls
@@ -80,9 +77,7 @@ class TripletExtractor:
 
         call_results: list[list[TripletEdge]] = []
         for _ in range(self._n_calls):
-            triplets = self._single_extraction(
-                question, student_response, master_nodes
-            )
+            triplets = self._single_extraction(question, student_response, master_nodes)
             call_results.append(triplets)
 
         consensus = self._compute_consensus(call_results)
@@ -141,12 +136,7 @@ class TripletExtractor:
 
         triplets: list[TripletEdge] = []
         for item in data:
-            if (
-                isinstance(item, dict)
-                and "subject" in item
-                and "relation" in item
-                and "object" in item
-            ):
+            if isinstance(item, dict) and "subject" in item and "relation" in item and "object" in item:
                 triplets.append(
                     TripletEdge(
                         subject=str(item["subject"]),
@@ -156,9 +146,7 @@ class TripletExtractor:
                 )
         return triplets
 
-    def _compute_consensus(
-        self, call_results: list[list[TripletEdge]]
-    ) -> list[TripletEdge]:
+    def _compute_consensus(self, call_results: list[list[TripletEdge]]) -> list[TripletEdge]:
         """Compute majority consensus across extraction calls.
 
         A triplet is included if it appears (by embedding similarity)
@@ -177,9 +165,7 @@ class TripletExtractor:
             return []
 
         # Encode triplet strings for similarity comparison
-        triplet_strs = [
-            f"{t.subject} {t.relation} {t.object}" for _, t in all_triplets
-        ]
+        triplet_strs = [f"{t.subject} {t.relation} {t.object}" for _, t in all_triplets]
 
         try:
             embeddings = encode_texts(triplet_strs)
@@ -202,10 +188,7 @@ class TripletExtractor:
             for j, (call_j, _) in enumerate(all_triplets):
                 if j == i or j in used or call_j == call_i:
                     continue
-                if (
-                    sim_matrix[i, j] >= self._threshold
-                    and call_j not in voting_calls
-                ):
+                if sim_matrix[i, j] >= self._threshold and call_j not in voting_calls:
                     voting_calls.add(call_j)
                     used.add(j)
 
@@ -215,9 +198,7 @@ class TripletExtractor:
 
         return consensus
 
-    def _exact_consensus(
-        self, call_results: list[list[TripletEdge]]
-    ) -> list[TripletEdge]:
+    def _exact_consensus(self, call_results: list[list[TripletEdge]]) -> list[TripletEdge]:
         """Fallback consensus using exact string matching."""
         min_votes = max(2, (self._n_calls + 1) // 2)
         key_counts: dict[str, tuple[int, TripletEdge]] = {}
@@ -234,6 +215,4 @@ class TripletExtractor:
                     else:
                         key_counts[key] = (1, t)
 
-        return [
-            edge for count, edge in key_counts.values() if count >= min_votes
-        ]
+        return [edge for count, edge in key_counts.values() if count >= min_votes]

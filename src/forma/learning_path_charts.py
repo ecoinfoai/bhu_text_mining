@@ -61,8 +61,7 @@ def build_learning_path_chart(
     ax.set_title("추천 학습 경로", fontproperties=font_prop, fontsize=14)
 
     if len(g.nodes) == 0:
-        ax.text(0.5, 0.5, "개념 의존성 없음", ha="center", va="center",
-                fontproperties=font_prop, fontsize=12)
+        ax.text(0.5, 0.5, "개념 의존성 없음", ha="center", va="center", fontproperties=font_prop, fontsize=12)
         ax.set_axis_off()
         buf = _save_fig(fig, dpi=dpi)
         return buf
@@ -84,10 +83,8 @@ def build_learning_path_chart(
     except (ImportError, Exception):
         pos = nx.spring_layout(g, seed=42)
 
-    nx.draw_networkx_nodes(g, pos, ax=ax, node_color=node_colors,
-                           node_size=800, edgecolors="#424242", linewidths=1.0)
-    nx.draw_networkx_edges(g, pos, ax=ax, edge_color=_EDGE_COLOR,
-                           arrows=True, arrowsize=15)
+    nx.draw_networkx_nodes(g, pos, ax=ax, node_color=node_colors, node_size=800, edgecolors="#424242", linewidths=1.0)
+    nx.draw_networkx_edges(g, pos, ax=ax, edge_color=_EDGE_COLOR, arrows=True, arrowsize=15)
 
     # Labels with path order numbers for deficit concepts
     labels = {}
@@ -97,8 +94,7 @@ def build_learning_path_chart(
         if node not in labels:
             labels[node] = node
 
-    nx.draw_networkx_labels(g, pos, labels=labels, ax=ax,
-                            font_size=8, font_family=font_prop.get_name())
+    nx.draw_networkx_labels(g, pos, labels=labels, ax=ax, font_size=8, font_family=font_prop.get_name())
 
     ax.set_axis_off()
     buf = _save_fig(fig, dpi=dpi)
@@ -131,8 +127,7 @@ def build_deficit_map_chart(
     ax.set_title("학급 개념 결손 맵", fontproperties=font_prop, fontsize=14)
 
     if len(g.nodes) == 0:
-        ax.text(0.5, 0.5, "개념 의존성 없음", ha="center", va="center",
-                fontproperties=font_prop, fontsize=12)
+        ax.text(0.5, 0.5, "개념 의존성 없음", ha="center", va="center", fontproperties=font_prop, fontsize=12)
         ax.set_axis_off()
         buf = _save_fig(fig, dpi=dpi)
         return buf
@@ -156,10 +151,8 @@ def build_deficit_map_chart(
     except (ImportError, Exception):
         pos = nx.spring_layout(g, seed=42)
 
-    nx.draw_networkx_nodes(g, pos, ax=ax, node_color=node_colors,
-                           node_size=800, edgecolors="#424242", linewidths=1.0)
-    nx.draw_networkx_edges(g, pos, ax=ax, edge_color=_EDGE_COLOR,
-                           arrows=True, arrowsize=15)
+    nx.draw_networkx_nodes(g, pos, ax=ax, node_color=node_colors, node_size=800, edgecolors="#424242", linewidths=1.0)
+    nx.draw_networkx_edges(g, pos, ax=ax, edge_color=_EDGE_COLOR, arrows=True, arrowsize=15)
 
     # Labels with count
     labels = {}
@@ -167,8 +160,7 @@ def build_deficit_map_chart(
         count = deficit_map.concept_counts.get(node, 0)
         labels[node] = f"{node}\n({count}/{total})"
 
-    nx.draw_networkx_labels(g, pos, labels=labels, ax=ax,
-                            font_size=7, font_family=font_prop.get_name())
+    nx.draw_networkx_labels(g, pos, labels=labels, ax=ax, font_size=7, font_family=font_prop.get_name())
 
     ax.set_axis_off()
     buf = _save_fig(fig, dpi=dpi)

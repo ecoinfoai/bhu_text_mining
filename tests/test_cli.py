@@ -1,4 +1,5 @@
 """Tests for src.cli — bhu-exam CLI entrypoint."""
+
 import json
 
 import yaml
@@ -11,11 +12,16 @@ class TestParseArgs:
 
     def test_parse_args_minimal(self):
         """필수 인자만으로 파싱."""
-        args = _parse_args([
-            "--questions", "q.yaml",
-            "--num-papers", "10",
-            "--output", "exam.pdf",
-        ])
+        args = _parse_args(
+            [
+                "--questions",
+                "q.yaml",
+                "--num-papers",
+                "10",
+                "--output",
+                "exam.pdf",
+            ]
+        )
         assert args.questions == "q.yaml"
         assert args.num_papers == 10
         assert args.output == "exam.pdf"
@@ -31,19 +37,33 @@ class TestParseArgs:
 
     def test_parse_args_full(self):
         """전체 인자 파싱."""
-        args = _parse_args([
-            "--questions-json", '[{"topic":"T","text":"Q","limit":"50"}]',
-            "--num-papers", "200",
-            "--output", "/tmp/exam.pdf",
-            "--year", "2026",
-            "--grade", "2",
-            "--semester", "1",
-            "--course", "해부학",
-            "--week", "5",
-            "--form-url", "https://example.com/{student_id}",
-            "--student-ids", "A001", "A002",
-            "--font-path", "/usr/share/fonts/test.ttf",
-        ])
+        args = _parse_args(
+            [
+                "--questions-json",
+                '[{"topic":"T","text":"Q","limit":"50"}]',
+                "--num-papers",
+                "200",
+                "--output",
+                "/tmp/exam.pdf",
+                "--year",
+                "2026",
+                "--grade",
+                "2",
+                "--semester",
+                "1",
+                "--course",
+                "해부학",
+                "--week",
+                "5",
+                "--form-url",
+                "https://example.com/{student_id}",
+                "--student-ids",
+                "A001",
+                "A002",
+                "--font-path",
+                "/usr/share/fonts/test.ttf",
+            ]
+        )
         assert args.questions_json == '[{"topic":"T","text":"Q","limit":"50"}]'
         assert args.num_papers == 200
         assert args.output == "/tmp/exam.pdf"
@@ -78,9 +98,12 @@ class TestLoadQuestions:
 
     def test_load_questions_from_json(self):
         """JSON 문자열에서 문제 파싱."""
-        json_str = json.dumps([
-            {"topic": "T1", "text": "Q1", "limit": "50자"},
-        ], ensure_ascii=False)
+        json_str = json.dumps(
+            [
+                {"topic": "T1", "text": "Q1", "limit": "50자"},
+            ],
+            ensure_ascii=False,
+        )
         result = _load_questions(json_str)
         assert len(result) == 1
         assert result[0]["topic"] == "T1"
@@ -106,7 +129,8 @@ class TestLoadConfig:
         }
         yaml_file = tmp_path / "exam.yaml"
         yaml_file.write_text(
-            yaml.dump(unified, allow_unicode=True), encoding="utf-8",
+            yaml.dump(unified, allow_unicode=True),
+            encoding="utf-8",
         )
         result = _load_config(str(yaml_file))
         assert isinstance(result, dict)
@@ -124,7 +148,8 @@ class TestLoadConfig:
         ]
         yaml_file = tmp_path / "q.yaml"
         yaml_file.write_text(
-            yaml.dump(legacy, allow_unicode=True), encoding="utf-8",
+            yaml.dump(legacy, allow_unicode=True),
+            encoding="utf-8",
         )
         result = _load_config(str(yaml_file))
         assert isinstance(result, dict)
@@ -151,11 +176,16 @@ class TestMainIntegration:
         )
         output_pdf = tmp_path / "exam.pdf"
 
-        main([
-            "--questions", str(yaml_file),
-            "--num-papers", "2",
-            "--output", str(output_pdf),
-        ])
+        main(
+            [
+                "--questions",
+                str(yaml_file),
+                "--num-papers",
+                "2",
+                "--output",
+                str(output_pdf),
+            ]
+        )
 
         assert output_pdf.exists()
         assert output_pdf.stat().st_size > 0
@@ -175,14 +205,19 @@ class TestMainIntegration:
         }
         yaml_file = tmp_path / "exam.yaml"
         yaml_file.write_text(
-            yaml.dump(unified, allow_unicode=True), encoding="utf-8",
+            yaml.dump(unified, allow_unicode=True),
+            encoding="utf-8",
         )
         output_pdf = tmp_path / "exam.pdf"
 
-        main([
-            "--config", str(yaml_file),
-            "--output", str(output_pdf),
-        ])
+        main(
+            [
+                "--config",
+                str(yaml_file),
+                "--output",
+                str(output_pdf),
+            ]
+        )
 
         assert output_pdf.exists()
         assert output_pdf.stat().st_size > 0

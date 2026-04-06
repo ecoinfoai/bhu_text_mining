@@ -50,10 +50,14 @@ def _create_store(tmp_path) -> str:
     for sid in ["s001", "s002"]:
         for week in [1, 2]:
             for qsn in [1, 2]:
-                store.add_record(_make_record(
-                    student_id=sid, week=week, question_sn=qsn,
-                    ensemble_score=0.5 + 0.05 * week,
-                ))
+                store.add_record(
+                    _make_record(
+                        student_id=sid,
+                        week=week,
+                        question_sn=qsn,
+                        ensemble_score=0.5 + 0.05 * week,
+                    )
+                )
     store.save()
     return store_path
 
@@ -84,12 +88,18 @@ class TestCliReportStudentParsing:
         output = str(tmp_path / "out.pdf")
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", store_path,
-            "--student", "s001",
-            "--id-csv", csv_path,
-            "--output", output,
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--id-csv",
+                csv_path,
+                "--output",
+                output,
+            ]
+        )
         assert args.store == store_path
         assert args.student == "s001"
         assert args.id_csv == csv_path
@@ -99,40 +109,62 @@ class TestCliReportStudentParsing:
         from forma.cli_report_student import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--student", "s001",
-            "--id-csv", "id.csv",
-            "--output", "out.pdf",
-            "--no-llm",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--student",
+                "s001",
+                "--id-csv",
+                "id.csv",
+                "--output",
+                "out.pdf",
+                "--no-llm",
+            ]
+        )
         assert args.no_llm is True
 
     def test_no_llm_default_false(self, tmp_path):
         from forma.cli_report_student import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--student", "s001",
-            "--id-csv", "id.csv",
-            "--output", "out.pdf",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--student",
+                "s001",
+                "--id-csv",
+                "id.csv",
+                "--output",
+                "out.pdf",
+            ]
+        )
         assert args.no_llm is False
 
     def test_optional_args(self, tmp_path):
         from forma.cli_report_student import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--student", "s001",
-            "--id-csv", "id.csv",
-            "--output", "out.pdf",
-            "--weeks", "1", "2", "3",
-            "--dpi", "200",
-            "--no-config",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--student",
+                "s001",
+                "--id-csv",
+                "id.csv",
+                "--output",
+                "out.pdf",
+                "--weeks",
+                "1",
+                "2",
+                "3",
+                "--dpi",
+                "200",
+                "--no-config",
+            ]
+        )
         assert args.weeks == ["1", "2", "3"]
         assert args.dpi == 200
         assert args.no_config is True
@@ -156,14 +188,20 @@ class TestCliReportStudentExecution:
         output = str(tmp_path / "out.pdf")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--store", store_path,
-                "--student", "nonexistent",
-                "--id-csv", csv_path,
-                "--output", output,
-                "--no-config",
-                "--no-llm",
-            ])
+            main(
+                [
+                    "--store",
+                    store_path,
+                    "--student",
+                    "nonexistent",
+                    "--id-csv",
+                    csv_path,
+                    "--output",
+                    output,
+                    "--no-config",
+                    "--no-llm",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_store_not_found_exits_1(self, tmp_path):
@@ -173,14 +211,20 @@ class TestCliReportStudentExecution:
         output = str(tmp_path / "out.pdf")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--store", str(tmp_path / "nonexistent.yaml"),
-                "--student", "s001",
-                "--id-csv", csv_path,
-                "--output", output,
-                "--no-config",
-                "--no-llm",
-            ])
+            main(
+                [
+                    "--store",
+                    str(tmp_path / "nonexistent.yaml"),
+                    "--student",
+                    "s001",
+                    "--id-csv",
+                    csv_path,
+                    "--output",
+                    output,
+                    "--no-config",
+                    "--no-llm",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_successful_generation(self, tmp_path):
@@ -190,14 +234,20 @@ class TestCliReportStudentExecution:
         csv_path = _create_id_csv(tmp_path)
         output = str(tmp_path / "out.pdf")
 
-        result = main([
-            "--store", store_path,
-            "--student", "s001",
-            "--id-csv", csv_path,
-            "--output", output,
-            "--no-config",
-            "--no-llm",
-        ])
+        result = main(
+            [
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--id-csv",
+                csv_path,
+                "--output",
+                output,
+                "--no-config",
+                "--no-llm",
+            ]
+        )
         assert result is None  # success
         assert os.path.isfile(output)
         assert os.path.getsize(output) > 0
@@ -215,11 +265,16 @@ class TestCliBatchParsing:
         from forma.cli_report_student import _build_batch_parser
 
         parser = _build_batch_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--id-csv", "id.csv",
-            "--output-dir", str(tmp_path / "out"),
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--id-csv",
+                "id.csv",
+                "--output-dir",
+                str(tmp_path / "out"),
+            ]
+        )
         assert args.store == "store.yaml"
         assert args.id_csv == "id.csv"
         assert args.output_dir == str(tmp_path / "out")
@@ -228,15 +283,23 @@ class TestCliBatchParsing:
         from forma.cli_report_student import _build_batch_parser
 
         parser = _build_batch_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--id-csv", "id.csv",
-            "--output-dir", str(tmp_path / "out"),
-            "--weeks", "1", "2",
-            "--dpi", "200",
-            "--no-llm",
-            "--no-config",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--id-csv",
+                "id.csv",
+                "--output-dir",
+                str(tmp_path / "out"),
+                "--weeks",
+                "1",
+                "2",
+                "--dpi",
+                "200",
+                "--no-llm",
+                "--no-config",
+            ]
+        )
         assert args.weeks == ["1", "2"]
         assert args.dpi == 200
         assert args.no_llm is True
@@ -261,13 +324,18 @@ class TestCliBatchExecution:
         output_dir = str(tmp_path / "new_output_dir")
 
         assert not os.path.exists(output_dir)
-        batch_main([
-            "--store", store_path,
-            "--id-csv", csv_path,
-            "--output-dir", output_dir,
-            "--no-config",
-            "--no-llm",
-        ])
+        batch_main(
+            [
+                "--store",
+                store_path,
+                "--id-csv",
+                csv_path,
+                "--output-dir",
+                output_dir,
+                "--no-config",
+                "--no-llm",
+            ]
+        )
         assert os.path.isdir(output_dir)
 
     def test_batch_generates_pdf_per_student(self, tmp_path):
@@ -277,13 +345,18 @@ class TestCliBatchExecution:
         csv_path = _create_id_csv(tmp_path)
         output_dir = str(tmp_path / "batch_out")
 
-        batch_main([
-            "--store", store_path,
-            "--id-csv", csv_path,
-            "--output-dir", output_dir,
-            "--no-config",
-            "--no-llm",
-        ])
+        batch_main(
+            [
+                "--store",
+                store_path,
+                "--id-csv",
+                csv_path,
+                "--output-dir",
+                output_dir,
+                "--no-config",
+                "--no-llm",
+            ]
+        )
 
         # Store has s001 and s002
         assert os.path.isfile(os.path.join(output_dir, "s001.pdf"))
@@ -312,16 +385,23 @@ class TestCliBatchExecution:
             return orig_generate(self, student_data, *a, **kw)
 
         monkeypatch.setattr(
-            StudentLongitudinalPDFReportGenerator, "generate_pdf", patched_generate,
+            StudentLongitudinalPDFReportGenerator,
+            "generate_pdf",
+            patched_generate,
         )
 
-        batch_main([
-            "--store", store_path,
-            "--id-csv", csv_path,
-            "--output-dir", output_dir,
-            "--no-config",
-            "--no-llm",
-        ])
+        batch_main(
+            [
+                "--store",
+                store_path,
+                "--id-csv",
+                csv_path,
+                "--output-dir",
+                output_dir,
+                "--no-config",
+                "--no-llm",
+            ]
+        )
 
         # s001 should fail, s002 should succeed
         assert not os.path.isfile(os.path.join(output_dir, "s001.pdf"))
@@ -334,13 +414,18 @@ class TestCliBatchExecution:
         csv_path = _create_id_csv(tmp_path)
         output_dir = str(tmp_path / "batch_progress")
 
-        batch_main([
-            "--store", store_path,
-            "--id-csv", csv_path,
-            "--output-dir", output_dir,
-            "--no-config",
-            "--no-llm",
-        ])
+        batch_main(
+            [
+                "--store",
+                store_path,
+                "--id-csv",
+                csv_path,
+                "--output-dir",
+                output_dir,
+                "--no-config",
+                "--no-llm",
+            ]
+        )
 
         captured = capsys.readouterr()
         assert "Complete:" in captured.out
@@ -353,13 +438,18 @@ class TestCliBatchExecution:
         output_dir = str(tmp_path / "batch_err2")
 
         with pytest.raises(SystemExit) as exc_info:
-            batch_main([
-                "--store", str(tmp_path / "nonexistent.yaml"),
-                "--id-csv", csv_path,
-                "--output-dir", output_dir,
-                "--no-config",
-                "--no-llm",
-            ])
+            batch_main(
+                [
+                    "--store",
+                    str(tmp_path / "nonexistent.yaml"),
+                    "--id-csv",
+                    csv_path,
+                    "--output-dir",
+                    output_dir,
+                    "--no-config",
+                    "--no-llm",
+                ]
+            )
         assert exc_info.value.code == 1
 
 
@@ -416,27 +506,43 @@ class TestWeeksDeprecation:
 
         parser = _build_parser()
         with pytest.raises(SystemExit):
-            parser.parse_args([
-                "--store", "s.yaml",
-                "--student", "s001",
-                "--id-csv", "id.csv",
-                "--output", "out.pdf",
-                "--week", "3",
-                "--weeks", "1", "2",
-            ])
+            parser.parse_args(
+                [
+                    "--store",
+                    "s.yaml",
+                    "--student",
+                    "s001",
+                    "--id-csv",
+                    "id.csv",
+                    "--output",
+                    "out.pdf",
+                    "--week",
+                    "3",
+                    "--weeks",
+                    "1",
+                    "2",
+                ]
+            )
 
     def test_week_deprecation_warning(self, tmp_path):
         """T058: DeprecationWarning emitted for --week."""
         from forma.cli_report_student import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--student", "s001",
-            "--id-csv", "id.csv",
-            "--output", "out.pdf",
-            "--week", "3",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--student",
+                "s001",
+                "--id-csv",
+                "id.csv",
+                "--output",
+                "out.pdf",
+                "--week",
+                "3",
+            ]
+        )
         # The deprecated --week should store the value
         assert args.week == "3"
 
@@ -445,11 +551,18 @@ class TestWeeksDeprecation:
         from forma.cli_report_student import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--store", "s.yaml",
-            "--student", "s001",
-            "--id-csv", "id.csv",
-            "--output", "out.pdf",
-            "--weeks", "2:5",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "s.yaml",
+                "--student",
+                "s001",
+                "--id-csv",
+                "id.csv",
+                "--output",
+                "out.pdf",
+                "--weeks",
+                "2:5",
+            ]
+        )
         assert args.weeks == ["2:5"]

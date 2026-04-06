@@ -114,7 +114,9 @@ class TestAttack1EmptyHierarchy:
 
         result = _sample_result()
         hierarchy = TopicHierarchy(
-            major_topics=[], section_to_major={}, section_to_sub={},
+            major_topics=[],
+            section_to_major={},
+            section_to_sub={},
         )
         buf = build_topic_delivery_stacked_chart(result, hierarchy)
         assert _is_valid_png(buf)
@@ -156,14 +158,20 @@ class TestAttack2SingleSection:
 
         deliveries = [
             DeliveryAnalysis(
-                concept="표피", section_id="A",
-                delivery_status="의도적 생략", delivery_quality=0.0,
-                evidence="", depth="",
+                concept="표피",
+                section_id="A",
+                delivery_status="의도적 생략",
+                delivery_quality=0.0,
+                evidence="",
+                depth="",
             ),
             DeliveryAnalysis(
-                concept="진피", section_id="B",
-                delivery_status="의도적 생략", delivery_quality=0.0,
-                evidence="", depth="",
+                concept="진피",
+                section_id="B",
+                delivery_status="의도적 생략",
+                delivery_quality=0.0,
+                evidence="",
+                depth="",
             ),
         ]
         result = compute_delivery_pairwise_comparisons(deliveries)
@@ -202,12 +210,18 @@ class TestAttack3ZeroEdgeNetwork:
 
         nodes = [
             ConceptNode(
-                concept="세포막", chapter="1장", importance="high",
-                major_topic="세포", delivery_quality=0.5,
+                concept="세포막",
+                chapter="1장",
+                importance="high",
+                major_topic="세포",
+                delivery_quality=0.5,
             ),
             ConceptNode(
-                concept="소화", chapter="2장", importance="medium",
-                major_topic="소화기", delivery_quality=0.3,
+                concept="소화",
+                chapter="2장",
+                importance="medium",
+                major_topic="소화기",
+                delivery_quality=0.3,
             ),
         ]
         network = ConceptNetwork(nodes=nodes, edges=[])
@@ -338,8 +352,11 @@ class TestAttack6IsolatedNodes:
 
         nodes = [
             ConceptNode(
-                concept=f"개념_{i}", chapter="1장", importance="high",
-                major_topic="기타", delivery_quality=i * 0.2,
+                concept=f"개념_{i}",
+                chapter="1장",
+                importance="high",
+                major_topic="기타",
+                delivery_quality=i * 0.2,
                 key_terms=[],
             )
             for i in range(5)
@@ -354,12 +371,18 @@ class TestAttack6IsolatedNodes:
 
         nodes = [
             ConceptNode(
-                concept="독립개념A", chapter="1장", importance="high",
-                major_topic="기타", key_terms=[],
+                concept="독립개념A",
+                chapter="1장",
+                importance="high",
+                major_topic="기타",
+                key_terms=[],
             ),
             ConceptNode(
-                concept="독립개념B", chapter="1장", importance="medium",
-                major_topic="기타", key_terms=[],
+                concept="독립개념B",
+                chapter="1장",
+                importance="medium",
+                major_topic="기타",
+                key_terms=[],
             ),
         ]
         network = ConceptNetwork(nodes=nodes, edges=[])
@@ -483,8 +506,11 @@ class TestAttack8DuplicateConcepts:
 
         nodes = [
             ConceptNode(
-                concept="표피", chapter="3장", importance="high",
-                major_topic="피부", key_terms=[],
+                concept="표피",
+                chapter="3장",
+                importance="high",
+                major_topic="피부",
+                key_terms=[],
             ),
         ]
         network = ConceptNetwork(nodes=nodes, edges=[])

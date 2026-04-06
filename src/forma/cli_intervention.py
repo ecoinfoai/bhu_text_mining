@@ -41,11 +41,16 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Manage intervention activity records",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Enable verbose logging",
     )
 
@@ -54,61 +59,80 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- add subcommand ---
     add_parser = subparsers.add_parser("add", help="Add intervention record")
     add_parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Intervention record YAML file path",
     )
     add_parser.add_argument(
-        "--student", required=True,
+        "--student",
+        required=True,
         help="Student ID",
     )
     add_parser.add_argument(
-        "--week", type=int, required=True,
+        "--week",
+        type=int,
+        required=True,
         help="Week number",
     )
     add_parser.add_argument(
-        "--type", required=True,
+        "--type",
+        required=True,
         help="Intervention type",
     )
     add_parser.add_argument(
-        "--description", default="",
+        "--description",
+        default="",
         help="Intervention description",
     )
     add_parser.add_argument(
-        "--recorded-by", default=None, dest="recorded_by",
+        "--recorded-by",
+        default=None,
+        dest="recorded_by",
         help="Recorded by",
     )
     add_parser.add_argument(
-        "--follow-up-week", type=int, default=None, dest="follow_up_week",
+        "--follow-up-week",
+        type=int,
+        default=None,
+        dest="follow_up_week",
         help="Follow-up week",
     )
 
     # --- list subcommand ---
     list_parser = subparsers.add_parser("list", help="List intervention records")
     list_parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Intervention record YAML file path",
     )
     list_parser.add_argument(
-        "--student", default=None,
+        "--student",
+        default=None,
         help="Student ID filter",
     )
     list_parser.add_argument(
-        "--week", type=int, default=None,
+        "--week",
+        type=int,
+        default=None,
         help="Week filter",
     )
 
     # --- update subcommand ---
     update_parser = subparsers.add_parser("update", help="Update intervention outcome")
     update_parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Intervention record YAML file path",
     )
     update_parser.add_argument(
-        "--id", type=int, required=True,
+        "--id",
+        type=int,
+        required=True,
         help="Intervention record ID",
     )
     update_parser.add_argument(
-        "--outcome", required=True,
+        "--outcome",
+        required=True,
         help="Outcome",
     )
 
@@ -128,8 +152,7 @@ def _cmd_add(args: argparse.Namespace) -> None:
 
     if args.type not in INTERVENTION_TYPES:
         print(
-            f"Error: Invalid intervention type '{args.type}'. "
-            f"Allowed: {', '.join(INTERVENTION_TYPES)}",
+            f"Error: Invalid intervention type '{args.type}'. Allowed: {', '.join(INTERVENTION_TYPES)}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -176,10 +199,7 @@ def _cmd_list(args: argparse.Namespace) -> None:
     for r in records:
         outcome_str = r.outcome if r.outcome else "-"
         desc = r.description[:20] if r.description else ""
-        print(
-            f"{r.id:>4}  {r.student_id:<8}  {r.week:>4}  "
-            f"{r.intervention_type:<8}  {desc:<20}  {outcome_str:<6}"
-        )
+        print(f"{r.id:>4}  {r.student_id:<8}  {r.week:>4}  {r.intervention_type:<8}  {desc:<20}  {outcome_str:<6}")
 
 
 def _cmd_update(args: argparse.Namespace) -> None:
@@ -193,8 +213,7 @@ def _cmd_update(args: argparse.Namespace) -> None:
     # Strict outcome validation at CLI level
     if args.outcome not in VALID_OUTCOMES:
         print(
-            f"Error: Invalid outcome '{args.outcome}'. "
-            f"Allowed: {', '.join(VALID_OUTCOMES)}",
+            f"Error: Invalid outcome '{args.outcome}'. Allowed: {', '.join(VALID_OUTCOMES)}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -223,6 +242,7 @@ def main(argv=None) -> None:
     # Apply project config (three-layer merge)
     if not getattr(args, "no_config", False):
         from forma.project_config import apply_project_config
+
         raw_argv = argv if argv is not None else sys.argv[1:]
         apply_project_config(args, argv=raw_argv)
 

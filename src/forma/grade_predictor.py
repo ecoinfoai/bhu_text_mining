@@ -233,7 +233,9 @@ class GradeFeatureExtractor:
 
         # Extract 15 base features
         base_matrix, _, student_ids = self._base_extractor.extract(
-            store, weeks, class_name,
+            store,
+            weeks,
+            class_name,
         )
 
         n_students = len(student_ids)
@@ -294,9 +296,7 @@ class GradePredictor:
         """
         n_students = feature_matrix.shape[0]
         if n_students < min_students:
-            raise ValueError(
-                f"Insufficient students for training: {n_students} < {min_students}"
-            )
+            raise ValueError(f"Insufficient students for training: {n_students} < {min_students}")
 
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(feature_matrix)
@@ -325,9 +325,7 @@ class GradePredictor:
         if n_unique < 2:
             cv_score = 0.0
         else:
-            min_class_count = min(
-                int(np.sum(labels == c)) for c in np.unique(labels)
-            )
+            min_class_count = min(int(np.sum(labels == c)) for c in np.unique(labels))
             n_splits = min(5, min_class_count)
             if n_splits < 2:
                 cv_score = 0.0
@@ -384,14 +382,16 @@ class GradePredictor:
                 if g not in grade_probs:
                     grade_probs[g] = 0.0
 
-            predictions.append(GradePrediction(
-                student_id=sid,
-                predicted_grade=grade,
-                grade_probabilities=grade_probs,
-                predicted_ordinal=ordinal,
-                is_model_based=True,
-                confidence="high",
-            ))
+            predictions.append(
+                GradePrediction(
+                    student_id=sid,
+                    predicted_grade=grade,
+                    grade_probabilities=grade_probs,
+                    predicted_ordinal=ordinal,
+                    is_model_based=True,
+                    confidence="high",
+                )
+            )
 
         return predictions
 
@@ -414,21 +414,9 @@ class GradePredictor:
         Returns:
             List of GradePrediction with confidence="limited".
         """
-        score_mean_idx = (
-            feature_names.index("score_mean")
-            if "score_mean" in feature_names
-            else 0
-        )
-        score_slope_idx = (
-            feature_names.index("score_slope")
-            if "score_slope" in feature_names
-            else 2
-        )
-        prior_idx = (
-            feature_names.index("prior_grade_ordinal")
-            if "prior_grade_ordinal" in feature_names
-            else None
-        )
+        score_mean_idx = feature_names.index("score_mean") if "score_mean" in feature_names else 0
+        score_slope_idx = feature_names.index("score_slope") if "score_slope" in feature_names else 2
+        prior_idx = feature_names.index("prior_grade_ordinal") if "prior_grade_ordinal" in feature_names else None
 
         predictions = []
         for i, sid in enumerate(student_ids):
@@ -453,14 +441,16 @@ class GradePredictor:
 
             grade = ORDINAL_GRADE_MAP[ordinal]
 
-            predictions.append(GradePrediction(
-                student_id=sid,
-                predicted_grade=grade,
-                grade_probabilities={g: (1.0 if g == grade else 0.0) for g in VALID_GRADES},
-                predicted_ordinal=ordinal,
-                is_model_based=False,
-                confidence="limited",
-            ))
+            predictions.append(
+                GradePrediction(
+                    student_id=sid,
+                    predicted_grade=grade,
+                    grade_probabilities={g: (1.0 if g == grade else 0.0) for g in VALID_GRADES},
+                    predicted_ordinal=ordinal,
+                    is_model_based=False,
+                    confidence="limited",
+                )
+            )
 
         return predictions
 
@@ -499,8 +489,6 @@ def load_grade_model(path: Path | str) -> TrainedGradeModel:
         raise FileNotFoundError(f"Grade model file not found: {path}")
     obj = joblib.load(str(path))
     if not isinstance(obj, TrainedGradeModel):
-        raise TypeError(
-            f"Expected TrainedGradeModel, got {type(obj).__name__}"
-        )
+        raise TypeError(f"Expected TrainedGradeModel, got {type(obj).__name__}")
     logger.info("Grade model loaded from %s", path)
     return obj

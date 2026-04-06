@@ -74,13 +74,15 @@ class TestWarningPDFReportGenerator:
         """generate() handles cards with all risk types."""
         from forma.warning_report import WarningPDFReportGenerator
 
-        cards = [_make_warning_card(
-            risk_types=list(RiskType),
-            interventions=[
-                "최근 성적 하락 추세에 대한 개별 면담 권장",
-                "기초 개념 보충 학습 프로그램 안내",
-            ],
-        )]
+        cards = [
+            _make_warning_card(
+                risk_types=list(RiskType),
+                interventions=[
+                    "최근 성적 하락 추세에 대한 개별 면담 권장",
+                    "기초 개념 보충 학습 프로그램 안내",
+                ],
+            )
+        ]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
         gen.generate_pdf(cards, output, class_name="1A")
@@ -111,10 +113,12 @@ class TestWarningPDFReportGenerator:
         """Korean text in deficit concepts and interventions renders safely."""
         from forma.warning_report import WarningPDFReportGenerator
 
-        cards = [_make_warning_card(
-            deficit_concepts=["세포막 투과성", "삼투압 조절 기전"],
-            interventions=["결손 개념 목록 기반 맞춤 보충 자료 제공"],
-        )]
+        cards = [
+            _make_warning_card(
+                deficit_concepts=["세포막 투과성", "삼투압 조절 기전"],
+                interventions=["결손 개념 목록 기반 맞춤 보충 자료 제공"],
+            )
+        ]
         gen = WarningPDFReportGenerator()
         output = str(tmp_path / "warning.pdf")
         gen.generate_pdf(cards, output, class_name="1A반")

@@ -28,59 +28,70 @@ class TestEscZeroWidthStripping:
     def test_strips_zero_width_space(self):
         """U+200B ZERO WIDTH SPACE is removed."""
         from forma.font_utils import esc
+
         assert esc("hello\u200bworld") == "helloworld"
 
     def test_strips_zero_width_non_joiner(self):
         """U+200C ZERO WIDTH NON-JOINER is removed."""
         from forma.font_utils import esc
+
         assert esc("hello\u200cworld") == "helloworld"
 
     def test_strips_zero_width_joiner(self):
         """U+200D ZERO WIDTH JOINER is removed."""
         from forma.font_utils import esc
+
         assert esc("hello\u200dworld") == "helloworld"
 
     def test_strips_left_to_right_mark(self):
         """U+200E LEFT-TO-RIGHT MARK is removed."""
         from forma.font_utils import esc
+
         assert esc("hello\u200eworld") == "helloworld"
 
     def test_strips_right_to_left_mark(self):
         """U+200F RIGHT-TO-LEFT MARK is removed."""
         from forma.font_utils import esc
+
         assert esc("hello\u200fworld") == "helloworld"
 
     def test_strips_bom(self):
         """U+FEFF BOM / ZERO WIDTH NO-BREAK SPACE is removed."""
         from forma.font_utils import esc
+
         assert esc("\ufeffhello") == "hello"
 
     def test_strips_multiple_zero_width(self):
         """Multiple zero-width chars in one string are all removed."""
         from forma.font_utils import esc
+
         text = "\u200b\u200c\u200d\u200e\u200f\ufefftest"
         assert esc(text) == "test"
 
     def test_preserves_normal_korean(self):
         """Normal Korean text is not affected by zero-width stripping."""
         from forma.font_utils import esc
+
         text = "형성평가 분석"
         assert esc(text) == "형성평가 분석"
 
     def test_xml_escape_still_works(self):
         """XML special characters are still escaped after zero-width stripping."""
         from forma.font_utils import esc
+
         assert esc("a\u200b<b>&c") == "a&lt;b&gt;&amp;c"
 
     def test_c0_control_chars_still_stripped(self):
         """Original C0 control character stripping still works."""
         from forma.font_utils import esc
+
         # \x01 is C0 control, should be stripped
         assert esc("hello\x01world") == "helloworld"
 
     def test_preserves_tab_newline_cr(self):
         """Tab, newline, and CR are preserved (not in illegal set)."""
         from forma.font_utils import esc
+
         assert esc("a\tb\nc\rd") == "a\tb\nc\rd"
 
 
@@ -92,30 +103,38 @@ class TestEscZeroWidthStripping:
 class TestReportGeneratorsUseEsc:
     """Verify all PDF report generators import esc from font_utils."""
 
-    @pytest.mark.parametrize("module_name", [
-        "forma.professor_report",
-        "forma.student_report",
-        "forma.longitudinal_report",
-        "forma.warning_report",
-    ])
+    @pytest.mark.parametrize(
+        "module_name",
+        [
+            "forma.professor_report",
+            "forma.student_report",
+            "forma.longitudinal_report",
+            "forma.warning_report",
+        ],
+    )
     def test_imports_esc_from_font_utils(self, module_name):
         """Module imports esc from forma.font_utils."""
         import importlib
+
         mod = importlib.import_module(module_name)
         # The modules import `esc as _esc` — check that _esc is callable
         assert hasattr(mod, "_esc"), f"{module_name} missing _esc"
         assert callable(mod._esc)
 
-    @pytest.mark.parametrize("module_name", [
-        "forma.professor_report",
-        "forma.student_report",
-        "forma.longitudinal_report",
-        "forma.warning_report",
-    ])
+    @pytest.mark.parametrize(
+        "module_name",
+        [
+            "forma.professor_report",
+            "forma.student_report",
+            "forma.longitudinal_report",
+            "forma.warning_report",
+        ],
+    )
     def test_esc_is_font_utils_esc(self, module_name):
         """_esc in the module is the same function as font_utils.esc."""
         import importlib
         from forma.font_utils import esc
+
         mod = importlib.import_module(module_name)
         assert mod._esc is esc
 
@@ -131,6 +150,7 @@ class TestBuilderEmptyInputs:
     def test_build_warning_data_empty_students(self):
         """build_warning_data with no students returns empty list."""
         from forma.warning_report_data import build_warning_data
+
         # Empty inputs should return empty result
         result = build_warning_data(
             at_risk_students={},
@@ -151,21 +171,25 @@ class TestPiiMasking:
     def test_mask_email_standard(self):
         """Standard email is masked: first 3 chars + *** + @domain."""
         from forma.delivery_send import _mask_email
+
         assert _mask_email("student@university.ac.kr") == "stu***@university.ac.kr"
 
     def test_mask_email_short_local(self):
         """Short local part (< 3 chars) shows all available chars + ***."""
         from forma.delivery_send import _mask_email
+
         assert _mask_email("ab@example.com") == "ab***@example.com"
 
     def test_mask_email_empty(self):
         """Empty string returns empty string."""
         from forma.delivery_send import _mask_email
+
         assert _mask_email("") == ""
 
     def test_mask_email_no_at(self):
         """String without @ shows first 3 chars + ***."""
         from forma.delivery_send import _mask_email
+
         assert _mask_email("noemail") == "noe***"
 
 
@@ -182,16 +206,20 @@ class TestChartModulesUseSaveFig:
     in the DRY consolidation phase (Phase 5-6).
     """
 
-    @pytest.mark.parametrize("module_name", [
-        "forma.report_charts",
-        "forma.professor_report_charts",
-        "forma.warning_report_charts",
-        "forma.learning_path_charts",
-        "forma.longitudinal_report_charts",
-    ])
+    @pytest.mark.parametrize(
+        "module_name",
+        [
+            "forma.report_charts",
+            "forma.professor_report_charts",
+            "forma.warning_report_charts",
+            "forma.learning_path_charts",
+            "forma.longitudinal_report_charts",
+        ],
+    )
     def test_imports_save_fig(self, module_name):
         """Chart module imports save_fig from chart_utils."""
         import importlib
+
         mod = importlib.import_module(module_name)
         assert hasattr(mod, "_save_fig"), f"{module_name} missing _save_fig"
 
@@ -204,19 +232,23 @@ class TestChartModulesUseSaveFig:
 class TestLoggerNaming:
     """Verify modules use `logger = logging.getLogger(__name__)` pattern."""
 
-    @pytest.mark.parametrize("module_name", [
-        "forma.intervention_store",
-        "forma.delivery_send",
-        "forma.feedback_generator",
-        "forma.pipeline_evaluation",
-        "forma.risk_predictor",
-        "forma.cli_report_professor",
-        "forma.cli_report_longitudinal",
-        "forma.cli_report_warning",
-    ])
+    @pytest.mark.parametrize(
+        "module_name",
+        [
+            "forma.intervention_store",
+            "forma.delivery_send",
+            "forma.feedback_generator",
+            "forma.pipeline_evaluation",
+            "forma.risk_predictor",
+            "forma.cli_report_professor",
+            "forma.cli_report_longitudinal",
+            "forma.cli_report_warning",
+        ],
+    )
     def test_logger_uses_getlogger_name(self, module_name):
         """Module's logger is configured with __name__."""
         import importlib
+
         mod = importlib.import_module(module_name)
         assert hasattr(mod, "logger"), f"{module_name} missing 'logger' attribute"
         assert mod.logger.name == module_name
@@ -233,16 +265,19 @@ class TestIoUtilsExports:
     def test_atomic_write_yaml_importable(self):
         """atomic_write_yaml can be imported from forma.io_utils."""
         from forma.io_utils import atomic_write_yaml
+
         assert callable(atomic_write_yaml)
 
     def test_atomic_write_json_importable(self):
         """atomic_write_json can be imported from forma.io_utils."""
         from forma.io_utils import atomic_write_json
+
         assert callable(atomic_write_json)
 
     def test_atomic_write_text_importable(self):
         """atomic_write_text can be imported from forma.io_utils."""
         from forma.io_utils import atomic_write_text
+
         assert callable(atomic_write_text)
 
 
@@ -258,19 +293,17 @@ class TestAtomicWriteMigration:
         """cli_select._write_questions_yaml uses io_utils.atomic_write_yaml."""
         import inspect
         from forma import cli_select
+
         source = inspect.getsource(cli_select._write_questions_yaml)
-        assert "atomic_write_yaml" in source, (
-            "cli_select._write_questions_yaml should use atomic_write_yaml"
-        )
+        assert "atomic_write_yaml" in source, "cli_select._write_questions_yaml should use atomic_write_yaml"
 
     def test_week_config_no_shutil_move(self):
         """week_config.py should not use shutil.move (use os.replace instead)."""
         import inspect
         from forma import week_config
+
         source = inspect.getsource(week_config)
-        assert "shutil.move" not in source, (
-            "week_config should use os.replace instead of shutil.move"
-        )
+        assert "shutil.move" not in source, "week_config should use os.replace instead of shutil.move"
 
 
 # ---------------------------------------------------------------------------
@@ -301,13 +334,20 @@ class TestYamlErrorHandling:
         eval_dir.mkdir()
         out_dir = tmp_path / "out"
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report-professor",
-            "--final", str(final_path),
-            "--config", str(config_path),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report-professor",
+                "--final",
+                str(final_path),
+                "--config",
+                str(config_path),
+                "--eval-dir",
+                str(eval_dir),
+                "--output-dir",
+                str(out_dir),
+            ],
+        )
 
         with pytest.raises(SystemExit) as exc_info:
             main()
@@ -346,13 +386,20 @@ class TestYamlErrorHandling:
         out_dir = tmp_path / "out"
         out_dir.mkdir()
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-report",
-            "--final", str(final_path),
-            "--config", str(config_path),
-            "--eval-dir", str(eval_dir),
-            "--output-dir", str(out_dir),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-report",
+                "--final",
+                str(final_path),
+                "--config",
+                str(config_path),
+                "--eval-dir",
+                str(eval_dir),
+                "--output-dir",
+                str(out_dir),
+            ],
+        )
 
         # Mock load_all_student_data to raise YAMLError
         with patch(
@@ -437,29 +484,26 @@ class TestDryDeduplication:
     def test_section_comparison_charts_uses_save_fig(self):
         """section_comparison_charts imports _save_fig from chart_utils."""
         import importlib
+
         mod = importlib.import_module("forma.section_comparison_charts")
-        assert hasattr(mod, "_save_fig"), (
-            "section_comparison_charts should import _save_fig from chart_utils"
-        )
+        assert hasattr(mod, "_save_fig"), "section_comparison_charts should import _save_fig from chart_utils"
 
     def test_section_comparison_charts_no_inline_savefig(self):
         """section_comparison_charts should not use fig.savefig() directly."""
         import inspect
         from forma import section_comparison_charts
+
         source = inspect.getsource(section_comparison_charts)
-        assert "fig.savefig" not in source, (
-            "section_comparison_charts should use _save_fig() instead of fig.savefig()"
-        )
+        assert "fig.savefig" not in source, "section_comparison_charts should use _save_fig() instead of fig.savefig()"
 
     def test_cli_report_professor_no_aliased_longitudinal_imports(self):
         """cli_report_professor should not alias LongitudinalStore as LS/GLS/ILS."""
         import inspect
         from forma import cli_report_professor
+
         source = inspect.getsource(cli_report_professor)
         for alias in ["as LS", "as GLS", "as ILS"]:
-            assert alias not in source, (
-                f"cli_report_professor should not alias LongitudinalStore {alias}"
-            )
+            assert alias not in source, f"cli_report_professor should not alias LongitudinalStore {alias}"
 
 
 # ---------------------------------------------------------------------------
@@ -495,19 +539,23 @@ class TestBuildProfessorReportDataPerformance:
                     )
                     for c in range(3)
                 ]
-                questions.append(QuestionReportData(
-                    question_sn=qsn,
-                    understanding_level="Proficient" if i % 3 != 0 else "Beginning",
-                    concept_coverage=0.6 + (i % 5) * 0.08,
-                    graph_comparison_f1=0.5 + (i % 4) * 0.1,
-                    ensemble_score=0.5 + (i % 10) * 0.05,
-                    misconceptions=[],
-                    concepts=concepts,
-                ))
-            students.append(StudentReportData(
-                student_id=sid,
-                questions=questions,
-            ))
+                questions.append(
+                    QuestionReportData(
+                        question_sn=qsn,
+                        understanding_level="Proficient" if i % 3 != 0 else "Beginning",
+                        concept_coverage=0.6 + (i % 5) * 0.08,
+                        graph_comparison_f1=0.5 + (i % 4) * 0.1,
+                        ensemble_score=0.5 + (i % 10) * 0.05,
+                        misconceptions=[],
+                        concepts=concepts,
+                    )
+                )
+            students.append(
+                StudentReportData(
+                    student_id=sid,
+                    questions=questions,
+                )
+            )
 
         distributions = ClassDistributions(
             ensemble_scores={qsn: [0.5 + (i % 10) * 0.05 for i in range(200)] for qsn in range(1, 11)},
@@ -515,9 +563,12 @@ class TestBuildProfessorReportDataPerformance:
         )
 
         result = build_professor_report_data(
-            students, distributions,
-            class_name="Test", week_num=1,
-            subject="과목", exam_title="시험",
+            students,
+            distributions,
+            class_name="Test",
+            week_num=1,
+            subject="과목",
+            exam_title="시험",
         )
         assert result.n_students == 200
         assert len(result.question_stats) == 10
@@ -532,17 +583,21 @@ class TestBuildProfessorReportDataPerformance:
 class TestModernTypingImports:
     """Modules with __future__.annotations should use built-in generics."""
 
-    @pytest.mark.parametrize("module_path", [
-        "forma/topic_analysis.py",
-        "forma/network_analysis.py",
-        "forma/naver_ocr.py",
-        "forma/exam_generator.py",
-        "forma/font_utils.py",
-    ])
+    @pytest.mark.parametrize(
+        "module_path",
+        [
+            "forma/topic_analysis.py",
+            "forma/network_analysis.py",
+            "forma/naver_ocr.py",
+            "forma/exam_generator.py",
+            "forma/font_utils.py",
+        ],
+    )
     def test_no_old_typing_imports(self, module_path):
         """Module should not import Dict/List/Tuple/Optional from typing."""
         import re
         from pathlib import Path
+
         full_path = Path(__file__).parent.parent / "src" / module_path
         source = full_path.read_text(encoding="utf-8")
         # Check for `from typing import ...` with old-style names
@@ -551,10 +606,7 @@ class TestModernTypingImports:
         if match:
             imported = {name.strip() for name in match.group(1).split(",")}
             violations = imported & old_names
-            assert not violations, (
-                f"{module_path} imports {violations} from typing — "
-                f"use built-in equivalents instead"
-            )
+            assert not violations, f"{module_path} imports {violations} from typing — use built-in equivalents instead"
 
 
 # ---------------------------------------------------------------------------
@@ -572,12 +624,18 @@ class TestConfigUnknownKeyWarning:
         import logging
 
         from forma.config import load_config
+
         config_path = tmp_path / "forma.json"
-        config_path.write_text(json.dumps({
-            "naver_ocr": {"secret_key": "k", "api_url": "u"},
-            "smtp": {"server": "s"},
-            "llm": {"provider": "gemini"},
-        }), encoding="utf-8")
+        config_path.write_text(
+            json.dumps(
+                {
+                    "naver_ocr": {"secret_key": "k", "api_url": "u"},
+                    "smtp": {"server": "s"},
+                    "llm": {"provider": "gemini"},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         handler = logging.StreamHandler(_io.StringIO())
         handler.setLevel(logging.WARNING)
@@ -596,13 +654,20 @@ class TestConfigUnknownKeyWarning:
         import logging
 
         from forma.config import load_config
+
         config_path = tmp_path / "forma.json"
-        config_path.write_text(json.dumps({
-            "naver_ocr": {"secret_key": "k", "api_url": "u"},
-            "bogus_section": {"foo": "bar"},
-        }), encoding="utf-8")
+        config_path.write_text(
+            json.dumps(
+                {
+                    "naver_ocr": {"secret_key": "k", "api_url": "u"},
+                    "bogus_section": {"foo": "bar"},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         import io as _io
+
         handler = logging.StreamHandler(_io.StringIO())
         handler.setLevel(logging.WARNING)
         logger = logging.getLogger("forma.config")
@@ -610,9 +675,7 @@ class TestConfigUnknownKeyWarning:
         try:
             load_config(str(config_path))
             output = handler.stream.getvalue()
-            assert "bogus_section" in output, (
-                "load_config should warn about unknown key 'bogus_section'"
-            )
+            assert "bogus_section" in output, "load_config should warn about unknown key 'bogus_section'"
         finally:
             logger.removeHandler(handler)
 
@@ -628,28 +691,33 @@ class TestStripInvisibleShared:
     def test_strip_invisible_importable(self):
         """strip_invisible can be imported from forma.font_utils."""
         from forma.font_utils import strip_invisible
+
         assert callable(strip_invisible)
 
     def test_strip_invisible_removes_zero_width(self):
         """strip_invisible removes zero-width chars."""
         from forma.font_utils import strip_invisible
+
         assert strip_invisible("hello\u200bworld") == "helloworld"
         assert strip_invisible("\ufefftest") == "test"
 
     def test_strip_invisible_removes_control_chars(self):
         """strip_invisible removes C0 control chars (except tab/newline/CR)."""
         from forma.font_utils import strip_invisible
+
         assert strip_invisible("a\x01b") == "ab"
 
     def test_strip_invisible_preserves_tab_newline(self):
         """strip_invisible preserves tab and newline (useful for text, not filenames)."""
         from forma.font_utils import strip_invisible
+
         assert strip_invisible("a\tb\n") == "a\tb\n"
 
     def test_delivery_prepare_uses_strip_invisible(self):
         """delivery_prepare.sanitize_filename delegates to strip_invisible."""
         import inspect
         from forma import delivery_prepare
+
         source = inspect.getsource(delivery_prepare.sanitize_filename)
         assert "strip_invisible" in source, (
             "sanitize_filename should delegate zero-width stripping to font_utils.strip_invisible"

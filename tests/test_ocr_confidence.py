@@ -215,9 +215,7 @@ class TestScanPipelineConfidence:
             }
         ]
 
-    def test_scan_result_includes_confidence_fields(
-        self, image_dir, ocr_config_file, tmp_path
-    ):
+    def test_scan_result_includes_confidence_fields(self, image_dir, ocr_config_file, tmp_path):
         """Scan results YAML includes ocr_confidence_mean/min/field_count."""
         from forma.ocr_pipeline import run_scan_pipeline
 
@@ -268,9 +266,7 @@ class TestScanPipelineConfidence:
         assert saved[0]["ocr_confidence_min"] == 0.62
         assert saved[0]["ocr_field_count"] == 4
 
-    def test_scan_result_confidence_none_when_api_missing(
-        self, image_dir, ocr_config_file, tmp_path
-    ):
+    def test_scan_result_confidence_none_when_api_missing(self, image_dir, ocr_config_file, tmp_path):
         """When inferConfidence is absent, confidence fields are None."""
         from forma.ocr_pipeline import run_scan_pipeline
 
@@ -312,9 +308,7 @@ class TestScanPipelineConfidence:
         assert r["ocr_confidence_min"] is None
         assert r["ocr_field_count"] == 2
 
-    def test_scan_low_confidence_summary_message(
-        self, image_dir, ocr_config_file, tmp_path, capsys
-    ):
+    def test_scan_low_confidence_summary_message(self, image_dir, ocr_config_file, tmp_path, capsys):
         """Scan completion prints low-confidence summary when present."""
         from forma.ocr_pipeline import run_scan_pipeline
 
@@ -370,9 +364,7 @@ class TestScanPipelineConfidence:
         assert "low-confidence" in captured
         assert "1 low-confidence" in captured
 
-    def test_scan_no_low_confidence_no_message(
-        self, image_dir, ocr_config_file, tmp_path, capsys
-    ):
+    def test_scan_no_low_confidence_no_message(self, image_dir, ocr_config_file, tmp_path, capsys):
         """Scan completion prints no low-confidence message when all good."""
         from forma.ocr_pipeline import run_scan_pipeline
 
@@ -480,9 +472,7 @@ class TestJoinPipelineConfidence:
             writer.writerow({"student_id": "S002", "이름": "박OO"})
         return str(path)
 
-    def test_join_outputs_low_confidence_table(
-        self, ocr_results_with_confidence, forms_csv_file, tmp_path, capsys
-    ):
+    def test_join_outputs_low_confidence_table(self, ocr_results_with_confidence, forms_csv_file, tmp_path, capsys):
         """Join prints detailed review table for low-confidence answers."""
         from forma.ocr_pipeline import run_join_pipeline
 
@@ -506,9 +496,7 @@ class TestJoinPipelineConfidence:
         # Summary line
         assert "2 / 3" in captured
 
-    def test_join_no_low_confidence_prints_ok(
-        self, tmp_path, forms_csv_file, capsys
-    ):
+    def test_join_no_low_confidence_prints_ok(self, tmp_path, forms_csv_file, capsys):
         """Join prints 'no review needed' when all confidence >= threshold."""
         from forma.ocr_pipeline import run_join_pipeline
 
@@ -537,9 +525,7 @@ class TestJoinPipelineConfidence:
         captured = capsys.readouterr().out
         assert "No OCR entries require review" in captured
 
-    def test_join_no_confidence_data_no_table(
-        self, ocr_results_no_confidence, forms_csv_file, tmp_path, capsys
-    ):
+    def test_join_no_confidence_data_no_table(self, ocr_results_no_confidence, forms_csv_file, tmp_path, capsys):
         """Join skips table entirely when confidence data is absent (legacy YAML)."""
         from forma.ocr_pipeline import run_join_pipeline
 
@@ -602,23 +588,34 @@ class TestCliOcrReviewThreshold:
         """--ocr-review-threshold is parsed for scan subcommand."""
         from forma.cli_ocr import _parse_args
 
-        args = _parse_args([
-            "scan", "--config", "test.yaml",
-            "--ocr-review-threshold", "0.60",
-        ])
+        args = _parse_args(
+            [
+                "scan",
+                "--config",
+                "test.yaml",
+                "--ocr-review-threshold",
+                "0.60",
+            ]
+        )
         assert args.ocr_review_threshold == 0.60
 
     def test_join_parse_threshold_option(self):
         """--ocr-review-threshold is parsed for join subcommand."""
         from forma.cli_ocr import _parse_args
 
-        args = _parse_args([
-            "join",
-            "--ocr-results", "r.yaml",
-            "--output", "o.yaml",
-            "--forms-csv", "f.csv",
-            "--ocr-review-threshold", "0.80",
-        ])
+        args = _parse_args(
+            [
+                "join",
+                "--ocr-results",
+                "r.yaml",
+                "--output",
+                "o.yaml",
+                "--forms-csv",
+                "f.csv",
+                "--ocr-review-threshold",
+                "0.80",
+            ]
+        )
         assert args.ocr_review_threshold == 0.80
 
     def test_threshold_default_is_none(self):
@@ -858,10 +855,7 @@ class TestAdversarialPersonas:
     def test_500_fields_correct_stats(self):
         """500+ fields in single image computes correct stats without crash."""
         n = 500
-        fields = [
-            {"inferText": f"w{i}", "inferConfidence": i / n}
-            for i in range(n)
-        ]
+        fields = [{"inferText": f"w{i}", "inferConfidence": i / n} for i in range(n)]
         responses = [{"images": [{"name": "big.jpg", "fields": fields}]}]
         result = extract_text_with_confidence(responses)
         entry = result["big.jpg"]
@@ -1008,10 +1002,14 @@ class TestAdversarialPersonas:
         from forma.week_config import load_week_config
 
         week_yaml = tmp_path / "week.yaml"
-        week_yaml.write_text(yaml.dump({
-            "week": 1,
-            "ocr": {"num_questions": 1, "review_threshold": 0},
-        }))
+        week_yaml.write_text(
+            yaml.dump(
+                {
+                    "week": 1,
+                    "ocr": {"num_questions": 1, "review_threshold": 0},
+                }
+            )
+        )
         config = load_week_config(week_yaml)
         assert config.ocr_review_threshold == 0
 
@@ -1020,10 +1018,14 @@ class TestAdversarialPersonas:
         from forma.week_config import load_week_config
 
         week_yaml = tmp_path / "week.yaml"
-        week_yaml.write_text(yaml.dump({
-            "week": 1,
-            "ocr": {"num_questions": 1, "review_threshold": 1.0},
-        }))
+        week_yaml.write_text(
+            yaml.dump(
+                {
+                    "week": 1,
+                    "ocr": {"num_questions": 1, "review_threshold": 1.0},
+                }
+            )
+        )
         config = load_week_config(week_yaml)
         assert config.ocr_review_threshold == 1.0
 
@@ -1032,8 +1034,7 @@ class TestAdversarialPersonas:
         from forma.ocr_pipeline import _print_confidence_review_table
 
         joined = [
-            {"student_id": "S001", "q_num": 1, "text": "t",
-             "ocr_confidence_mean": 0.99, "ocr_confidence_min": 0.99},
+            {"student_id": "S001", "q_num": 1, "text": "t", "ocr_confidence_mean": 0.99, "ocr_confidence_min": 0.99},
         ]
         _print_confidence_review_table(joined, threshold=0)
         captured = capsys.readouterr().out
@@ -1045,8 +1046,7 @@ class TestAdversarialPersonas:
         from forma.ocr_pipeline import _print_confidence_review_table
 
         joined = [
-            {"student_id": "S001", "q_num": 1, "text": "t",
-             "ocr_confidence_mean": 0.99, "ocr_confidence_min": 0.99},
+            {"student_id": "S001", "q_num": 1, "text": "t", "ocr_confidence_mean": 0.99, "ocr_confidence_min": 0.99},
         ]
         _print_confidence_review_table(joined, threshold=2.0)
         captured = capsys.readouterr().out
@@ -1096,16 +1096,18 @@ class TestAdversarialPersonas:
         store.load()
 
         for week in [1, 2, 3]:
-            store.add_record(LongitudinalRecord(
-                student_id="S001",
-                week=week,
-                question_sn=1,
-                scores={"ensemble_score": 0.5},
-                tier_level=1,
-                tier_label="Developing",
-                ocr_confidence_mean=0.60 + week * 0.05,
-                ocr_confidence_min=0.50,
-            ))
+            store.add_record(
+                LongitudinalRecord(
+                    student_id="S001",
+                    week=week,
+                    question_sn=1,
+                    scores={"ensemble_score": 0.5},
+                    tier_level=1,
+                    tier_label="Developing",
+                    ocr_confidence_mean=0.60 + week * 0.05,
+                    ocr_confidence_min=0.50,
+                )
+            )
         store.save()
 
         store2 = LongitudinalStore(store_path)
@@ -1144,8 +1146,7 @@ class TestAdversarialPersonas:
         from forma.ocr_pipeline import _print_confidence_review_table
 
         joined = [
-            {"student_id": "S001", "q_num": 1, "text": "",
-             "ocr_confidence_mean": 0.99, "ocr_confidence_min": 0.99},
+            {"student_id": "S001", "q_num": 1, "text": "", "ocr_confidence_mean": 0.99, "ocr_confidence_min": 0.99},
         ]
         _print_confidence_review_table(joined, threshold=0.75)
         captured = capsys.readouterr().out
@@ -1285,9 +1286,7 @@ class TestAdversarialPersonas:
 
         trajectories = {}
         for i in range(50):
-            trajectories[f"S{i:03d}"] = [
-                (w, 0.5 + 0.01 * w + 0.005 * i) for w in range(1, 8)
-            ]
+            trajectories[f"S{i:03d}"] = [(w, 0.5 + 0.01 * w + 0.005 * i) for w in range(1, 8)]
         buf = build_ocr_confidence_trend_chart(trajectories)
         assert buf.getvalue()[:4] == b"\x89PNG"
 
@@ -1309,6 +1308,7 @@ class _MockChartGen:
 
     def confidence_histogram(self, scores):
         import io
+
         buf = io.BytesIO()
         # Minimal valid PNG
         buf.write(

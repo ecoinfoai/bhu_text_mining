@@ -13,6 +13,9 @@ Complete reference for all 22 FormA CLI commands, accessible through the unified
 - [forma report student](#forma-report-student)
 - [forma report professor](#forma-report-professor)
 - [forma report batch](#forma-report-batch)
+- [forma report student-longitudinal](#forma-report-student-longitudinal)
+- [forma report student-longitudinal-batch](#forma-report-student-longitudinal-batch)
+- [forma report student-summary](#forma-report-student-summary)
 - [forma report longitudinal](#forma-report-longitudinal)
 - [forma report warning](#forma-report-warning)
 - [forma train risk](#forma-train-risk)
@@ -239,8 +242,10 @@ forma eval [--eval-config <path>] [--config <path>] [--responses <path>] [--outp
 | `--generate-reports` | flag | no | false | Generate student PDF reports after evaluation |
 | `--questions-used` | list (int) | no | None | Exam question serial numbers in q order (e.g., `1 3`) |
 | `--n-calls` | integer | no | 3 | Number of independent LLM calls per evaluation |
+| `--class` | string | no | None | Class section identifier (replaces `{class}` pattern in `week.yaml`) |
+| `--week-config` | path | no | auto-discover | `week.yaml` path (auto-searched in current directory if omitted) |
 
-Either `--eval-config` or all three of `--config`, `--responses`, `--output` must be provided. CLI flags override values from the eval-config YAML.
+Either `--eval-config` or all three of `--config`, `--responses`, `--output` must be provided. When `--class` and `--week-config` are used, paths are resolved from `week.yaml` patterns. CLI flags override values from the eval-config YAML.
 
 **Examples:**
 
@@ -453,6 +458,121 @@ forma report batch --config exam.yaml --join-dir results/anp_w1/ \
 
 ---
 
+## forma report student-longitudinal
+
+Generate an individual student longitudinal analysis PDF report with trajectory charts, percentile rankings, and optional LLM interpretation.
+
+**Synopsis:**
+
+```bash
+forma-report-student --store <path> --student <id> --id-csv <path> --output <path> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--store` | path | yes | -- | Longitudinal store YAML file path |
+| `--student` | string | yes | -- | Student ID |
+| `--id-csv` | path | yes | -- | Student ID-name-class mapping CSV file path |
+| `--output` | path | yes | -- | Output PDF file path |
+| `--week` | string | no | None | (DEPRECATED) Use `--weeks` instead |
+| `--weeks` | list | no | None | Week selection: single N (1..N), range `start:end`, or list `1 3 5` |
+| `--font-path` | path | no | None | Korean font file path (auto-detected if omitted) |
+| `--dpi` | integer | no | 150 | Chart DPI |
+| `--no-llm` | flag | no | false | Generate report with charts only, no LLM calls |
+| `--no-config` | flag | no | false | Skip loading forma.yaml project configuration |
+| `--verbose` | flag | no | false | Enable detailed logging |
+
+**Examples:**
+
+```bash
+# Generate a single student longitudinal report
+forma-report-student --store longitudinal.yaml --student 2024001 \
+                     --id-csv students.csv --output report_2024001.pdf
+
+# With specific weeks and no LLM
+forma-report-student --store longitudinal.yaml --student 2024001 \
+                     --id-csv students.csv --output report_2024001.pdf \
+                     --weeks 1 2 3 --no-llm
+```
+
+---
+
+## forma report student-longitudinal-batch
+
+Generate student longitudinal reports in batch for all students in the longitudinal store.
+
+**Synopsis:**
+
+```bash
+forma-report-student-batch --store <path> --id-csv <path> --output-dir <path> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--store` | path | yes | -- | Longitudinal store YAML file path |
+| `--id-csv` | path | yes | -- | Student ID-name-class mapping CSV file path |
+| `--output-dir` | path | yes | -- | Output PDF directory path |
+| `--week` | string | no | None | (DEPRECATED) Use `--weeks` instead |
+| `--weeks` | list | no | None | Week selection: single N (1..N), range `start:end`, or list `1 3 5` |
+| `--font-path` | path | no | None | Korean font file path (auto-detected if omitted) |
+| `--dpi` | integer | no | 150 | Chart DPI |
+| `--no-llm` | flag | no | false | Generate reports with charts only, no LLM calls |
+| `--no-config` | flag | no | false | Skip loading forma.yaml project configuration |
+| `--verbose` | flag | no | false | Enable detailed logging |
+
+**Examples:**
+
+```bash
+# Generate reports for all students
+forma-report-student-batch --store longitudinal.yaml --id-csv students.csv \
+                           --output-dir student_reports/ --no-llm
+
+# With specific week range
+forma-report-student-batch --store longitudinal.yaml --id-csv students.csv \
+                           --output-dir student_reports/ --weeks 1:4
+```
+
+---
+
+## forma report student-summary
+
+Generate a single PDF with a tabular overview of all students' longitudinal scores, trends, percentiles, and warning levels.
+
+**Synopsis:**
+
+```bash
+forma-report-student-summary --store <path> --id-csv <path> --output <path> [options]
+```
+
+**Arguments:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--store` | path | yes | -- | Longitudinal store YAML file path |
+| `--id-csv` | path | yes | -- | Student ID-name-class mapping CSV file path |
+| `--output` | path | yes | -- | Output PDF file path |
+| `--week` | string | no | None | (DEPRECATED) Use `--weeks` instead |
+| `--weeks` | list | no | None | Week selection: single N (1..N), range `start:end`, or list `1 3 5` |
+| `--course-name` | string | no | `""` | Course name (displayed on cover) |
+| `--font-path` | path | no | None | Korean font file path (auto-detected if omitted) |
+| `--dpi` | integer | no | 150 | Chart DPI |
+| `--no-config` | flag | no | false | Skip loading forma.yaml project configuration |
+| `--verbose` | flag | no | false | Enable detailed logging |
+
+**Examples:**
+
+```bash
+# Generate cohort summary report
+forma-report-student-summary --store longitudinal.yaml --id-csv students.csv \
+                             --output summary.pdf --course-name "해부생리학"
+```
+
+---
+
 ## forma report longitudinal
 
 Generate a longitudinal summary PDF report showing student trajectories, heatmaps, and concept mastery changes over multiple weeks.
@@ -476,6 +596,10 @@ forma report longitudinal --store <path> --class-name <name> --output <path> [op
 | `--no-config` | flag | no | false | Skip loading forma.yaml project configuration |
 | `--model` | path | no | None | Drop risk prediction model file path (.pkl) |
 | `--intervention-log` | path | no | None | Intervention log YAML path (enables pre/post intervention chart) |
+| `--classes` | list | no | None | Filter by class IDs (e.g., `A B C D`); enables per-class heatmaps |
+| `--heatmap-layout` | string | no | `1:N` | Heatmap subplot layout as `rows:cols` (e.g., `1:4`, `2:2`) |
+| `--risk-threshold` | float | no | 0.45 | Persistent risk cutoff threshold |
+| `--mastery-top-n` | integer | no | None | Show only top N concepts in mastery chart (ranked by absolute change) |
 
 **Examples:**
 

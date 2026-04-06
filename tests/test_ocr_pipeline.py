@@ -1,5 +1,6 @@
 # tests/test_ocr_pipeline.py
 """Tests for src/ocr_pipeline.py."""
+
 from __future__ import annotations
 
 import csv
@@ -63,9 +64,7 @@ def ocr_results_yaml(tmp_path):
         },
     ]
     path = tmp_path / "ocr_results.yaml"
-    path.write_text(
-        yaml.dump(data, allow_unicode=True), encoding="utf-8"
-    )
+    path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
     return str(path)
 
 
@@ -79,12 +78,8 @@ def forms_csv_file(tmp_path):
             fieldnames=["student_id", "학번", "이름"],
         )
         writer.writeheader()
-        writer.writerow(
-            {"student_id": "S001", "학번": "2026194001", "이름": "홍길동"}
-        )
-        writer.writerow(
-            {"student_id": "S002", "학번": "2026194002", "이름": "김영희"}
-        )
+        writer.writerow({"student_id": "S001", "학번": "2026194001", "이름": "홍길동"})
+        writer.writerow({"student_id": "S002", "학번": "2026194002", "이름": "김영희"})
     return str(path)
 
 
@@ -163,9 +158,7 @@ class TestRunScanPipeline:
                 crop_coords=[(0, 0, 10, 10), (0, 10, 10, 20)],
             )
 
-    def test_pipeline_with_mocked_ocr_and_qr(
-        self, image_dir, ocr_config_file, tmp_path
-    ):
+    def test_pipeline_with_mocked_ocr_and_qr(self, image_dir, ocr_config_file, tmp_path):
         """Full pipeline with mocked crop, QR, OCR — verifies output."""
         out = str(tmp_path / "results.yaml")
         crop_coords = [(0, 0, 5, 5), (0, 5, 5, 10)]
@@ -199,9 +192,7 @@ class TestRunScanPipeline:
         # Output YAML written
         assert os.path.exists(out)
 
-    def test_unknown_fallback_on_qr_failure(
-        self, image_dir, ocr_config_file, tmp_path
-    ):
+    def test_unknown_fallback_on_qr_failure(self, image_dir, ocr_config_file, tmp_path):
         """QR decode failure → UNKNOWN student_id."""
         out = str(tmp_path / "results.yaml")
         fake_img = str(tmp_path / "fake.jpg")
@@ -383,6 +374,7 @@ class TestReviewNeeded:
 
         # review_needed.yaml should exist
         import os
+
         review_path = os.path.join(os.path.dirname(out), "review_needed.yaml")
         assert os.path.exists(review_path)
         with open(review_path, encoding="utf-8") as f:
@@ -430,6 +422,7 @@ class TestReviewNeeded:
             )
 
         import os
+
         review_path = os.path.join(os.path.dirname(out), "review_needed.yaml")
         assert not os.path.exists(review_path)
 
@@ -440,9 +433,7 @@ class TestReviewNeeded:
 
 
 class TestRunJoinPipeline:
-    def test_join_adds_forms_data(
-        self, ocr_results_yaml, forms_csv_file, tmp_path
-    ):
+    def test_join_adds_forms_data(self, ocr_results_yaml, forms_csv_file, tmp_path):
         out = str(tmp_path / "final.yaml")
         joined = run_join_pipeline(
             ocr_results_path=ocr_results_yaml,
@@ -455,9 +446,7 @@ class TestRunJoinPipeline:
             assert "forms_data" in entry
             assert entry["forms_data"]["이름"] == "홍길동"
 
-    def test_join_missing_student_keeps_entry_without_forms_data(
-        self, ocr_results_yaml, forms_csv_file, tmp_path
-    ):
+    def test_join_missing_student_keeps_entry_without_forms_data(self, ocr_results_yaml, forms_csv_file, tmp_path):
         # Add entry with unknown student_id
         with open(ocr_results_yaml, encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -481,9 +470,7 @@ class TestRunJoinPipeline:
         s999 = next(e for e in joined if e["student_id"] == "S999")
         assert "forms_data" not in s999
 
-    def test_join_output_yaml_written(
-        self, ocr_results_yaml, forms_csv_file, tmp_path
-    ):
+    def test_join_output_yaml_written(self, ocr_results_yaml, forms_csv_file, tmp_path):
         out = str(tmp_path / "final.yaml")
         run_join_pipeline(
             ocr_results_path=ocr_results_yaml,
@@ -527,9 +514,7 @@ class TestRunJoinPipeline:
                 output_path=out,
             )
 
-    def test_join_sheets_success_skips_csv(
-        self, ocr_results_yaml, forms_csv_file, tmp_path
-    ):
+    def test_join_sheets_success_skips_csv(self, ocr_results_yaml, forms_csv_file, tmp_path):
         """When Sheets fetch succeeds, CSV is not used."""
         out = str(tmp_path / "final.yaml")
         mock_records = [
@@ -549,9 +534,7 @@ class TestRunJoinPipeline:
         s001 = [e for e in joined if e["student_id"] == "S001"]
         assert s001[0]["forms_data"]["이름"] == "시트홍"
 
-    def test_join_sheets_failure_falls_back_to_csv(
-        self, ocr_results_yaml, forms_csv_file, tmp_path
-    ):
+    def test_join_sheets_failure_falls_back_to_csv(self, ocr_results_yaml, forms_csv_file, tmp_path):
         """When Sheets fetch fails and CSV is available, use CSV."""
         out = str(tmp_path / "final.yaml")
         with patch(
@@ -567,9 +550,7 @@ class TestRunJoinPipeline:
         s001 = [e for e in joined if e["student_id"] == "S001"]
         assert s001[0]["forms_data"]["이름"] == "홍길동"
 
-    def test_join_manual_mapping_supplements(
-        self, ocr_results_yaml, forms_csv_file, tmp_path
-    ):
+    def test_join_manual_mapping_supplements(self, ocr_results_yaml, forms_csv_file, tmp_path):
         """Manual mapping adds missing students without overwriting."""
         # Add S003 to OCR results
         with open(ocr_results_yaml, encoding="utf-8") as f:
@@ -610,9 +591,7 @@ class TestRunJoinPipeline:
         s001 = next(e for e in joined if e["student_id"] == "S001")
         assert s001["forms_data"]["이름"] == "홍길동"
 
-    def test_join_match_report_output(
-        self, ocr_results_yaml, forms_csv_file, tmp_path, capsys
-    ):
+    def test_join_match_report_output(self, ocr_results_yaml, forms_csv_file, tmp_path, capsys):
         """Match report prints matched/unmatched counts."""
         # Add unmatched student
         with open(ocr_results_yaml, encoding="utf-8") as f:

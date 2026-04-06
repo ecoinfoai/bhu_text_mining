@@ -148,8 +148,21 @@ class TestCrossSectionReport:
             ],
             pairwise_comparisons=[
                 SectionComparison(
-                    "A", "B", 30, 25, 0.7, 0.65, 0.1, 0.12,
-                    "welch_t", 1.8, 0.07, None, 0.45, "small", False,
+                    "A",
+                    "B",
+                    30,
+                    25,
+                    0.7,
+                    0.65,
+                    0.1,
+                    0.12,
+                    "welch_t",
+                    1.8,
+                    0.07,
+                    None,
+                    0.45,
+                    "small",
+                    False,
                 ),
             ],
             concept_mastery_by_section={

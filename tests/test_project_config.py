@@ -548,7 +548,10 @@ class TestMergeConfigs:
 
         # CLI explicitly set dpi=300
         result = merge_configs(
-            cli_ns, project, system, explicit_keys={"dpi"},
+            cli_ns,
+            project,
+            system,
+            explicit_keys={"dpi"},
         )
         assert result["dpi"] == 300  # CLI wins
         assert result["provider"] == "anthropic"  # project wins over system
@@ -636,7 +639,8 @@ class TestApplyProjectConfig:
         (tmp_path / ".git").mkdir()
         config = {"reports": {"dpi": 300}}
         (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8",
+            yaml.dump(config),
+            encoding="utf-8",
         )
         args = argparse.Namespace(no_config=False, dpi=150, font_path=None)
         result = apply_project_config(args, argv=[])
@@ -650,7 +654,8 @@ class TestApplyProjectConfig:
         (tmp_path / ".git").mkdir()
         config = {"reports": {"dpi": 300}}
         (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8",
+            yaml.dump(config),
+            encoding="utf-8",
         )
         args = argparse.Namespace(no_config=False, dpi=200, font_path=None)
         result = apply_project_config(args, argv=["--dpi", "200"])
@@ -664,7 +669,8 @@ class TestApplyProjectConfig:
         (tmp_path / ".git").mkdir()
         config = {"project": {"year": "not_an_int"}}
         (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8",
+            yaml.dump(config),
+            encoding="utf-8",
         )
         args = argparse.Namespace(no_config=False, dpi=150)
         with caplog.at_level(logging.WARNING):
@@ -680,12 +686,16 @@ class TestApplyProjectConfig:
         (tmp_path / ".git").mkdir()
         config = {"reports": {"dpi": 300, "skip_llm": True}}
         (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8",
+            yaml.dump(config),
+            encoding="utf-8",
         )
         args = argparse.Namespace(
-            no_config=False, dpi=100, skip_llm=False, font_path=None,
+            no_config=False,
+            dpi=100,
+            skip_llm=False,
+            font_path=None,
         )
         # --dpi is explicit, --skip-llm is not in argv
         result = apply_project_config(args, argv=["--dpi", "100"])
-        assert result.dpi == 100       # explicit CLI wins
+        assert result.dpi == 100  # explicit CLI wins
         assert result.skip_llm is True  # config wins (not in argv)

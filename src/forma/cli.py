@@ -7,6 +7,7 @@ Usage:
     forma-exam --questions-json '[{"topic":"T","text":"Q","limit":"50"}]' \\
                --num-papers 30 --output exam.pdf
 """
+
 from __future__ import annotations
 
 import argparse
@@ -41,11 +42,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     # num-papers: optional (can come from config YAML)
     parser.add_argument(
-        "--num-papers", type=int, default=None,
+        "--num-papers",
+        type=int,
+        default=None,
         help="Number of exam papers",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="PDF output path",
     )
 
@@ -118,14 +122,16 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.num_papers is None:
         raise SystemExit(
-            "error: --num-papers is required "
-            "(via CLI or config YAML)",
+            "error: --num-papers is required (via CLI or config YAML)",
         )
 
     # Final fallbacks for fields not in YAML or CLI
     _FALLBACKS = {
-        "year": 0, "grade": 0, "semester": 0,
-        "course": "", "week": 0,
+        "year": 0,
+        "grade": 0,
+        "semester": 0,
+        "course": "",
+        "week": 0,
     }
     for attr, default in _FALLBACKS.items():
         if getattr(args, attr) is None:

@@ -98,9 +98,7 @@ class TestConvertJoinFile:
             {"student_id": "S002", "q_num": 1, "text": "답변2"},
         ]
         join_file = tmp_path / "join.yaml"
-        join_file.write_text(
-            yaml.dump(join_data, allow_unicode=True), encoding="utf-8"
-        )
+        join_file.write_text(yaml.dump(join_data, allow_unicode=True), encoding="utf-8")
 
         out_file = tmp_path / "output" / "responses.yaml"
         convert_join_file(str(join_file), str(out_file))
@@ -115,9 +113,7 @@ class TestConvertJoinFile:
         """Output parent directories are created automatically."""
         join_data = [{"student_id": "S001", "q_num": 1, "text": "x"}]
         join_file = tmp_path / "join.yaml"
-        join_file.write_text(
-            yaml.dump(join_data, allow_unicode=True), encoding="utf-8"
-        )
+        join_file.write_text(yaml.dump(join_data, allow_unicode=True), encoding="utf-8")
 
         out_file = tmp_path / "deep" / "nested" / "dir" / "out.yaml"
         convert_join_file(str(join_file), str(out_file))
@@ -130,9 +126,7 @@ class TestConvertJoinFile:
             {"student_id": "S001", "q_num": 2, "text": "ans2"},
         ]
         join_file = tmp_path / "join.yaml"
-        join_file.write_text(
-            yaml.dump(join_data, allow_unicode=True), encoding="utf-8"
-        )
+        join_file.write_text(yaml.dump(join_data, allow_unicode=True), encoding="utf-8")
 
         out_file = tmp_path / "out.yaml"
         convert_join_file(str(join_file), str(out_file), questions_used=[1, 3])

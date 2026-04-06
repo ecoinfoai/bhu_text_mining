@@ -73,10 +73,7 @@ def _write_smtp_config(tmp_path):
     """Write SMTP config YAML."""
     cfg = tmp_path / "smtp.yaml"
     cfg.write_text(
-        'smtp_server: "smtp.gmail.com"\n'
-        "smtp_port: 587\n"
-        'sender_email: "prof@univ.kr"\n'
-        "send_interval_sec: 0.0\n",
+        'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@univ.kr"\nsend_interval_sec: 0.0\n',
         encoding="utf-8",
     )
     return str(cfg)
@@ -107,16 +104,18 @@ def _create_staging(tmp_path, details, class_name="테스트반"):
             zip_path = str(zp)
             zip_size = os.path.getsize(zip_path)
 
-        yaml_details.append({
-            "student_id": sid,
-            "name": name,
-            "email": email,
-            "status": status,
-            "matched_files": [f"{sid}_report.pdf"] if status != "error" else [],
-            "zip_path": zip_path,
-            "zip_size_bytes": zip_size,
-            "message": "" if status == "ready" else "매칭 파일 없음" if status == "error" else "1개 패턴 미매칭",
-        })
+        yaml_details.append(
+            {
+                "student_id": sid,
+                "name": name,
+                "email": email,
+                "status": status,
+                "matched_files": [f"{sid}_report.pdf"] if status != "error" else [],
+                "zip_path": zip_path,
+                "zip_size_bytes": zip_size,
+                "message": "" if status == "ready" else "매칭 파일 없음" if status == "error" else "1개 패턴 미매칭",
+            }
+        )
 
     ready = sum(1 for d in yaml_details if d["status"] == "ready")
     warnings = sum(1 for d in yaml_details if d["status"] == "warning")
@@ -160,9 +159,12 @@ class TestDataPoisoner:
             f.write(rng.randbytes(26 * 1024 * 1024))
 
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "대용량학생", "email": "big@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "대용량학생", "email": "big@u.kr"},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -176,10 +178,13 @@ class TestDataPoisoner:
         """Edge case 2: duplicate student_id in roster raises ValueError (FR-016)."""
         from forma.delivery_prepare import load_roster
 
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "dup001", "name": "홍길동", "email": "a@u.kr"},
-            {"student_id": "dup001", "name": "홍길동복사", "email": "b@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "dup001", "name": "홍길동", "email": "a@u.kr"},
+                {"student_id": "dup001", "name": "홍길동복사", "email": "b@u.kr"},
+            ],
+        )
 
         with pytest.raises(ValueError, match="Duplicate"):
             load_roster(roster_path)
@@ -195,9 +200,12 @@ class TestDataPoisoner:
         report_dir = tmp_path / "reports"
         report_dir.mkdir()
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "빈이메일", "email": ""},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "빈이메일", "email": ""},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -214,9 +222,12 @@ class TestDataPoisoner:
         # Create no files
 
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "파일없음", "email": "s@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "파일없음", "email": "s@u.kr"},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -247,9 +258,12 @@ class TestDataPoisoner:
         """Roster entry without 'name' raises ValueError."""
         from forma.delivery_prepare import load_roster
 
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "email": "s@u.kr"},  # no name
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "email": "s@u.kr"},  # no name
+            ],
+        )
 
         with pytest.raises(ValueError, match="name"):
             load_roster(roster_path)
@@ -266,9 +280,12 @@ class TestDataPoisoner:
         report_dir = tmp_path / "reports"
         report_dir.mkdir()
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "잘못", "email": "no-at-symbol"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "잘못", "email": "no-at-symbol"},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -348,7 +365,10 @@ class TestTemplateInjector:
 
         t = EmailTemplate(subject="Test", body="Hello {student_name}")
         subject, body = render_template(
-            t, student_name="홍길동", student_id="s001", class_name="반",
+            t,
+            student_name="홍길동",
+            student_id="s001",
+            class_name="반",
         )
         assert body == "Hello 홍길동"
 
@@ -383,11 +403,14 @@ class TestSmtpSaboteur:
         """Edge case 5: SMTP disconnect mid-send logs partial results (FR-011)."""
         from forma.delivery_send import send_emails
 
-        staging = _create_staging(tmp_path, [
-            {"student_id": "s001"},
-            {"student_id": "s002"},
-            {"student_id": "s003"},
-        ])
+        staging = _create_staging(
+            tmp_path,
+            [
+                {"student_id": "s001"},
+                {"student_id": "s002"},
+                {"student_id": "s003"},
+            ],
+        )
         template_path = _write_template(tmp_path)
         smtp_config_path = _write_smtp_config(tmp_path)
 
@@ -396,15 +419,23 @@ class TestSmtpSaboteur:
         call_count = 0
 
         class DisconnectSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 2:
                     raise ConnectionError("Connection reset by peer")
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", DisconnectSMTP)
 
@@ -428,11 +459,20 @@ class TestSmtpSaboteur:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class OkSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", OkSMTP)
 
@@ -455,12 +495,20 @@ class TestSmtpSaboteur:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "bad_pw")
 
         class AuthFailSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
             def login(self, u, p):
                 raise smtplib.SMTPAuthenticationError(535, b"Auth failed")
-            def send_message(self, msg): pass
-            def quit(self): pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", AuthFailSMTP)
 
@@ -493,17 +541,28 @@ class TestSmtpSaboteur:
         login_passwords = []
 
         class SpySMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
             def login(self, u, p):
                 login_passwords.append(p)
-            def send_message(self, msg): pass
-            def quit(self): pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", SpySMTP)
 
         send_emails(
-            staging, template_path, smtp_config_path, password="param_pw",
+            staging,
+            template_path,
+            smtp_config_path,
+            password="param_pw",
         )
         assert login_passwords[0] == "param_pw"
 
@@ -525,9 +584,12 @@ class TestStagingCorruptor:
         (report_dir / "s001_report.pdf").write_bytes(b"pdf")
 
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "홍길동", "email": "s@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "홍길동", "email": "s@u.kr"},
+            ],
+        )
         output_dir = tmp_path / "staging"
         output_dir.mkdir()
         (output_dir / "marker.txt").write_text("existing")
@@ -544,15 +606,21 @@ class TestStagingCorruptor:
         (report_dir / "s001_report.pdf").write_bytes(b"pdf")
 
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "홍길동", "email": "s@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "홍길동", "email": "s@u.kr"},
+            ],
+        )
         output_dir = tmp_path / "staging"
         output_dir.mkdir()
         (output_dir / "old_file.txt").write_text("old")
 
         summary = prepare_delivery(
-            manifest_path, roster_path, str(output_dir), force=True,
+            manifest_path,
+            roster_path,
+            str(output_dir),
+            force=True,
         )
         assert summary.ready == 1
 
@@ -574,18 +642,25 @@ class TestStagingCorruptor:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class OkSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", OkSMTP)
 
         # Should handle missing 'details' key gracefully (empty targets)
-        log = send_emails(staging_dir=str(staging),
-                         template_path=template_path,
-                         smtp_config_path=smtp_config_path)
+        log = send_emails(staging_dir=str(staging), template_path=template_path, smtp_config_path=smtp_config_path)
         assert log.total == 0
         assert log.success == 0
 
@@ -623,9 +698,12 @@ class TestUnicodeAttacker:
         (report_dir / "s001_report.pdf").write_bytes(b"pdf")
 
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": "O'Brien-Kim(김)", "email": "s@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": "O'Brien-Kim(김)", "email": "s@u.kr"},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -641,9 +719,12 @@ class TestUnicodeAttacker:
 
         long_name = "가" * 200
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "s001", "name": long_name, "email": "s@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "s001", "name": long_name, "email": "s@u.kr"},
+            ],
+        )
         output_dir = str(tmp_path / "staging")
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -668,8 +749,8 @@ class TestUnicodeAttacker:
             to_email="student@univ.kr",
             subject="[해부생리학 1A] 홍길동 학생 형성평가 결과",
             body="홍길동(2024001) 학생에게,\n\n"
-                 "해부생리학 1A 수업의 형성평가 결과를 첨부합니다.\n"
-                 "확인 후 궁금한 점은 연락 바랍니다.\n\n감사합니다.",
+            "해부생리학 1A 수업의 형성평가 결과를 첨부합니다.\n"
+            "확인 후 궁금한 점은 연락 바랍니다.\n\n감사합니다.",
             zip_path=str(zip_file),
         )
 
@@ -693,9 +774,7 @@ class TestBoundaryPusher:
         for port in (1, 65535):
             cfg_file = tmp_path / f"smtp_{port}.yaml"
             cfg_file.write_text(
-                f'smtp_server: "smtp.test.com"\n'
-                f"smtp_port: {port}\n"
-                f'sender_email: "s@u.kr"\n',
+                f'smtp_server: "smtp.test.com"\nsmtp_port: {port}\nsender_email: "s@u.kr"\n',
                 encoding="utf-8",
             )
             cfg = load_smtp_config(str(cfg_file))
@@ -708,9 +787,7 @@ class TestBoundaryPusher:
         for port in (0, 65536):
             cfg_file = tmp_path / f"smtp_bad_{port}.yaml"
             cfg_file.write_text(
-                f'smtp_server: "smtp.test.com"\n'
-                f"smtp_port: {port}\n"
-                f'sender_email: "s@u.kr"\n',
+                f'smtp_server: "smtp.test.com"\nsmtp_port: {port}\nsender_email: "s@u.kr"\n',
                 encoding="utf-8",
             )
             with pytest.raises(ValueError, match="port"):
@@ -722,10 +799,7 @@ class TestBoundaryPusher:
 
         cfg_file = tmp_path / "smtp_zero.yaml"
         cfg_file.write_text(
-            'smtp_server: "smtp.test.com"\n'
-            "smtp_port: 587\n"
-            'sender_email: "s@u.kr"\n'
-            "send_interval_sec: 0.0\n",
+            'smtp_server: "smtp.test.com"\nsmtp_port: 587\nsender_email: "s@u.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
         cfg = load_smtp_config(str(cfg_file))
@@ -741,9 +815,12 @@ class TestBoundaryPusher:
         (report_dir / "solo_report.pdf").write_bytes(b"pdf")
 
         manifest_path = _write_manifest(tmp_path, report_dir)
-        roster_path = _write_roster(tmp_path, [
-            {"student_id": "solo", "name": "혼자", "email": "solo@u.kr"},
-        ])
+        roster_path = _write_roster(
+            tmp_path,
+            [
+                {"student_id": "solo", "name": "혼자", "email": "solo@u.kr"},
+            ],
+        )
         staging_dir = str(tmp_path / "staging")
         template_path = _write_template(tmp_path)
         smtp_config_path = _write_smtp_config(tmp_path)
@@ -754,11 +831,20 @@ class TestBoundaryPusher:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class OkSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", OkSMTP)
 
@@ -770,20 +856,32 @@ class TestBoundaryPusher:
         """When all students have error status, send_emails sends 0 emails."""
         from forma.delivery_send import send_emails
 
-        staging = _create_staging(tmp_path, [
-            {"student_id": "e001", "status": "error"},
-            {"student_id": "e002", "status": "error"},
-        ])
+        staging = _create_staging(
+            tmp_path,
+            [
+                {"student_id": "e001", "status": "error"},
+                {"student_id": "e002", "status": "error"},
+            ],
+        )
         template_path = _write_template(tmp_path)
         smtp_config_path = _write_smtp_config(tmp_path)
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class OkSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", OkSMTP)
 
@@ -814,15 +912,17 @@ class TestFlagInteractionTester:
             "total": 1,
             "success": 0,
             "failed": 1,
-            "results": [{
-                "student_id": "s001",
-                "email": "s001@u.kr",
-                "status": "failed",
-                "sent_at": "2026-03-11T10:00:01",
-                "attachment": "s001.zip",
-                "size_bytes": 100,
-                "error": "timeout",
-            }],
+            "results": [
+                {
+                    "student_id": "s001",
+                    "email": "s001@u.kr",
+                    "status": "failed",
+                    "sent_at": "2026-03-11T10:00:01",
+                    "attachment": "s001.zip",
+                    "size_bytes": 100,
+                    "error": "timeout",
+                }
+            ],
         }
         with open(os.path.join(staging, "delivery_log.yaml"), "w", encoding="utf-8") as f:
             yaml.dump(log_data, f, allow_unicode=True)
@@ -832,14 +932,20 @@ class TestFlagInteractionTester:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staging,
-                "--template", template_path,
-                "--smtp-config", smtp_config_path,
-                "--retry-failed",
-                "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staging,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_config_path,
+                    "--retry-failed",
+                    "--force",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_dry_run_plus_force_allowed(self, tmp_path, monkeypatch):
@@ -856,15 +962,17 @@ class TestFlagInteractionTester:
             "total": 1,
             "success": 1,
             "failed": 0,
-            "results": [{
-                "student_id": "s001",
-                "email": "s001@u.kr",
-                "status": "success",
-                "sent_at": "2026-03-11T10:00:01",
-                "attachment": "s001.zip",
-                "size_bytes": 100,
-                "error": "",
-            }],
+            "results": [
+                {
+                    "student_id": "s001",
+                    "email": "s001@u.kr",
+                    "status": "success",
+                    "sent_at": "2026-03-11T10:00:01",
+                    "attachment": "s001.zip",
+                    "size_bytes": 100,
+                    "error": "",
+                }
+            ],
         }
         with open(os.path.join(staging, "delivery_log.yaml"), "w", encoding="utf-8") as f:
             yaml.dump(log_data, f, allow_unicode=True)
@@ -875,14 +983,20 @@ class TestFlagInteractionTester:
 
         # dry-run + force should work (dry-run takes priority)
         try:
-            main([
-                "--no-config", "send",
-                "--staged", staging,
-                "--template", template_path,
-                "--smtp-config", smtp_config_path,
-                "--dry-run",
-                "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staging,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_config_path,
+                    "--dry-run",
+                    "--force",
+                ]
+            )
         except SystemExit as e:
             assert e.code in (0, None)
 

@@ -9,9 +9,7 @@ from scipy.optimize import linear_sum_assignment
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def display_comparison_results(
-    comparison_results: dict[str, dict[str, list]]
-) -> pd.DataFrame:
+def display_comparison_results(comparison_results: dict[str, dict[str, list]]) -> pd.DataFrame:
     """
     Create a summary DataFrame of knowledge graph comparisons.
 
@@ -57,7 +55,6 @@ def display_comparison_results(
     return results_df
 
 
-
 # ---------------------------------------------------------------------------
 # New metrics for multi-layer evaluation framework (Phase 3 additions)
 # Existing functions above are unchanged.
@@ -99,12 +96,8 @@ def align_graph_nodes(
         return {n: None for n in stu_nodes}
 
     if embeddings is not None:
-        ref_embs = np.array(
-            [embeddings.get(n, np.zeros(1)) for n in ref_nodes]
-        )
-        stu_embs = np.array(
-            [embeddings.get(n, np.zeros(1)) for n in stu_nodes]
-        )
+        ref_embs = np.array([embeddings.get(n, np.zeros(1)) for n in ref_nodes])
+        stu_embs = np.array([embeddings.get(n, np.zeros(1)) for n in stu_nodes])
         sim_matrix = cosine_similarity(stu_embs, ref_embs)
     else:
         sim_matrix = np.zeros((len(stu_nodes), len(ref_nodes)))
@@ -216,10 +209,7 @@ def compute_centrality_deviation(
     ref_centrality = nx.degree_centrality(G_ref)
     stu_centrality = nx.degree_centrality(G_student)
 
-    deviations = [
-        abs(ref_centrality[n] - stu_centrality.get(n, 0.0))
-        for n in ref_nodes
-    ]
+    deviations = [abs(ref_centrality[n] - stu_centrality.get(n, 0.0)) for n in ref_nodes]
     return float(np.mean(deviations))
 
 

@@ -551,7 +551,10 @@ class TestLoadAllStudentData:
     """T004: Integration tests for load_all_student_data()."""
 
     def test_returns_tuple_of_students_and_distributions(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """load_all_student_data returns (list[StudentReportData], ClassDistributions)."""
         from forma.report_data_loader import (
@@ -561,7 +564,9 @@ class TestLoadAllStudentData:
         )
 
         students, dists = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         assert isinstance(students, list)
         assert len(students) > 0
@@ -569,13 +574,18 @@ class TestLoadAllStudentData:
         assert isinstance(dists, ClassDistributions)
 
     def test_student_metadata_from_forms_data(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """forms_data fields map to real_name, student_number, class_name."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         assert s015.real_name == "이유정"
@@ -583,13 +593,18 @@ class TestLoadAllStudentData:
         assert s015.class_name == "A반"
 
     def test_config_metadata_propagated(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """course_name, chapter_name, week_num from config YAML are set."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s = students[0]
         assert s.course_name == "인체구조와기능"
@@ -597,13 +612,18 @@ class TestLoadAllStudentData:
         assert s.week_num == 1
 
     def test_student_id_question_sn_composite_key(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """Data from multiple YAML files is merged by (student_id, question_sn)."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -634,26 +654,36 @@ class TestLoadAllStudentData:
         assert q1.tier_label == "미달"
 
     def test_student_answer_from_anp_final(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """student_answer is populated from anp_final 'text' field."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
         assert "생체항상성" in q1.student_answer
 
     def test_question_text_and_model_answer_from_config(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """question_text and model_answer come from config YAML."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -661,13 +691,18 @@ class TestLoadAllStudentData:
         assert "항상성" in q1.model_answer
 
     def test_component_scores_merged(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """component_scores dict from ensemble data is preserved."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -675,13 +710,18 @@ class TestLoadAllStudentData:
         assert q1.component_scores["concept_coverage"] == pytest.approx(0.17)
 
     def test_multiple_students_loaded(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """Both S015 and S039 appear in the loaded students list."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         ids = {s.student_id for s in students}
         assert "S015" in ids
@@ -697,55 +737,71 @@ class TestComputeClassDistributions:
     """T004: Tests for compute_class_distributions()."""
 
     def test_overall_ensemble_aggregates_all_questions(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """overall_ensemble contains ensemble scores from all students/questions."""
         from forma.report_data_loader import load_all_student_data
 
         students, dists = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         # S015 has Q1=0.26 and Q3=0.19; S039 has Q1=0.75
         assert len(dists.overall_ensemble) >= 3
-        assert pytest.approx(0.26) in [
-            pytest.approx(v) for v in dists.overall_ensemble
-        ]
-        assert pytest.approx(0.75) in [
-            pytest.approx(v) for v in dists.overall_ensemble
-        ]
+        assert pytest.approx(0.26) in [pytest.approx(v) for v in dists.overall_ensemble]
+        assert pytest.approx(0.75) in [pytest.approx(v) for v in dists.overall_ensemble]
 
     def test_ensemble_scores_per_question(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """ensemble_scores dict is keyed by question_sn with score lists."""
         from forma.report_data_loader import load_all_student_data
 
         _, dists = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         assert 1 in dists.ensemble_scores
         # Q1 has scores for both S015 (0.26) and S039 (0.75)
         assert len(dists.ensemble_scores[1]) >= 2
 
     def test_concept_coverages_per_question(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """concept_coverages dict is keyed by question_sn."""
         from forma.report_data_loader import load_all_student_data
 
         _, dists = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         assert 1 in dists.concept_coverages
 
     def test_component_scores_per_question(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """component_scores has nested dict {qsn: {component_name: [scores]}}."""
         from forma.report_data_loader import load_all_student_data
 
         _, dists = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         assert 1 in dists.component_scores
         assert "concept_coverage" in dists.component_scores[1]
@@ -784,12 +840,8 @@ class TestComputeClassDistributions:
 
         assert isinstance(dists, ClassDistributions)
         assert len(dists.ensemble_scores[1]) == 2
-        assert pytest.approx(0.5) in [
-            pytest.approx(v) for v in dists.ensemble_scores[1]
-        ]
-        assert pytest.approx(0.8) in [
-            pytest.approx(v) for v in dists.ensemble_scores[1]
-        ]
+        assert pytest.approx(0.5) in [pytest.approx(v) for v in dists.ensemble_scores[1]]
+        assert pytest.approx(0.8) in [pytest.approx(v) for v in dists.ensemble_scores[1]]
         assert len(dists.overall_ensemble) == 2
         assert len(dists.concept_coverages[1]) == 2
         assert len(dists.llm_scores[1]) == 2
@@ -851,7 +903,9 @@ class TestMissingFormsData:
         _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s099 = next(s for s in students if s.student_id == "S099")
         assert s099.real_name == "S099"
@@ -925,7 +979,9 @@ class TestPartialQuestions:
         _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q3 = next(q for q in s015.questions if q.question_sn == 3)
@@ -991,7 +1047,9 @@ class TestMissingResultFiles:
         _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -1054,7 +1112,9 @@ class TestMissingResultFiles:
         _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -1104,7 +1164,9 @@ class TestMissingResultFiles:
         _write_yaml(edir / "res_lvl3" / "statistical_results.yaml", {"students": []})
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         # S099 should still appear despite not being in anp_final
         assert len(students) >= 1
@@ -1227,7 +1289,9 @@ class TestLoadGraphComparisonData:
         _write_yaml(graph_path, graph_data)
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -1292,7 +1356,9 @@ class TestLoadGraphComparisonData:
 
         # Must not raise; edges must be empty
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -1377,7 +1443,9 @@ class TestLoadGraphComparisonData:
         _write_yaml(graph_path, graph_data)
 
         students, _ = load_all_student_data(
-            str(final_path), str(config_path), str(edir),
+            str(final_path),
+            str(config_path),
+            str(edir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -1409,13 +1477,18 @@ class TestConceptCoverageFromConceptResults:
     """T005: concept_coverage should come from concept data when available."""
 
     def test_concept_coverage_computed_from_concepts(
-        self, final_yaml, config_yaml, eval_dir,
+        self,
+        final_yaml,
+        config_yaml,
+        eval_dir,
     ):
         """concept_coverage reflects the ratio of is_present concepts."""
         from forma.report_data_loader import load_all_student_data
 
         students, _ = load_all_student_data(
-            str(final_yaml), str(config_yaml), str(eval_dir),
+            str(final_yaml),
+            str(config_yaml),
+            str(eval_dir),
         )
         s015 = next(s for s in students if s.student_id == "S015")
         q1 = next(q for q in s015.questions if q.question_sn == 1)
@@ -1472,14 +1545,26 @@ class TestWeeklyDelta:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.50}, tier_level=1, tier_label="D",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=1,
-            scores={"ensemble_score": 0.70}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.50},
+                tier_level=1,
+                tier_label="D",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=1,
+                scores={"ensemble_score": 0.70},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         delta = compute_weekly_delta("s001", 2, 0.70, store, "ensemble_score")
         assert isinstance(delta, WeeklyDelta)
@@ -1496,14 +1581,26 @@ class TestWeeklyDelta:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.80}, tier_level=3, tier_label="A",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=1,
-            scores={"ensemble_score": 0.60}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.80},
+                tier_level=3,
+                tier_label="A",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=1,
+                scores={"ensemble_score": 0.60},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         delta = compute_weekly_delta("s001", 2, 0.60, store, "ensemble_score")
         assert delta.delta_symbol == "↓"
@@ -1517,14 +1614,26 @@ class TestWeeklyDelta:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.70}, tier_level=2, tier_label="P",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=1,
-            scores={"ensemble_score": 0.71}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.70},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=1,
+                scores={"ensemble_score": 0.71},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         delta = compute_weekly_delta("s001", 2, 0.71, store, "ensemble_score")
         assert delta.delta_symbol == "─"
@@ -1537,10 +1646,16 @@ class TestWeeklyDelta:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"ensemble_score": 0.60}, tier_level=2, tier_label="P",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"ensemble_score": 0.60},
+                tier_level=2,
+                tier_label="P",
+            )
+        )
 
         delta = compute_weekly_delta("s001", 1, 0.60, store, "ensemble_score")
         assert delta.delta_symbol == "NEW"
@@ -1555,15 +1670,27 @@ class TestWeeklyDelta:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"score": 0.40}, tier_level=1, tier_label="B",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"score": 0.40},
+                tier_level=1,
+                tier_label="B",
+            )
+        )
         # Week 2 skipped
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=5, question_sn=1,
-            scores={"score": 0.80}, tier_level=3, tier_label="A",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=5,
+                question_sn=1,
+                scores={"score": 0.80},
+                tier_level=3,
+                tier_label="A",
+            )
+        )
 
         delta = compute_weekly_delta("s001", 5, 0.80, store, "score")
         assert delta.previous_score == 0.40
@@ -1577,14 +1704,26 @@ class TestWeeklyDelta:
 
         path = str(tmp_path / "store.yaml")
         store = LongitudinalStore(path)
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=1, question_sn=1,
-            scores={"score": 0.50}, tier_level=1, tier_label="D",
-        ))
-        store.add_record(LongitudinalRecord(
-            student_id="s001", week=2, question_sn=1,
-            scores={"score": 0.52}, tier_level=1, tier_label="D",
-        ))
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=1,
+                question_sn=1,
+                scores={"score": 0.50},
+                tier_level=1,
+                tier_label="D",
+            )
+        )
+        store.add_record(
+            LongitudinalRecord(
+                student_id="s001",
+                week=2,
+                question_sn=1,
+                scores={"score": 0.52},
+                tier_level=1,
+                tier_label="D",
+            )
+        )
 
         delta = compute_weekly_delta("s001", 2, 0.52, store, "score")
         assert delta.delta_symbol == "─"

@@ -459,9 +459,7 @@ class TestEdgeCases:
         assert len(causal) == 1
 
         # Custom keyword including "custom_relation" → should be INCLUSION_ERROR
-        results2 = classify_misconceptions(
-            graph_result, [], inclusion_keywords=["custom_relation"]
-        )
+        results2 = classify_misconceptions(graph_result, [], inclusion_keywords=["custom_relation"])
         inclusion = [r for r in results2 if r.pattern == MisconceptionPattern.INCLUSION_ERROR]
         assert len(inclusion) == 1
         causal2 = [r for r in results2 if r.pattern == MisconceptionPattern.CAUSAL_REVERSAL]

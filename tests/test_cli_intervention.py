@@ -6,6 +6,7 @@ T013: Tests for `forma-intervention update` (--id, outcome validation 개선/유
 
 Covers FR-004, FR-005, FR-006, FR-035.
 """
+
 from __future__ import annotations
 
 import os
@@ -27,13 +28,19 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "add",
-            "--store", "log.yaml",
-            "--student", "s001",
-            "--week", "2",
-            "--type", "면담",
-        ])
+        args = parser.parse_args(
+            [
+                "add",
+                "--store",
+                "log.yaml",
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+            ]
+        )
         assert args.subcommand == "add"
         assert args.store == "log.yaml"
         assert args.student == "s001"
@@ -45,16 +52,25 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "add",
-            "--store", "log.yaml",
-            "--student", "s001",
-            "--week", "2",
-            "--type", "면담",
-            "--description", "학습 상담",
-            "--recorded-by", "prof_kim",
-            "--follow-up-week", "4",
-        ])
+        args = parser.parse_args(
+            [
+                "add",
+                "--store",
+                "log.yaml",
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+                "--description",
+                "학습 상담",
+                "--recorded-by",
+                "prof_kim",
+                "--follow-up-week",
+                "4",
+            ]
+        )
         assert args.description == "학습 상담"
         assert args.recorded_by == "prof_kim"
         assert args.follow_up_week == 4
@@ -64,10 +80,13 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "list",
-            "--store", "log.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "list",
+                "--store",
+                "log.yaml",
+            ]
+        )
         assert args.subcommand == "list"
         assert args.store == "log.yaml"
 
@@ -76,12 +95,17 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "list",
-            "--store", "log.yaml",
-            "--student", "s001",
-            "--week", "3",
-        ])
+        args = parser.parse_args(
+            [
+                "list",
+                "--store",
+                "log.yaml",
+                "--student",
+                "s001",
+                "--week",
+                "3",
+            ]
+        )
         assert args.student == "s001"
         assert args.week == 3
 
@@ -90,12 +114,17 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "update",
-            "--store", "log.yaml",
-            "--id", "1",
-            "--outcome", "개선",
-        ])
+        args = parser.parse_args(
+            [
+                "update",
+                "--store",
+                "log.yaml",
+                "--id",
+                "1",
+                "--outcome",
+                "개선",
+            ]
+        )
         assert args.subcommand == "update"
         assert args.id == 1
         assert args.outcome == "개선"
@@ -105,14 +134,20 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--no-config",
-            "add",
-            "--store", "log.yaml",
-            "--student", "s001",
-            "--week", "2",
-            "--type", "면담",
-        ])
+        args = parser.parse_args(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                "log.yaml",
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+            ]
+        )
         assert args.no_config is True
 
     def test_verbose_flag(self):
@@ -120,14 +155,20 @@ class TestCliInterventionParser:
         from forma.cli_intervention import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "--verbose",
-            "add",
-            "--store", "log.yaml",
-            "--student", "s001",
-            "--week", "2",
-            "--type", "면담",
-        ])
+        args = parser.parse_args(
+            [
+                "--verbose",
+                "add",
+                "--store",
+                "log.yaml",
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+            ]
+        )
         assert args.verbose is True
 
 
@@ -144,15 +185,22 @@ class TestCliInterventionAdd:
         store_path = str(tmp_path / "intervention_log.yaml")
         from forma.cli_intervention import main
 
-        main([
-            "--no-config",
-            "add",
-            "--store", store_path,
-            "--student", "s001",
-            "--week", "2",
-            "--type", "면담",
-            "--description", "학습 상담",
-        ])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+                "--description",
+                "학습 상담",
+            ]
+        )
 
         captured = capsys.readouterr()
         assert "1" in captured.out  # ID should be printed
@@ -162,14 +210,20 @@ class TestCliInterventionAdd:
         store_path = str(tmp_path / "intervention_log.yaml")
         from forma.cli_intervention import main
 
-        main([
-            "--no-config",
-            "add",
-            "--store", store_path,
-            "--student", "s001",
-            "--week", "2",
-            "--type", "면담",
-        ])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+            ]
+        )
         assert os.path.exists(store_path)
 
     def test_add_invalid_type_exits(self, tmp_path):
@@ -178,14 +232,20 @@ class TestCliInterventionAdd:
         from forma.cli_intervention import main
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "add",
-                "--store", store_path,
-                "--student", "s001",
-                "--week", "2",
-                "--type", "invalid_type",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "add",
+                    "--store",
+                    store_path,
+                    "--student",
+                    "s001",
+                    "--week",
+                    "2",
+                    "--type",
+                    "invalid_type",
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_add_all_five_types(self, tmp_path, capsys):
@@ -195,14 +255,20 @@ class TestCliInterventionAdd:
         store_path = str(tmp_path / "intervention_log.yaml")
         types = ["면담", "보충학습", "과제부여", "멘토링", "기타"]
         for i, t in enumerate(types, 1):
-            main([
-                "--no-config",
-                "add",
-                "--store", store_path,
-                "--student", f"s{i:03d}",
-                "--week", "2",
-                "--type", t,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "add",
+                    "--store",
+                    store_path,
+                    "--student",
+                    f"s{i:03d}",
+                    "--week",
+                    "2",
+                    "--type",
+                    t,
+                ]
+            )
 
         captured = capsys.readouterr()
         # All should succeed (5 IDs printed)
@@ -214,16 +280,34 @@ class TestCliInterventionAdd:
         from forma.cli_intervention import main
 
         store_path = str(tmp_path / "intervention_log.yaml")
-        main([
-            "--no-config", "add",
-            "--store", store_path,
-            "--student", "s001", "--week", "2", "--type", "면담",
-        ])
-        main([
-            "--no-config", "add",
-            "--store", store_path,
-            "--student", "s002", "--week", "3", "--type", "보충학습",
-        ])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+            ]
+        )
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s002",
+                "--week",
+                "3",
+                "--type",
+                "보충학습",
+            ]
+        )
 
         # Verify file has 2 records
         with open(store_path, encoding="utf-8") as f:
@@ -235,12 +319,22 @@ class TestCliInterventionAdd:
         from forma.cli_intervention import main
 
         store_path = str(tmp_path / "intervention_log.yaml")
-        main([
-            "--no-config", "add",
-            "--store", store_path,
-            "--student", "s001", "--week", "2", "--type", "면담",
-            "--follow-up-week", "4",
-        ])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+                "--follow-up-week",
+                "4",
+            ]
+        )
 
         with open(store_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -252,11 +346,20 @@ class TestCliInterventionAdd:
 
         store_path = str(tmp_path / "intervention_log.yaml")
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "add",
-                "--store", store_path,
-                "--student", "s001", "--week", "-1", "--type", "면담",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "add",
+                    "--store",
+                    store_path,
+                    "--student",
+                    "s001",
+                    "--week",
+                    "-1",
+                    "--type",
+                    "면담",
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_add_zero_week_exits(self, tmp_path):
@@ -265,11 +368,20 @@ class TestCliInterventionAdd:
 
         store_path = str(tmp_path / "intervention_log.yaml")
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "add",
-                "--store", store_path,
-                "--student", "s001", "--week", "0", "--type", "면담",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "add",
+                    "--store",
+                    store_path,
+                    "--student",
+                    "s001",
+                    "--week",
+                    "0",
+                    "--type",
+                    "면담",
+                ]
+            )
         assert exc_info.value.code != 0
 
 
@@ -285,15 +397,54 @@ class TestCliInterventionList:
         """Add several records for testing."""
         from forma.cli_intervention import main
 
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s001", "--week", "2", "--type", "면담",
-              "--description", "상담"])
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s001", "--week", "3", "--type", "보충학습",
-              "--description", "보충"])
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s002", "--week", "2", "--type", "과제부여",
-              "--description", "과제"])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+                "--description",
+                "상담",
+            ]
+        )
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "3",
+                "--type",
+                "보충학습",
+                "--description",
+                "보충",
+            ]
+        )
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s002",
+                "--week",
+                "2",
+                "--type",
+                "과제부여",
+                "--description",
+                "과제",
+            ]
+        )
 
     def test_list_all(self, tmp_path, capsys):
         """list with no filters shows all records."""
@@ -364,8 +515,7 @@ class TestCliInterventionList:
 
         from forma.cli_intervention import main
 
-        main(["--no-config", "list", "--store", store_path,
-              "--student", "s001", "--week", "2"])
+        main(["--no-config", "list", "--store", store_path, "--student", "s001", "--week", "2"])
 
         captured = capsys.readouterr()
         assert "s001" in captured.out
@@ -399,15 +549,54 @@ class TestCliInterventionList:
         from forma.cli_intervention import main
 
         # Add in non-chronological order
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s001", "--week", "4", "--type", "기타",
-              "--description", "week4"])
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s001", "--week", "1", "--type", "면담",
-              "--description", "week1"])
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s001", "--week", "3", "--type", "보충학습",
-              "--description", "week3"])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "4",
+                "--type",
+                "기타",
+                "--description",
+                "week4",
+            ]
+        )
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "1",
+                "--type",
+                "면담",
+                "--description",
+                "week1",
+            ]
+        )
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "3",
+                "--type",
+                "보충학습",
+                "--description",
+                "week3",
+            ]
+        )
 
         main(["--no-config", "list", "--store", store_path])
 
@@ -418,9 +607,9 @@ class TestCliInterventionList:
         data_lines = [ln for ln in lines if "면담" in ln or "보충학습" in ln or "기타" in ln]
         assert len(data_lines) == 3
         # First line should be week 1, last should be week 4
-        assert "면담" in data_lines[0]    # week 1
+        assert "면담" in data_lines[0]  # week 1
         assert "보충학습" in data_lines[1]  # week 3
-        assert "기타" in data_lines[2]    # week 4
+        assert "기타" in data_lines[2]  # week 4
 
 
 # ---------------------------------------------------------------------------
@@ -435,8 +624,7 @@ class TestCliInterventionUpdate:
         """Add a single record and return."""
         from forma.cli_intervention import main
 
-        main(["--no-config", "add", "--store", store_path,
-              "--student", "s001", "--week", "2", "--type", "면담"])
+        main(["--no-config", "add", "--store", store_path, "--student", "s001", "--week", "2", "--type", "면담"])
 
     def test_update_success(self, tmp_path, capsys):
         """update with valid outcome prints success."""
@@ -445,12 +633,18 @@ class TestCliInterventionUpdate:
 
         from forma.cli_intervention import main
 
-        main([
-            "--no-config", "update",
-            "--store", store_path,
-            "--id", "1",
-            "--outcome", "개선",
-        ])
+        main(
+            [
+                "--no-config",
+                "update",
+                "--store",
+                store_path,
+                "--id",
+                "1",
+                "--outcome",
+                "개선",
+            ]
+        )
 
         captured = capsys.readouterr()
         # Should indicate success
@@ -463,12 +657,18 @@ class TestCliInterventionUpdate:
 
         from forma.cli_intervention import main
 
-        main([
-            "--no-config", "update",
-            "--store", store_path,
-            "--id", "1",
-            "--outcome", "유지",
-        ])
+        main(
+            [
+                "--no-config",
+                "update",
+                "--store",
+                store_path,
+                "--id",
+                "1",
+                "--outcome",
+                "유지",
+            ]
+        )
 
         with open(store_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -481,17 +681,24 @@ class TestCliInterventionUpdate:
         store_path = str(tmp_path / "intervention_log.yaml")
         # Add 3 records
         for i in range(3):
-            main(["--no-config", "add", "--store", store_path,
-                  "--student", f"s{i:03d}", "--week", "2", "--type", "면담"])
+            main(
+                ["--no-config", "add", "--store", store_path, "--student", f"s{i:03d}", "--week", "2", "--type", "면담"]
+            )
 
         valid_outcomes = ["개선", "유지", "악화"]
         for i, outcome in enumerate(valid_outcomes, 1):
-            main([
-                "--no-config", "update",
-                "--store", store_path,
-                "--id", str(i),
-                "--outcome", outcome,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "update",
+                    "--store",
+                    store_path,
+                    "--id",
+                    str(i),
+                    "--outcome",
+                    outcome,
+                ]
+            )
 
         # Verify all outcomes persisted
         with open(store_path, encoding="utf-8") as f:
@@ -507,12 +714,18 @@ class TestCliInterventionUpdate:
         from forma.cli_intervention import main
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "update",
-                "--store", store_path,
-                "--id", "1",
-                "--outcome", "개선됨",  # invalid — must be exactly 개선/유지/악화
-            ])
+            main(
+                [
+                    "--no-config",
+                    "update",
+                    "--store",
+                    store_path,
+                    "--id",
+                    "1",
+                    "--outcome",
+                    "개선됨",  # invalid — must be exactly 개선/유지/악화
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_update_nonexistent_id_exits(self, tmp_path):
@@ -523,12 +736,18 @@ class TestCliInterventionUpdate:
         from forma.cli_intervention import main
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "update",
-                "--store", store_path,
-                "--id", "999",
-                "--outcome", "개선",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "update",
+                    "--store",
+                    store_path,
+                    "--id",
+                    "999",
+                    "--outcome",
+                    "개선",
+                ]
+            )
         assert exc_info.value.code != 0
 
     def test_update_nonexistent_log_exits(self, tmp_path):
@@ -536,12 +755,18 @@ class TestCliInterventionUpdate:
         from forma.cli_intervention import main
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "update",
-                "--store", str(tmp_path / "missing.yaml"),
-                "--id", "1",
-                "--outcome", "개선",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "update",
+                    "--store",
+                    str(tmp_path / "missing.yaml"),
+                    "--id",
+                    "1",
+                    "--outcome",
+                    "개선",
+                ]
+            )
         assert exc_info.value.code != 0
 
 
@@ -558,12 +783,22 @@ class TestCliInterventionEdgeCases:
         store_path = str(tmp_path / "intervention_log.yaml")
         from forma.cli_intervention import main
 
-        main([
-            "--no-config", "add",
-            "--store", store_path,
-            "--student", "s001", "--week", "2", "--type", "면담",
-            "--description", "학습 동기 부여 및 진로 상담 진행",
-        ])
+        main(
+            [
+                "--no-config",
+                "add",
+                "--store",
+                store_path,
+                "--student",
+                "s001",
+                "--week",
+                "2",
+                "--type",
+                "면담",
+                "--description",
+                "학습 동기 부여 및 진로 상담 진행",
+            ]
+        )
 
         main(["--no-config", "list", "--store", store_path])
         captured = capsys.readouterr()

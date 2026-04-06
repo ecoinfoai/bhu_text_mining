@@ -18,8 +18,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 # C0 control characters illegal in XML (keep \t=0x09, \n=0x0A, \r=0x0D)
 # plus zero-width Unicode characters that can cause rendering issues in PDFs
 _XML_ILLEGAL_CTRL = re.compile(
-    r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f'
-    r'\u200b\u200c\u200d\u200e\u200f\ufeff]'
+    r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f"
+    r"\u200b\u200c\u200d\u200e\u200f\ufeff]"
 )
 
 
@@ -59,9 +59,7 @@ def find_korean_font() -> str:
     for path in search_paths:
         if os.path.exists(path):
             return path
-    raise FileNotFoundError(
-        "Korean font not found. Install NanumGothic or specify font_path."
-    )
+    raise FileNotFoundError("Korean font not found. Install NanumGothic or specify font_path.")
 
 
 def strip_invisible(text: str) -> str:
@@ -73,7 +71,7 @@ def strip_invisible(text: str) -> str:
     This is the shared stripping logic used by both :func:`esc` (for XML)
     and ``delivery_prepare.sanitize_filename`` (for filenames).
     """
-    return _XML_ILLEGAL_CTRL.sub('', str(text))
+    return _XML_ILLEGAL_CTRL.sub("", str(text))
 
 
 def esc(text: str) -> str:

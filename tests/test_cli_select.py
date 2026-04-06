@@ -65,6 +65,7 @@ def _write_week_yaml(path: Path, source_name: str = "FormativeTest.yaml", **over
 # T024: Extract correct questions by sn
 # ---------------------------------------------------------------------------
 
+
 class TestExtractQuestions:
     """Test _extract_questions() filters correctly by sn."""
 
@@ -85,6 +86,7 @@ class TestExtractQuestions:
 # ---------------------------------------------------------------------------
 # T025: Write questions.yaml with metadata
 # ---------------------------------------------------------------------------
+
 
 class TestWriteQuestionsYaml:
     """Test _write_questions_yaml() output."""
@@ -122,6 +124,7 @@ class TestWriteQuestionsYaml:
 # T026: Generates exam PDF when exam_output specified
 # ---------------------------------------------------------------------------
 
+
 class TestGenerateExamPdf:
     """Test PDF generation via ExamPDFGenerator."""
 
@@ -148,6 +151,7 @@ class TestGenerateExamPdf:
 # T027: Exit code 3 on invalid sn reference
 # ---------------------------------------------------------------------------
 
+
 class TestInvalidSn:
     """Test error on invalid sn reference."""
 
@@ -163,6 +167,7 @@ class TestInvalidSn:
 # ---------------------------------------------------------------------------
 # T028: Exit code 1 when missing select section
 # ---------------------------------------------------------------------------
+
 
 class TestMissingSelectSection:
     """Test error when week.yaml has no select section."""
@@ -182,6 +187,7 @@ class TestMissingSelectSection:
 # T028a: Exit code 2 when source file not found
 # ---------------------------------------------------------------------------
 
+
 class TestSourceNotFound:
     """Test error when source FormativeTest file not found."""
 
@@ -198,6 +204,7 @@ class TestSourceNotFound:
 # ---------------------------------------------------------------------------
 # T028b: Exit code 4 on PDF generation failure
 # ---------------------------------------------------------------------------
+
 
 class TestPdfGenerationFailure:
     """Test exit code 4 on PDF generation failure."""

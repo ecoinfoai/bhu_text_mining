@@ -304,9 +304,7 @@ class TestComputeClassHubGap:
 
     def test_top_k_limit_class(self):
         """top_k=2 returns at most 2 entries even with many master nodes."""
-        master_edges = [
-            make_edge("H", "rel", f"N{i}") for i in range(10)
-        ]
+        master_edges = [make_edge("H", "rel", f"N{i}") for i in range(10)]
         all_student_edges = {"s1": []}
 
         result = compute_class_hub_gap(master_edges, all_student_edges, top_k=2)

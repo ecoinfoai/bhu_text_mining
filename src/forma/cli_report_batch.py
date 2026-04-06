@@ -1,4 +1,5 @@
 """Batch multi-class report generator CLI."""
+
 from __future__ import annotations
 
 import argparse
@@ -35,57 +36,82 @@ def _load_exam_config(config_path: str) -> dict:
 
 def create_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for forma-report-batch."""
-    parser = argparse.ArgumentParser(
-        description="Generate PDF reports for multiple class sections."
-    )
+    parser = argparse.ArgumentParser(description="Generate PDF reports for multiple class sections.")
     parser.add_argument("--config", required=True, help="Exam YAML config path")
     parser.add_argument(
-        "--join-dir", required=True, dest="join_dir",
+        "--join-dir",
+        required=True,
+        dest="join_dir",
         help="Directory with final YAML files",
     )
     parser.add_argument(
-        "--join-pattern", required=True, dest="join_pattern",
+        "--join-pattern",
+        required=True,
+        dest="join_pattern",
         help="Pattern with {class} placeholder",
     )
     parser.add_argument(
-        "--eval-pattern", required=True, dest="eval_pattern",
+        "--eval-pattern",
+        required=True,
+        dest="eval_pattern",
         help="Eval dir pattern with {class} placeholder",
     )
     parser.add_argument(
-        "--output-dir", required=True, dest="output_dir",
+        "--output-dir",
+        required=True,
+        dest="output_dir",
         help="Root output directory",
     )
     parser.add_argument(
-        "--classes", required=True, nargs="+",
+        "--classes",
+        required=True,
+        nargs="+",
         help="Class identifiers",
     )
     parser.add_argument(
-        "--aggregate", action="store_true", default=False,
+        "--aggregate",
+        action="store_true",
+        default=False,
         help="Generate merged multi-class professor report",
     )
     parser.add_argument(
-        "--no-individual", action="store_true", default=False, dest="no_individual",
+        "--no-individual",
+        action="store_true",
+        default=False,
+        dest="no_individual",
         help="Skip student PDFs",
     )
     parser.add_argument(
-        "--skip-llm", action="store_true", default=False, dest="skip_llm",
+        "--skip-llm",
+        action="store_true",
+        default=False,
+        dest="skip_llm",
         help="Skip LLM analysis",
     )
     parser.add_argument(
-        "--font-path", default=None, dest="font_path",
+        "--font-path",
+        default=None,
+        dest="font_path",
         help="Path to Korean font",
     )
     parser.add_argument("--dpi", type=int, default=150, help="Image DPI")
     parser.add_argument(
-        "--verbose", action="store_true", default=False,
+        "--verbose",
+        action="store_true",
+        default=False,
         help="Verbose logging",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml loading",
     )
     parser.add_argument(
-        "--transcript-pattern", default=None, dest="transcript_pattern",
+        "--transcript-pattern",
+        default=None,
+        dest="transcript_pattern",
         help="Transcript file pattern with {class} placeholder",
     )
     return parser
@@ -100,6 +126,7 @@ def main(argv=None):
 
     # Apply project config (three-layer merge)
     from forma.project_config import apply_project_config
+
     raw_argv = argv if argv is not None else _sys.argv[1:]
     apply_project_config(args, argv=raw_argv)
 
@@ -135,12 +162,8 @@ def main(argv=None):
 
         # Skip with warning if missing (FR-007)
         if not final_path.exists():
-            warnings.warn(
-                f"Final YAML not found for class {class_id}: {final_path}"
-            )
-            logger.warning(
-                "Skipping class %s: file not found: %s", class_id, final_path
-            )
+            warnings.warn(f"Final YAML not found for class {class_id}: {final_path}")
+            logger.warning("Skipping class %s: file not found: %s", class_id, final_path)
             continue
 
         class_output_dir = output_dir / class_id
@@ -190,23 +213,28 @@ def main(argv=None):
                                 continue
                             for me in q.graph_master_edges:
                                 master_edges_set.add((me.subject, me.relation, me.object))
-                            comparison_results.append(GraphComparisonResult(
-                                student_id=student.student_id,
-                                question_sn=qsn,
-                                precision=0.0, recall=0.0, f1=q.graph_comparison_f1,
-                                matched_edges=q.graph_matched_edges,
-                                missing_edges=q.graph_missing_edges,
-                                extra_edges=q.graph_extra_edges,
-                                wrong_direction_edges=q.graph_wrong_direction_edges,
-                            ))
+                            comparison_results.append(
+                                GraphComparisonResult(
+                                    student_id=student.student_id,
+                                    question_sn=qsn,
+                                    precision=0.0,
+                                    recall=0.0,
+                                    f1=q.graph_comparison_f1,
+                                    matched_edges=q.graph_matched_edges,
+                                    missing_edges=q.graph_missing_edges,
+                                    extra_edges=q.graph_extra_edges,
+                                    wrong_direction_edges=q.graph_wrong_direction_edges,
+                                )
+                            )
 
                     if comparison_results and master_edges_set:
                         master_edges_list = [
-                            TripletEdge(subject=s, relation=r, object=o)
-                            for s, r, o in sorted(master_edges_set)
+                            TripletEdge(subject=s, relation=r, object=o) for s, r, o in sorted(master_edges_set)
                         ]
                         agg = build_class_knowledge_aggregate(
-                            master_edges_list, comparison_results, qsn,
+                            master_edges_list,
+                            comparison_results,
+                            qsn,
                         )
                         report_data.class_knowledge_aggregates.append(agg)
                         qstat.class_knowledge_aggregate = agg
@@ -224,7 +252,10 @@ def main(argv=None):
                         qstat.misconception_clusters = clusters
                         logger.info(
                             "Class %s question %d misconception clustering: %d inputs -> %d clusters",
-                            class_id, qstat.question_sn, len(classified), len(clusters),
+                            class_id,
+                            qstat.question_sn,
+                            len(classified),
+                            len(clusters),
                         )
             except Exception as exc:
                 logger.warning("Class %s misconception clustering failed: %s", class_id, exc)
@@ -257,8 +288,7 @@ def main(argv=None):
                                 report_data.emphasis_map = emphasis_map
 
                                 lecture_concepts: set[str] = {
-                                    c for c, score in emphasis_map.concept_scores.items()
-                                    if score > 0.0
+                                    c for c, score in emphasis_map.concept_scores.items() if score > 0.0
                                 }
                                 student_missing_rates: dict[str, float] = {}
                                 for qstat in report_data.question_stats:
@@ -274,14 +304,13 @@ def main(argv=None):
                                 report_data.lecture_gap_report = gap_report
                                 logger.info(
                                     "Class %s lecture gap analysis: coverage %.1f%%",
-                                    class_id, gap_report.coverage_ratio * 100,
+                                    class_id,
+                                    gap_report.coverage_ratio * 100,
                                 )
                             except Exception as exc:
                                 logger.warning("Class %s emphasis/gap analysis failed: %s", class_id, exc)
                 else:
-                    logger.warning(
-                        "Class %s transcript directory not found: %s", class_id, transcript_dir
-                    )
+                    logger.warning("Class %s transcript directory not found: %s", class_id, transcript_dir)
 
             # v0.7.3 T021a: Generate LLM correction points for misconception clusters
             if not args.skip_llm:
@@ -291,6 +320,7 @@ def main(argv=None):
                     provider = None
                     try:
                         import anthropic  # noqa: PLC0415
+
                         provider = anthropic.Anthropic()
                     except Exception:
                         pass
@@ -300,12 +330,16 @@ def main(argv=None):
                             for cluster in qstat.misconception_clusters:
                                 if not cluster.correction_point:
                                     correction = generate_cluster_correction(
-                                        cluster, cluster.centroid_edge, provider,
+                                        cluster,
+                                        cluster.centroid_edge,
+                                        provider,
                                     )
                                     cluster.correction_point = correction
                 except Exception as exc:
                     logger.warning(
-                        "Class %s misconception cluster correction point generation failed: %s", class_id, exc,
+                        "Class %s misconception cluster correction point generation failed: %s",
+                        class_id,
+                        exc,
                     )
 
             # Generate professor PDF
@@ -318,16 +352,13 @@ def main(argv=None):
             per_class_reports.append(report_data)
 
         except Exception as exc:
-            logger.error(
-                "Failed to process class %s: %s", class_id, exc, exc_info=True
-            )
+            logger.error("Failed to process class %s: %s", class_id, exc, exc_info=True)
             continue
 
     # ADV-003: Warn when --aggregate is True but not enough classes to merge
     if args.aggregate and len(per_class_reports) <= 1:
         logger.warning(
-            "--aggregate requested but only %d class(es) were processed; "
-            "aggregate report will not be generated.",
+            "--aggregate requested but only %d class(es) were processed; aggregate report will not be generated.",
             len(per_class_reports),
         )
 
@@ -350,9 +381,7 @@ def main(argv=None):
             for report_data in per_class_reports:
                 sec = report_data.class_name
                 scores = [r.overall_ensemble_mean for r in report_data.student_rows]
-                at_risk = {
-                    r.student_id for r in report_data.student_rows if r.is_at_risk
-                }
+                at_risk = {r.student_id for r in report_data.student_rows if r.is_at_risk}
                 section_scores[sec] = scores
                 section_at_risk[sec] = at_risk
 
@@ -382,7 +411,8 @@ def main(argv=None):
             )
             logger.info(
                 "Cross-section comparison complete: %d sections, %d pairwise comparisons",
-                len(stats_list), len(pairwise),
+                len(stats_list),
+                len(pairwise),
             )
         except Exception as exc:
             logger.warning("Cross-section comparison failed: %s", exc)

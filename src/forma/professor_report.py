@@ -18,8 +18,13 @@ from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
 from reportlab.platypus import (
-    Image, PageBreak, Paragraph, SimpleDocTemplate,
-    Spacer, Table, TableStyle,
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
@@ -95,52 +100,64 @@ class ProfessorPDFReportGenerator:
 
         # Define paragraph styles
         self._styles = getSampleStyleSheet()
-        self._styles.add(ParagraphStyle(
-            "ProfTitle",
-            parent=self._styles["Title"],
-            fontName="NanumGothicBold",
-            fontSize=18,
-            spaceAfter=12,
-        ))
-        self._styles.add(ParagraphStyle(
-            "ProfSection",
-            parent=self._styles["Heading2"],
-            fontName="NanumGothicBold",
-            fontSize=14,
-            spaceBefore=12,
-            spaceAfter=6,
-        ))
-        self._styles.add(ParagraphStyle(
-            "ProfSubsection",
-            parent=self._styles["Heading3"],
-            fontName="NanumGothicBold",
-            fontSize=11,
-            spaceBefore=6,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "ProfBody",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=10,
-            leading=14,
-            spaceAfter=4,
-        ))
-        self._styles.add(ParagraphStyle(
-            "ProfTableHeader",
-            parent=self._styles["Normal"],
-            fontName="NanumGothicBold",
-            fontSize=8,
-            textColor=HexColor("#FFFFFF"),
-            alignment=1,  # CENTER
-        ))
-        self._styles.add(ParagraphStyle(
-            "ProfTableData",
-            parent=self._styles["Normal"],
-            fontName="NanumGothic",
-            fontSize=8,
-            alignment=1,  # CENTER
-        ))
+        self._styles.add(
+            ParagraphStyle(
+                "ProfTitle",
+                parent=self._styles["Title"],
+                fontName="NanumGothicBold",
+                fontSize=18,
+                spaceAfter=12,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "ProfSection",
+                parent=self._styles["Heading2"],
+                fontName="NanumGothicBold",
+                fontSize=14,
+                spaceBefore=12,
+                spaceAfter=6,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "ProfSubsection",
+                parent=self._styles["Heading3"],
+                fontName="NanumGothicBold",
+                fontSize=11,
+                spaceBefore=6,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "ProfBody",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=10,
+                leading=14,
+                spaceAfter=4,
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "ProfTableHeader",
+                parent=self._styles["Normal"],
+                fontName="NanumGothicBold",
+                fontSize=8,
+                textColor=HexColor("#FFFFFF"),
+                alignment=1,  # CENTER
+            )
+        )
+        self._styles.add(
+            ParagraphStyle(
+                "ProfTableData",
+                parent=self._styles["Normal"],
+                fontName="NanumGothic",
+                fontSize=8,
+                alignment=1,  # CENTER
+            )
+        )
 
     def generate_pdf(
         self,
@@ -171,7 +188,7 @@ class ProfessorPDFReportGenerator:
         Returns:
             Absolute path to generated PDF file.
         """
-        class_name = re.sub(r'[\\/:*?"<>|]', '_', str(report_data.class_name or "unknown"))
+        class_name = re.sub(r'[\\/:*?"<>|]', "_", str(report_data.class_name or "unknown"))
         week_num = report_data.week_num or 0
         filename = f"professor_{class_name}_w{week_num}_report.pdf"
         output_path = os.path.join(output_dir, filename)
@@ -216,24 +233,22 @@ class ProfessorPDFReportGenerator:
 
         # Class deficit map section (v0.10.0 US4, FR-021)
         if deficit_map is not None:
-            story.extend(
-                self._build_deficit_map_section(deficit_map, deficit_map_chart)
-            )
+            story.extend(self._build_deficit_map_section(deficit_map, deficit_map_chart))
 
         # Grade prediction section (v0.10.0 US6, FR-030)
         if grade_predictions:
             story.extend(self._build_grade_prediction_section(grade_predictions))
         elif report_data.grade_predictions:
-            story.extend(
-                self._build_grade_prediction_section(report_data.grade_predictions)
-            )
+            story.extend(self._build_grade_prediction_section(report_data.grade_predictions))
 
         # Intervention effects section (v0.10.0 US2, FR-010)
         if intervention_effects is not None:
-            story.extend(self._build_intervention_section(
-                intervention_effects,
-                intervention_type_summaries or [],
-            ))
+            story.extend(
+                self._build_intervention_section(
+                    intervention_effects,
+                    intervention_type_summaries or [],
+                )
+            )
 
         # OCR confidence section (v0.12.5 US2)
         if ocr_confidence_data:
@@ -245,7 +260,10 @@ class ProfessorPDFReportGenerator:
         doc = SimpleDocTemplate(
             output_path,
             pagesize=A4,
-            leftMargin=72, rightMargin=72, topMargin=72, bottomMargin=72,
+            leftMargin=72,
+            rightMargin=72,
+            topMargin=72,
+            bottomMargin=72,
         )
         doc.build(story)
         return output_path
@@ -275,10 +293,8 @@ class ProfessorPDFReportGenerator:
     @property
     def _chart_gen(self) -> ProfessorReportChartGenerator:
         """Lazy chart generator property."""
-        if not hasattr(self, '_chart_gen_instance'):
-            self._chart_gen_instance = ProfessorReportChartGenerator(
-                font_path=self._font_path, dpi=self._dpi
-            )
+        if not hasattr(self, "_chart_gen_instance"):
+            self._chart_gen_instance = ProfessorReportChartGenerator(font_path=self._font_path, dpi=self._dpi)
         return self._chart_gen_instance
 
     @_chart_gen.setter
@@ -300,11 +316,7 @@ class ProfessorPDFReportGenerator:
 
         # Subtitle paragraph — includes class_name, exam_title, week_num so tests
         # can find them in Paragraph.text (Table cells are not checked by tests).
-        subtitle_text = (
-            f"{_esc(report_data.class_name)} | "
-            f"{_esc(report_data.exam_title)} | "
-            f"Week {report_data.week_num}"
-        )
+        subtitle_text = f"{_esc(report_data.class_name)} | {_esc(report_data.exam_title)} | Week {report_data.week_num}"
         story.append(Paragraph(subtitle_text, self._styles["ProfBody"]))
         story.append(Spacer(1, 6 * mm))
 
@@ -319,17 +331,21 @@ class ProfessorPDFReportGenerator:
             ["문항 수", f"{report_data.n_questions}문항"],
         ]
         table = Table(meta_data, colWidths=[40 * mm, 120 * mm])
-        table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
-            ("FONTNAME", (0, 0), (0, -1), "NanumGothicBold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 11),
-            ("BACKGROUND", (0, 0), (0, -1), HexColor("#37474F")),
-            ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#FFFFFF")),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+                    ("FONTNAME", (0, 0), (0, -1), "NanumGothicBold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 11),
+                    ("BACKGROUND", (0, 0), (0, -1), HexColor("#37474F")),
+                    ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#FFFFFF")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
         story.append(table)
         story.append(PageBreak())
         return story
@@ -373,17 +389,21 @@ class ProfessorPDFReportGenerator:
             ],
         ]
         stats_table = Table(stats_data, colWidths=[30 * mm] * 6)
-        stats_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        stats_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(stats_table)
         story.append(Spacer(1, 6 * mm))
 
@@ -394,8 +414,12 @@ class ProfessorPDFReportGenerator:
 
         # Place charts in a 2-column table
         chart_table = Table(
-            [[self._safe_image(hist_buf, width=110 * mm, height=70 * mm),
-              self._safe_image(donut_buf, width=80 * mm, height=80 * mm)]],
+            [
+                [
+                    self._safe_image(hist_buf, width=110 * mm, height=70 * mm),
+                    self._safe_image(donut_buf, width=80 * mm, height=80 * mm),
+                ]
+            ],
             colWidths=[115 * mm, 85 * mm],
         )
         story.append(chart_table)
@@ -425,9 +449,13 @@ class ProfessorPDFReportGenerator:
                     all_concept_names.update(q_data.keys())
                 n_concepts = len(all_concept_names)
                 heatmap_height = max(50 * mm, n_concepts * 13 * mm + 20 * mm)
-                story.append(self._safe_image(
-                    heatmap_buf, width=160 * mm, height=heatmap_height,
-                ))
+                story.append(
+                    self._safe_image(
+                        heatmap_buf,
+                        width=160 * mm,
+                        height=heatmap_height,
+                    )
+                )
         except (AttributeError, NotImplementedError):
             pass
 
@@ -516,9 +544,7 @@ class ProfessorPDFReportGenerator:
         # Build rank mapping: original 1-based rank for each displayed row
         if was_truncated:
             n_top = 25
-            original_ranks = list(range(1, n_top + 1)) + list(
-                range(len(student_rows) - 24, len(student_rows) + 1)
-            )
+            original_ranks = list(range(1, n_top + 1)) + list(range(len(student_rows) - 24, len(student_rows) + 1))
         else:
             original_ranks = list(range(1, len(display_rows) + 1))
 
@@ -620,20 +646,14 @@ class ProfessorPDFReportGenerator:
                 bg_color = get_conditional_bg_color(q_score, qs.ensemble_mean, qs.ensemble_std)
                 # score cell is the 2nd sub-col (index 1) in this question group
                 score_col = q_group_start + q_idx * n_sub + 1
-                style_cmds.append(
-                    ("BACKGROUND", (score_col, table_row_idx), (score_col, table_row_idx), bg_color)
-                )
+                style_cmds.append(("BACKGROUND", (score_col, table_row_idx), (score_col, table_row_idx), bg_color))
 
         # At-risk row visual indicators: full-row background + red LINEBEFORE
         for row_idx, row in enumerate(display_rows):
             if row.is_at_risk:
                 data_row_idx = row_idx + 2  # offset for 2 header rows
-                style_cmds.append(
-                    ("BACKGROUND", (0, data_row_idx), (-1, data_row_idx), HexColor("#FFEBEE"))
-                )
-                style_cmds.append(
-                    ("LINEBEFORE", (0, data_row_idx), (0, data_row_idx), 2.5, colors.red)
-                )
+                style_cmds.append(("BACKGROUND", (0, data_row_idx), (-1, data_row_idx), HexColor("#FFEBEE")))
+                style_cmds.append(("LINEBEFORE", (0, data_row_idx), (0, data_row_idx), 2.5, colors.red))
 
         table_style = TableStyle(style_cmds)
         table.setStyle(table_style)
@@ -654,11 +674,13 @@ class ProfessorPDFReportGenerator:
             # Cap height so the image fits within a single A4 frame (<220mm usable)
             n_display = min(len(student_rows), 50)
             chart_height = min(max(60 * mm, n_display * 4 * mm), 200 * mm)
-            story.append(self._safe_image(
-                lollipop_buf,
-                width=160 * mm,
-                height=chart_height,
-            ))
+            story.append(
+                self._safe_image(
+                    lollipop_buf,
+                    width=160 * mm,
+                    height=chart_height,
+                )
+            )
         except (AttributeError, NotImplementedError, RuntimeError, Exception):
             # student_rank_lollipop: skip gracefully (not implemented or font error in tests)
             pass
@@ -694,31 +716,37 @@ class ProfessorPDFReportGenerator:
         table_data = [header]
         for row in at_risk_rows:
             reasons_text = "; ".join(row.at_risk_reasons) if row.at_risk_reasons else "미상"
-            table_data.append([
-                Paragraph(_esc(row.real_name), self._styles["ProfTableData"]),
-                Paragraph(_esc(row.student_number), self._styles["ProfTableData"]),
-                Paragraph(_esc(f"{row.overall_ensemble_mean:.2f}"), self._styles["ProfTableData"]),
-                Paragraph(_esc(reasons_text), self._styles["ProfTableData"]),
-            ])
+            table_data.append(
+                [
+                    Paragraph(_esc(row.real_name), self._styles["ProfTableData"]),
+                    Paragraph(_esc(row.student_number), self._styles["ProfTableData"]),
+                    Paragraph(_esc(f"{row.overall_ensemble_mean:.2f}"), self._styles["ProfTableData"]),
+                    Paragraph(_esc(reasons_text), self._styles["ProfTableData"]),
+                ]
+            )
 
         col_widths = [35 * mm, 30 * mm, 20 * mm, 105 * mm]
         risk_table = Table(table_data, colWidths=col_widths)
-        risk_table.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-            ("BACKGROUND", (0, 1), (-1, -1), HexColor("#FFEBEE")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ALIGN", (3, 1), (3, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        risk_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("BACKGROUND", (0, 1), (-1, -1), HexColor("#FFEBEE")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ALIGN", (3, 1), (3, -1), "LEFT"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(risk_table)
 
         return story
@@ -748,10 +776,12 @@ class ProfessorPDFReportGenerator:
         # ------------------------------------------------------------------
         # Question heading
         # ------------------------------------------------------------------
-        story.append(Paragraph(
-            _esc(f"문항 {stats.question_sn} 상세 분석"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"문항 {stats.question_sn} 상세 분석"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 8))
 
         # ------------------------------------------------------------------
@@ -771,20 +801,22 @@ class ProfessorPDFReportGenerator:
         para_rows = []
         for i, row in enumerate(stat_rows):
             style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
-            para_rows.append([
-                Paragraph(_esc(str(cell)), style) for cell in row
-            ])
+            para_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
 
         stat_table = Table(para_rows, colWidths=[120, 80])
-        stat_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), white),
-            ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ]))
+        stat_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
         story.append(stat_table)
         story.append(Spacer(1, 8))
 
@@ -806,26 +838,25 @@ class ProfessorPDFReportGenerator:
         if concept_mastery:
             story.append(Paragraph(_esc("개념별 숙달도"), self._styles["ProfSubsection"]))
             concept_header = ["개념", "숙달도"]
-            concept_data_rows = [concept_header] + [
-                [name, f"{rate:.1%}"]
-                for name, rate in concept_mastery.items()
-            ]
+            concept_data_rows = [concept_header] + [[name, f"{rate:.1%}"] for name, rate in concept_mastery.items()]
             para_concept_rows = []
             for i, row in enumerate(concept_data_rows):
                 style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
-                para_concept_rows.append([
-                    Paragraph(_esc(str(cell)), style) for cell in row
-                ])
+                para_concept_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
             concept_table = Table(para_concept_rows, colWidths=[200, 60])
-            concept_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), white),
-                ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            concept_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), white),
+                        ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(concept_table)
         else:
             story.append(Paragraph(_esc("개념 데이터 없음"), self._styles["ProfBody"]))
@@ -839,29 +870,33 @@ class ProfessorPDFReportGenerator:
             story.append(Paragraph(_esc("허브 개념 갭 분석"), self._styles["ProfSubsection"]))
             hub_data = [["개념", "중심성", "학생 포함률"]]  # header row
             for entry in hub_gap_entries:
-                hub_data.append([
-                    _esc(entry.concept),
-                    f"{entry.degree_centrality:.3f}",
-                    f"{entry.class_inclusion_rate * 100:.1f}%",
-                ])
+                hub_data.append(
+                    [
+                        _esc(entry.concept),
+                        f"{entry.degree_centrality:.3f}",
+                        f"{entry.class_inclusion_rate * 100:.1f}%",
+                    ]
+                )
 
             para_hub_rows = []
             for i, row in enumerate(hub_data):
                 style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
-                para_hub_rows.append([
-                    Paragraph(_esc(str(cell)), style) for cell in row
-                ])
+                para_hub_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
 
             hub_table = Table(para_hub_rows, colWidths=[200, 60, 70])
-            hub_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-                ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            hub_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                        ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(hub_table)
             story.append(Spacer(1, 8))
 
@@ -892,39 +927,39 @@ class ProfessorPDFReportGenerator:
         classified = getattr(stats, "classified_misconceptions", [])
         if classified:
             story.append(Spacer(1, 8))
-            story.append(Paragraph(
-                _esc("오개념 패턴 분류"), self._styles["ProfSubsection"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("오개념 패턴 분류"),
+                    self._styles["ProfSubsection"],
+                )
+            )
             cls_header = ["패턴", "설명", "신뢰도"]
             cls_rows = [cls_header]
             for cm in classified:
-                pattern_name = (
-                    cm.pattern.value if hasattr(cm.pattern, "value") else str(cm.pattern)
-                )
+                pattern_name = cm.pattern.value if hasattr(cm.pattern, "value") else str(cm.pattern)
                 desc = getattr(cm, "description", "")
                 conf = getattr(cm, "confidence", 0.0)
                 cls_rows.append([pattern_name, desc, f"{conf:.0%}"])
 
             para_cls_rows = []
             for i, row in enumerate(cls_rows):
-                style = (
-                    self._styles["ProfTableHeader"] if i == 0
-                    else self._styles["ProfTableData"]
-                )
-                para_cls_rows.append([
-                    Paragraph(_esc(str(cell)), style) for cell in row
-                ])
+                style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
+                para_cls_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
 
             cls_table = Table(para_cls_rows, colWidths=[80, 200, 50])
-            cls_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            cls_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(cls_table)
 
         return story
@@ -948,9 +983,12 @@ class ProfessorPDFReportGenerator:
 
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("강의 갭 분석"), self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("강의 갭 분석"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 4 * mm))
 
         # Coverage summary
@@ -966,43 +1004,53 @@ class ProfessorPDFReportGenerator:
 
         # Missed concepts table
         if gap_report.missed_concepts:
-            story.append(Paragraph(
-                _esc("누락된 마스터 개념"), self._styles["ProfSubsection"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("누락된 마스터 개념"),
+                    self._styles["ProfSubsection"],
+                )
+            )
             missed_data = [["개념"]]
             for concept in sorted(gap_report.missed_concepts):
                 missed_data.append([_esc(concept)])
 
             para_missed = []
             for i, row in enumerate(missed_data):
-                style = (
-                    self._styles["ProfTableHeader"] if i == 0
-                    else self._styles["ProfTableData"]
-                )
+                style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
                 para_missed.append([Paragraph(_esc(str(cell)), style) for cell in row])
 
             missed_table = Table(para_missed, colWidths=[200])
-            missed_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            missed_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(missed_table)
             story.append(Spacer(1, 4 * mm))
 
         # High miss overlap
         if gap_report.high_miss_overlap:
-            story.append(Paragraph(
-                _esc("학생 오답률 높은 누락 개념"), self._styles["ProfSubsection"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("학생 오답률 높은 누락 개념"),
+                    self._styles["ProfSubsection"],
+                )
+            )
             for concept in gap_report.high_miss_overlap:
-                story.append(Paragraph(
-                    _esc(f"• {concept}"), self._styles["ProfBody"],
-                ))
+                story.append(
+                    Paragraph(
+                        _esc(f"• {concept}"),
+                        self._styles["ProfBody"],
+                    )
+                )
             story.append(Spacer(1, 4 * mm))
 
         return story
@@ -1032,15 +1080,15 @@ class ProfessorPDFReportGenerator:
 
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("분반 간 강조도 비교"), self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("분반 간 강조도 비교"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 4 * mm))
 
-        summary_text = (
-            f"분반 수: {len(class_maps)}개 | "
-            f"편차 상위 개념: 최대 5개"
-        )
+        summary_text = f"분반 수: {len(class_maps)}개 | 편차 상위 개념: 최대 5개"
         story.append(Paragraph(_esc(summary_text), self._styles["ProfBody"]))
         story.append(Spacer(1, 4 * mm))
 
@@ -1058,10 +1106,7 @@ class ProfessorPDFReportGenerator:
 
         para_rows = []
         for i, row in enumerate(table_data):
-            style = (
-                self._styles["ProfTableHeader"] if i == 0
-                else self._styles["ProfTableData"]
-            )
+            style = self._styles["ProfTableHeader"] if i == 0 else self._styles["ProfTableData"]
             para_rows.append([Paragraph(_esc(str(cell)), style) for cell in row])
 
         # Column widths: concept(120) + deviation(50) + per-section(50 each)
@@ -1078,9 +1123,7 @@ class ProfessorPDFReportGenerator:
         ]
         # Highlight rows with high stdev (top concepts get emphasis color)
         for row_idx in range(1, len(table_data)):
-            table_style.append(
-                ("BACKGROUND", (0, row_idx), (-1, row_idx), HexColor("#E3F2FD"))
-            )
+            table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), HexColor("#E3F2FD")))
         comp_table.setStyle(TableStyle(table_style))
         story.append(comp_table)
         story.append(Spacer(1, 4 * mm))
@@ -1140,28 +1183,34 @@ class ProfessorPDFReportGenerator:
                 ],
             ]
             for e in weak_edges:
-                table_data.append([
-                    Paragraph(
-                        _esc(f"{e.subject} → {e.obj}"),
-                        self._styles["ProfBody"],
-                    ),
-                    Paragraph(_esc(str(e.correct_count)), self._styles["ProfBody"]),
-                    Paragraph(_esc(str(e.error_count)), self._styles["ProfBody"]),
-                    Paragraph(_esc(str(e.missing_count)), self._styles["ProfBody"]),
-                    Paragraph(
-                        _esc(f"{e.correct_ratio:.1%}"),
-                        self._styles["ProfBody"],
-                    ),
-                ])
+                table_data.append(
+                    [
+                        Paragraph(
+                            _esc(f"{e.subject} → {e.obj}"),
+                            self._styles["ProfBody"],
+                        ),
+                        Paragraph(_esc(str(e.correct_count)), self._styles["ProfBody"]),
+                        Paragraph(_esc(str(e.error_count)), self._styles["ProfBody"]),
+                        Paragraph(_esc(str(e.missing_count)), self._styles["ProfBody"]),
+                        Paragraph(
+                            _esc(f"{e.correct_ratio:.1%}"),
+                            self._styles["ProfBody"],
+                        ),
+                    ]
+                )
 
             col_widths = [60 * mm, 25 * mm, 25 * mm, 25 * mm, 25 * mm]
             tbl = Table(table_data, colWidths=col_widths)
-            tbl.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]))
+            tbl.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ]
+                )
+            )
             story.append(tbl)
 
         story.append(Spacer(1, 8))
@@ -1193,9 +1242,7 @@ class ProfessorPDFReportGenerator:
         story.append(Spacer(1, 6))
 
         if not clusters:
-            story.append(
-                Paragraph(_esc("오개념 없음"), self._styles["ProfBody"])
-            )
+            story.append(Paragraph(_esc("오개념 없음"), self._styles["ProfBody"]))
             story.append(Spacer(1, 8))
             return
 
@@ -1210,36 +1257,34 @@ class ProfessorPDFReportGenerator:
         ]
 
         for cluster in clusters:
-            pattern_name = (
-                cluster.pattern.value
-                if hasattr(cluster.pattern, "value")
-                else str(cluster.pattern)
+            pattern_name = cluster.pattern.value if hasattr(cluster.pattern, "value") else str(cluster.pattern)
+            correction = cluster.correction_point if cluster.correction_point else "교정 포인트 없음"
+            table_data.append(
+                [
+                    Paragraph(_esc(pattern_name), self._styles["ProfTableData"]),
+                    Paragraph(_esc(str(cluster.member_count)), self._styles["ProfTableData"]),
+                    Paragraph(_esc(cluster.representative_error), self._styles["ProfTableData"]),
+                    Paragraph(_esc(correction), self._styles["ProfTableData"]),
+                ]
             )
-            correction = (
-                cluster.correction_point
-                if cluster.correction_point
-                else "교정 포인트 없음"
-            )
-            table_data.append([
-                Paragraph(_esc(pattern_name), self._styles["ProfTableData"]),
-                Paragraph(_esc(str(cluster.member_count)), self._styles["ProfTableData"]),
-                Paragraph(_esc(cluster.representative_error), self._styles["ProfTableData"]),
-                Paragraph(_esc(correction), self._styles["ProfTableData"]),
-            ])
 
         col_widths = [60 * mm, 20 * mm, 55 * mm, 55 * mm]
         tbl = Table(table_data, colWidths=col_widths)
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ALIGN", (2, 1), (3, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ]))
+        tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#37474F")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ALIGN", (2, 1), (3, -1), "LEFT"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
         story.append(tbl)
         story.append(Spacer(1, 8))
 
@@ -1247,10 +1292,12 @@ class ProfessorPDFReportGenerator:
         """Build section showing risk group movement between weeks."""
         story = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("위험군 변동 현황"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("위험군 변동 현황"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 4))
 
         rows = [
@@ -1285,16 +1332,22 @@ class ProfessorPDFReportGenerator:
             ],
         ]
         tbl = Table(rows, colWidths=[30 * mm, 20 * mm, 90 * mm])
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
+        tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
         story.append(tbl)
         return story
 
     def _build_cross_section_comparison_section(
-        self, cross_report, report_data=None,
+        self,
+        cross_report,
+        report_data=None,
     ) -> list:
         """Build cross-section comparison section for aggregate reports.
 
@@ -1331,29 +1384,35 @@ class ProfessorPDFReportGenerator:
         header = ["분반", "N", "평균", "중위수", "표준편차", "위험군", "위험군 비율"]
         table_data = [header]
         for ss in cross_report.section_stats:
-            table_data.append([
-                _esc(ss.section_name),
-                str(ss.n_students),
-                f"{ss.mean:.3f}",
-                f"{ss.median:.3f}",
-                f"{ss.std:.3f}",
-                str(ss.n_at_risk),
-                f"{ss.pct_at_risk:.1%}",
-            ])
+            table_data.append(
+                [
+                    _esc(ss.section_name),
+                    str(ss.n_students),
+                    f"{ss.mean:.3f}",
+                    f"{ss.median:.3f}",
+                    f"{ss.std:.3f}",
+                    str(ss.n_at_risk),
+                    f"{ss.pct_at_risk:.1%}",
+                ]
+            )
 
         col_widths = [50, 30, 50, 50, 50, 40, 60]
         tbl = Table(table_data, colWidths=col_widths)
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
-        ]))
+        tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(tbl)
         story.append(Spacer(1, 12))
 
@@ -1365,41 +1424,50 @@ class ProfessorPDFReportGenerator:
             story.append(Spacer(1, 4))
 
             pw_header = [
-                "비교", "검정", "통계량", "p값",
-                "보정p값", "Cohen's d", "효과크기", "유의",
+                "비교",
+                "검정",
+                "통계량",
+                "p값",
+                "보정p값",
+                "Cohen's d",
+                "효과크기",
+                "유의",
             ]
             pw_data = [pw_header]
             for pc in cross_report.pairwise_comparisons:
-                test_label = (
-                    "Welch t" if pc.test_name == "welch_t"
-                    else "Mann-Whitney U"
-                )
+                test_label = "Welch t" if pc.test_name == "welch_t" else "Mann-Whitney U"
                 p_corr = f"{pc.p_value_corrected:.4f}" if pc.p_value_corrected is not None else "-"
                 sig = "Yes" if pc.is_significant else "No"
-                pw_data.append([
-                    _esc(f"{pc.section_a} vs {pc.section_b}"),
-                    _esc(test_label),
-                    f"{pc.test_statistic:.3f}",
-                    f"{pc.p_value:.4f}",
-                    p_corr,
-                    f"{pc.cohens_d:.3f}",
-                    _esc(pc.effect_size_label),
-                    sig,
-                ])
+                pw_data.append(
+                    [
+                        _esc(f"{pc.section_a} vs {pc.section_b}"),
+                        _esc(test_label),
+                        f"{pc.test_statistic:.3f}",
+                        f"{pc.p_value:.4f}",
+                        p_corr,
+                        f"{pc.cohens_d:.3f}",
+                        _esc(pc.effect_size_label),
+                        sig,
+                    ]
+                )
 
             pw_col_widths = [70, 65, 45, 45, 45, 50, 50, 30]
             pw_tbl = Table(pw_data, colWidths=pw_col_widths)
-            pw_tbl.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#2E7D32")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
-                ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-                ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
-                ("FONTSIZE", (0, 0), (-1, -1), 7),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
-            ]))
+            pw_tbl.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#2E7D32")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+                        ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                        ("FONTNAME", (0, 1), (-1, -1), "NanumGothic"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 7),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#CCCCCC")),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), HexColor("#F5F5F5")]),
+                    ]
+                )
+            )
             story.append(pw_tbl)
             story.append(Spacer(1, 12))
 
@@ -1462,15 +1530,19 @@ class ProfessorPDFReportGenerator:
         """
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("드롭 리스크 예측"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("드롭 리스크 예측"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 4))
 
         # Sort by drop_probability descending
         sorted_preds = sorted(
-            risk_predictions, key=lambda p: p.drop_probability, reverse=True,
+            risk_predictions,
+            key=lambda p: p.drop_probability,
+            reverse=True,
         )
 
         # Show top 50 or all if fewer
@@ -1489,24 +1561,30 @@ class ProfessorPDFReportGenerator:
             factors_str = ", ".join(f.name for f in top_factors) if top_factors else "-"
             source = "모델 기반" if pred.is_model_based else "규칙 기반"
 
-            rows.append([
-                Paragraph(_esc(pred.student_id), self._styles["ProfTableData"]),
-                Paragraph(f"{pred.drop_probability:.2f}", self._styles["ProfTableData"]),
-                Paragraph(_esc(factors_str), self._styles["ProfTableData"]),
-                Paragraph(_esc(source), self._styles["ProfTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(_esc(pred.student_id), self._styles["ProfTableData"]),
+                    Paragraph(f"{pred.drop_probability:.2f}", self._styles["ProfTableData"]),
+                    Paragraph(_esc(factors_str), self._styles["ProfTableData"]),
+                    Paragraph(_esc(source), self._styles["ProfTableData"]),
+                ]
+            )
 
         col_widths = [60, 60, 220, 70]
         table = Table(rows, colWidths=col_widths, repeatRows=1)
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F5")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(table)
 
         return story
@@ -1528,17 +1606,21 @@ class ProfessorPDFReportGenerator:
         """
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("학기말 성적 예측"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("학기말 성적 예측"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 4))
 
         if not grade_predictions:
-            story.append(Paragraph(
-                _esc("예측 데이터 없음"),
-                self._styles["ProfBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("예측 데이터 없음"),
+                    self._styles["ProfBody"],
+                )
+            )
             return story
 
         # Per-student table
@@ -1557,43 +1639,48 @@ class ProfessorPDFReportGenerator:
         for pred in grade_predictions:
             probs = pred.grade_probabilities or {}
             source = "모델 기반" if pred.is_model_based else "규칙 기반"
-            rows.append([
-                Paragraph(_esc(pred.student_id), self._styles["ProfTableData"]),
-                Paragraph(_esc(pred.predicted_grade), self._styles["ProfTableData"]),
-                Paragraph(f"{probs.get('A', 0.0):.2f}", self._styles["ProfTableData"]),
-                Paragraph(f"{probs.get('B', 0.0):.2f}", self._styles["ProfTableData"]),
-                Paragraph(f"{probs.get('C', 0.0):.2f}", self._styles["ProfTableData"]),
-                Paragraph(f"{probs.get('D', 0.0):.2f}", self._styles["ProfTableData"]),
-                Paragraph(f"{probs.get('F', 0.0):.2f}", self._styles["ProfTableData"]),
-                Paragraph(_esc(source), self._styles["ProfTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(_esc(pred.student_id), self._styles["ProfTableData"]),
+                    Paragraph(_esc(pred.predicted_grade), self._styles["ProfTableData"]),
+                    Paragraph(f"{probs.get('A', 0.0):.2f}", self._styles["ProfTableData"]),
+                    Paragraph(f"{probs.get('B', 0.0):.2f}", self._styles["ProfTableData"]),
+                    Paragraph(f"{probs.get('C', 0.0):.2f}", self._styles["ProfTableData"]),
+                    Paragraph(f"{probs.get('D', 0.0):.2f}", self._styles["ProfTableData"]),
+                    Paragraph(f"{probs.get('F', 0.0):.2f}", self._styles["ProfTableData"]),
+                    Paragraph(_esc(source), self._styles["ProfTableData"]),
+                ]
+            )
 
         col_widths = [50, 40, 35, 35, 35, 35, 35, 55]
         table = Table(rows, colWidths=col_widths, repeatRows=1)
         from reportlab.lib import colors
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.white, HexColor("#F5F5F5")]),
-        ]))
+
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(table)
         story.append(Spacer(1, 8))
 
         # Disclaimer (FR-032)
-        disclaimer = (
-            "※ 본 예측은 통계 모델에 의한 추정이며, "
-            "실제 성적은 다를 수 있습니다."
+        disclaimer = "※ 본 예측은 통계 모델에 의한 추정이며, 실제 성적은 다를 수 있습니다."
+        story.append(
+            Paragraph(
+                _esc(disclaimer),
+                self._styles["ProfBody"],
+            )
         )
-        story.append(Paragraph(
-            _esc(disclaimer),
-            self._styles["ProfBody"],
-        ))
 
         return story
 
@@ -1616,17 +1703,21 @@ class ProfessorPDFReportGenerator:
         """
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("개입 이력 및 효과"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("개입 이력 및 효과"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 4))
 
         if not effects:
-            story.append(Paragraph(
-                _esc("개입 기록 없음"),
-                self._styles["ProfBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("개입 기록 없음"),
+                    self._styles["ProfBody"],
+                )
+            )
             return story
 
         # Per-student effect table
@@ -1649,38 +1740,46 @@ class ProfessorPDFReportGenerator:
                 pre_str = "데이터 부족"
                 post_str = "데이터 부족"
                 change_str = "—"
-            rows.append([
-                Paragraph(_esc(e.student_id), self._styles["ProfTableData"]),
-                Paragraph(_esc(e.intervention_type), self._styles["ProfTableData"]),
-                Paragraph(f"W{e.intervention_week}", self._styles["ProfTableData"]),
-                Paragraph(pre_str, self._styles["ProfTableData"]),
-                Paragraph(post_str, self._styles["ProfTableData"]),
-                Paragraph(change_str, self._styles["ProfTableData"]),
-            ])
+            rows.append(
+                [
+                    Paragraph(_esc(e.student_id), self._styles["ProfTableData"]),
+                    Paragraph(_esc(e.intervention_type), self._styles["ProfTableData"]),
+                    Paragraph(f"W{e.intervention_week}", self._styles["ProfTableData"]),
+                    Paragraph(pre_str, self._styles["ProfTableData"]),
+                    Paragraph(post_str, self._styles["ProfTableData"]),
+                    Paragraph(change_str, self._styles["ProfTableData"]),
+                ]
+            )
 
         from reportlab.lib import colors
+
         col_widths = [50, 50, 35, 50, 50, 50]
         table = Table(rows, colWidths=col_widths, repeatRows=1)
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.white, HexColor("#F5F5F5")]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F5F5F5")]),
+                ]
+            )
+        )
         story.append(table)
         story.append(Spacer(1, 8))
 
         # Type summary table
         if type_summaries:
-            story.append(Paragraph(
-                _esc("개입 유형별 효과 요약"),
-                self._styles["ProfSubsection"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("개입 유형별 효과 요약"),
+                    self._styles["ProfSubsection"],
+                )
+            )
             story.append(Spacer(1, 4))
 
             ts_header = [
@@ -1694,39 +1793,43 @@ class ProfessorPDFReportGenerator:
             ts_rows = [ts_header]
 
             for s in type_summaries:
-                ts_rows.append([
-                    Paragraph(_esc(s.intervention_type), self._styles["ProfTableData"]),
-                    Paragraph(str(s.n_total), self._styles["ProfTableData"]),
-                    Paragraph(str(s.n_sufficient), self._styles["ProfTableData"]),
-                    Paragraph(str(s.n_positive), self._styles["ProfTableData"]),
-                    Paragraph(str(s.n_negative), self._styles["ProfTableData"]),
-                    Paragraph(f"{s.mean_change:+.3f}", self._styles["ProfTableData"]),
-                ])
+                ts_rows.append(
+                    [
+                        Paragraph(_esc(s.intervention_type), self._styles["ProfTableData"]),
+                        Paragraph(str(s.n_total), self._styles["ProfTableData"]),
+                        Paragraph(str(s.n_sufficient), self._styles["ProfTableData"]),
+                        Paragraph(str(s.n_positive), self._styles["ProfTableData"]),
+                        Paragraph(str(s.n_negative), self._styles["ProfTableData"]),
+                        Paragraph(f"{s.mean_change:+.3f}", self._styles["ProfTableData"]),
+                    ]
+                )
 
             ts_table = Table(ts_rows, colWidths=[55, 35, 35, 35, 35, 50], repeatRows=1)
-            ts_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-                 [colors.white, HexColor("#F5F5F5")]),
-            ]))
+            ts_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1565C0")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                        ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F5F5F5")]),
+                    ]
+                )
+            )
             story.append(ts_table)
             story.append(Spacer(1, 8))
 
         # Disclaimer (FR-014)
-        disclaimer = (
-            "※ 개입 효과는 상관관계이며, "
-            "인과관계를 보장하지 않습니다."
+        disclaimer = "※ 개입 효과는 상관관계이며, 인과관계를 보장하지 않습니다."
+        story.append(
+            Paragraph(
+                _esc(disclaimer),
+                self._styles["ProfBody"],
+            )
         )
-        story.append(Paragraph(
-            _esc(disclaimer),
-            self._styles["ProfBody"],
-        ))
 
         return story
 
@@ -1748,10 +1851,12 @@ class ProfessorPDFReportGenerator:
         """
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("학급 개념 결손 맵"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("학급 개념 결손 맵"),
+                self._styles["ProfSection"],
+            )
+        )
         story.append(Spacer(1, 6))
 
         # DAG chart (if provided)
@@ -1773,31 +1878,40 @@ class ProfessorPDFReportGenerator:
             ):
                 count = deficit_map.concept_counts[concept]
                 ratio = count / total
-                rows.append([
-                    _esc(concept),
-                    str(count),
-                    f"{ratio:.0%}",
-                ])
+                rows.append(
+                    [
+                        _esc(concept),
+                        str(count),
+                        f"{ratio:.0%}",
+                    ]
+                )
             table = Table(rows, colWidths=[80 * mm, 35 * mm, 35 * mm])
-            table.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
-                ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
-                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
-                ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-            ]))
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+                        ("FONTNAME", (0, 0), (-1, 0), "NanumGothicBold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BDBDBD")),
+                        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+                    ]
+                )
+            )
             story.append(table)
         else:
-            story.append(Paragraph(
-                _esc("개념 의존성이 정의되지 않았습니다."),
-                self._styles["ProfBody"],
-            ))
+            story.append(
+                Paragraph(
+                    _esc("개념 의존성이 정의되지 않았습니다."),
+                    self._styles["ProfBody"],
+                )
+            )
 
         return story
 
     def _build_ocr_confidence_section(
-        self, ocr_confidence_data: list[dict],
+        self,
+        ocr_confidence_data: list[dict],
     ) -> list:
         """Build OCR confidence summary section for professor report.
 
@@ -1815,17 +1929,11 @@ class ProfessorPDFReportGenerator:
         if not ocr_confidence_data:
             return []
 
-        scores = [
-            d["confidence_mean"]
-            for d in ocr_confidence_data
-            if d.get("confidence_mean") is not None
-        ]
+        scores = [d["confidence_mean"] for d in ocr_confidence_data if d.get("confidence_mean") is not None]
         if not scores:
             return []
 
-        low = [d for d in ocr_confidence_data
-               if d.get("confidence_mean") is not None
-               and d["confidence_mean"] < 0.75]
+        low = [d for d in ocr_confidence_data if d.get("confidence_mean") is not None and d["confidence_mean"] < 0.75]
 
         # INV-R01: no low-confidence students → skip section
         if not low:
@@ -1833,18 +1941,21 @@ class ProfessorPDFReportGenerator:
 
         story: list = []
         story.append(PageBreak())
-        story.append(Paragraph(
-            _esc("텍스트 인식 신뢰도 현황"),
-            self._styles["ProfSection"],
-        ))
+        story.append(
+            Paragraph(
+                _esc("텍스트 인식 신뢰도 현황"),
+                self._styles["ProfSection"],
+            )
+        )
 
         # Summary paragraph
         mean_all = sum(scores) / len(scores)
-        story.append(Paragraph(
-            _esc(f"반 전체 평균 인식률: {mean_all:.2f} "
-                 f"(전체 {len(scores)}건, 저인식률 {len(low)}건)"),
-            self._styles["ProfBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(f"반 전체 평균 인식률: {mean_all:.2f} (전체 {len(scores)}건, 저인식률 {len(low)}건)"),
+                self._styles["ProfBody"],
+            )
+        )
         story.append(Spacer(1, 6))
 
         # Histogram chart
@@ -1864,34 +1975,44 @@ class ProfessorPDFReportGenerator:
         ]
         table_data = [header]
         for d in low_sorted:
-            table_data.append([
-                Paragraph(
-                    _esc(str(d.get("student_id", ""))),
-                    self._styles["ProfBody"],
-                ),
-                Paragraph(
-                    _esc(f"{d['confidence_mean']:.2f}"),
-                    self._styles["ProfBody"],
-                ),
-            ])
+            table_data.append(
+                [
+                    Paragraph(
+                        _esc(str(d.get("student_id", ""))),
+                        self._styles["ProfBody"],
+                    ),
+                    Paragraph(
+                        _esc(f"{d['confidence_mean']:.2f}"),
+                        self._styles["ProfBody"],
+                    ),
+                ]
+            )
 
         t = Table(table_data, colWidths=[60 * mm, 40 * mm])
-        t.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
-            ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("BACKGROUND", (0, 0), (-1, 0), HexColor("#E3F2FD")),
+                    ("FONTNAME", (0, 0), (-1, -1), "NanumGothic"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
         story.append(t)
         story.append(Spacer(1, 8))
 
         # Guidance paragraph
-        story.append(Paragraph(
-            _esc("※ 인식률이 낮은 답안은 OCR 오인식 가능성이 있습니다. "
-                 "원본 이미지를 확인하여 텍스트를 보정해 주세요."),
-            self._styles["ProfBody"],
-        ))
+        story.append(
+            Paragraph(
+                _esc(
+                    "※ 인식률이 낮은 답안은 OCR 오인식 가능성이 있습니다. "
+                    "원본 이미지를 확인하여 텍스트를 보정해 주세요."
+                ),
+                self._styles["ProfBody"],
+            )
+        )
 
         return story
 

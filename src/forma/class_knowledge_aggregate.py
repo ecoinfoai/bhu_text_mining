@@ -95,12 +95,8 @@ def build_class_knowledge_aggregate(
     matched_sets: list[set[tuple[str, str, str]]] = []
     wrong_sets: list[set[tuple[str, str]]] = []
     for result in comparison_results:
-        matched_sets.append({
-            (e.subject, e.relation, e.object) for e in result.matched_edges
-        })
-        wrong_sets.append({
-            (e.subject, e.object) for e in result.wrong_direction_edges
-        })
+        matched_sets.append({(e.subject, e.relation, e.object) for e in result.matched_edges})
+        wrong_sets.append({(e.subject, e.object) for e in result.wrong_direction_edges})
 
     for master_edge in master_edges:
         key = (master_edge.subject, master_edge.relation, master_edge.object)
@@ -117,16 +113,18 @@ def build_class_knowledge_aggregate(
         missing_count = total_students - correct_count - error_count
         correct_ratio = correct_count / total_students if total_students > 0 else 0.0
 
-        aggregate_edges.append(AggregateEdge(
-            subject=master_edge.subject,
-            relation=master_edge.relation,
-            obj=master_edge.object,
-            correct_count=correct_count,
-            error_count=error_count,
-            missing_count=missing_count,
-            total_students=total_students,
-            correct_ratio=correct_ratio,
-        ))
+        aggregate_edges.append(
+            AggregateEdge(
+                subject=master_edge.subject,
+                relation=master_edge.relation,
+                obj=master_edge.object,
+                correct_count=correct_count,
+                error_count=error_count,
+                missing_count=missing_count,
+                total_students=total_students,
+                correct_ratio=correct_ratio,
+            )
+        )
 
     return ClassKnowledgeAggregate(
         question_sn=question_sn,

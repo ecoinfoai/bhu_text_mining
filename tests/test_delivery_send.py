@@ -738,14 +738,21 @@ class TestDeliveryLogIO:
             failed=1,
             results=[
                 DeliveryResult(
-                    student_id="s001", email="s1@u.kr", status="success",
-                    sent_at="2026-03-11T10:00:01", attachment="s001.zip",
+                    student_id="s001",
+                    email="s1@u.kr",
+                    status="success",
+                    sent_at="2026-03-11T10:00:01",
+                    attachment="s001.zip",
                     size_bytes=1024,
                 ),
                 DeliveryResult(
-                    student_id="s002", email="s2@u.kr", status="failed",
-                    sent_at="2026-03-11T10:00:02", attachment="s002.zip",
-                    size_bytes=2048, error="SMTP timeout",
+                    student_id="s002",
+                    email="s2@u.kr",
+                    status="failed",
+                    sent_at="2026-03-11T10:00:02",
+                    attachment="s002.zip",
+                    size_bytes=2048,
+                    error="SMTP timeout",
                 ),
             ],
         )
@@ -794,27 +801,31 @@ class TestSendEmails:
             if i not in missing_zips:
                 zip_path = student_dir / f"{sid}.zip"
                 zip_path.write_bytes(b"PK_FAKE_ZIP")
-                details.append({
-                    "student_id": sid,
-                    "name": f"학생{i}",
-                    "email": f"s{i:03d}@u.kr",
-                    "status": "ready",
-                    "matched_files": [f"{sid}_report.pdf"],
-                    "zip_path": str(zip_path),
-                    "zip_size_bytes": 11,
-                    "message": "",
-                })
+                details.append(
+                    {
+                        "student_id": sid,
+                        "name": f"학생{i}",
+                        "email": f"s{i:03d}@u.kr",
+                        "status": "ready",
+                        "matched_files": [f"{sid}_report.pdf"],
+                        "zip_path": str(zip_path),
+                        "zip_size_bytes": 11,
+                        "message": "",
+                    }
+                )
             else:
-                details.append({
-                    "student_id": sid,
-                    "name": f"학생{i}",
-                    "email": f"s{i:03d}@u.kr",
-                    "status": "error",
-                    "matched_files": [],
-                    "zip_path": None,
-                    "zip_size_bytes": 0,
-                    "message": "매칭 파일 없음",
-                })
+                details.append(
+                    {
+                        "student_id": sid,
+                        "name": f"학생{i}",
+                        "email": f"s{i:03d}@u.kr",
+                        "status": "error",
+                        "matched_files": [],
+                        "zip_path": None,
+                        "zip_size_bytes": 0,
+                        "message": "매칭 파일 없음",
+                    }
+                )
 
         summary = {
             "prepared_at": "2026-03-11T10:00:00",
@@ -835,10 +846,7 @@ class TestSendEmails:
         """Create a valid email template YAML."""
         path = tmp_path / "template.yaml"
         path.write_text(
-            'subject: "[테스트] 보고서"\n'
-            "body: |\n"
-            "  {student_name} 학생에게,\n"
-            "  보고서를 확인해 주세요.\n",
+            'subject: "[테스트] 보고서"\nbody: |\n  {student_name} 학생에게,\n  보고서를 확인해 주세요.\n',
             encoding="utf-8",
         )
         return str(path)
@@ -847,10 +855,7 @@ class TestSendEmails:
         """Create a valid SMTP config YAML."""
         path = tmp_path / "smtp.yaml"
         path.write_text(
-            'smtp_server: "smtp.gmail.com"\n'
-            "smtp_port: 587\n"
-            'sender_email: "prof@univ.kr"\n'
-            "send_interval_sec: 0.0\n",
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@univ.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
         return str(path)
@@ -871,11 +876,18 @@ class TestSendEmails:
         class MockSMTP:
             def __init__(self, *args, **kwargs):
                 pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
             def send_message(self, msg):
                 smtp_calls.append(msg["To"])
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -902,14 +914,21 @@ class TestSendEmails:
         class MockSMTP:
             def __init__(self, *args, **kwargs):
                 pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
             def send_message(self, msg):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 2:
                     raise Exception("SMTP error for second student")
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -947,11 +966,20 @@ class TestSendEmails:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "test_password")
 
         class MockSMTP:
-            def __init__(self, *args, **kwargs): pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -971,11 +999,20 @@ class TestSendEmails:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "test_password")
 
         class MockSMTP:
-            def __init__(self, *args, **kwargs): pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -997,11 +1034,20 @@ class TestSendEmails:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "test_password")
 
         class MockSMTP:
-            def __init__(self, *args, **kwargs): pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1023,12 +1069,20 @@ class TestSendEmails:
         sent_to = []
 
         class MockSMTP:
-            def __init__(self, *args, **kwargs): pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
             def send_message(self, msg):
                 sent_to.append(msg["To"])
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1048,10 +1102,7 @@ class TestSendEmails:
         # Config with 0.5 sec interval
         smtp_path = tmp_path / "smtp_slow.yaml"
         smtp_path.write_text(
-            'smtp_server: "smtp.gmail.com"\n'
-            "smtp_port: 587\n"
-            'sender_email: "prof@univ.kr"\n'
-            "send_interval_sec: 0.5\n",
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@univ.kr"\nsend_interval_sec: 0.5\n',
             encoding="utf-8",
         )
 
@@ -1061,11 +1112,20 @@ class TestSendEmails:
         monkeypatch.setattr("time.sleep", lambda sec: sleep_calls.append(sec))
 
         class MockSMTP:
-            def __init__(self, *args, **kwargs): pass
-            def starttls(self, **kwargs): pass
-            def login(self, user, password): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, user, password):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1100,16 +1160,18 @@ class TestSendEmailsDryRun:
             student_dir.mkdir()
             zip_path = student_dir / f"{sid}.zip"
             zip_path.write_bytes(b"PK_FAKE_ZIP")
-            details.append({
-                "student_id": sid,
-                "name": f"학생{i}",
-                "email": f"s{i:03d}@u.kr",
-                "status": "ready",
-                "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": 11,
-                "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": f"학생{i}",
+                    "email": f"s{i:03d}@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 11,
+                    "message": "",
+                }
+            )
 
         summary = {
             "prepared_at": "2026-03-11T10:00:00",
@@ -1128,10 +1190,7 @@ class TestSendEmailsDryRun:
     def _make_template(self, tmp_path):
         path = tmp_path / "template_dryrun.yaml"
         path.write_text(
-            'subject: "[테스트] 보고서"\n'
-            "body: |\n"
-            "  {student_name} 학생에게,\n"
-            "  보고서를 확인해 주세요.\n",
+            'subject: "[테스트] 보고서"\nbody: |\n  {student_name} 학생에게,\n  보고서를 확인해 주세요.\n',
             encoding="utf-8",
         )
         return str(path)
@@ -1139,10 +1198,7 @@ class TestSendEmailsDryRun:
     def _make_smtp_config(self, tmp_path):
         path = tmp_path / "smtp_dryrun.yaml"
         path.write_text(
-            'smtp_server: "smtp.gmail.com"\n'
-            "smtp_port: 587\n"
-            'sender_email: "prof@univ.kr"\n'
-            "send_interval_sec: 0.0\n",
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@univ.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
         return str(path)
@@ -1160,15 +1216,26 @@ class TestSendEmailsDryRun:
         class SpySMTP:
             def __init__(self, *args, **kwargs):
                 smtp_created.append(True)
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", SpySMTP)
 
         log = send_emails(
-            staging_dir, template_path, smtp_config_path, dry_run=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            dry_run=True,
         )
 
         assert len(smtp_created) == 0, "SMTP should not be instantiated in dry-run"
@@ -1186,7 +1253,10 @@ class TestSendEmailsDryRun:
 
         # Should not raise ValueError about missing password
         log = send_emails(
-            staging_dir, template_path, smtp_config_path, dry_run=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            dry_run=True,
         )
         assert log.dry_run is True
         assert log.success == 1
@@ -1200,7 +1270,10 @@ class TestSendEmailsDryRun:
         smtp_config_path = self._make_smtp_config(tmp_path)
 
         log = send_emails(
-            staging_dir, template_path, smtp_config_path, dry_run=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            dry_run=True,
         )
         assert log.total == 3
         assert log.success == 3
@@ -1243,11 +1316,20 @@ class TestSendEmailsDryRun:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "test_pw")
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1291,28 +1373,32 @@ class TestSendEmailsRetryFailed:
             zip_path = student_dir / f"{sid}.zip"
             zip_path.write_bytes(b"PK_FAKE_ZIP")
 
-            details.append({
-                "student_id": sid,
-                "name": f"학생_{sid}",
-                "email": f"{sid}@u.kr",
-                "status": "ready",
-                "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": 11,
-                "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": f"학생_{sid}",
+                    "email": f"{sid}@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 11,
+                    "message": "",
+                }
+            )
 
             status = "failed" if sid in failed_ids else "success"
             error = "SMTP timeout" if status == "failed" else ""
-            log_results.append({
-                "student_id": sid,
-                "email": f"{sid}@u.kr",
-                "status": status,
-                "sent_at": "2026-03-11T10:00:00",
-                "attachment": f"{sid}.zip",
-                "size_bytes": 11,
-                "error": error,
-            })
+            log_results.append(
+                {
+                    "student_id": sid,
+                    "email": f"{sid}@u.kr",
+                    "status": status,
+                    "sent_at": "2026-03-11T10:00:00",
+                    "attachment": f"{sid}.zip",
+                    "size_bytes": 11,
+                    "error": error,
+                }
+            )
 
         # Write prepare_summary
         summary = {
@@ -1352,8 +1438,7 @@ class TestSendEmailsRetryFailed:
     def _make_smtp_config(self, tmp_path):
         path = tmp_path / "smtp_retry.yaml"
         path.write_text(
-            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\n'
-            'sender_email: "prof@univ.kr"\nsend_interval_sec: 0.0\n',
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@univ.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
         return str(path)
@@ -1371,17 +1456,28 @@ class TestSendEmailsRetryFailed:
         sent_to = []
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 sent_to.append(msg["To"])
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
         log = send_emails(
-            staging_dir, template_path, smtp_config_path, retry_failed=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            retry_failed=True,
         )
 
         assert log.total == 1, "Only 1 failed student should be retried"
@@ -1393,7 +1489,8 @@ class TestSendEmailsRetryFailed:
         from forma.delivery_send import send_emails
 
         staging_dir = self._make_staging_with_log(
-            tmp_path, failed_ids={"s001", "s002"},
+            tmp_path,
+            failed_ids={"s001", "s002"},
         )
         template_path = self._make_template(tmp_path)
         smtp_config_path = self._make_smtp_config(tmp_path)
@@ -1401,16 +1498,28 @@ class TestSendEmailsRetryFailed:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
         log = send_emails(
-            staging_dir, template_path, smtp_config_path, retry_failed=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            retry_failed=True,
         )
 
         assert log.total == 2
@@ -1427,16 +1536,28 @@ class TestSendEmailsRetryFailed:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
         log = send_emails(
-            staging_dir, template_path, smtp_config_path, retry_failed=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            retry_failed=True,
         )
 
         assert log.total == 0
@@ -1452,15 +1573,20 @@ class TestSendEmailsRetryFailed:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config",
-                "send",
-                "--staged", staging_dir,
-                "--template", template_path,
-                "--smtp-config", smtp_config_path,
-                "--retry-failed",
-                "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staging_dir,
+                    "--template",
+                    template_path,
+                    "--smtp-config",
+                    smtp_config_path,
+                    "--retry-failed",
+                    "--force",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_retry_dry_run_previews_failed_only(self, tmp_path, monkeypatch):
@@ -1475,8 +1601,11 @@ class TestSendEmailsRetryFailed:
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         log = send_emails(
-            staging_dir, template_path, smtp_config_path,
-            dry_run=True, retry_failed=True,
+            staging_dir,
+            template_path,
+            smtp_config_path,
+            dry_run=True,
+            retry_failed=True,
         )
 
         assert log.total == 1
@@ -1505,9 +1634,13 @@ class TestPrintDeliverySummary:
             failed=1,
             results=[
                 DeliveryResult(
-                    student_id="s001", email="s@u.kr", status="failed",
-                    sent_at="2026-03-11T10:00:01", attachment="s001.zip",
-                    size_bytes=1024, error="SMTP timeout",
+                    student_id="s001",
+                    email="s@u.kr",
+                    status="failed",
+                    sent_at="2026-03-11T10:00:01",
+                    attachment="s001.zip",
+                    size_bytes=1024,
+                    error="SMTP timeout",
                 ),
             ],
         )
@@ -1583,12 +1716,20 @@ class TestSendSummaryEmail:
         sent_messages = []
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 sent_messages.append(msg)
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1623,12 +1764,20 @@ class TestSendSummaryEmail:
         sent_messages = []
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 sent_messages.append(msg)
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1681,7 +1830,10 @@ class TestAdversaryMaliciousTemplate:
         )
 
         _subject, body = render_template(
-            t, student_name="홍길동", student_id="s001", class_name="A",
+            t,
+            student_name="홍길동",
+            student_id="s001",
+            class_name="A",
         )
         # Attack is now blocked — type info must NOT appear
         assert "<class" not in body, "str.format attribute leak must be blocked"
@@ -1703,7 +1855,10 @@ class TestAdversaryMaliciousTemplate:
         )
 
         _subject, body = render_template(
-            t, student_name="홍길동", student_id="s001", class_name="A",
+            t,
+            student_name="홍길동",
+            student_id="s001",
+            class_name="A",
         )
         # Attack is blocked — MRO must NOT appear
         assert "(<class" not in body, "MRO leak via format string must be blocked"
@@ -1738,7 +1893,10 @@ class TestAdversaryMaliciousTemplate:
         # This may raise or may succeed — either way we document behavior
         try:
             _subject, body = render_template(
-                t, student_name="홍길동", student_id="s001", class_name="A",
+                t,
+                student_name="홍길동",
+                student_id="s001",
+                class_name="A",
             )
             # If globals are leaked, document it
             if "__builtins__" in body:
@@ -1811,9 +1969,7 @@ class TestAdversarySmtpHeaderInjection:
         )
 
         # Check that the Bcc header was NOT injected
-        assert msg["Bcc"] is None, (
-            f"EXPLOIT: SMTP header injection! Bcc header found: {msg['Bcc']}"
-        )
+        assert msg["Bcc"] is None, f"EXPLOIT: SMTP header injection! Bcc header found: {msg['Bcc']}"
 
     def test_email_with_carriage_return(self, tmp_path):
         """Email address with \\r\\n (CRLF injection)."""
@@ -1886,16 +2042,18 @@ class TestAdversaryNetworkSaboteur:
             student_dir.mkdir()
             zip_path = student_dir / f"{sid}.zip"
             zip_path.write_bytes(b"PK_FAKE_ZIP_CONTENT")
-            details.append({
-                "student_id": sid,
-                "name": f"학생{i}",
-                "email": f"s{i:03d}@u.kr",
-                "status": "ready",
-                "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": 19,
-                "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": f"학생{i}",
+                    "email": f"s{i:03d}@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 19,
+                    "message": "",
+                }
+            )
 
         summary = {
             "prepared_at": "2026-03-11T10:00:00",
@@ -1913,15 +2071,15 @@ class TestAdversaryNetworkSaboteur:
     def _make_template(self, tmp_path):
         path = tmp_path / "tpl_netsab.yaml"
         path.write_text(
-            'subject: "Test"\nbody: "{student_name} hello"\n', encoding="utf-8",
+            'subject: "Test"\nbody: "{student_name} hello"\n',
+            encoding="utf-8",
         )
         return str(path)
 
     def _make_smtp_config(self, tmp_path):
         path = tmp_path / "smtp_netsab.yaml"
         path.write_text(
-            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\n'
-            'sender_email: "prof@u.kr"\nsend_interval_sec: 0.0\n',
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@u.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
         return str(path)
@@ -1942,15 +2100,23 @@ class TestAdversaryNetworkSaboteur:
         call_count = 0
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 3:
                     raise ConnectionResetError("Connection reset by peer")
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1973,12 +2139,20 @@ class TestAdversaryNetworkSaboteur:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "wrong_pw")
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
             def login(self, u, p):
                 raise smtplib.SMTPAuthenticationError(535, b"Auth failed")
-            def send_message(self, msg): pass
-            def quit(self): pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -1998,11 +2172,20 @@ class TestAdversaryNetworkSaboteur:
         monkeypatch.setattr("time.sleep", lambda s: sleep_calls.append(s))
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -2022,10 +2205,18 @@ class TestAdversaryNetworkSaboteur:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
             def quit(self):
                 raise OSError("Connection already closed")
 
@@ -2075,8 +2266,7 @@ class TestAdversaryDataManglerSend:
 
         log_path = tmp_path / "delivery_log.yaml"
         log_path.write_text(
-            "sent_at: '2026-03-11'\n"
-            "results: []\n",
+            "sent_at: '2026-03-11'\nresults: []\n",
             encoding="utf-8",
         )
 
@@ -2089,9 +2279,7 @@ class TestAdversaryDataManglerSend:
 
         config_file = tmp_path / "smtp.yaml"
         config_file.write_text(
-            'smtp_server: "smtp.gmail.com"\n'
-            'smtp_port: "587abc"\n'
-            'sender_email: "prof@u.kr"\n',
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: "587abc"\nsender_email: "prof@u.kr"\n',
             encoding="utf-8",
         )
 
@@ -2104,10 +2292,7 @@ class TestAdversaryDataManglerSend:
 
         config_file = tmp_path / "smtp.yaml"
         config_file.write_text(
-            'smtp_server: "smtp.gmail.com"\n'
-            "smtp_port: 587\n"
-            'sender_email: "prof@u.kr"\n'
-            "send_interval_sec: true\n",
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@u.kr"\nsend_interval_sec: true\n',
             encoding="utf-8",
         )
 
@@ -2167,9 +2352,7 @@ class TestAdversaryNonAtomicWrite:
         uses_os_replace = "os.replace" in source
 
         if not uses_tempfile and not uses_os_replace:
-            assert True, (
-                "FINDING: save_prepare_summary() does NOT use atomic write."
-            )
+            assert True, "FINDING: save_prepare_summary() does NOT use atomic write."
 
 
 # ---------------------------------------------------------------------------
@@ -2190,14 +2373,25 @@ class TestAdversaryDryRunAbuser:
             student_dir.mkdir()
             zip_path = student_dir / f"{sid}.zip"
             zip_path.write_bytes(b"PK_FAKE_ZIP")
-            details.append({
-                "student_id": sid, "name": f"학생{i}", "email": f"s{i:03d}@u.kr",
-                "status": "ready", "matched_files": [f"{sid}.pdf"],
-                "zip_path": str(zip_path), "zip_size_bytes": 11, "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": f"학생{i}",
+                    "email": f"s{i:03d}@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 11,
+                    "message": "",
+                }
+            )
         summary = {
-            "prepared_at": "2026-03-11T10:00:00", "total_students": n,
-            "ready": n, "warnings": 0, "errors": 0, "details": details,
+            "prepared_at": "2026-03-11T10:00:00",
+            "total_students": n,
+            "ready": n,
+            "warnings": 0,
+            "errors": 0,
+            "details": details,
         }
         with open(str(staging_dir / "prepare_summary.yaml"), "w", encoding="utf-8") as f:
             yaml.dump(summary, f, allow_unicode=True, default_flow_style=False)
@@ -2211,8 +2405,7 @@ class TestAdversaryDryRunAbuser:
     def _make_smtp_config(self, tmp_path):
         path = tmp_path / "smtp_dry.yaml"
         path.write_text(
-            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\n'
-            'sender_email: "prof@u.kr"\nsend_interval_sec: 0.0\n',
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@u.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
         return str(path)
@@ -2250,11 +2443,20 @@ class TestAdversaryDryRunAbuser:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -2283,14 +2485,25 @@ class TestAdversaryPasswordLeak:
         zip_path = student_dir / f"{sid}.zip"
         zip_path.write_bytes(b"PK_FAKE_ZIP")
 
-        details = [{
-            "student_id": sid, "name": "학생", "email": "s@u.kr",
-            "status": "ready", "matched_files": ["s001.pdf"],
-            "zip_path": str(zip_path), "zip_size_bytes": 11, "message": "",
-        }]
+        details = [
+            {
+                "student_id": sid,
+                "name": "학생",
+                "email": "s@u.kr",
+                "status": "ready",
+                "matched_files": ["s001.pdf"],
+                "zip_path": str(zip_path),
+                "zip_size_bytes": 11,
+                "message": "",
+            }
+        ]
         summary = {
-            "prepared_at": "2026-03-11T10:00:00", "total_students": 1,
-            "ready": 1, "warnings": 0, "errors": 0, "details": details,
+            "prepared_at": "2026-03-11T10:00:00",
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
+            "details": details,
         }
         with open(str(staging_dir / "prepare_summary.yaml"), "w", encoding="utf-8") as f:
             yaml.dump(summary, f, allow_unicode=True, default_flow_style=False)
@@ -2300,8 +2513,7 @@ class TestAdversaryPasswordLeak:
 
         smtp_path = tmp_path / "smtp_pw.yaml"
         smtp_path.write_text(
-            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\n'
-            'sender_email: "prof@u.kr"\nsend_interval_sec: 0.0\n',
+            'smtp_server: "smtp.gmail.com"\nsmtp_port: 587\nsender_email: "prof@u.kr"\nsend_interval_sec: 0.0\n',
             encoding="utf-8",
         )
 
@@ -2309,11 +2521,20 @@ class TestAdversaryPasswordLeak:
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", secret_password)
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
-            def send_message(self, msg): pass
-            def quit(self): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
+            def send_message(self, msg):
+                pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -2339,29 +2560,45 @@ class TestAdversaryPasswordLeak:
         log = DeliveryLog(
             sent_at="2026-03-11T10:00:00",
             smtp_server="smtp.gmail.com",
-            dry_run=False, total=5, success=4, failed=1,
+            dry_run=False,
+            total=5,
+            success=4,
+            failed=1,
             results=[
                 DeliveryResult(
-                    student_id="s001", email="s@u.kr", status="failed",
-                    sent_at="2026-03-11T10:00:01", attachment="s001.zip",
-                    size_bytes=100, error="timeout",
+                    student_id="s001",
+                    email="s@u.kr",
+                    status="failed",
+                    sent_at="2026-03-11T10:00:01",
+                    attachment="s001.zip",
+                    size_bytes=100,
+                    error="timeout",
                 ),
             ],
         )
         cfg = SmtpConfig(
-            smtp_server="smtp.gmail.com", smtp_port=587,
+            smtp_server="smtp.gmail.com",
+            smtp_port=587,
             sender_email="prof@u.kr",
         )
 
         sent_messages = []
 
         class MockSMTP:
-            def __init__(self, *a, **kw): pass
-            def starttls(self, **kwargs): pass
-            def login(self, u, p): pass
+            def __init__(self, *a, **kw):
+                pass
+
+            def starttls(self, **kwargs):
+                pass
+
+            def login(self, u, p):
+                pass
+
             def send_message(self, msg):
                 sent_messages.append(msg)
-            def quit(self): pass
+
+            def quit(self):
+                pass
 
         monkeypatch.setattr("smtplib.SMTP", MockSMTP)
 
@@ -2375,9 +2612,7 @@ class TestAdversaryPasswordLeak:
                 body = part.get_payload(decode=True).decode("utf-8")
                 break
 
-        assert secret_pw not in body, (
-            "EXPLOIT: Password leaked in summary email body!"
-        )
+        assert secret_pw not in body, "EXPLOIT: Password leaked in summary email body!"
 
 
 # ===========================================================================
@@ -2447,52 +2682,73 @@ class TestBuildSmtpConfigIdentityMapping:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": 0,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": 0,
+                }
+            )
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": 70000,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": 70000,
+                }
+            )
 
     def test_port_bool_raises(self):
         """smtp_port as bool (True/False) raises ValueError (bool-as-int guard)."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": True,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": True,
+                }
+            )
 
     def test_interval_negative_raises(self):
         """send_interval_sec negative raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "send_interval_sec": -1,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": -1,
+                }
+            )
 
     def test_interval_bool_raises(self):
         """send_interval_sec as bool raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "send_interval_sec": False,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": False,
+                }
+            )
 
     def test_interval_zero_accepted(self):
         """send_interval_sec=0 is valid (no delay)."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "s", "sender_email": "a@b.com",
-            "send_interval_sec": 0,
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "s",
+                "sender_email": "a@b.com",
+                "send_interval_sec": 0,
+            }
+        )
         assert cfg.send_interval_sec == 0.0
 
 
@@ -2597,16 +2853,18 @@ class TestSendEmailsSmtpConfigParam:
             "ready": 1,
             "warnings": 0,
             "errors": 0,
-            "details": [{
-                "student_id": sid,
-                "name": "TestStudent",
-                "email": "test@u.kr",
-                "status": "ready",
-                "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path),
-                "zip_size_bytes": 100,
-                "message": "",
-            }],
+            "details": [
+                {
+                    "student_id": sid,
+                    "name": "TestStudent",
+                    "email": "test@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 100,
+                    "message": "",
+                }
+            ],
         }
         with open(str(staged / "prepare_summary.yaml"), "w") as f:
             yaml.dump(summary, f)
@@ -2626,6 +2884,7 @@ class TestSendEmailsSmtpConfigParam:
         )
 
         import unittest.mock
+
         mock_smtp = unittest.mock.MagicMock()
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
@@ -2660,11 +2919,18 @@ class TestSendEmailsSmtpConfigParam:
             "ready": 1,
             "warnings": 0,
             "errors": 0,
-            "details": [{
-                "student_id": sid, "name": "T", "email": "t@u.kr",
-                "status": "ready", "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zip_path), "zip_size_bytes": 100, "message": "",
-            }],
+            "details": [
+                {
+                    "student_id": sid,
+                    "name": "T",
+                    "email": "t@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zip_path),
+                    "zip_size_bytes": 100,
+                    "message": "",
+                }
+            ],
         }
         with open(str(staged / "prepare_summary.yaml"), "w") as f:
             yaml.dump(summary, f)
@@ -2673,13 +2939,17 @@ class TestSendEmailsSmtpConfigParam:
         tpl_path.write_text('subject: "T"\nbody: "Hi {student_name}"', encoding="utf-8")
 
         smtp_path = tmp_path / "smtp.yaml"
-        smtp_path.write_text(textwrap.dedent("""\
+        smtp_path.write_text(
+            textwrap.dedent("""\
             smtp_server: "file.smtp.com"
             smtp_port: 587
             sender_email: "file@test.com"
-        """), encoding="utf-8")
+        """),
+            encoding="utf-8",
+        )
 
         import unittest.mock
+
         mock_smtp = unittest.mock.MagicMock()
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
@@ -2716,19 +2986,29 @@ class TestSmtpReconnection:
 
         details = []
         for sid in ["S001", "S002", "S003"]:
-            details.append({
-                "student_id": sid, "name": sid, "email": f"{sid}@test.com",
-                "status": "ready", "matched_files": [f"{sid}.pdf"],
-                "zip_path": str(staged / f"{sid}.zip"),
-                "zip_size_bytes": 54, "message": "",
-            })
+            details.append(
+                {
+                    "student_id": sid,
+                    "name": sid,
+                    "email": f"{sid}@test.com",
+                    "status": "ready",
+                    "matched_files": [f"{sid}.pdf"],
+                    "zip_path": str(staged / f"{sid}.zip"),
+                    "zip_size_bytes": 54,
+                    "message": "",
+                }
+            )
         summary = {
             "prepared_at": "2026-01-01T00:00:00",
             "class_name": "TestClass",
-            "total_students": 3, "ready": 3, "warnings": 0, "errors": 0,
+            "total_students": 3,
+            "ready": 3,
+            "warnings": 0,
+            "errors": 0,
             "details": details,
         }
         import yaml as _yaml
+
         with open(str(staged / "prepare_summary.yaml"), "w") as f:
             _yaml.dump(summary, f)
 
@@ -2736,11 +3016,14 @@ class TestSmtpReconnection:
         tpl.write_text('subject: "T"\nbody: "Hi {student_name}"', encoding="utf-8")
 
         smtp_cfg = tmp_path / "smtp.yaml"
-        smtp_cfg.write_text(textwrap.dedent("""\
+        smtp_cfg.write_text(
+            textwrap.dedent("""\
             smtp_server: "smtp.test.com"
             smtp_port: 587
             sender_email: "test@test.com"
-        """), encoding="utf-8")
+        """),
+            encoding="utf-8",
+        )
 
         call_count = 0
         smtp_instances = []
@@ -2798,28 +3081,43 @@ class TestSmtpTimeout:
         staged.mkdir()
         zp = staged / "S001.zip"
         zp.write_bytes(b"PK\x03\x04" + b"\x00" * 50)
-        details = [{
-            "student_id": "S001", "name": "S001", "email": "s@t.com",
-            "status": "ready", "matched_files": ["S001.pdf"],
-            "zip_path": str(zp), "zip_size_bytes": 54, "message": "",
-        }]
+        details = [
+            {
+                "student_id": "S001",
+                "name": "S001",
+                "email": "s@t.com",
+                "status": "ready",
+                "matched_files": ["S001.pdf"],
+                "zip_path": str(zp),
+                "zip_size_bytes": 54,
+                "message": "",
+            }
+        ]
         summary = {
-            "prepared_at": "2026-01-01T00:00:00", "class_name": "C",
-            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
+            "prepared_at": "2026-01-01T00:00:00",
+            "class_name": "C",
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
             "details": details,
         }
         import yaml as _yaml
+
         with open(str(staged / "prepare_summary.yaml"), "w") as f:
             _yaml.dump(summary, f)
 
         tpl = tmp_path / "tpl.yaml"
         tpl.write_text('subject: "T"\nbody: "Hi"', encoding="utf-8")
         cfg = tmp_path / "smtp.yaml"
-        cfg.write_text(textwrap.dedent("""\
+        cfg.write_text(
+            textwrap.dedent("""\
             smtp_server: "smtp.test.com"
             smtp_port: 587
             sender_email: "test@test.com"
-        """), encoding="utf-8")
+        """),
+            encoding="utf-8",
+        )
 
         smtp_calls = []
         mock_smtp = unittest.mock.MagicMock()
@@ -2861,34 +3159,47 @@ class TestSmtpAuthError:
         staged.mkdir()
         zp = staged / "S001.zip"
         zp.write_bytes(b"PK\x03\x04" + b"\x00" * 50)
-        details = [{
-            "student_id": "S001", "name": "S001", "email": "s@t.com",
-            "status": "ready", "matched_files": ["S001.pdf"],
-            "zip_path": str(zp), "zip_size_bytes": 54, "message": "",
-        }]
+        details = [
+            {
+                "student_id": "S001",
+                "name": "S001",
+                "email": "s@t.com",
+                "status": "ready",
+                "matched_files": ["S001.pdf"],
+                "zip_path": str(zp),
+                "zip_size_bytes": 54,
+                "message": "",
+            }
+        ]
         summary = {
-            "prepared_at": "2026-01-01T00:00:00", "class_name": "C",
-            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
+            "prepared_at": "2026-01-01T00:00:00",
+            "class_name": "C",
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
             "details": details,
         }
         import yaml as _yaml
+
         with open(str(staged / "prepare_summary.yaml"), "w") as f:
             _yaml.dump(summary, f)
 
         tpl = tmp_path / "tpl.yaml"
         tpl.write_text('subject: "T"\nbody: "Hi"', encoding="utf-8")
         cfg = tmp_path / "smtp.yaml"
-        cfg.write_text(textwrap.dedent("""\
+        cfg.write_text(
+            textwrap.dedent("""\
             smtp_server: "smtp.test.com"
             smtp_port: 587
             sender_email: "test@test.com"
-        """), encoding="utf-8")
+        """),
+            encoding="utf-8",
+        )
 
         mock_smtp = unittest.mock.MagicMock()
         mock_smtp.starttls = lambda **kwargs: None
-        mock_smtp.login.side_effect = smtplib.SMTPAuthenticationError(
-            535, b"Authentication failed"
-        )
+        mock_smtp.login.side_effect = smtplib.SMTPAuthenticationError(535, b"Authentication failed")
 
         monkeypatch.setattr("smtplib.SMTP", lambda *a, **kw: mock_smtp)
         monkeypatch.setenv("FORMA_SMTP_PASSWORD", "pw")
@@ -2915,6 +3226,7 @@ class TestDeliveryLogValidation:
 
         bad_log = tmp_path / "bad_log.yaml"
         import yaml as _yaml
+
         _yaml.dump(
             {"sent_at": "2026-01-01", "smtp_server": "s"},
             open(str(bad_log), "w"),
@@ -2943,16 +3255,19 @@ class TestPiiMaskingInLogs:
         staging.mkdir()
         summary = {
             "class_name": "1A",
-            "details": [{
-                "student_id": "S001",
-                "name": "홍길동",
-                "email": "student@example.com",
-                "status": "ready",
-                "zip_path": str(staging / "S001.zip"),
-            }],
+            "details": [
+                {
+                    "student_id": "S001",
+                    "name": "홍길동",
+                    "email": "student@example.com",
+                    "status": "ready",
+                    "zip_path": str(staging / "S001.zip"),
+                }
+            ],
         }
         # Create prepare_summary.yaml
         import yaml as _yaml
+
         with open(staging / "prepare_summary.yaml", "w") as f:
             _yaml.dump(summary, f, allow_unicode=True)
 
@@ -2984,7 +3299,9 @@ class TestPiiMaskingInLogs:
 
         try:
             send_emails(
-                str(staging), str(template_path), "",
+                str(staging),
+                str(template_path),
+                "",
                 dry_run=True,
                 smtp_config=smtp_cfg,
             )
@@ -3028,6 +3345,4 @@ class TestPiiMaskingInLogs:
 
         output = buf.getvalue()
         # Raw email should NOT appear in output
-        assert "longname@university.ac.kr" not in output, (
-            f"Raw email found in summary output: {output}"
-        )
+        assert "longname@university.ac.kr" not in output, f"Raw email found in summary output: {output}"

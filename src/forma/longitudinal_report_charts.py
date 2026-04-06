@@ -55,8 +55,7 @@ def build_trajectory_line_chart(
     fig, ax = plt.subplots(figsize=(160 / 25.4, 100 / 25.4))
 
     if not summary_data.student_trajectories:
-        ax.text(0.5, 0.5, "학생 데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=12)
+        ax.text(0.5, 0.5, "학생 데이터 없음", ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -65,10 +64,7 @@ def build_trajectory_line_chart(
     # Adaptive alpha based on student count
     n_students = len(summary_data.student_trajectories)
     normal_alpha = max(0.05, 0.3 - n_students * 0.001)
-    risk_students = [
-        t for t in summary_data.student_trajectories
-        if t.is_persistent_risk
-    ]
+    risk_students = [t for t in summary_data.student_trajectories if t.is_persistent_risk]
 
     # Plot normal students first (background)
     for traj in summary_data.student_trajectories:
@@ -76,24 +72,20 @@ def build_trajectory_line_chart(
             continue
         ws = sorted(traj.weekly_scores.keys())
         scores = [traj.weekly_scores[w] for w in ws]
-        ax.plot(ws, scores, color="gray",
-                alpha=normal_alpha, linewidth=0.8)
+        ax.plot(ws, scores, color="gray", alpha=normal_alpha, linewidth=0.8)
 
     # Risk students on top — aggregate legend
     for i, traj in enumerate(risk_students):
         ws = sorted(traj.weekly_scores.keys())
         scores = [traj.weekly_scores[w] for w in ws]
-        label = (f"지속 위험군 ({len(risk_students)}명)"
-                 if i == 0 else None)
-        ax.plot(ws, scores, color="red", alpha=0.6,
-                linewidth=1.2, label=label)
+        label = f"지속 위험군 ({len(risk_students)}명)" if i == 0 else None
+        ax.plot(ws, scores, color="red", alpha=0.6, linewidth=1.2, label=label)
 
     # Class average line (blue bold)
     if summary_data.class_weekly_averages:
         avg_weeks = sorted(summary_data.class_weekly_averages.keys())
         avg_scores = [summary_data.class_weekly_averages[w] for w in avg_weeks]
-        ax.plot(avg_weeks, avg_scores, color="blue", linewidth=2.5,
-                label="학급 평균", zorder=10)
+        ax.plot(avg_weeks, avg_scores, color="blue", linewidth=2.5, label="학급 평균", zorder=10)
 
     ax.set_xlabel("주차", fontproperties=fp, fontsize=9)
     ax.set_ylabel("앙상블 점수", fontproperties=fp, fontsize=9)
@@ -109,8 +101,7 @@ def build_trajectory_line_chart(
     if handles:
         # Deduplicate
         by_label = dict(zip(labels, handles))
-        ax.legend(by_label.values(), by_label.keys(),
-                  prop=fp, fontsize=7, loc="best")
+        ax.legend(by_label.values(), by_label.keys(), prop=fp, fontsize=7, loc="best")
 
     fig.tight_layout()
     return _save_fig(fig, dpi=dpi)
@@ -139,8 +130,7 @@ def build_class_week_heatmap(
     fig, ax = plt.subplots(figsize=(160 / 25.4, 120 / 25.4))
 
     if not summary_data.student_trajectories:
-        ax.text(0.5, 0.5, "학생 데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=12)
+        ax.text(0.5, 0.5, "학생 데이터 없음", ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -199,10 +189,16 @@ def build_class_week_heatmap(
     # Insert gap indicator if needed
     if gap_label is not None:
         ax.axhline(y=24.5, color="white", linewidth=3)
-        ax.text(n_weeks / 2 - 0.5, 24.5, gap_label,
-                ha="center", va="center", fontproperties=fp, fontsize=8,
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
-                          edgecolor="gray", alpha=0.9))
+        ax.text(
+            n_weeks / 2 - 0.5,
+            24.5,
+            gap_label,
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=8,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.9),
+        )
 
     ax.set_xticks(range(n_weeks))
     ax.set_xticklabels([f"W{w}" for w in weeks], fontproperties=fp, fontsize=8)
@@ -237,8 +233,7 @@ def build_concept_mastery_bar_chart(
 
     if not changes:
         fig, ax = plt.subplots(figsize=(160 / 25.4, 60 / 25.4))
-        ax.text(0.5, 0.5, "개념 데이터 없음",
-                ha="center", va="center", fontproperties=fp, fontsize=12)
+        ax.text(0.5, 0.5, "개념 데이터 없음", ha="center", va="center", fontproperties=fp, fontsize=12)
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -257,9 +252,15 @@ def build_concept_mastery_bar_chart(
     for bar, delta in zip(bars, deltas):
         x_pos = delta + 0.01 if delta >= 0 else delta - 0.01
         ha = "left" if delta >= 0 else "right"
-        ax.text(x_pos, bar.get_y() + bar.get_height() / 2,
-                f"{delta:+.2f}", va="center", ha=ha,
-                fontproperties=fp, fontsize=8)
+        ax.text(
+            x_pos,
+            bar.get_y() + bar.get_height() / 2,
+            f"{delta:+.2f}",
+            va="center",
+            ha=ha,
+            fontproperties=fp,
+            fontsize=8,
+        )
 
     ax.set_yticks(positions)
     ax.set_yticklabels(concepts, fontproperties=fp, fontsize=9)
@@ -302,9 +303,13 @@ def build_concept_mastery_heatmap(
             figsize=(160 / 25.4, 60 / 25.4),
         )
         ax.text(
-            0.5, 0.5, "개념 마스터리 데이터 없음",
-            ha="center", va="center",
-            fontproperties=fp, fontsize=12,
+            0.5,
+            0.5,
+            "개념 마스터리 데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=fp,
+            fontsize=12,
         )
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
@@ -317,17 +322,14 @@ def build_concept_mastery_heatmap(
         deltas = {}
         for c in concepts:
             scores = mastery_data[c]
-            avail = [
-                w for w in sorted_weeks if w in scores
-            ]
+            avail = [w for w in sorted_weeks if w in scores]
             if len(avail) >= 2:
-                deltas[c] = abs(
-                    scores[avail[-1]] - scores[avail[0]]
-                )
+                deltas[c] = abs(scores[avail[-1]] - scores[avail[0]])
             else:
                 deltas[c] = 0.0
         concepts = sorted(
-            concepts, key=lambda c: deltas[c],
+            concepts,
+            key=lambda c: deltas[c],
             reverse=True,
         )[:top_n]
 
@@ -344,7 +346,8 @@ def build_concept_mastery_heatmap(
                 matrix[i, j] = mastery_data[concept][week]
 
     fig_height = max(
-        3, n_concepts * 0.4 + 1.5,
+        3,
+        n_concepts * 0.4 + 1.5,
     )
     fig, ax = plt.subplots(
         figsize=(160 / 25.4, fig_height),
@@ -355,23 +358,30 @@ def build_concept_mastery_heatmap(
     cmap.set_bad(color="lightgray")
 
     im = ax.imshow(
-        masked, aspect="auto", cmap=cmap,
-        vmin=0.0, vmax=1.0,
+        masked,
+        aspect="auto",
+        cmap=cmap,
+        vmin=0.0,
+        vmax=1.0,
     )
     plt.colorbar(im, ax=ax, fraction=0.02, label="비율")
 
     ax.set_xticks(range(n_weeks))
     ax.set_xticklabels(
         [f"W{w}" for w in sorted_weeks],
-        fontproperties=fp, fontsize=8,
+        fontproperties=fp,
+        fontsize=8,
     )
     ax.set_yticks(range(n_concepts))
     ax.set_yticklabels(
-        concepts, fontproperties=fp, fontsize=8,
+        concepts,
+        fontproperties=fp,
+        fontsize=8,
     )
     ax.set_title(
         "개념별 마스터리 히트맵",
-        fontproperties=fp, fontsize=11,
+        fontproperties=fp,
+        fontsize=11,
     )
 
     fig.tight_layout()
@@ -404,8 +414,7 @@ def build_intervention_effect_chart(
 
     if not sufficient:
         fig, ax = plt.subplots(figsize=(160 / 25.4, 60 / 25.4))
-        ax.text(0.5, 0.5, "개입 효과 데이터 없음",
-                ha="center", va="center", fontproperties=font_prop, fontsize=12)
+        ax.text(0.5, 0.5, "개입 효과 데이터 없음", ha="center", va="center", fontproperties=font_prop, fontsize=12)
         ax.axis("off")
         return _save_fig(fig, dpi=dpi)
 
@@ -420,10 +429,8 @@ def build_intervention_effect_chart(
     y_pos = np.arange(n)
     bar_height = 0.35
 
-    ax.barh(y_pos - bar_height / 2, pre_scores, bar_height,
-            label="개입 전", color="#42A5F5", alpha=0.8)
-    ax.barh(y_pos + bar_height / 2, post_scores, bar_height,
-            label="개입 후", color="#66BB6A", alpha=0.8)
+    ax.barh(y_pos - bar_height / 2, pre_scores, bar_height, label="개입 전", color="#42A5F5", alpha=0.8)
+    ax.barh(y_pos + bar_height / 2, post_scores, bar_height, label="개입 후", color="#66BB6A", alpha=0.8)
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels, fontproperties=font_prop, fontsize=8)
@@ -458,12 +465,13 @@ def build_risk_trend_chart(
 
     # Sort by probability descending, show top 10
     sorted_preds = sorted(
-        risk_predictions, key=lambda p: p.drop_probability, reverse=True,
+        risk_predictions,
+        key=lambda p: p.drop_probability,
+        reverse=True,
     )[:10]
 
     if not sorted_preds:
-        ax.text(0.5, 0.5, "예측 데이터 없음", ha="center", va="center",
-                fontproperties=font_prop, fontsize=14)
+        ax.text(0.5, 0.5, "예측 데이터 없음", ha="center", va="center", fontproperties=font_prop, fontsize=14)
     else:
         student_ids = [p.student_id for p in sorted_preds]
         probs = [p.drop_probability for p in sorted_preds]
@@ -510,9 +518,13 @@ def build_ocr_confidence_trend_chart(
 
     if not trajectories:
         ax.text(
-            0.5, 0.5, "데이터 없음",
-            ha="center", va="center",
-            fontproperties=font_prop, fontsize=14,
+            0.5,
+            0.5,
+            "데이터 없음",
+            ha="center",
+            va="center",
+            fontproperties=font_prop,
+            fontsize=14,
         )
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
@@ -572,7 +584,8 @@ def build_class_heatmap_subplots(
     font_prop = _get_font_prop(font_path)
     rows, cols = layout
     fig, axes = plt.subplots(
-        rows, cols,
+        rows,
+        cols,
         figsize=(cols * 4, rows * 3),
         squeeze=False,
     )
@@ -586,7 +599,8 @@ def build_class_heatmap_subplots(
         if not students:
             ax.set_title(
                 f"반 {cid} (데이터 없음)",
-                fontproperties=font_prop, fontsize=9,
+                fontproperties=font_prop,
+                fontsize=9,
             )
             ax.set_xticks([])
             ax.set_yticks([])
@@ -598,26 +612,28 @@ def build_class_heatmap_subplots(
         )
         matrix = []
         for sid in sorted_sids:
-            row = [
-                students[sid].get(w, float("nan"))
-                for w in all_weeks
-            ]
+            row = [students[sid].get(w, float("nan")) for w in all_weeks]
             matrix.append(row)
 
         arr = np.array(matrix)
         ax.imshow(
-            arr, aspect="auto", cmap="RdYlGn",
-            vmin=0, vmax=1,
+            arr,
+            aspect="auto",
+            cmap="RdYlGn",
+            vmin=0,
+            vmax=1,
         )
         ax.set_xticks(range(len(all_weeks)))
         ax.set_xticklabels(
-            [str(w) for w in all_weeks], fontsize=7,
+            [str(w) for w in all_weeks],
+            fontsize=7,
         )
         ax.set_yticks(range(len(sorted_sids)))
         ax.set_yticklabels(sorted_sids, fontsize=6)
         ax.set_title(
             f"반 {cid}",
-            fontproperties=font_prop, fontsize=9,
+            fontproperties=font_prop,
+            fontsize=9,
         )
 
     # Hide unused subplots

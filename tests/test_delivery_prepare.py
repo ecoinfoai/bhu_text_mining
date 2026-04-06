@@ -609,19 +609,31 @@ class TestSavePrepareSupmmary:
             errors=0,
             details=[
                 StudentPrepareResult(
-                    student_id="s1", name="학생1", email="s1@u.kr",
-                    status="ready", matched_files=["r.pdf"],
-                    zip_path="/out/s1.zip", zip_size_bytes=1024,
+                    student_id="s1",
+                    name="학생1",
+                    email="s1@u.kr",
+                    status="ready",
+                    matched_files=["r.pdf"],
+                    zip_path="/out/s1.zip",
+                    zip_size_bytes=1024,
                 ),
                 StudentPrepareResult(
-                    student_id="s2", name="학생2", email="s2@u.kr",
-                    status="ready", matched_files=["r.pdf"],
-                    zip_path="/out/s2.zip", zip_size_bytes=2048,
+                    student_id="s2",
+                    name="학생2",
+                    email="s2@u.kr",
+                    status="ready",
+                    matched_files=["r.pdf"],
+                    zip_path="/out/s2.zip",
+                    zip_size_bytes=2048,
                 ),
                 StudentPrepareResult(
-                    student_id="s3", name="학생3", email="s3@u.kr",
-                    status="warning", matched_files=["r.pdf"],
-                    zip_path="/out/s3.zip", zip_size_bytes=512,
+                    student_id="s3",
+                    name="학생3",
+                    email="s3@u.kr",
+                    status="warning",
+                    matched_files=["r.pdf"],
+                    zip_path="/out/s3.zip",
+                    zip_size_bytes=512,
                     message="feedback.pdf 누락",
                 ),
             ],
@@ -668,17 +680,12 @@ class TestPrepareDelivery:
         # Create report files
         for i in range(n_students):
             if i not in missing_files:
-                (report_dir / f"s{i:03d}_report.pdf").write_bytes(
-                    b"PDF_CONTENT_" + str(i).encode()
-                )
+                (report_dir / f"s{i:03d}_report.pdf").write_bytes(b"PDF_CONTENT_" + str(i).encode())
 
         # Manifest
         manifest_path = tmp_path / "manifest.yaml"
         manifest_path.write_text(
-            f"report_source:\n"
-            f'  directory: "{report_dir}"\n'
-            f"  file_patterns:\n"
-            f'    - "{{student_id}}_report.pdf"\n',
+            f'report_source:\n  directory: "{report_dir}"\n  file_patterns:\n    - "{{student_id}}_report.pdf"\n',
             encoding="utf-8",
         )
 
@@ -686,14 +693,9 @@ class TestPrepareDelivery:
         roster_path = tmp_path / "roster.yaml"
         students_yaml = ""
         for i in range(n_students):
-            students_yaml += (
-                f'  - student_id: "s{i:03d}"\n'
-                f'    name: "학생{i}"\n'
-                f'    email: "s{i:03d}@u.kr"\n'
-            )
+            students_yaml += f'  - student_id: "s{i:03d}"\n    name: "학생{i}"\n    email: "s{i:03d}@u.kr"\n'
         roster_path.write_text(
-            f'class_name: "테스트반"\n'
-            f"students:\n{students_yaml}",
+            f'class_name: "테스트반"\nstudents:\n{students_yaml}',
             encoding="utf-8",
         )
 
@@ -706,7 +708,8 @@ class TestPrepareDelivery:
         from forma.delivery_prepare import prepare_delivery
 
         manifest_path, roster_path, output_dir = self._make_test_fixtures(
-            tmp_path, n_students=3,
+            tmp_path,
+            n_students=3,
         )
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -727,7 +730,9 @@ class TestPrepareDelivery:
         from forma.delivery_prepare import prepare_delivery
 
         manifest_path, roster_path, output_dir = self._make_test_fixtures(
-            tmp_path, n_students=3, missing_files={2},
+            tmp_path,
+            n_students=3,
+            missing_files={2},
         )
 
         summary = prepare_delivery(manifest_path, roster_path, output_dir)
@@ -791,7 +796,8 @@ class TestPrepareDelivery:
         from forma.delivery_prepare import prepare_delivery
 
         manifest_path, roster_path, output_dir = self._make_test_fixtures(
-            tmp_path, n_students=1,
+            tmp_path,
+            n_students=1,
         )
         os.makedirs(output_dir)
 
@@ -803,7 +809,8 @@ class TestPrepareDelivery:
         from forma.delivery_prepare import prepare_delivery
 
         manifest_path, roster_path, output_dir = self._make_test_fixtures(
-            tmp_path, n_students=1,
+            tmp_path,
+            n_students=1,
         )
         os.makedirs(output_dir)
         # Place a leftover file
@@ -817,7 +824,8 @@ class TestPrepareDelivery:
         from forma.delivery_prepare import prepare_delivery
 
         manifest_path, roster_path, output_dir = self._make_test_fixtures(
-            tmp_path, n_students=2,
+            tmp_path,
+            n_students=2,
         )
 
         prepare_delivery(manifest_path, roster_path, output_dir)
@@ -843,20 +851,13 @@ class TestPrepareDelivery:
 
         manifest_path = tmp_path / "manifest.yaml"
         manifest_path.write_text(
-            f"report_source:\n"
-            f'  directory: "{report_dir}"\n'
-            f"  file_patterns:\n"
-            f'    - "{{student_id}}_report.pdf"\n',
+            f'report_source:\n  directory: "{report_dir}"\n  file_patterns:\n    - "{{student_id}}_report.pdf"\n',
             encoding="utf-8",
         )
 
         roster_path = tmp_path / "roster.yaml"
         roster_path.write_text(
-            'class_name: "A"\n'
-            "students:\n"
-            '  - student_id: "s001"\n'
-            '    name: "학생1"\n'
-            '    email: "s1@u.kr"\n',
+            'class_name: "A"\nstudents:\n  - student_id: "s001"\n    name: "학생1"\n    email: "s1@u.kr"\n',
             encoding="utf-8",
         )
 
@@ -895,20 +896,13 @@ class TestAdversaryBoundaryPusherPrepare:
 
         manifest_path = tmp_path / "manifest.yaml"
         manifest_path.write_text(
-            f"report_source:\n"
-            f'  directory: "{report_dir}"\n'
-            f"  file_patterns:\n"
-            f'    - "{{student_id}}_report.pdf"\n',
+            f'report_source:\n  directory: "{report_dir}"\n  file_patterns:\n    - "{{student_id}}_report.pdf"\n',
             encoding="utf-8",
         )
 
         students_yaml = ""
         for i in range(1000):
-            students_yaml += (
-                f'  - student_id: "s{i:04d}"\n'
-                f'    name: "학생{i}"\n'
-                f'    email: "s{i:04d}@u.kr"\n'
-            )
+            students_yaml += f'  - student_id: "s{i:04d}"\n    name: "학생{i}"\n    email: "s{i:04d}@u.kr"\n'
         roster_path = tmp_path / "roster.yaml"
         roster_path.write_text(
             f'class_name: "대규모반"\nstudents:\n{students_yaml}',
@@ -928,11 +922,7 @@ class TestAdversaryBoundaryPusherPrepare:
 
         roster_file = tmp_path / "roster.yaml"
         roster_file.write_text(
-            'class_name: "A"\n'
-            "students:\n"
-            '  - student_id: ""\n'
-            '    name: "학생"\n'
-            '    email: "s@u.kr"\n',
+            'class_name: "A"\nstudents:\n  - student_id: ""\n    name: "학생"\n    email: "s@u.kr"\n',
             encoding="utf-8",
         )
 
@@ -961,10 +951,7 @@ class TestAdversaryBoundaryPusherPrepare:
 
         manifest_file = tmp_path / "manifest.yaml"
         manifest_file.write_text(
-            f"report_source:\n"
-            f'  directory: "{report_dir}"\n'
-            f"  file_patterns:\n"
-            f'    - "report.pdf"\n',
+            f'report_source:\n  directory: "{report_dir}"\n  file_patterns:\n    - "report.pdf"\n',
             encoding="utf-8",
         )
 
@@ -1021,21 +1008,14 @@ class TestAdversaryMaliciousInputPrepare:
 
         manifest_path = tmp_path / "manifest.yaml"
         manifest_path.write_text(
-            f"report_source:\n"
-            f'  directory: "{report_dir}"\n'
-            f"  file_patterns:\n"
-            f'    - "{{student_id}}_report.pdf"\n',
+            f'report_source:\n  directory: "{report_dir}"\n  file_patterns:\n    - "{{student_id}}_report.pdf"\n',
             encoding="utf-8",
         )
 
         # Student name with path traversal attempt
         roster_path = tmp_path / "roster.yaml"
         roster_path.write_text(
-            'class_name: "A"\n'
-            "students:\n"
-            '  - student_id: "s001"\n'
-            '    name: "../../etc/shadow"\n'
-            '    email: "s@u.kr"\n',
+            'class_name: "A"\nstudents:\n  - student_id: "s001"\n    name: "../../etc/shadow"\n    email: "s@u.kr"\n',
             encoding="utf-8",
         )
 
@@ -1048,9 +1028,7 @@ class TestAdversaryMaliciousInputPrepare:
                 # Resolve to absolute path and verify containment
                 abs_zip = os.path.realpath(detail.zip_path)
                 abs_staging = os.path.realpath(output_dir)
-                assert abs_zip.startswith(abs_staging), (
-                    f"EXPLOIT: zip escaped staging dir: {abs_zip}"
-                )
+                assert abs_zip.startswith(abs_staging), f"EXPLOIT: zip escaped staging dir: {abs_zip}"
 
     def test_student_id_with_null_bytes(self, tmp_path):
         """Student ID with null bytes in filename: should be handled safely."""
@@ -1069,11 +1047,11 @@ class TestAdversaryMaliciousInputPrepare:
         yaml_bomb = tmp_path / "bomb.yaml"
         yaml_bomb.write_text(
             'a: &a ["lol","lol"]\n'
-            'b: &b [*a,*a]\n'
-            'c: &c [*b,*b]\n'
-            'report_source:\n'
+            "b: &b [*a,*a]\n"
+            "c: &c [*b,*b]\n"
+            "report_source:\n"
             '  directory: "/tmp"\n'
-            '  file_patterns:\n'
+            "  file_patterns:\n"
             '    - "{student_id}.pdf"\n',
             encoding="utf-8",
         )
@@ -1156,11 +1134,7 @@ class TestAdversaryDataManglerPrepare:
 
         roster_file = tmp_path / "roster.yaml"
         roster_file.write_text(
-            'class_name: "A"\n'
-            "students:\n"
-            '  - student_id: "s001"\n'
-            '    name: "학생1"\n'
-            '    email: "   "\n',
+            'class_name: "A"\nstudents:\n  - student_id: "s001"\n    name: "학생1"\n    email: "   "\n',
             encoding="utf-8",
         )
 
@@ -1172,16 +1146,11 @@ class TestAdversaryDataManglerPrepare:
         # prepare_delivery marks the student as error, does not raise
         manifest_file = tmp_path / "manifest.yaml"
         manifest_file.write_text(
-            "report_source:\n"
-            f"  directory: {str(tmp_path)}\n"
-            "  file_patterns:\n"
-            '    - "{student_id}_report.pdf"\n',
+            f'report_source:\n  directory: {str(tmp_path)}\n  file_patterns:\n    - "{{student_id}}_report.pdf"\n',
             encoding="utf-8",
         )
         output_dir = tmp_path / "staging"
-        summary = prepare_delivery(
-            str(manifest_file), str(roster_file), str(output_dir)
-        )
+        summary = prepare_delivery(str(manifest_file), str(roster_file), str(output_dir))
         assert summary.errors == 1
         assert summary.details[0].status == "error"
         assert summary.details[0].student_id == "s001"

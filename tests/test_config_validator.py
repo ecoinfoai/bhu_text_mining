@@ -48,9 +48,7 @@ class TestValidateQuestionConfig:
         """Edge missing required keys produces error."""
         q = {
             "sn": 1,
-            "knowledge_graph": {
-                "edges": [{"subject": "A", "relation": "r"}]
-            },
+            "knowledge_graph": {"edges": [{"subject": "A", "relation": "r"}]},
         }
         errors = validate_question_config(q)
         assert any("object" in e for e in errors)
@@ -109,10 +107,7 @@ class TestValidateEdgeAnswerRatio:
 
     def test_too_many_edges_warns(self):
         """Many edges relative to answer length warns."""
-        edges = [
-            {"subject": f"S{i}", "relation": "r", "object": f"O{i}"}
-            for i in range(20)
-        ]
+        edges = [{"subject": f"S{i}", "relation": "r", "object": f"O{i}"} for i in range(20)]
         q = {"sn": 1, "knowledge_graph": {"edges": edges}}
         warns = validate_edge_answer_ratio(q, answer_limit_chars=200)
         assert len(warns) == 1

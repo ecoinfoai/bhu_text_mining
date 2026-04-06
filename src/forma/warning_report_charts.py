@@ -60,8 +60,7 @@ def build_risk_type_distribution_chart(
 
     if not risk_type_counts:
         fig, ax = plt.subplots(figsize=(6, 3))
-        ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
-                fontproperties=font_prop, fontsize=14)
+        ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center", fontproperties=font_prop, fontsize=14)
         ax.set_axis_off()
         return _save_fig(fig, dpi=dpi)
 
@@ -83,8 +82,12 @@ def build_risk_type_distribution_chart(
     # Add count labels on bars
     for bar, val in zip(bars, values):
         ax.text(
-            bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1,
-            str(val), ha="center", va="bottom", fontsize=9,
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.1,
+            str(val),
+            ha="center",
+            va="bottom",
+            fontsize=9,
         )
 
     fig.tight_layout()
@@ -113,8 +116,7 @@ def build_deficit_concepts_chart(
 
     if not concept_counts:
         fig, ax = plt.subplots(figsize=(6, 3))
-        ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center",
-                fontproperties=font_prop, fontsize=14)
+        ax.text(0.5, 0.5, "데이터 없음", ha="center", va="center", fontproperties=font_prop, fontsize=14)
         ax.set_axis_off()
         return _save_fig(fig, dpi=dpi)
 

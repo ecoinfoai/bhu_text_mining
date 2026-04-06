@@ -180,12 +180,23 @@ def compute_section_stats(
     arr = np.array(ensemble_scores, dtype=float)
     n = len(arr)
     n_at_risk = len(at_risk_ids)
+    with np.errstate(all="ignore"):
+        mean_val = float(np.nanmean(arr)) if n > 0 else 0.0
+        median_val = float(np.nanmedian(arr)) if n > 0 else 0.0
+        std_val = float(np.nanstd(arr, ddof=0)) if n > 0 else 0.0
+    # Guard against all-NaN arrays
+    if np.isnan(mean_val):
+        mean_val = 0.0
+    if np.isnan(median_val):
+        median_val = 0.0
+    if np.isnan(std_val):
+        std_val = 0.0
     return SectionStats(
         section_name=section_name,
         n_students=n,
-        mean=float(np.mean(arr)) if n > 0 else 0.0,
-        median=float(np.median(arr)) if n > 0 else 0.0,
-        std=float(np.std(arr, ddof=0)) if n > 0 else 0.0,
+        mean=mean_val,
+        median=median_val,
+        std=std_val,
         n_at_risk=n_at_risk,
         pct_at_risk=n_at_risk / n if n > 0 else 0.0,
     )
@@ -242,7 +253,9 @@ def compute_pairwise_comparisons(
             p_value = float(test_result.pvalue)
         else:
             test_result = stats.mannwhitneyu(
-                arr_a, arr_b, alternative="two-sided",
+                arr_a,
+                arr_b,
+                alternative="two-sided",
             )
             test_name = "mann_whitney_u"
             test_statistic = float(test_result.statistic)

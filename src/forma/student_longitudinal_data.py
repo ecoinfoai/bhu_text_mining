@@ -10,12 +10,14 @@ from __future__ import annotations
 import csv
 import enum
 import logging
+import math
 import os
 from collections import defaultdict
 from dataclasses import dataclass, field
 
 import numpy as np
 
+from forma.longitudinal_report_data import TopicTrendResult
 from forma.longitudinal_store import LongitudinalStore
 
 logger = logging.getLogger(__name__)
@@ -175,27 +177,7 @@ class AnonymizedStudentSummary:
     component_breakdown: dict[int, dict[str, float]] = field(default_factory=dict)
 
 
-@dataclass(frozen=True)
-class TopicTrendResult:
-    """Per-topic trend statistics from longitudinal data.
-
-    Args:
-        topic: Topic name (e.g. "개념이해").
-        kendall_tau: Kendall's tau; None if < 3 data points.
-        kendall_p: p-value for tau; None if < 3 data points.
-        spearman_rho: Spearman's rho; None if < 3 data points.
-        spearman_p: p-value for rho; None if < 3 data points.
-        n_weeks: Number of data points used.
-        interpretation: Korean text interpretation.
-    """
-
-    topic: str
-    kendall_tau: float | None
-    kendall_p: float | None
-    spearman_rho: float | None
-    spearman_p: float | None
-    n_weeks: int
-    interpretation: str
+# TopicTrendResult is imported from forma.longitudinal_report_data (canonical definition)
 
 
 def compute_topic_trends(
@@ -218,47 +200,52 @@ def compute_topic_trends(
         n = len(values)
 
         if n < 3:
-            results.append(TopicTrendResult(
-                topic=topic,
-                kendall_tau=None,
-                kendall_p=None,
-                spearman_rho=None,
-                spearman_p=None,
-                n_weeks=n,
-                interpretation="3주 이상 데이터 필요",
-            ))
+            results.append(
+                TopicTrendResult(
+                    topic=topic,
+                    kendall_tau=None,
+                    kendall_p=None,
+                    spearman_rho=None,
+                    spearman_p=None,
+                    n_weeks=n,
+                    interpretation="3주 이상 데이터 필요",
+                )
+            )
             continue
 
-        tau, tau_p = kendalltau(
-            list(range(n)), values
-        )
-        rho, rho_p = spearmanr(
-            list(range(n)), values
-        )
+        tau, tau_p = kendalltau(list(range(n)), values)
+        rho, rho_p = spearmanr(list(range(n)), values)
+
+        # Convert NaN (constant/insufficient data) to None
+        safe_tau = None if math.isnan(tau) else float(tau)
+        safe_tau_p = None if math.isnan(tau_p) else float(tau_p)
+        safe_rho = None if math.isnan(rho) else float(rho)
+        safe_rho_p = None if math.isnan(rho_p) else float(rho_p)
 
         # Build interpretation
-        if tau_p < 0.05 and tau > 0:
+        if safe_tau_p is not None and safe_tau_p < 0.05 and safe_tau is not None and safe_tau > 0:
             interp = "유의미한 상승 추세"
-        elif tau_p < 0.05 and tau < 0:
+        elif safe_tau_p is not None and safe_tau_p < 0.05 and safe_tau is not None and safe_tau < 0:
             interp = "유의미한 하강 추세"
         else:
             interp = "유의미한 추세 없음"
 
-        interp_str = (
-            f"{topic} τ = {tau:+.2f}, "
-            f"ρ = {rho:+.2f} "
-            f"(p = {tau_p:.3f}): {interp}"
-        )
+        tau_str = f"{safe_tau:+.2f}" if safe_tau is not None else "N/A"
+        rho_str = f"{safe_rho:+.2f}" if safe_rho is not None else "N/A"
+        p_str = f"{safe_tau_p:.3f}" if safe_tau_p is not None else "N/A"
+        interp_str = f"{topic} τ = {tau_str}, ρ = {rho_str} (p = {p_str}): {interp}"
 
-        results.append(TopicTrendResult(
-            topic=topic,
-            kendall_tau=float(tau),
-            kendall_p=float(tau_p),
-            spearman_rho=float(rho),
-            spearman_p=float(rho_p),
-            n_weeks=n,
-            interpretation=interp_str,
-        ))
+        results.append(
+            TopicTrendResult(
+                topic=topic,
+                kendall_tau=safe_tau,
+                kendall_p=safe_tau_p,
+                spearman_rho=safe_rho,
+                spearman_p=safe_rho_p,
+                n_weeks=n,
+                interpretation=interp_str,
+            )
+        )
 
     return results
 
@@ -285,9 +272,7 @@ def build_cohort_distribution(
     all_records = store.get_all_records()
 
     # Group records: {week: {student_id: {qsn: scores_dict}}}
-    week_student_q: dict[int, dict[str, dict[int, dict[str, float]]]] = defaultdict(
-        lambda: defaultdict(dict)
-    )
+    week_student_q: dict[int, dict[str, dict[int, dict[str, float]]]] = defaultdict(lambda: defaultdict(dict))
     for rec in all_records:
         if rec.week in weeks:
             week_student_q[rec.week][rec.student_id][rec.question_sn] = dict(rec.scores)
@@ -307,9 +292,7 @@ def build_cohort_distribution(
         for student_id, q_map in student_q_map.items():
             # Average ensemble_score across all questions for this student-week
             ensemble_vals = [
-                scores.get("ensemble_score", 0.0)
-                for scores in q_map.values()
-                if "ensemble_score" in scores
+                scores.get("ensemble_score", 0.0) for scores in q_map.values() if "ensemble_score" in scores
             ]
             if ensemble_vals:
                 student_avg_scores.append(sum(ensemble_vals) / len(ensemble_vals))
@@ -403,11 +386,7 @@ def build_student_data(
     weekly_avg_ensemble: dict[int, float] = {}
     for week in sorted_weeks:
         q_map = scores_by_week[week]
-        ensemble_vals = [
-            scores.get("ensemble_score", 0.0)
-            for scores in q_map.values()
-            if "ensemble_score" in scores
-        ]
+        ensemble_vals = [scores.get("ensemble_score", 0.0) for scores in q_map.values() if "ensemble_score" in scores]
         if ensemble_vals:
             weekly_avg_ensemble[week] = sum(ensemble_vals) / len(ensemble_vals)
 
@@ -417,14 +396,21 @@ def build_student_data(
     if len(weekly_avg_ensemble) >= 2:
         x = np.array(list(weekly_avg_ensemble.keys()), dtype=float)
         y = np.array(list(weekly_avg_ensemble.values()), dtype=float)
-        coeffs = np.polyfit(x, y, 1)
-        trend_slope = float(coeffs[0])
-        if trend_slope > _SLOPE_RISING_THRESHOLD:
-            trend_direction = "상승"
-        elif trend_slope < _SLOPE_FALLING_THRESHOLD:
-            trend_direction = "하강"
+        # Filter out NaN values before polyfit
+        mask = ~np.isnan(y)
+        x, y = x[mask], y[mask]
+        if len(x) < 2:
+            trend_slope = None
         else:
-            trend_direction = "정체"
+            coeffs = np.polyfit(x, y, 1)
+            trend_slope = float(coeffs[0])
+        if trend_slope is not None:
+            if trend_slope > _SLOPE_RISING_THRESHOLD:
+                trend_direction = "상승"
+            elif trend_slope < _SLOPE_FALLING_THRESHOLD:
+                trend_direction = "하강"
+            else:
+                trend_direction = "정체"
 
     # Percentile computation
     percentiles_by_week: dict[int, float] = {}
@@ -437,26 +423,16 @@ def build_student_data(
 
     # Build topic_scores: {topic: {week: avg_score}}
     topic_scores: dict[str, dict[int, float]] | None = None
-    has_topic = any(
-        rec.topic is not None
-        for rec in history
-        if rec.week in weeks
-    )
+    has_topic = any(rec.topic is not None for rec in history if rec.week in weeks)
     if has_topic:
-        raw_topic: dict[
-            str, dict[int, list[float]]
-        ] = defaultdict(lambda: defaultdict(list))
+        raw_topic: dict[str, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
         for rec in history:
             if rec.week in weeks and rec.topic is not None:
                 val = rec.scores.get("ensemble_score")
                 if val is not None:
                     raw_topic[rec.topic][rec.week].append(val)
         topic_scores = {
-            t: {
-                w: sum(vs) / len(vs)
-                for w, vs in sorted(wk_map.items())
-            }
-            for t, wk_map in raw_topic.items()
+            t: {w: sum(vs) / len(vs) for w, vs in sorted(wk_map.items())} for t, wk_map in raw_topic.items()
         }
 
     return StudentLongitudinalData(
@@ -526,33 +502,43 @@ def evaluate_warnings(
 
     # --- Signal 1: Risk zone entry (critical) ---
     risk_triggered = latest_ensemble is not None and latest_ensemble < _RISK_ZONE_THRESHOLD
-    signals.append(WarningSignal(
-        name="위험 구간 진입",
-        triggered=risk_triggered,
-        severity="critical",
-        detail=f"ensemble_score {latest_ensemble:.2f} < {_RISK_ZONE_THRESHOLD}" if risk_triggered else "정상 범위",
-        requires_min_weeks=0,
-    ))
+    signals.append(
+        WarningSignal(
+            name="위험 구간 진입",
+            triggered=risk_triggered,
+            severity="critical",
+            detail=f"ensemble_score {latest_ensemble:.2f} < {_RISK_ZONE_THRESHOLD}" if risk_triggered else "정상 범위",
+            requires_min_weeks=0,
+        )
+    )
 
     # --- Signal 2: Low percentile (critical) ---
     low_pct_triggered = latest_percentile is not None and latest_percentile < _LOW_PERCENTILE_THRESHOLD
-    signals.append(WarningSignal(
-        name="하위 백분위",
-        triggered=low_pct_triggered,
-        severity="critical",
-        detail=f"백분위 {latest_percentile:.1f} < {_LOW_PERCENTILE_THRESHOLD}" if low_pct_triggered else "정상 범위",
-        requires_min_weeks=0,
-    ))
+    signals.append(
+        WarningSignal(
+            name="하위 백분위",
+            triggered=low_pct_triggered,
+            severity="critical",
+            detail=f"백분위 {latest_percentile:.1f} < {_LOW_PERCENTILE_THRESHOLD}"
+            if low_pct_triggered
+            else "정상 범위",
+            requires_min_weeks=0,
+        )
+    )
 
     # --- Signal 3: Low concept coverage (non-critical) ---
     low_cov_triggered = latest_coverage is not None and latest_coverage < _LOW_COVERAGE_THRESHOLD
-    signals.append(WarningSignal(
-        name="저조한 개념 커버리지",
-        triggered=low_cov_triggered,
-        severity="non-critical",
-        detail=f"concept_coverage {latest_coverage:.2f} < {_LOW_COVERAGE_THRESHOLD}" if low_cov_triggered else "정상 범위",
-        requires_min_weeks=0,
-    ))
+    signals.append(
+        WarningSignal(
+            name="저조한 개념 커버리지",
+            triggered=low_cov_triggered,
+            severity="non-critical",
+            detail=f"concept_coverage {latest_coverage:.2f} < {_LOW_COVERAGE_THRESHOLD}"
+            if low_cov_triggered
+            else "정상 범위",
+            requires_min_weeks=0,
+        )
+    )
 
     # --- Signal 4: Consecutive decline (non-critical, requires 3+ weeks) ---
     if n_weeks >= _CONSECUTIVE_DECLINE_MIN_WEEKS:
@@ -575,43 +561,52 @@ def evaluate_warnings(
                 consecutive = 0
 
         decline_triggered = max_consecutive >= _CONSECUTIVE_DECLINE_MIN_WEEKS - 1  # 3 weeks = 2 declines
-        signals.append(WarningSignal(
-            name="연속 하강",
-            triggered=decline_triggered,
-            severity="non-critical",
-            detail=f"{max_consecutive + 1}주 연속 하강" if decline_triggered else "연속 하강 없음",
-            requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
-        ))
+        signals.append(
+            WarningSignal(
+                name="연속 하강",
+                triggered=decline_triggered,
+                severity="non-critical",
+                detail=f"{max_consecutive + 1}주 연속 하강" if decline_triggered else "연속 하강 없음",
+                requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
+            )
+        )
     else:
-        signals.append(WarningSignal(
-            name="연속 하강",
-            triggered=False,
-            severity="non-critical",
-            detail="데이터 부족 (최소 3주 필요)",
-            requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
-        ))
+        signals.append(
+            WarningSignal(
+                name="연속 하강",
+                triggered=False,
+                severity="non-critical",
+                detail="데이터 부족 (최소 3주 필요)",
+                requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
+            )
+        )
 
     # --- Signal 5: Negative trend slope (non-critical, requires 3+ weeks) ---
     if n_weeks >= _CONSECUTIVE_DECLINE_MIN_WEEKS:
         neg_slope_triggered = (
-            student_data.trend_slope is not None
-            and student_data.trend_slope < _SLOPE_FALLING_THRESHOLD
+            student_data.trend_slope is not None and student_data.trend_slope < _SLOPE_FALLING_THRESHOLD
         )
-        signals.append(WarningSignal(
-            name="음수 추세 기울기",
-            triggered=neg_slope_triggered,
-            severity="non-critical",
-            detail=f"기울기 {student_data.trend_slope:.4f}" if student_data.trend_slope is not None else "기울기 없음",
-            requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
-        ))
+        signals.append(
+            WarningSignal(
+                name="음수 추세 기울기",
+                triggered=neg_slope_triggered,
+                severity="non-critical",
+                detail=f"기울기 {student_data.trend_slope:.4f}"
+                if student_data.trend_slope is not None
+                else "기울기 없음",
+                requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
+            )
+        )
     else:
-        signals.append(WarningSignal(
-            name="음수 추세 기울기",
-            triggered=False,
-            severity="non-critical",
-            detail="데이터 부족 (최소 3주 필요)",
-            requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
-        ))
+        signals.append(
+            WarningSignal(
+                name="음수 추세 기울기",
+                triggered=False,
+                severity="non-critical",
+                detail="데이터 부족 (최소 3주 필요)",
+                requires_min_weeks=_CONSECUTIVE_DECLINE_MIN_WEEKS,
+            )
+        )
 
     # --- Determine AlertLevel ---
     triggered_signals = [s for s in signals if s.triggered]
@@ -722,11 +717,7 @@ def anonymize(
             weekly_coverage_q2[week] = q_map[2]["concept_coverage"]
 
         # Average ensemble_score across questions
-        ensemble_vals = [
-            s.get("ensemble_score", 0.0)
-            for s in q_map.values()
-            if "ensemble_score" in s
-        ]
+        ensemble_vals = [s.get("ensemble_score", 0.0) for s in q_map.values() if "ensemble_score" in s]
         if ensemble_vals:
             weekly_ensemble[week] = sum(ensemble_vals) / len(ensemble_vals)
 

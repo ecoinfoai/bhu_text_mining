@@ -91,9 +91,7 @@ def test_crop_and_save_images_unsupported_extension(setup_test_images):
     saved_files = list(image_dir.glob("cropped_*.*"))  # Include all formats
     unsupported_files = [f for f in saved_files if f.name.endswith(".bmp")]
 
-    assert (
-        len(unsupported_files) == 0
-    ), "Unsupported file format was processed!"
+    assert len(unsupported_files) == 0, "Unsupported file format was processed!"
 
 
 def test_crop_and_save_images_output_naming(setup_test_images):

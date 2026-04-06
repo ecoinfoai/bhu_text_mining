@@ -22,6 +22,7 @@ from forma.topic_analysis import load_yaml_data
 
 class FormaDumper(yaml.SafeDumper):
     """Custom YAML dumper for consistent output formatting."""
+
     pass
 
 
@@ -33,7 +34,8 @@ def _represent_quoted_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode
 
 
 def _represent_rounded_float(
-    dumper: yaml.SafeDumper, data: float,
+    dumper: yaml.SafeDumper,
+    data: float,
 ) -> yaml.ScalarNode:
     """Represent floats rounded to 2 decimal places."""
     rounded = round(data, 2)
@@ -69,15 +71,12 @@ def load_evaluation_yaml(yaml_path: str) -> dict[str, Any]:
     """
     if not os.path.exists(yaml_path):
         raise FileNotFoundError(
-            f"Evaluation YAML not found: '{yaml_path}'. "
-            "Check that the path is correct and the file exists."
+            f"Evaluation YAML not found: '{yaml_path}'. Check that the path is correct and the file exists."
         )
     return load_yaml_data(yaml_path)
 
 
-def save_evaluation_yaml(
-    data: dict[str, Any], output_path: str
-) -> None:
+def save_evaluation_yaml(data: dict[str, Any], output_path: str) -> None:
     """Save evaluation results to a YAML file using atomic write.
 
     Writes to a temporary file first, then atomically replaces the
@@ -107,13 +106,12 @@ def save_evaluation_yaml(
             pass
 
     # Atomic write: tempfile → os.replace
-    fd, tmp_path = tempfile.mkstemp(
-        dir=parent or ".", suffix=".tmp", prefix=".eval_"
-    )
+    fd, tmp_path = tempfile.mkstemp(dir=parent or ".", suffix=".tmp", prefix=".eval_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             yaml.dump(
-                data, fh,
+                data,
+                fh,
                 Dumper=FormaDumper,
                 allow_unicode=True,
                 default_flow_style=False,
@@ -155,8 +153,7 @@ def extract_student_responses(
     """
     if evaluation_data is None:
         raise ValueError(
-            "Invalid response format: received None. "
-            "The YAML file must contain a list or a dict with 'responses' key."
+            "Invalid response format: received None. The YAML file must contain a list or a dict with 'responses' key."
         )
     if isinstance(evaluation_data, list):
         result: dict[str, dict[int, str]] = {}
@@ -173,11 +170,7 @@ def extract_student_responses(
         )
     if "responses" not in evaluation_data:
         raise KeyError(
-            "Key 'responses' not found in evaluation data. "
-            "The YAML file must contain a top-level 'responses' mapping."
+            "Key 'responses' not found in evaluation data. The YAML file must contain a top-level 'responses' mapping."
         )
     raw: dict[str, Any] = evaluation_data["responses"]
-    return {
-        student_id: {int(qsn): text for qsn, text in q_map.items()}
-        for student_id, q_map in raw.items()
-    }
+    return {student_id: {int(qsn): text for qsn, text in q_map.items()} for student_id, q_map in raw.items()}

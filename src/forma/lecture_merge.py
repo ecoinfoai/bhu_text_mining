@@ -13,6 +13,7 @@ from pathlib import Path
 
 import yaml
 
+from forma.io_utils import atomic_write_yaml
 from forma.lecture_analyzer import AnalysisResult
 
 logger = logging.getLogger(__name__)
@@ -59,9 +60,7 @@ def merge_analyses(
         ValueError: If analyses is empty.
     """
     if not analyses:
-        raise ValueError(
-            f"No analyses to merge: class_id={class_id}"
-        )
+        raise ValueError(f"No analyses to merge: class_id={class_id}")
 
     # Sort by week
     sorted_analyses = sorted(analyses, key=lambda a: a.week)
@@ -81,7 +80,9 @@ def merge_analyses(
 
     logger.info(
         "Merge complete: class_id=%s, weeks=%s, keyword_count=%d",
-        class_id, weeks, len(combined_freq),
+        class_id,
+        weeks,
+        len(combined_freq),
     )
 
     return MergedAnalysis(
@@ -114,14 +115,11 @@ def save_merged_analysis(
         "class_id": result.class_id,
         "weeks": result.weeks,
         "combined_keyword_frequencies": result.combined_keyword_frequencies,
-        "per_session_keyword_frequencies": {
-            str(k): v for k, v in result.per_session_keyword_frequencies.items()
-        },
+        "per_session_keyword_frequencies": {str(k): v for k, v in result.per_session_keyword_frequencies.items()},
         "session_boundary_markers": result.session_boundary_markers,
         "merged_text": result.merged_text,
     }
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
+    atomic_write_yaml(data, path)
     logger.info("Merged analysis saved: %s", path)
     return path
 
@@ -140,18 +138,14 @@ def load_merged_analysis(path: Path) -> MergedAnalysis:
     """
     path = Path(path)
     if not path.is_file():
-        raise FileNotFoundError(
-            f"Merged analysis file not found: {path}"
-        )
+        raise FileNotFoundError(f"Merged analysis file not found: {path}")
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     return MergedAnalysis(
         class_id=data["class_id"],
         weeks=data["weeks"],
         combined_keyword_frequencies=data["combined_keyword_frequencies"],
-        per_session_keyword_frequencies={
-            int(k): v for k, v in data["per_session_keyword_frequencies"].items()
-        },
+        per_session_keyword_frequencies={int(k): v for k, v in data["per_session_keyword_frequencies"].items()},
         session_boundary_markers=data["session_boundary_markers"],
         merged_text=data.get("merged_text", ""),
     )

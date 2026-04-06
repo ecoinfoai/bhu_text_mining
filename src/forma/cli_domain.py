@@ -154,7 +154,8 @@ def extract_main(argv: list[str] | None = None) -> None:
                 chapter_name = Path(path_str).stem
                 print(
                     f"[{i + 1}/{n_inputs}] Extracting concepts: {chapter_name}...",
-                    file=sys.stderr, flush=True,
+                    file=sys.stderr,
+                    flush=True,
                 )
                 sp = None
                 if summary_paths and i < len(summary_paths):
@@ -170,7 +171,8 @@ def extract_main(argv: list[str] | None = None) -> None:
         else:
             print(
                 f"Extracting concepts: {n_inputs} chapters...",
-                file=sys.stderr, flush=True,
+                file=sys.stderr,
+                flush=True,
             )
             concepts_by_chapter = extract_multi_chapter_llm(
                 textbook_paths=input_paths,
@@ -326,13 +328,13 @@ def coverage_main(argv: list[str] | None = None) -> None:
         all_concepts.extend(chapter_concepts)
 
     if not all_concepts:
-        print("Error: Concept list is empty.", file=sys.stderr)
+        print(
+            "Error: Concept list is empty. Define concepts in exam.yaml under the 'concepts' key.",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
 
-    concept_names = [
-        getattr(c, "concept", None) or getattr(c, "name_ko", "")
-        for c in all_concepts
-    ]
+    concept_names = [getattr(c, "concept", None) or getattr(c, "name_ko", "") for c in all_concepts]
 
     # Build teaching scope
     week = 0
@@ -363,6 +365,7 @@ def coverage_main(argv: list[str] | None = None) -> None:
     quality_weights = None
     try:
         from forma.config import get_quality_weights, load_config as _load_cfg
+
         _cfg = _load_cfg()
         quality_weights = get_quality_weights(_cfg)
     except (FileNotFoundError, ImportError):
@@ -376,9 +379,9 @@ def coverage_main(argv: list[str] | None = None) -> None:
     for t_idx, transcript_path in enumerate(args.transcripts):
         section_id = _infer_section_from_filename(Path(transcript_path).name)
         print(
-            f"[{t_idx + 1}/{n_transcripts}] Analyzing delivery: "
-            f"{Path(transcript_path).name} (section {section_id})...",
-            file=sys.stderr, flush=True,
+            f"[{t_idx + 1}/{n_transcripts}] Analyzing delivery: {Path(transcript_path).name} (section {section_id})...",
+            file=sys.stderr,
+            flush=True,
         )
         try:
             deliveries = analyze_delivery_llm(
@@ -392,15 +395,19 @@ def coverage_main(argv: list[str] | None = None) -> None:
             all_deliveries.extend(deliveries)
             print(
                 f"  ✓ {len(deliveries)} concepts analyzed",
-                file=sys.stderr, flush=True,
+                file=sys.stderr,
+                flush=True,
             )
         except Exception:
             print(
                 "  ✗ Analysis failed",
-                file=sys.stderr, flush=True,
+                file=sys.stderr,
+                flush=True,
             )
             logger.warning(
-                "LLM delivery analysis failed: %s", transcript_path, exc_info=True,
+                "LLM delivery analysis failed: %s",
+                transcript_path,
+                exc_info=True,
             )
 
     if not all_deliveries:
@@ -409,7 +416,8 @@ def coverage_main(argv: list[str] | None = None) -> None:
 
     print(
         f"Aggregating results: {len(all_deliveries)} delivery analyses...",
-        file=sys.stderr, flush=True,
+        file=sys.stderr,
+        flush=True,
     )
 
     # Build v2 result
@@ -426,6 +434,7 @@ def coverage_main(argv: list[str] | None = None) -> None:
         from forma.domain_coverage_analyzer import (
             compute_delivery_pairwise_comparisons,
         )
+
         comparisons = compute_delivery_pairwise_comparisons(all_deliveries)
         if comparisons:
             result._section_comparisons = comparisons
@@ -438,7 +447,8 @@ def coverage_main(argv: list[str] | None = None) -> None:
 
     print(
         f"Complete: delivery rate {result.effective_delivery_rate * 100:.1f}% → {args.output}",
-        file=sys.stderr, flush=True,
+        file=sys.stderr,
+        flush=True,
     )
 
     logger.info(
@@ -541,9 +551,11 @@ def report_main(argv: list[str] | None = None) -> None:
 
     if is_v2:
         from forma.domain_coverage_analyzer import load_delivery_yaml
+
         result = load_delivery_yaml(args.coverage)
     else:
         from forma.domain_coverage_analyzer import load_coverage_yaml
+
         result = load_coverage_yaml(args.coverage)
 
     # Parse hierarchy from summary if provided
@@ -552,6 +564,7 @@ def report_main(argv: list[str] | None = None) -> None:
         summary_path = Path(args.summary)
         if summary_path.exists():
             from forma.domain_concept_extractor import parse_summary_hierarchy
+
             hierarchy = parse_summary_hierarchy(str(summary_path))
             logger.info("Hierarchy loaded: %s", args.summary)
         else:
@@ -571,23 +584,24 @@ def report_main(argv: list[str] | None = None) -> None:
             for d in result.deliveries:
                 if d.concept not in seen:
                     seen.add(d.concept)
-                    concepts_for_net.append(DomainConcept(
-                        concept=d.concept,
-                        description="",
-                        key_terms=getattr(d, "_key_terms", []),
-                    ))
+                    concepts_for_net.append(
+                        DomainConcept(
+                            concept=d.concept,
+                            description="",
+                            key_terms=getattr(d, "_key_terms", []),
+                        )
+                    )
 
             # Try loading concepts file for richer key_terms
             if args.concepts_file:
                 from forma.domain_concept_extractor import load_concepts_yaml
+
                 cby = load_concepts_yaml(args.concepts_file)
                 concept_map = {}
                 for cs in cby.values():
                     for c in cs:
                         concept_map[c.concept] = c
-                concepts_for_net = [
-                    concept_map.get(c.concept, c) for c in concepts_for_net
-                ]
+                concepts_for_net = [concept_map.get(c.concept, c) for c in concepts_for_net]
 
             concept_network = build_concept_network(concepts_for_net)
 

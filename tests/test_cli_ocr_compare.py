@@ -27,16 +27,25 @@ class TestCompareParseArgs:
 
     def test_all_args(self):
         """All optional args are parsed."""
-        args = _parse_args([
-            "compare",
-            "--image", "test.jpg",
-            "--provider", "anthropic",
-            "--model", "claude-sonnet-4-6",
-            "--subject", "생물학",
-            "--question", "세포 분열을 설명하시오",
-            "--answer-keywords", "세포막,핵분열",
-            "--output", "result.yaml",
-        ])
+        args = _parse_args(
+            [
+                "compare",
+                "--image",
+                "test.jpg",
+                "--provider",
+                "anthropic",
+                "--model",
+                "claude-sonnet-4-6",
+                "--subject",
+                "생물학",
+                "--question",
+                "세포 분열을 설명하시오",
+                "--answer-keywords",
+                "세포막,핵분열",
+                "--output",
+                "result.yaml",
+            ]
+        )
         assert args.provider == "anthropic"
         assert args.model == "claude-sonnet-4-6"
         assert args.subject == "생물학"
@@ -61,10 +70,15 @@ class TestCompareParseArgs:
 
     def test_batch_mode_args(self):
         """--image-dir activates batch mode."""
-        args = _parse_args([
-            "compare", "--image-dir", "/tmp/images",
-            "--output", "result.yaml",
-        ])
+        args = _parse_args(
+            [
+                "compare",
+                "--image-dir",
+                "/tmp/images",
+                "--output",
+                "result.yaml",
+            ]
+        )
         assert args.image_dir == "/tmp/images"
         assert args.image is None
         assert args.output == "result.yaml"
@@ -72,24 +86,41 @@ class TestCompareParseArgs:
     def test_image_and_image_dir_mutually_exclusive(self):
         """--image and --image-dir cannot both be specified."""
         with pytest.raises(SystemExit):
-            _parse_args([
-                "compare", "--image", "x.jpg", "--image-dir", "/tmp",
-            ])
+            _parse_args(
+                [
+                    "compare",
+                    "--image",
+                    "x.jpg",
+                    "--image-dir",
+                    "/tmp",
+                ]
+            )
 
     def test_batch_default_prefix(self):
         """Default prefix is 'q'."""
-        args = _parse_args([
-            "compare", "--image-dir", "/tmp/images",
-            "--output", "r.yaml",
-        ])
+        args = _parse_args(
+            [
+                "compare",
+                "--image-dir",
+                "/tmp/images",
+                "--output",
+                "r.yaml",
+            ]
+        )
         assert args.prefix == "q"
 
     def test_batch_no_resume(self):
         """--no-resume flag."""
-        args = _parse_args([
-            "compare", "--image-dir", "/tmp/images",
-            "--output", "r.yaml", "--no-resume",
-        ])
+        args = _parse_args(
+            [
+                "compare",
+                "--image-dir",
+                "/tmp/images",
+                "--output",
+                "r.yaml",
+                "--no-resume",
+            ]
+        )
         assert args.no_resume is True
 
 
@@ -107,16 +138,20 @@ class TestMainCompare:
         img_file.write_bytes(b"\xff\xd8\xff\xe0fake-jpg")
 
         # Mock Naver OCR response
-        ocr_response = [{
-            "images": [{
-                "name": "test.jpg",
-                "inferResult": "SUCCESS",
-                "fields": [
-                    {"inferText": "세포", "inferConfidence": 0.98},
-                    {"inferText": "분열", "inferConfidence": 0.95},
+        ocr_response = [
+            {
+                "images": [
+                    {
+                        "name": "test.jpg",
+                        "inferResult": "SUCCESS",
+                        "fields": [
+                            {"inferText": "세포", "inferConfidence": 0.98},
+                            {"inferText": "분열", "inferConfidence": 0.95},
+                        ],
+                    }
                 ],
-            }],
-        }]
+            }
+        ]
 
         mock_provider = MagicMock()
         mock_provider.generate_with_image.return_value = "세포 분열"
@@ -143,15 +178,19 @@ class TestMainCompare:
         img_file.write_bytes(b"\xff\xd8\xff\xe0fake-jpg")
         out_file = tmp_path / "result.yaml"
 
-        ocr_response = [{
-            "images": [{
-                "name": "test.jpg",
-                "inferResult": "SUCCESS",
-                "fields": [
-                    {"inferText": "세포", "inferConfidence": 0.98},
+        ocr_response = [
+            {
+                "images": [
+                    {
+                        "name": "test.jpg",
+                        "inferResult": "SUCCESS",
+                        "fields": [
+                            {"inferText": "세포", "inferConfidence": 0.98},
+                        ],
+                    }
                 ],
-            }],
-        }]
+            }
+        ]
 
         mock_provider = MagicMock()
         mock_provider.generate_with_image.return_value = "세포"
@@ -183,15 +222,19 @@ class TestMainCompare:
         img_file = tmp_path / "test.jpg"
         img_file.write_bytes(b"\xff\xd8\xff\xe0fake-jpg")
 
-        ocr_response = [{
-            "images": [{
-                "name": "test.jpg",
-                "inferResult": "SUCCESS",
-                "fields": [
-                    {"inferText": "세포", "inferConfidence": 0.98},
+        ocr_response = [
+            {
+                "images": [
+                    {
+                        "name": "test.jpg",
+                        "inferResult": "SUCCESS",
+                        "fields": [
+                            {"inferText": "세포", "inferConfidence": 0.98},
+                        ],
+                    }
                 ],
-            }],
-        }]
+            }
+        ]
 
         mock_provider = MagicMock()
         mock_provider.generate_with_image.return_value = "세포"

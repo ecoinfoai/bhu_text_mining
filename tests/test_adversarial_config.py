@@ -36,9 +36,7 @@ class TestNoConfigProfessor:
         from forma.config import load_config
 
         with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
-            with patch(
-                "forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"
-            ):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"):
                 # After Change 3, DEPRECATED_CONFIG_PATH exists as fallback
                 with patch(
                     "forma.config.DEPRECATED_CONFIG_PATH",
@@ -55,9 +53,7 @@ class TestNoConfigProfessor:
         result = find_project_config(start_dir=tmp_path)
         assert result is None
 
-    def test_apply_project_config_unchanged_without_forma_yaml(
-        self, tmp_path, monkeypatch
-    ):
+    def test_apply_project_config_unchanged_without_forma_yaml(self, tmp_path, monkeypatch):
         """apply_project_config() returns args unchanged when no forma.yaml."""
         from forma.project_config import apply_project_config
 
@@ -91,14 +87,10 @@ class TestDeprecatedFormaJsonUser:
         from forma.config import load_config
 
         deprecated_file = tmp_path / "forma.json"
-        deprecated_file.write_text(
-            json.dumps({"llm": {"provider": "gemini"}}), encoding="utf-8"
-        )
+        deprecated_file.write_text(json.dumps({"llm": {"provider": "gemini"}}), encoding="utf-8")
 
         with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
-            with patch(
-                "forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"
-            ):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"):
                 with patch(
                     "forma.config.DEPRECATED_CONFIG_PATH",
                     str(deprecated_file),
@@ -108,12 +100,8 @@ class TestDeprecatedFormaJsonUser:
                         result = load_config()
 
                     assert result["llm"]["provider"] == "gemini"
-                    deprecation_warnings = [
-                        x for x in w if issubclass(x.category, DeprecationWarning)
-                    ]
-                    assert len(deprecation_warnings) >= 1, (
-                        "Expected DeprecationWarning for forma.json path"
-                    )
+                    deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+                    assert len(deprecation_warnings) >= 1, "Expected DeprecationWarning for forma.json path"
 
     def test_deprecated_path_still_loads_data(self, tmp_path):
         """Deprecated forma.json data is correctly loaded despite warning."""
@@ -124,9 +112,7 @@ class TestDeprecatedFormaJsonUser:
         deprecated_file.write_text(json.dumps(cfg), encoding="utf-8")
 
         with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
-            with patch(
-                "forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"
-            ):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"):
                 with patch(
                     "forma.config.DEPRECATED_CONFIG_PATH",
                     str(deprecated_file),
@@ -152,15 +138,16 @@ class TestLegacyDiehard:
         from forma.config import load_config
 
         # The old LEGACY_CONFIG_PATHS should no longer exist
-        assert not hasattr(
-            __import__("forma.config", fromlist=["LEGACY_CONFIG_PATHS"]),
-            "LEGACY_CONFIG_PATHS",
-        ) or True  # May still exist but empty — either way, not used
+        assert (
+            not hasattr(
+                __import__("forma.config", fromlist=["LEGACY_CONFIG_PATHS"]),
+                "LEGACY_CONFIG_PATHS",
+            )
+            or True
+        )  # May still exist but empty — either way, not used
 
         with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
-            with patch(
-                "forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"
-            ):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"):
                 with patch(
                     "forma.config.DEPRECATED_CONFIG_PATH",
                     "/nonexistent/forma.json",
@@ -194,9 +181,7 @@ class TestConfigConflictUser:
         (tmp_path / ".git").mkdir()
 
         config = {"ocr": {"ocr_model": "gemini-2.0-flash"}}
-        (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8"
-        )
+        (tmp_path / "forma.yaml").write_text(yaml.dump(config), encoding="utf-8")
 
         args = argparse.Namespace(
             no_config=False,
@@ -206,9 +191,7 @@ class TestConfigConflictUser:
         result = apply_project_config(args, argv=["--model", "gemini-2.5-pro"])
         assert result.model == "gemini-2.5-pro"
 
-    def test_forma_yaml_ocr_model_used_when_cli_not_explicit(
-        self, tmp_path, monkeypatch
-    ):
+    def test_forma_yaml_ocr_model_used_when_cli_not_explicit(self, tmp_path, monkeypatch):
         """forma.yaml ocr.ocr_model is used when --model is not explicitly set."""
         from forma.project_config import merge_configs
 
@@ -338,14 +321,10 @@ class TestAgenixUser:
         agenix_file.write_text(json.dumps(agenix_cfg), encoding="utf-8")
 
         deprecated_file = tmp_path / "forma.json"
-        deprecated_file.write_text(
-            json.dumps({"llm": {"provider": "gemini"}}), encoding="utf-8"
-        )
+        deprecated_file.write_text(json.dumps({"llm": {"provider": "gemini"}}), encoding="utf-8")
 
         with patch("forma.config.AGENIX_CONFIG_PATH", str(agenix_file)):
-            with patch(
-                "forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"
-            ):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"):
                 with patch(
                     "forma.config.DEPRECATED_CONFIG_PATH",
                     str(deprecated_file),
@@ -404,9 +383,7 @@ class TestDualConfigUser:
         assert result["llm"]["provider"] == "anthropic"
         assert result["llm"]["model"] == "claude-opus-4-6"
         # No DeprecationWarning because config.json was found first
-        deprecation_warnings = [
-            x for x in w if issubclass(x.category, DeprecationWarning)
-        ]
+        deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
         assert len(deprecation_warnings) == 0
 
     def test_forma_json_used_only_when_config_json_missing(self, tmp_path):
@@ -418,9 +395,7 @@ class TestDualConfigUser:
         deprecated_file.write_text(json.dumps(forma_json), encoding="utf-8")
 
         with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
-            with patch(
-                "forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"
-            ):
+            with patch("forma.config.DEFAULT_CONFIG_PATH", "/nonexistent/config.json"):
                 with patch(
                     "forma.config.DEPRECATED_CONFIG_PATH",
                     str(deprecated_file),
@@ -430,9 +405,7 @@ class TestDualConfigUser:
                         result = load_config()
 
         assert result["llm"]["provider"] == "gemini"
-        deprecation_warnings = [
-            x for x in w if issubclass(x.category, DeprecationWarning)
-        ]
+        deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
         assert len(deprecation_warnings) >= 1
 
 
@@ -445,9 +418,7 @@ class TestDualConfigUser:
 class TestWeekYamlOverrider:
     """User whose forma.yaml and week.yaml have conflicting num_questions."""
 
-    def test_week_yaml_num_questions_overrides_forma_yaml(
-        self, tmp_path, monkeypatch
-    ):
+    def test_week_yaml_num_questions_overrides_forma_yaml(self, tmp_path, monkeypatch):
         """week.yaml num_questions takes precedence via CLI explicit key."""
         from forma.project_config import merge_configs
 
@@ -458,9 +429,7 @@ class TestWeekYamlOverrider:
         project = {"ocr": {"num_questions": 5}}
         system = {}
         # num_questions is explicit (from week.yaml resolution in cli_ocr.py)
-        result = merge_configs(
-            cli_ns, project, system, explicit_keys={"num_questions"}
-        )
+        result = merge_configs(cli_ns, project, system, explicit_keys={"num_questions"})
         assert result["num_questions"] == 3
 
     def test_forma_yaml_num_questions_used_when_not_explicit(self):
@@ -492,9 +461,7 @@ class TestNoConfigFlagUser:
 
         # Write forma.yaml with distinctive values
         config = {"reports": {"dpi": 999}}
-        (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8"
-        )
+        (tmp_path / "forma.yaml").write_text(yaml.dump(config), encoding="utf-8")
 
         args = argparse.Namespace(no_config=True, dpi=150)
         result = apply_project_config(args, argv=["--no-config"])
@@ -520,13 +487,9 @@ class TestNoConfigFlagUser:
             "evaluation": {"provider": "anthropic", "n_calls": 5},
             "reports": {"dpi": 300},
         }
-        (tmp_path / "forma.yaml").write_text(
-            yaml.dump(config), encoding="utf-8"
-        )
+        (tmp_path / "forma.yaml").write_text(yaml.dump(config), encoding="utf-8")
 
-        args = argparse.Namespace(
-            no_config=True, provider="gemini", n_calls=3, dpi=150
-        )
+        args = argparse.Namespace(no_config=True, provider="gemini", n_calls=3, dpi=150)
         result = apply_project_config(args, argv=["--no-config"])
         assert result.provider == "gemini"
         assert result.n_calls == 3
@@ -606,9 +569,7 @@ class TestUnicodePathUser:
 class TestPermissionDeniedUser:
     """User who has config files but lacks read permission."""
 
-    def test_unreadable_forma_yaml_warns_and_continues(
-        self, tmp_path, monkeypatch, caplog
-    ):
+    def test_unreadable_forma_yaml_warns_and_continues(self, tmp_path, monkeypatch, caplog):
         """Unreadable forma.yaml logs warning and returns args unchanged."""
         from forma.project_config import apply_project_config
 
@@ -643,9 +604,7 @@ class TestPermissionDeniedUser:
         finally:
             cfg_file.chmod(0o644)
 
-    @pytest.mark.skipif(
-        os.getuid() == 0, reason="Root can read any file"
-    )
+    @pytest.mark.skipif(os.getuid() == 0, reason="Root can read any file")
     def test_unreadable_default_path_falls_through(self, tmp_path):
         """Unreadable default config.json falls through to next candidate."""
         from forma.config import load_config
@@ -657,15 +616,11 @@ class TestPermissionDeniedUser:
 
         # Deprecated path is readable
         deprecated_file = tmp_path / "forma.json"
-        deprecated_file.write_text(
-            json.dumps({"llm": {"provider": "anthropic"}}), encoding="utf-8"
-        )
+        deprecated_file.write_text(json.dumps({"llm": {"provider": "anthropic"}}), encoding="utf-8")
 
         try:
             with patch("forma.config.AGENIX_CONFIG_PATH", "/nonexistent/agenix"):
-                with patch(
-                    "forma.config.DEFAULT_CONFIG_PATH", str(default_file)
-                ):
+                with patch("forma.config.DEFAULT_CONFIG_PATH", str(default_file)):
                     with patch(
                         "forma.config.DEPRECATED_CONFIG_PATH",
                         str(deprecated_file),

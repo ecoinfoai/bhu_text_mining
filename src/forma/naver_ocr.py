@@ -90,9 +90,7 @@ def create_request_json(image_files: list[str]) -> dict:
     return {
         "images": [
             {
-                "format": os.path.splitext(os.path.basename(image_file))[1][
-                    1:
-                ],
+                "format": os.path.splitext(os.path.basename(image_file))[1][1:],
                 "name": os.path.splitext(os.path.basename(image_file))[0],
             }
             for image_file in image_files
@@ -124,18 +122,14 @@ def prepare_image_files_list(image_path: str, prefix: str) -> list[str]:
     """
     image_file = []
     for file_name in os.listdir(image_path):
-        if file_name.startswith(prefix) and file_name.lower().endswith(
-            (".jpg", ".jpeg", ".png")
-        ):
+        if file_name.startswith(prefix) and file_name.lower().endswith((".jpg", ".jpeg", ".png")):
             full_path = os.path.join(image_path, file_name)
             image_file.append(full_path)
 
     return image_file
 
 
-def send_images_receive_ocr(
-    api_url: str, secret_key: str, image_files: list[str]
-) -> list[dict]:
+def send_images_receive_ocr(api_url: str, secret_key: str, image_files: list[str]) -> list[dict]:
     """
     Send images to the OCR API and receive OCR results.
 
@@ -253,22 +247,21 @@ def extract_raw_ocr_data(responses: list[dict]) -> dict[str, dict]:
                 bp = field.get("boundingPoly")
                 bounding_poly = bp.get("vertices") if bp else None
 
-                fields.append({
-                    "infer_text": field.get("inferText", ""),
-                    "infer_confidence": conf,
-                    "bounding_poly": bounding_poly,
-                    "type": field.get("type", ""),
-                    "line_break": bool(field.get("lineBreak", False)),
-                })
+                fields.append(
+                    {
+                        "infer_text": field.get("inferText", ""),
+                        "infer_confidence": conf,
+                        "bounding_poly": bounding_poly,
+                        "type": field.get("type", ""),
+                        "line_break": bool(field.get("lineBreak", False)),
+                    }
+                )
 
             extracted[image_name] = {
                 "infer_result": infer_result,
                 "fields": fields,
                 "field_count": len(fields),
-                "confidence_mean": (
-                    sum(confidences) / len(confidences)
-                    if confidences else None
-                ),
+                "confidence_mean": (sum(confidences) / len(confidences) if confidences else None),
                 "confidence_min": min(confidences) if confidences else None,
             }
 
@@ -305,17 +298,10 @@ def extract_text_with_confidence(responses: list[dict]) -> dict[str, dict]:
             image_name = image_result["name"]
             fields = image_result.get("fields", [])
 
-            extracted_texts = [
-                field.get("inferText", "").replace("\n", " ").strip()
-                for field in fields
-            ]
+            extracted_texts = [field.get("inferText", "").replace("\n", " ").strip() for field in fields]
             aggregated_text = " ".join(extracted_texts).strip()
 
-            confidences = [
-                field.get("inferConfidence")
-                for field in fields
-                if field.get("inferConfidence") is not None
-            ]
+            confidences = [field.get("inferConfidence") for field in fields if field.get("inferConfidence") is not None]
 
             if confidences:
                 confidence_mean = sum(confidences) / len(confidences)

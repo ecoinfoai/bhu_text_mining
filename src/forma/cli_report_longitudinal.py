@@ -17,61 +17,84 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Longitudinal analysis period summary PDF report generator",
     )
     parser.add_argument(
-        "--store", required=True,
+        "--store",
+        required=True,
         help="Longitudinal store YAML file path",
     )
     parser.add_argument(
-        "--class-name", required=True, dest="class_name",
+        "--class-name",
+        required=True,
+        dest="class_name",
         help="Class name (displayed on report cover)",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output",
+        required=True,
         help="Output PDF path",
     )
     parser.add_argument(
-        "--weeks", type=int, nargs="+", default=None,
+        "--weeks",
+        type=int,
+        nargs="+",
+        default=None,
         help="Week numbers to include (e.g. --weeks 1 2 3 4). All weeks if omitted",
     )
     parser.add_argument(
-        "--exam-file", default=None, dest="exam_file",
+        "--exam-file",
+        default=None,
+        dest="exam_file",
         help="Exam file path (for concept mastery analysis reference)",
     )
     parser.add_argument(
-        "--font-path", default=None, dest="font_path",
+        "--font-path",
+        default=None,
+        dest="font_path",
         help="Korean font path (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--no-config", action="store_true", default=False, dest="no_config",
+        "--no-config",
+        action="store_true",
+        default=False,
+        dest="no_config",
         help="Skip forma.yaml config file",
     )
     parser.add_argument(
-        "--model", default=None, dest="model_path",
+        "--model",
+        default=None,
+        dest="model_path",
         help="Drop risk prediction model file path (.pkl)",
     )
     parser.add_argument(
-        "--intervention-log", default=None, dest="intervention_log",
+        "--intervention-log",
+        default=None,
+        dest="intervention_log",
         help="Intervention log YAML path (enables before/after charts)",
     )
     parser.add_argument(
-        "--classes", nargs="+", default=None,
+        "--classes",
+        nargs="+",
+        default=None,
         help="Filter by class_id (e.g. --classes A B C D)",
     )
     parser.add_argument(
-        "--heatmap-layout", default=None, dest="heatmap_layout",
+        "--heatmap-layout",
+        default=None,
+        dest="heatmap_layout",
         help="Heatmap subplot layout as rows:cols (e.g. 1:4, 2:2)",
     )
     parser.add_argument(
-        "--risk-threshold", type=float, default=0.45,
+        "--risk-threshold",
+        type=float,
+        default=0.45,
         dest="risk_threshold",
         help="Persistent risk cutoff (default 0.45)",
     )
     parser.add_argument(
-        "--mastery-top-n", type=int, default=None,
+        "--mastery-top-n",
+        type=int,
+        default=None,
         dest="mastery_top_n",
-        help=(
-            "Show only top N concepts in mastery chart "
-            "(ranked by absolute change)"
-        ),
+        help=("Show only top N concepts in mastery chart (ranked by absolute change)"),
     )
     return parser
 
@@ -89,24 +112,16 @@ def parse_heatmap_layout(value: str) -> tuple[int, int]:
         ValueError: If format is invalid or values are non-positive.
     """
     if ":" not in value:
-        raise ValueError(
-            f"Invalid layout '{value}': use rows:cols format"
-        )
+        raise ValueError(f"Invalid layout '{value}': use rows:cols format")
     parts = value.split(":")
     if len(parts) != 2:
-        raise ValueError(
-            f"Invalid layout '{value}': exactly one ':' required"
-        )
+        raise ValueError(f"Invalid layout '{value}': exactly one ':' required")
     try:
         rows, cols = int(parts[0]), int(parts[1])
     except ValueError:
-        raise ValueError(
-            f"Invalid layout '{value}': non-integer values"
-        )
+        raise ValueError(f"Invalid layout '{value}': non-integer values")
     if rows < 1 or cols < 1:
-        raise ValueError(
-            f"Invalid layout '{value}': values must be positive"
-        )
+        raise ValueError(f"Invalid layout '{value}': values must be positive")
     return (rows, cols)
 
 
@@ -117,6 +132,7 @@ def main() -> int | None:
 
     # Apply project config (three-layer merge)
     from forma.project_config import apply_project_config
+
     apply_project_config(args, argv=sys.argv[1:])
 
     # Validate store file exists
@@ -136,6 +152,7 @@ def main() -> int | None:
 
     # Load store
     from forma.longitudinal_store import LongitudinalStore
+
     store = LongitudinalStore(args.store)
     store.load()
 
@@ -152,8 +169,11 @@ def main() -> int | None:
 
     # Build summary data
     from forma.longitudinal_report_data import build_longitudinal_summary
+
     summary = build_longitudinal_summary(
-        store, weeks, args.class_name,
+        store,
+        weeks,
+        args.class_name,
         class_ids=args.classes,
     )
 
@@ -164,7 +184,9 @@ def main() -> int | None:
             sys.exit(1)
         try:
             from forma.risk_predictor import (
-                FeatureExtractor, RiskPredictor, load_model,
+                FeatureExtractor,
+                RiskPredictor,
+                load_model,
             )
 
             trained_model = load_model(args.model_path)
@@ -174,12 +196,16 @@ def main() -> int | None:
             if matrix.shape[0] > 0:
                 if feat_names == trained_model.feature_names:
                     preds = predictor.predict(
-                        trained_model, matrix, student_ids,
+                        trained_model,
+                        matrix,
+                        student_ids,
                     )
                 else:
                     logger.warning("Model feature mismatch — using cold start prediction")
                     preds = predictor.predict_cold_start(
-                        matrix, student_ids, feat_names,
+                        matrix,
+                        student_ids,
+                        feat_names,
                     )
                 summary.risk_predictions = preds
                 logger.info("Drop risk prediction complete: %d students", len(preds))
@@ -226,12 +252,7 @@ def main() -> int | None:
         class_data = {}
         for cid in class_ids:
             class_data[cid] = {
-                sid: {
-                    w: ws[w]
-                    for w in weeks if w in ws
-                }
-                for sid, ws in matrix.items()
-                if sid_class.get(sid) == cid
+                sid: {w: ws[w] for w in weeks if w in ws} for sid, ws in matrix.items() if sid_class.get(sid) == cid
             }
         if args.heatmap_layout:
             heatmap_layout = parse_heatmap_layout(
@@ -242,9 +263,11 @@ def main() -> int | None:
 
     # Generate PDF
     from forma.longitudinal_report import LongitudinalPDFReportGenerator
+
     gen = LongitudinalPDFReportGenerator(font_path=args.font_path)
     output_path = gen.generate_pdf(
-        summary, args.output,
+        summary,
+        args.output,
         intervention_effects=intervention_effects,
         class_data=class_data,
         class_ids=class_ids,

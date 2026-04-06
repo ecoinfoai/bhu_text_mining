@@ -95,10 +95,13 @@ class TestBuildSummaryRows:
                 },
             },
         )
-        csv_path = _make_id_csv(str(tmp_path), [
-            ("s001", "김철수", "A"),
-            ("s002", "이영희", "B"),
-        ])
+        csv_path = _make_id_csv(
+            str(tmp_path),
+            [
+                ("s001", "김철수", "A"),
+                ("s002", "이영희", "B"),
+            ],
+        )
 
         store = LongitudinalStore(store_path)
         store.load()
@@ -156,11 +159,14 @@ class TestBuildSummaryRows:
                 },
             },
         )
-        csv_path = _make_id_csv(str(tmp_path), [
-            ("s001", "김정상", "A"),
-            ("s002", "이경고", "A"),
-            ("s003", "박주의", "B"),
-        ])
+        csv_path = _make_id_csv(
+            str(tmp_path),
+            [
+                ("s001", "김정상", "A"),
+                ("s002", "이경고", "A"),
+                ("s003", "박주의", "B"),
+            ],
+        )
 
         store = LongitudinalStore(store_path)
         store.load()
@@ -219,10 +225,13 @@ class TestCohortSummaryReport:
                 },
             },
         )
-        csv_path = _make_id_csv(str(tmp_path), [
-            ("s001", "김철수", "A"),
-            ("s002", "이영희", "B"),
-        ])
+        csv_path = _make_id_csv(
+            str(tmp_path),
+            [
+                ("s001", "김철수", "A"),
+                ("s002", "이영희", "B"),
+            ],
+        )
 
         store = LongitudinalStore(store_path)
         store.load()
@@ -265,13 +274,22 @@ class TestCLISummary:
         from forma.cli_report_student import _build_summary_parser
 
         parser = _build_summary_parser()
-        args = parser.parse_args([
-            "--store", "store.yaml",
-            "--id-csv", "ids.csv",
-            "--output", "out.pdf",
-            "--weeks", "1", "2", "3",
-            "--course-name", "생물학개론",
-        ])
+        args = parser.parse_args(
+            [
+                "--store",
+                "store.yaml",
+                "--id-csv",
+                "ids.csv",
+                "--output",
+                "out.pdf",
+                "--weeks",
+                "1",
+                "2",
+                "3",
+                "--course-name",
+                "생물학개론",
+            ]
+        )
 
         assert args.store == "store.yaml"
         assert args.id_csv == "ids.csv"

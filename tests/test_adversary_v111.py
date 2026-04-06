@@ -33,69 +33,90 @@ class TestBuildSmtpConfigTypeAttacks:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "smtp_port": "587",
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": "587",
+                }
+            )
 
     def test_port_as_float_raises(self):
         """Port as float 587.0 should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "smtp_port": 587.0,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": 587.0,
+                }
+            )
 
     def test_port_as_true_raises(self):
         """Port as True (bool is subclass of int) should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "smtp_port": True,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": True,
+                }
+            )
 
     def test_port_as_false_raises(self):
         """Port as False should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "smtp_port": False,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": False,
+                }
+            )
 
     def test_interval_as_true_raises(self):
         """send_interval_sec as True should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "send_interval_sec": True,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": True,
+                }
+            )
 
     def test_interval_as_string_raises(self):
         """send_interval_sec as string should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "send_interval_sec": "1.0",
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": "1.0",
+                }
+            )
 
     def test_use_tls_as_string_accepted(self):
         """use_tls as string "true" is coerced to bool(str)=True."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "s", "sender_email": "a@b.com",
-            "use_tls": "yes",
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "s",
+                "sender_email": "a@b.com",
+                "use_tls": "yes",
+            }
+        )
         # bool("yes") == True
         assert cfg.use_tls is True
 
@@ -104,44 +125,61 @@ class TestBuildSmtpConfigTypeAttacks:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_server"):
-            _build_smtp_config({
-                "smtp_server": "", "sender_email": "a@b.com",
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "",
+                    "sender_email": "a@b.com",
+                }
+            )
 
     def test_server_as_none_raises(self):
         """Server as None should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_server"):
-            _build_smtp_config({
-                "smtp_server": None, "sender_email": "a@b.com",
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": None,
+                    "sender_email": "a@b.com",
+                }
+            )
 
     def test_email_as_none_raises(self):
         """sender_email as None should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="sender_email"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": None,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": None,
+                }
+            )
 
     def test_port_boundary_1_accepted(self):
         """Port 1 (minimum) is accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": 1,
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "s",
+                "sender_email": "a@b.com",
+                "smtp_port": 1,
+            }
+        )
         assert cfg.smtp_port == 1
 
     def test_port_boundary_65535_accepted(self):
         """Port 65535 (maximum) is accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": 65535,
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "s",
+                "sender_email": "a@b.com",
+                "smtp_port": 65535,
+            }
+        )
         assert cfg.smtp_port == 65535
 
     def test_port_negative_raises(self):
@@ -149,19 +187,26 @@ class TestBuildSmtpConfigTypeAttacks:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com", "smtp_port": -1,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "smtp_port": -1,
+                }
+            )
 
     def test_interval_negative_raises(self):
         """Negative interval should raise ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "s", "sender_email": "a@b.com",
-                "send_interval_sec": -0.001,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "s",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": -0.001,
+                }
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -278,11 +323,13 @@ class TestPasswordNeverStored:
         """_build_smtp_config ignores password key in input data."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "s",
-            "sender_email": "a@b.com",
-            "password": "SUPER_SECRET",
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "s",
+                "sender_email": "a@b.com",
+                "password": "SUPER_SECRET",
+            }
+        )
         # Password should not be accessible anywhere on the config
         assert not hasattr(cfg, "password")
         assert "SUPER_SECRET" not in str(cfg)
@@ -291,13 +338,15 @@ class TestPasswordNeverStored:
         """get_smtp_config ignores password in smtp section."""
         from forma.config import get_smtp_config
 
-        cfg = get_smtp_config({
-            "smtp": {
-                "server": "s",
-                "sender_email": "a@b.com",
-                "password": "LEAKED_SECRET",
+        cfg = get_smtp_config(
+            {
+                "smtp": {
+                    "server": "s",
+                    "sender_email": "a@b.com",
+                    "password": "LEAKED_SECRET",
+                }
             }
-        })
+        )
         assert "LEAKED_SECRET" not in str(cfg)
 
     def test_json_field_map_excludes_password(self):
@@ -321,41 +370,49 @@ class TestUnicodeAndSpecialChars:
         """Korean characters in sender_name are accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "smtp.univ.kr",
-            "sender_email": "prof@univ.kr",
-            "sender_name": "김교수",
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "smtp.univ.kr",
+                "sender_email": "prof@univ.kr",
+                "sender_name": "김교수",
+            }
+        )
         assert cfg.sender_name == "김교수"
 
     def test_unicode_in_server_accepted(self):
         """Unicode server name is accepted (validation is not domain-level)."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "smtp.대학교.kr",
-            "sender_email": "prof@univ.kr",
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "smtp.대학교.kr",
+                "sender_email": "prof@univ.kr",
+            }
+        )
         assert cfg.smtp_server == "smtp.대학교.kr"
 
     def test_email_with_plus_accepted(self):
         """Email with + (plus addressing) is accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "s",
-            "sender_email": "prof+forma@univ.kr",
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "s",
+                "sender_email": "prof+forma@univ.kr",
+            }
+        )
         assert cfg.sender_email == "prof+forma@univ.kr"
 
     def test_newline_injection_in_server(self):
         """Newline in server name is stored as-is (SMTP layer validates)."""
         from forma.delivery_send import _build_smtp_config
 
-        cfg = _build_smtp_config({
-            "smtp_server": "smtp.evil.com\r\nMAIL FROM: evil@hacker.com",
-            "sender_email": "a@b.com",
-        })
+        cfg = _build_smtp_config(
+            {
+                "smtp_server": "smtp.evil.com\r\nMAIL FROM: evil@hacker.com",
+                "sender_email": "a@b.com",
+            }
+        )
         # _build_smtp_config does not validate server format
         # SMTP library will reject during connection
         assert "\r\n" in cfg.smtp_server
@@ -374,12 +431,17 @@ class TestCliEdgeCases:
         from forma.cli_deliver import _build_parser
 
         parser = _build_parser()
-        args = parser.parse_args([
-            "send",
-            "--staged", "/tmp/s",
-            "--template", "t.yaml",
-            "--smtp-config", "",
-        ])
+        args = parser.parse_args(
+            [
+                "send",
+                "--staged",
+                "/tmp/s",
+                "--template",
+                "t.yaml",
+                "--smtp-config",
+                "",
+            ]
+        )
         # Empty string is truthy-ish for argparse but our CLI checks os.path.exists
         assert args.smtp_config == ""
 
@@ -404,12 +466,22 @@ class TestCliEdgeCases:
             zf.writestr(f"{sid}_report.pdf", "c")
         summary = {
             "prepared_at": "2026-01-01",
-            "total_students": 1, "ready": 1, "warnings": 0, "errors": 0,
-            "details": [{
-                "student_id": sid, "name": "T", "email": "t@u.kr",
-                "status": "ready", "matched_files": [f"{sid}_report.pdf"],
-                "zip_path": str(zp), "zip_size_bytes": 10, "message": "",
-            }],
+            "total_students": 1,
+            "ready": 1,
+            "warnings": 0,
+            "errors": 0,
+            "details": [
+                {
+                    "student_id": sid,
+                    "name": "T",
+                    "email": "t@u.kr",
+                    "status": "ready",
+                    "matched_files": [f"{sid}_report.pdf"],
+                    "zip_path": str(zp),
+                    "zip_size_bytes": 10,
+                    "message": "",
+                }
+            ],
         }
         with open(str(staged / "prepare_summary.yaml"), "w") as f:
             yaml.dump(summary, f)
@@ -417,24 +489,33 @@ class TestCliEdgeCases:
         tpl = tmp_path / "tpl.yaml"
         tpl.write_text('subject: "T"\nbody: "Hi"', encoding="utf-8")
         smtp = tmp_path / "smtp.yaml"
-        smtp.write_text(textwrap.dedent("""\
+        smtp.write_text(
+            textwrap.dedent("""\
             smtp_server: "s.com"
             smtp_port: 587
             sender_email: "a@b.com"
             send_interval_sec: 0
-        """), encoding="utf-8")
+        """),
+            encoding="utf-8",
+        )
         monkeypatch.delenv("FORMA_SMTP_PASSWORD", raising=False)
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", str(staged),
-                    "--template", str(tpl),
-                    "--smtp-config", str(smtp),
-                    "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        str(staged),
+                        "--template",
+                        str(tpl),
+                        "--smtp-config",
+                        str(smtp),
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
@@ -502,14 +583,16 @@ def _create_minimal_staged(tmp_path, n=1):
         zp = staged / f"{sid}.zip"
         with zipfile.ZipFile(str(zp), "w") as zf:
             zf.writestr(f"{sid}_report.pdf", b"fake pdf")
-        details.append({
-            "student_id": sid,
-            "name": f"Student{i}",
-            "email": f"s{i:03d}@u.kr",
-            "status": "ready",
-            "zip_path": str(zp),
-            "message": "",
-        })
+        details.append(
+            {
+                "student_id": sid,
+                "name": f"Student{i}",
+                "email": f"s{i:03d}@u.kr",
+                "status": "ready",
+                "zip_path": str(zp),
+                "message": "",
+            }
+        )
 
     summary = {
         "class_name": "\ud14c\uc2a4\ud2b8\ubc18",
@@ -730,7 +813,10 @@ class TestInjectionArtistExtended:
             body="{student_name.__class__.__mro__}",
         )
         subject, body = render_template(
-            template, student_name="Alice", student_id="S001", class_name="1A",
+            template,
+            student_name="Alice",
+            student_id="S001",
+            class_name="1A",
         )
         assert subject == "Alice"
         assert "__class__" in body
@@ -749,9 +835,7 @@ class TestInjectionArtistExtended:
 
         p = tmp_path / "evil.yaml"
         p.write_text(
-            "smtp_server: !!python/object/apply:os.system ['whoami']\n"
-            "smtp_port: 587\n"
-            "sender_email: test@test.com\n",
+            "smtp_server: !!python/object/apply:os.system ['whoami']\nsmtp_port: 587\nsender_email: test@test.com\n",
             encoding="utf-8",
         )
         try:
@@ -897,7 +981,7 @@ class TestBoundaryBreakerExtended:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="1-65535"):
-            _build_smtp_config(_valid_data(smtp_port=-2**31))
+            _build_smtp_config(_valid_data(smtp_port=-(2**31)))
 
     def test_server_whitespace_only(self):
         """Whitespace-only server is truthy."""
@@ -1018,13 +1102,16 @@ class TestConfigManipulatorExtended:
         """Nested smtp within smtp section -- inner smtp ignored."""
         from forma.config import get_smtp_config
 
-        result = get_smtp_config({
-            "smtp": {
-                "server": "smtp.test.com", "port": 587,
-                "sender_email": "a@b.com",
-                "smtp": {"server": "evil.com"},
+        result = get_smtp_config(
+            {
+                "smtp": {
+                    "server": "smtp.test.com",
+                    "port": 587,
+                    "sender_email": "a@b.com",
+                    "smtp": {"server": "evil.com"},
+                }
             }
-        })
+        )
         assert result.smtp_server == "smtp.test.com"
 
     def test_smtp_as_string(self):
@@ -1066,25 +1153,33 @@ class TestConfigManipulatorExtended:
         """Extra unknown fields in smtp section ignored."""
         from forma.config import get_smtp_config
 
-        result = get_smtp_config({
-            "smtp": {
-                "server": "smtp.test.com", "port": 587,
-                "sender_email": "a@b.com",
-                "hacker_field": "evil", "password": "secret123",
+        result = get_smtp_config(
+            {
+                "smtp": {
+                    "server": "smtp.test.com",
+                    "port": 587,
+                    "sender_email": "a@b.com",
+                    "hacker_field": "evil",
+                    "password": "secret123",
+                }
             }
-        })
+        )
         assert result.smtp_server == "smtp.test.com"
 
     def test_conflicting_json_yaml_keys(self):
         """Both JSON ('server') and YAML ('smtp_server') keys -- JSON wins."""
         from forma.config import get_smtp_config
 
-        result = get_smtp_config({
-            "smtp": {
-                "server": "correct.com", "smtp_server": "wrong.com",
-                "port": 587, "sender_email": "a@b.com",
+        result = get_smtp_config(
+            {
+                "smtp": {
+                    "server": "correct.com",
+                    "smtp_server": "wrong.com",
+                    "port": 587,
+                    "sender_email": "a@b.com",
+                }
             }
-        })
+        )
         assert result.smtp_server == "correct.com"
 
     def test_yaml_keys_in_json_section_fail(self):
@@ -1092,13 +1187,15 @@ class TestConfigManipulatorExtended:
         from forma.config import get_smtp_config
 
         with pytest.raises(ValueError, match="smtp_server"):
-            get_smtp_config({
-                "smtp": {
-                    "smtp_server": "smtp.test.com",
-                    "smtp_port": 587,
-                    "sender_email": "a@b.com",
+            get_smtp_config(
+                {
+                    "smtp": {
+                        "smtp_server": "smtp.test.com",
+                        "smtp_port": 587,
+                        "sender_email": "a@b.com",
+                    }
                 }
-            })
+            )
 
     def test_load_yaml_list_instead_of_dict(self, tmp_path):
         """YAML file containing a list."""
@@ -1217,12 +1314,20 @@ class TestCLIAbuserExtended:
         smtp = _write_smtp_yaml(tmp_path)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", smtp,
-                "--retry-failed", "--force",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    smtp,
+                    "--retry-failed",
+                    "--force",
+                ]
+            )
         assert exc_info.value.code == 1
 
     def test_smtp_config_nonexistent(self, tmp_path):
@@ -1233,11 +1338,18 @@ class TestCLIAbuserExtended:
         template = _write_template(tmp_path)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", str(tmp_path / "nonexistent.yaml"),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    str(tmp_path / "nonexistent.yaml"),
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_smtp_config_is_directory(self, tmp_path):
@@ -1250,11 +1362,18 @@ class TestCLIAbuserExtended:
         dir_path.mkdir()
 
         with pytest.raises((SystemExit, Exception)):
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", str(dir_path),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    str(dir_path),
+                ]
+            )
 
     def test_template_nonexistent(self, tmp_path):
         """Non-existent template -> exit 2."""
@@ -1264,12 +1383,18 @@ class TestCLIAbuserExtended:
         smtp = _write_smtp_yaml(tmp_path)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged,
-                "--template", str(tmp_path / "nope.yaml"),
-                "--smtp-config", smtp,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    str(tmp_path / "nope.yaml"),
+                    "--smtp-config",
+                    smtp,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_staged_nonexistent(self, tmp_path):
@@ -1280,12 +1405,18 @@ class TestCLIAbuserExtended:
         smtp = _write_smtp_yaml(tmp_path)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", str(tmp_path / "no_staged"),
-                "--template", template,
-                "--smtp-config", smtp,
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    str(tmp_path / "no_staged"),
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    smtp,
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_smtp_config_dev_null(self, tmp_path):
@@ -1296,11 +1427,18 @@ class TestCLIAbuserExtended:
         template = _write_template(tmp_path)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", "/dev/null",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    "/dev/null",
+                ]
+            )
         assert exc_info.value.code in (1, 2)
 
     def test_smtp_config_json_instead_of_yaml(self, tmp_path):
@@ -1317,11 +1455,18 @@ class TestCLIAbuserExtended:
             json.dump({"server": "smtp.test.com", "port": 587}, f)
 
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", str(json_path),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    str(json_path),
+                ]
+            )
         assert exc_info.value.code in (1, 2)
 
     def test_deprecation_warning_emitted(self, tmp_path):
@@ -1335,11 +1480,19 @@ class TestCLIAbuserExtended:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged, "--template", template,
-                    "--smtp-config", smtp, "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        template,
+                        "--smtp-config",
+                        smtp,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
@@ -1353,15 +1506,22 @@ class TestCLIAbuserExtended:
 
         roster = tmp_path / "roster.yaml"
         roster.write_text(
-            yaml.dump({"class_name": "A", "students": []}), encoding="utf-8",
+            yaml.dump({"class_name": "A", "students": []}),
+            encoding="utf-8",
         )
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "prepare",
-                "--manifest", str(tmp_path / "nope.yaml"),
-                "--roster", str(roster),
-                "--output-dir", str(tmp_path / "out"),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    str(tmp_path / "nope.yaml"),
+                    "--roster",
+                    str(roster),
+                    "--output-dir",
+                    str(tmp_path / "out"),
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_prepare_missing_roster(self, tmp_path):
@@ -1374,12 +1534,18 @@ class TestCLIAbuserExtended:
             encoding="utf-8",
         )
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "prepare",
-                "--manifest", str(manifest),
-                "--roster", str(tmp_path / "nope.yaml"),
-                "--output-dir", str(tmp_path / "out"),
-            ])
+            main(
+                [
+                    "--no-config",
+                    "prepare",
+                    "--manifest",
+                    str(manifest),
+                    "--roster",
+                    str(tmp_path / "nope.yaml"),
+                    "--output-dir",
+                    str(tmp_path / "out"),
+                ]
+            )
         assert exc_info.value.code == 2
 
     def test_send_missing_required_args(self):
@@ -1406,11 +1572,18 @@ class TestCLIAbuserExtended:
         template = _write_template(tmp_path)
 
         with pytest.raises(SystemExit):
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", "../../etc/shadow",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    "../../etc/shadow",
+                ]
+            )
 
     def test_very_long_path(self, tmp_path):
         """Extremely long --smtp-config path."""
@@ -1420,11 +1593,18 @@ class TestCLIAbuserExtended:
         template = _write_template(tmp_path)
 
         with pytest.raises(SystemExit):
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", "/tmp/" + "a" * 4000 + ".yaml",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    "/tmp/" + "a" * 4000 + ".yaml",
+                ]
+            )
 
     def test_no_config_flag_dry_run(self, tmp_path):
         """--no-config flag prevents project config loading."""
@@ -1437,11 +1617,19 @@ class TestCLIAbuserExtended:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged, "--template", template,
-                    "--smtp-config", smtp, "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        template,
+                        "--smtp-config",
+                        smtp,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit as e:
                 assert e.code in (0, 3, None)
 
@@ -1460,7 +1648,8 @@ class TestFieldMapAbuserExtended:
 
         data = {"key1": "first.com", "key2": "second.com", "email": "a@b.com"}
         field_map = {
-            "key1": "smtp_server", "key2": "smtp_server",
+            "key1": "smtp_server",
+            "key2": "smtp_server",
             "email": "sender_email",
         }
         result = _build_smtp_config(data, field_map=field_map)
@@ -1531,7 +1720,8 @@ class TestFieldMapAbuserExtended:
         original = {"server": "smtp.test.com", "port": 587, "sender_email": "a@b.com"}
         data_copy = dict(original)
         field_map = {
-            "server": "smtp_server", "port": "smtp_port",
+            "server": "smtp_server",
+            "port": "smtp_port",
             "sender_email": "sender_email",
         }
         _build_smtp_config(original, field_map=field_map)
@@ -1543,7 +1733,8 @@ class TestFieldMapAbuserExtended:
 
         data = {"server": "smtp.test.com", "email": "a@b.com", "x": "v"}
         field_map = {
-            "server": "smtp_server", "email": "sender_email",
+            "server": "smtp_server",
+            "email": "sender_email",
             "x": "not_a_real_field",
         }
         result = _build_smtp_config(data, field_map=field_map)
@@ -1683,11 +1874,19 @@ class TestKoreanTextExtended:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged, "--template", template,
-                    "--smtp-config", smtp, "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        template,
+                        "--smtp-config",
+                        smtp,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit:
                 pass
 
@@ -1704,7 +1903,10 @@ class TestKoreanTextExtended:
             body="{class_name}\ubc18 {student_id} \ud559\uc0dd\uc758 \ud615\uc131\ud3c9\uac00 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
         )
         subject, body = render_template(
-            template, student_name="\ud64d\uae38\ub3d9", student_id="2024001", class_name="1A",
+            template,
+            student_name="\ud64d\uae38\ub3d9",
+            student_id="2024001",
+            class_name="1A",
         )
         assert subject == "\ud64d\uae38\ub3d9 \ud559\uc0dd \uc131\uc801\ud45c"
         assert body == "1A\ubc18 2024001 \ud559\uc0dd\uc758 \ud615\uc131\ud3c9\uac00 \uacb0\uacfc\uc785\ub2c8\ub2e4."
@@ -1714,7 +1916,10 @@ class TestKoreanTextExtended:
         from forma.delivery_send import load_template
 
         p = tmp_path / "korean_template.yaml"
-        data = {"subject": "\uc131\uc801\ud45c \ubc1c\uc1a1", "body": "\uc548\ub155\ud558\uc138\uc694 {student_name} \ud559\uc0dd"}
+        data = {
+            "subject": "\uc131\uc801\ud45c \ubc1c\uc1a1",
+            "body": "\uc548\ub155\ud558\uc138\uc694 {student_name} \ud559\uc0dd",
+        }
         with open(str(p), "w", encoding="utf-8") as f:
             yaml.dump(data, f, allow_unicode=True)
 
@@ -1765,9 +1970,11 @@ class TestCrossPersonaIntegration:
         from forma.config import get_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            get_smtp_config({
-                "smtp": {"server": "s", "port": True, "sender_email": "a@b.com"},
-            })
+            get_smtp_config(
+                {
+                    "smtp": {"server": "s", "port": True, "sender_email": "a@b.com"},
+                }
+            )
 
     def test_injection_in_korean_server(self):
         """Injection (P2) with Korean chars (P7)."""
@@ -1793,15 +2000,24 @@ class TestCrossPersonaIntegration:
         smtp = _write_smtp_yaml(tmp_path)
         # Use {evil_var} which is a simple \w+ token that will be caught
         template = _write_template(
-            tmp_path, subject="T",
+            tmp_path,
+            subject="T",
             body="{evil_var} injection attempt",
         )
         with pytest.raises(SystemExit) as exc_info:
-            main([
-                "--no-config", "send",
-                "--staged", staged, "--template", template,
-                "--smtp-config", smtp, "--dry-run",
-            ])
+            main(
+                [
+                    "--no-config",
+                    "send",
+                    "--staged",
+                    staged,
+                    "--template",
+                    template,
+                    "--smtp-config",
+                    smtp,
+                    "--dry-run",
+                ]
+            )
         assert exc_info.value.code in (1, 2)
 
     def test_type_confusion_in_field_map_int_key(self):
@@ -1818,21 +2034,27 @@ class TestCrossPersonaIntegration:
         from forma.config import get_smtp_config
 
         long_server = "s" * 10_000
-        result = get_smtp_config({
-            "smtp": {"server": long_server, "port": 587, "sender_email": "a@b.com"},
-        })
+        result = get_smtp_config(
+            {
+                "smtp": {"server": long_server, "port": 587, "sender_email": "a@b.com"},
+            }
+        )
         assert len(result.smtp_server) == 10_000
 
     def test_nan_interval_through_json(self):
         """NaN interval (P3) via JSON config (P4)."""
         from forma.config import get_smtp_config
 
-        result = get_smtp_config({
-            "smtp": {
-                "server": "s", "port": 587, "sender_email": "a@b.com",
-                "send_interval_sec": float("nan"),
-            },
-        })
+        result = get_smtp_config(
+            {
+                "smtp": {
+                    "server": "s",
+                    "port": 587,
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": float("nan"),
+                },
+            }
+        )
         assert math.isnan(result.send_interval_sec)
 
     def test_cli_dry_run_success(self, tmp_path):
@@ -1846,11 +2068,19 @@ class TestCrossPersonaIntegration:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             try:
-                main([
-                    "--no-config", "send",
-                    "--staged", staged, "--template", template,
-                    "--smtp-config", smtp, "--dry-run",
-                ])
+                main(
+                    [
+                        "--no-config",
+                        "send",
+                        "--staged",
+                        staged,
+                        "--template",
+                        template,
+                        "--smtp-config",
+                        smtp,
+                        "--dry-run",
+                    ]
+                )
             except SystemExit as e:
                 assert e.code in (0, None)
 

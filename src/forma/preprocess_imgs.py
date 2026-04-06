@@ -30,13 +30,12 @@ def show_image(image_path: str) -> tuple[int, int, int, int]:
     try:
         matplotlib.use("Qt5Agg")
         import matplotlib.pyplot as plt
+
         plt.figure()  # 백엔드 실제 로드 확인
         plt.close()
     except ImportError:
         raise ImportError(
-            "Cannot load Qt5 backend. "
-            "NixOS: add python3Packages.pyqt5 to nix-shell. "
-            "Other: pip install PyQt5"
+            "Cannot load Qt5 backend. NixOS: add python3Packages.pyqt5 to nix-shell. Other: pip install PyQt5"
         ) from None
 
     coordinates: list[tuple[int, int]] = []
@@ -45,15 +44,11 @@ def show_image(image_path: str) -> tuple[int, int, int, int]:
         """Handle mouse click events to record crop coordinates."""
         if event.xdata and event.ydata:
             coordinates.append((int(event.xdata), int(event.ydata)))
-            print(
-                f"The clicked coordinates: ({int(event.xdata)}, {int(event.ydata)})"
-            )
+            print(f"The clicked coordinates: ({int(event.xdata)}, {int(event.ydata)})")
 
             if len(coordinates) == 2:  # Two points captured, disconnect event
                 print("Confirmed coordinates:", coordinates)
-                plt.gcf().canvas.mpl_disconnect(
-                    cid
-                )  # Disconnect the event listener
+                plt.gcf().canvas.mpl_disconnect(cid)  # Disconnect the event listener
                 plt.close()  # Close the image window
 
     # Open and display the image

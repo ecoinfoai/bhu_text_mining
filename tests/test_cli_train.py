@@ -13,12 +13,7 @@ import yaml
 
 def _write_store(path: Path, records: list[dict]) -> None:
     """Write a minimal longitudinal store YAML file."""
-    store_data = {
-        "records": {
-            f"{r['student_id']}_{r['week']}_{r.get('question_sn', 1)}": r
-            for r in records
-        }
-    }
+    store_data = {"records": {f"{r['student_id']}_{r['week']}_{r.get('question_sn', 1)}": r for r in records}}
     path.write_text(
         yaml.dump(store_data, allow_unicode=True),
         encoding="utf-8",
@@ -29,18 +24,20 @@ def _make_store_records(n_students: int = 15, n_weeks: int = 3) -> list[dict]:
     """Generate store records for testing."""
     records = []
     for i in range(n_students):
-        sid = f"S{i+1:03d}"
+        sid = f"S{i + 1:03d}"
         base = 0.3 + (i / n_students) * 0.5
         for w in range(1, n_weeks + 1):
             score = max(0.0, min(1.0, base + (w - 2) * 0.05))
-            records.append({
-                "student_id": sid,
-                "week": w,
-                "question_sn": 1,
-                "scores": {"ensemble_score": score, "concept_coverage": score * 0.9},
-                "tier_level": 2 if score >= 0.45 else 0,
-                "tier_label": "Proficient" if score >= 0.45 else "Beginning",
-            })
+            records.append(
+                {
+                    "student_id": sid,
+                    "week": w,
+                    "question_sn": 1,
+                    "scores": {"ensemble_score": score, "concept_coverage": score * 0.9},
+                    "tier_level": 2 if score >= 0.45 else 0,
+                    "tier_label": "Proficient" if score >= 0.45 else "Beginning",
+                }
+            )
     return records
 
 
@@ -53,13 +50,19 @@ class TestCliTrain:
         output_path = tmp_path / "model.pkl"
         _write_store(store_path, _make_store_records(n_students=15))
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-train",
-            "--store", str(store_path),
-            "--output", str(output_path),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-train",
+                "--store",
+                str(store_path),
+                "--output",
+                str(output_path),
+            ],
+        )
 
         from forma.cli_train import main
+
         main()
 
         assert output_path.exists()
@@ -71,14 +74,21 @@ class TestCliTrain:
         output_path = tmp_path / "model.pkl"
         _write_store(store_path, _make_store_records(n_students=3))
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-train",
-            "--store", str(store_path),
-            "--output", str(output_path),
-            "--min-students", "10",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-train",
+                "--store",
+                str(store_path),
+                "--output",
+                str(output_path),
+                "--min-students",
+                "10",
+            ],
+        )
 
         from forma.cli_train import main
+
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
@@ -89,27 +99,40 @@ class TestCliTrain:
         output_path = tmp_path / "model.pkl"
         _write_store(store_path, _make_store_records(n_students=15, n_weeks=2))
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-train",
-            "--store", str(store_path),
-            "--output", str(output_path),
-            "--min-weeks", "3",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-train",
+                "--store",
+                str(store_path),
+                "--output",
+                str(output_path),
+                "--min-weeks",
+                "3",
+            ],
+        )
 
         from forma.cli_train import main
+
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
 
     def test_store_not_found_error(self, tmp_path: Path, monkeypatch):
         """Nonexistent store file exits with error."""
-        monkeypatch.setattr("sys.argv", [
-            "forma-train",
-            "--store", str(tmp_path / "missing.yaml"),
-            "--output", str(tmp_path / "model.pkl"),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-train",
+                "--store",
+                str(tmp_path / "missing.yaml"),
+                "--output",
+                str(tmp_path / "model.pkl"),
+            ],
+        )
 
         from forma.cli_train import main
+
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
@@ -120,14 +143,21 @@ class TestCliTrain:
         output_path = tmp_path / "model.pkl"
         _write_store(store_path, _make_store_records(n_students=15))
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-train",
-            "--store", str(store_path),
-            "--output", str(output_path),
-            "--threshold", "0.5",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-train",
+                "--store",
+                str(store_path),
+                "--output",
+                str(output_path),
+                "--threshold",
+                "0.5",
+            ],
+        )
 
         from forma.cli_train import main
+
         main()
 
         assert output_path.exists()
@@ -138,14 +168,20 @@ class TestCliTrain:
         output_path = tmp_path / "model.pkl"
         _write_store(store_path, _make_store_records(n_students=15))
 
-        monkeypatch.setattr("sys.argv", [
-            "forma-train",
-            "--store", str(store_path),
-            "--output", str(output_path),
-            "--verbose",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "forma-train",
+                "--store",
+                str(store_path),
+                "--output",
+                str(output_path),
+                "--verbose",
+            ],
+        )
 
         from forma.cli_train import main
+
         main()
 
         _captured = capsys.readouterr()

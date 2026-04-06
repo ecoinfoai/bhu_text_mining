@@ -112,7 +112,7 @@ class TestUnicodeDestroyer:
         """sanitize_filename() with only zero-width chars returns '_unnamed'."""
         from forma.delivery_prepare import sanitize_filename
 
-        result = sanitize_filename("\u200B\u200C\u200D")
+        result = sanitize_filename("\u200b\u200c\u200d")
         assert result == "_unnamed"
 
     def test_null_byte_removed(self) -> None:
@@ -127,10 +127,10 @@ class TestUnicodeDestroyer:
         """sanitize_filename() strips zero-width chars from mixed input."""
         from forma.delivery_prepare import sanitize_filename
 
-        result = sanitize_filename("\u200Bfoo\u200Cbar\u200D")
-        assert "\u200B" not in result
-        assert "\u200C" not in result
-        assert "\u200D" not in result
+        result = sanitize_filename("\u200bfoo\u200cbar\u200d")
+        assert "\u200b" not in result
+        assert "\u200c" not in result
+        assert "\u200d" not in result
         assert "foobar" in result
 
     def test_xml_control_char_removed(self) -> None:
@@ -144,14 +144,14 @@ class TestUnicodeDestroyer:
         """sanitize_filename() with mixed zero-width + null returns cleaned."""
         from forma.delivery_prepare import sanitize_filename
 
-        result = sanitize_filename("\u200Bfoo\x00bar\u200C")
+        result = sanitize_filename("\u200bfoo\x00bar\u200c")
         assert "foobar" in result
 
     def test_report_sanitize_zero_width_unnamed(self) -> None:
         """sanitize_filename_report() with only zero-width chars returns '_unnamed'."""
         from forma.report_utils import sanitize_filename_report
 
-        result = sanitize_filename_report("\u200B\u200C\u200D\u200E\u200F\uFEFF")
+        result = sanitize_filename_report("\u200b\u200c\u200d\u200e\u200f\ufeff")
         assert result == "_unnamed"
 
     def test_esc_preserves_valid_korean(self) -> None:
@@ -175,8 +175,8 @@ class TestUnicodeDestroyer:
         """sanitize_filename() strips BOM (U+FEFF)."""
         from forma.delivery_prepare import sanitize_filename
 
-        result = sanitize_filename("\uFEFFtest")
-        assert "\uFEFF" not in result
+        result = sanitize_filename("\ufefftest")
+        assert "\ufeff" not in result
         assert "test" in result
 
 
@@ -379,18 +379,19 @@ class TestPrivilegeEscalator:
         mock_gc = MagicMock()
         mock_gc.open_by_url.return_value.sheet1.get_all_records.return_value = []
 
-        with patch.dict("sys.modules", {
-            "gspread": MagicMock(authorize=MagicMock(return_value=mock_gc)),
-            "google.auth.transport.requests": MagicMock(),
-            "google.oauth2.credentials": MagicMock(
-                Credentials=MagicMock(from_authorized_user_file=MagicMock(return_value=None))
-            ),
-            "google_auth_oauthlib.flow": MagicMock(
-                InstalledAppFlow=MagicMock(
-                    from_client_secrets_file=MagicMock(return_value=mock_flow_instance)
-                )
-            ),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "gspread": MagicMock(authorize=MagicMock(return_value=mock_gc)),
+                "google.auth.transport.requests": MagicMock(),
+                "google.oauth2.credentials": MagicMock(
+                    Credentials=MagicMock(from_authorized_user_file=MagicMock(return_value=None))
+                ),
+                "google_auth_oauthlib.flow": MagicMock(
+                    InstalledAppFlow=MagicMock(from_client_secrets_file=MagicMock(return_value=mock_flow_instance))
+                ),
+            },
+        ):
             creds_file = tmp_path / "credentials.json"
             creds_file.write_text('{"installed": {}}')
 
@@ -419,6 +420,7 @@ class TestPrivilegeEscalator:
         log.save()
 
         import yaml
+
         with open(store_path) as f:
             data = yaml.safe_load(f)
         assert data is not None
@@ -592,20 +594,28 @@ class TestPathTraversalAttackerExpanded:
         report_dir.mkdir()
 
         manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(yaml.dump({
-            "report_source": {
-                "directory": str(report_dir),
-                "file_patterns": ["{student_id}.pdf"],
-            }
-        }))
+        manifest_path.write_text(
+            yaml.dump(
+                {
+                    "report_source": {
+                        "directory": str(report_dir),
+                        "file_patterns": ["{student_id}.pdf"],
+                    }
+                }
+            )
+        )
 
         roster_path = tmp_path / "roster.yaml"
-        roster_path.write_text(yaml.dump({
-            "class_name": "TestClass",
-            "students": [
-                {"student_id": "../../etc/passwd", "name": "Hacker", "email": "h@test.com"},
-            ],
-        }))
+        roster_path.write_text(
+            yaml.dump(
+                {
+                    "class_name": "TestClass",
+                    "students": [
+                        {"student_id": "../../etc/passwd", "name": "Hacker", "email": "h@test.com"},
+                    ],
+                }
+            )
+        )
 
         output_dir = tmp_path / "output"
         with pytest.raises(ValueError, match="path traversal"):
@@ -646,7 +656,8 @@ class TestUnicodeDestroyerExpanded:
     def test_emoji_in_student_id_no_crash(self, tmp_path) -> None:
         """Emoji in student_id does not crash match_files_for_student."""
         manifest = DeliveryManifest(
-            directory=str(tmp_path), file_patterns=["{student_id}.pdf"],
+            directory=str(tmp_path),
+            file_patterns=["{student_id}.pdf"],
         )
         result = match_files_for_student(manifest, "student_\U0001f600")
         assert result == []
@@ -714,12 +725,7 @@ class TestConfigPoisonerExpanded:
         """YAML anchor/alias expansion with safe_load stays manageable."""
         import yaml
 
-        yaml_content = (
-            "a: &a [1,2,3,4,5]\n"
-            "b: &b [*a,*a,*a,*a,*a]\n"
-            "c: &c [*b,*b,*b,*b,*b]\n"
-            "d: [*c,*c,*c,*c,*c]\n"
-        )
+        yaml_content = "a: &a [1,2,3,4,5]\nb: &b [*a,*a,*a,*a,*a]\nc: &c [*b,*b,*b,*b,*b]\nd: [*c,*c,*c,*c,*c]\n"
         yaml_path = tmp_path / "anchor.yaml"
         yaml_path.write_text(yaml_content)
 
@@ -782,55 +788,65 @@ class TestConfigPoisonerExpanded:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "smtp_port": True,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "smtp_port": True,
+                }
+            )
 
     def test_smtp_port_over_65535_raises(self) -> None:
         """smtp_port > 65535 raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="1-65535"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "smtp_port": 70000,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "smtp_port": 70000,
+                }
+            )
 
     def test_smtp_port_zero_raises(self) -> None:
         """smtp_port = 0 raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="1-65535"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "smtp_port": 0,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "smtp_port": 0,
+                }
+            )
 
     def test_send_interval_sec_bool_raises(self) -> None:
         """Boolean send_interval_sec raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "send_interval_sec": False,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": False,
+                }
+            )
 
     def test_send_interval_sec_negative_raises(self) -> None:
         """Negative send_interval_sec raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="send_interval_sec"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "send_interval_sec": -1.0,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "send_interval_sec": -1.0,
+                }
+            )
 
     def test_load_grade_model_none_raises(self, tmp_path) -> None:
         """joblib file containing None raises TypeError for grade model."""
@@ -883,10 +899,12 @@ class TestNetworkDestroyerExpanded:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="sender_email"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "not_an_email",
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "not_an_email",
+                }
+            )
 
     def test_format_string_attack_blocked(self) -> None:
         """Format string {__class__} as standalone variable blocked by validate_template_variables."""
@@ -905,7 +923,10 @@ class TestNetworkDestroyerExpanded:
 
         template = EmailTemplate(subject="Report", body="{student_name.__class__}")
         _subj, body = render_template(
-            template, student_name="John", student_id="S001", class_name="1A",
+            template,
+            student_name="John",
+            student_id="S001",
+            class_name="1A",
         )
         assert "{student_name.__class__}" in body
 
@@ -914,7 +935,8 @@ class TestNetworkDestroyerExpanded:
         from forma.delivery_send import SmtpConfig, compose_email
 
         config = SmtpConfig(
-            smtp_server="smtp.test.com", smtp_port=587,
+            smtp_server="smtp.test.com",
+            smtp_port=587,
             sender_email="sender@test.com",
         )
         zip_file = tmp_path / "test.zip"
@@ -923,7 +945,8 @@ class TestNetworkDestroyerExpanded:
         msg = compose_email(
             sender_config=config,
             to_email="victim@test.com\r\nBcc: evil@evil.com",
-            subject="Test", body="Hello",
+            subject="Test",
+            body="Hello",
             zip_path=str(zip_file),
         )
         assert "\r" not in msg["To"]
@@ -962,20 +985,28 @@ class TestPrivilegeEscalatorExpanded:
         (report_dir / "S001.pdf").write_text("content")
 
         manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(yaml.dump({
-            "report_source": {
-                "directory": str(report_dir),
-                "file_patterns": ["{student_id}.pdf"],
-            }
-        }))
+        manifest_path.write_text(
+            yaml.dump(
+                {
+                    "report_source": {
+                        "directory": str(report_dir),
+                        "file_patterns": ["{student_id}.pdf"],
+                    }
+                }
+            )
+        )
 
         roster_path = tmp_path / "roster.yaml"
-        roster_path.write_text(yaml.dump({
-            "class_name": "TestClass",
-            "students": [
-                {"student_id": "S001", "name": "Student", "email": "s@test.com"},
-            ],
-        }))
+        roster_path.write_text(
+            yaml.dump(
+                {
+                    "class_name": "TestClass",
+                    "students": [
+                        {"student_id": "S001", "name": "Student", "email": "s@test.com"},
+                    ],
+                }
+            )
+        )
 
         output_dir = tmp_path / "output"
         summary = prepare_delivery(str(manifest_path), str(roster_path), str(output_dir))
@@ -991,18 +1022,26 @@ class TestPrivilegeEscalatorExpanded:
         report_dir.mkdir()
 
         manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(yaml.dump({
-            "report_source": {
-                "directory": str(report_dir),
-                "file_patterns": ["{student_id}.pdf"],
-            }
-        }))
+        manifest_path.write_text(
+            yaml.dump(
+                {
+                    "report_source": {
+                        "directory": str(report_dir),
+                        "file_patterns": ["{student_id}.pdf"],
+                    }
+                }
+            )
+        )
 
         roster_path = tmp_path / "roster.yaml"
-        roster_path.write_text(yaml.dump({
-            "class_name": "Test",
-            "students": [{"student_id": "S001", "name": "Test", "email": "t@t.com"}],
-        }))
+        roster_path.write_text(
+            yaml.dump(
+                {
+                    "class_name": "Test",
+                    "students": [{"student_id": "S001", "name": "Test", "email": "t@t.com"}],
+                }
+            )
+        )
 
         with pytest.raises((PermissionError, OSError)):
             prepare_delivery(str(manifest_path), str(roster_path), "/etc/forma_test_output")
@@ -1031,12 +1070,16 @@ class TestOverloaderExpanded:
             students.append({"student_id": sid, "name": f"Name{i}", "email": f"{sid}@test.com"})
 
         manifest_path = tmp_path / "manifest.yaml"
-        manifest_path.write_text(yaml.dump({
-            "report_source": {
-                "directory": str(report_dir),
-                "file_patterns": ["{student_id}.pdf"],
-            }
-        }))
+        manifest_path.write_text(
+            yaml.dump(
+                {
+                    "report_source": {
+                        "directory": str(report_dir),
+                        "file_patterns": ["{student_id}.pdf"],
+                    }
+                }
+            )
+        )
 
         roster_path = tmp_path / "roster.yaml"
         roster_path.write_text(yaml.dump({"class_name": "LargeClass", "students": students}))
@@ -1117,7 +1160,9 @@ class TestOverloaderExpanded:
         log = InterventionLog(str(tmp_path / "log.yaml"))
         log.load()
         rid = log.add_record(
-            student_id="S001", week=1, intervention_type="면담",
+            student_id="S001",
+            week=1,
+            intervention_type="면담",
             description="x" * 2000,
         )
         assert rid == 1
@@ -1130,7 +1175,9 @@ class TestOverloaderExpanded:
         log.load()
         with pytest.raises(ValueError, match="2000"):
             log.add_record(
-                student_id="S001", week=1, intervention_type="면담",
+                student_id="S001",
+                week=1,
+                intervention_type="면담",
                 description="x" * 2001,
             )
 
@@ -1146,8 +1193,10 @@ class TestOverloaderExpanded:
                 log = InterventionLog(log_path)
                 log.load()
                 log.add_record(
-                    student_id=f"T{thread_id}", week=1,
-                    intervention_type="면담", description=f"Thread {thread_id}",
+                    student_id=f"T{thread_id}",
+                    week=1,
+                    intervention_type="면담",
+                    description=f"Thread {thread_id}",
                 )
                 log.save()
             except Exception as e:
@@ -1169,27 +1218,39 @@ class TestOverloaderExpanded:
         """smtp_port = 1 (minimum valid) is accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        config = _build_smtp_config({
-            "smtp_server": "smtp.test.com", "sender_email": "a@b.com", "smtp_port": 1,
-        })
+        config = _build_smtp_config(
+            {
+                "smtp_server": "smtp.test.com",
+                "sender_email": "a@b.com",
+                "smtp_port": 1,
+            }
+        )
         assert config.smtp_port == 1
 
     def test_smtp_port_boundary_65535(self) -> None:
         """smtp_port = 65535 (maximum valid) is accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        config = _build_smtp_config({
-            "smtp_server": "smtp.test.com", "sender_email": "a@b.com", "smtp_port": 65535,
-        })
+        config = _build_smtp_config(
+            {
+                "smtp_server": "smtp.test.com",
+                "sender_email": "a@b.com",
+                "smtp_port": 65535,
+            }
+        )
         assert config.smtp_port == 65535
 
     def test_send_interval_sec_zero(self) -> None:
         """send_interval_sec = 0 (no delay) is accepted."""
         from forma.delivery_send import _build_smtp_config
 
-        config = _build_smtp_config({
-            "smtp_server": "smtp.test.com", "sender_email": "a@b.com", "send_interval_sec": 0,
-        })
+        config = _build_smtp_config(
+            {
+                "smtp_server": "smtp.test.com",
+                "sender_email": "a@b.com",
+                "send_interval_sec": 0,
+            }
+        )
         assert config.send_interval_sec == 0.0
 
     def test_threshold_constants_correct(self) -> None:
@@ -1200,6 +1261,7 @@ class TestOverloaderExpanded:
             _DROP_PROB_INCLUSION_THRESHOLD,
             _SLOPE_EPSILON,
         )
+
         assert _PERSISTENT_LOW_THRESHOLD == 0.45
         assert _DEFICIT_MASTERY_THRESHOLD == 0.3
         assert _DROP_PROB_INCLUSION_THRESHOLD == 0.5
@@ -1336,9 +1398,7 @@ class TestNaNBombardier:
             records.append(r)
 
         store.get_all_records.return_value = records
-        store.get_class_weekly_matrix.return_value = {
-            "S001": {1: float("nan"), 2: float("nan"), 3: float("nan")}
-        }
+        store.get_class_weekly_matrix.return_value = {"S001": {1: float("nan"), 2: float("nan"), 3: float("nan")}}
 
         extractor = FeatureExtractor()
         matrix, names, sids = extractor.extract(store, [1, 2, 3])
@@ -1365,7 +1425,7 @@ class TestXMLInjectionSpecialist:
         """<script>alert(1)</script> in text is neutralized by esc()."""
         from forma.font_utils import esc
 
-        result = esc('<script>alert(1)</script>')
+        result = esc("<script>alert(1)</script>")
         assert "<script>" not in result
         assert "&lt;script&gt;" in result
 
@@ -1401,7 +1461,7 @@ class TestXMLInjectionSpecialist:
         """10000-char string with mixed < > & is fully escaped without crash."""
         from forma.font_utils import esc
 
-        payload = ("<script>" * 500 + "&" * 1000 + "normal" * 500)
+        payload = "<script>" * 500 + "&" * 1000 + "normal" * 500
         result = esc(payload)
         assert "<script>" not in result
         assert "&lt;" in result
@@ -1451,8 +1511,8 @@ class TestUnicodeDestroyerAdvanced:
         """BOM (U+FEFF) at start of string is stripped by esc()."""
         from forma.font_utils import esc
 
-        result = esc("\uFEFFHello World")
-        assert "\uFEFF" not in result
+        result = esc("\ufeffHello World")
+        assert "\ufeff" not in result
         assert "Hello World" in result
 
     def test_null_byte_stripped_by_esc(self) -> None:
@@ -1479,7 +1539,7 @@ class TestUnicodeDestroyerAdvanced:
         """RTL override U+202E in concept names does not crash esc()."""
         from forma.font_utils import esc
 
-        result = esc("\u202Emalicious\u202C")
+        result = esc("\u202emalicious\u202c")
         # esc does not strip U+202E (not in _XML_ILLEGAL_CTRL range)
         assert isinstance(result, str)
 
@@ -1498,7 +1558,7 @@ class TestUnicodeDestroyerAdvanced:
 
         # Build string with all C0 controls
         c0_chars = "".join(chr(i) for i in range(0, 32))
-        c0_chars += chr(0x7f)  # DEL
+        c0_chars += chr(0x7F)  # DEL
 
         result = esc(c0_chars + "clean")
         # Only \t (0x09), \n (0x0A), \r (0x0D) should survive
@@ -1515,19 +1575,19 @@ class TestUnicodeDestroyerAdvanced:
         """strip_invisible() used by both esc() and sanitize_filename_report()."""
         from forma.font_utils import strip_invisible
 
-        text = "\uFEFF\u200BHello\x00World\u200D"
+        text = "\ufeff\u200bHello\x00World\u200d"
         result = strip_invisible(text)
-        assert "\uFEFF" not in result
-        assert "\u200B" not in result
+        assert "\ufeff" not in result
+        assert "\u200b" not in result
         assert "\x00" not in result
-        assert "\u200D" not in result
+        assert "\u200d" not in result
         assert "HelloWorld" == result
 
     def test_mixed_invisible_with_korean(self) -> None:
         """strip_invisible preserves Korean while stripping invisible chars."""
         from forma.font_utils import strip_invisible
 
-        text = "\uFEFF김\u200B철\u200C수\x01"
+        text = "\ufeff김\u200b철\u200c수\x01"
         result = strip_invisible(text)
         assert result == "김철수"
 
@@ -1703,11 +1763,15 @@ class TestConfigPoisonerAdvanced:
         from forma.config import load_config
 
         config_path = tmp_path / "forma.json"
-        config_path.write_text(json.dumps({
-            "smtp": {"server": "test"},
-            "unknown_key": "malicious",
-            "another_unknown": 42,
-        }))
+        config_path.write_text(
+            json.dumps(
+                {
+                    "smtp": {"server": "test"},
+                    "unknown_key": "malicious",
+                    "another_unknown": 42,
+                }
+            )
+        )
 
         with caplog.at_level(logging.WARNING, logger="forma.config"):
             result = load_config(str(config_path))
@@ -1763,33 +1827,39 @@ class TestConfigPoisonerAdvanced:
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "smtp_port": "587",
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "smtp_port": "587",
+                }
+            )
 
     def test_smtp_config_none_port_raises(self) -> None:
         """smtp_port as None raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "smtp_port": None,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "smtp_port": None,
+                }
+            )
 
     def test_smtp_config_float_port_raises(self) -> None:
         """smtp_port as float raises ValueError."""
         from forma.delivery_send import _build_smtp_config
 
         with pytest.raises(ValueError, match="smtp_port"):
-            _build_smtp_config({
-                "smtp_server": "smtp.test.com",
-                "sender_email": "a@b.com",
-                "smtp_port": 587.5,
-            })
+            _build_smtp_config(
+                {
+                    "smtp_server": "smtp.test.com",
+                    "sender_email": "a@b.com",
+                    "smtp_port": 587.5,
+                }
+            )
 
     def test_get_smtp_config_missing_section_raises(self) -> None:
         """get_smtp_config with no smtp section raises KeyError."""
@@ -1950,7 +2020,10 @@ class TestEmptyValueAttacker:
             body="Student {student_id} in {class_name}",
         )
         subj, body = render_template(
-            template, student_name="", student_id="", class_name="",
+            template,
+            student_name="",
+            student_id="",
+            class_name="",
         )
         assert subj == " report"
         assert body == "Student  in "

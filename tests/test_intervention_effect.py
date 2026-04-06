@@ -2,6 +2,7 @@
 
 T019-T020 [US2]: InterventionEffect computation, type-level summaries.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -104,14 +105,25 @@ class TestComputeInterventionEffects:
         # S001: intervention at week 3
         # Trajectory: w1=0.30, w2=0.40, w3=0.45, w4=0.60, w5=0.65
         # pre (w1,w2): mean=0.35, post (w4,w5): mean=0.625
-        store = _make_mock_store({
-            "S001": [(1, 0.30), (2, 0.40), (3, 0.45), (4, 0.60), (5, 0.65)],
-        })
-        log = _make_intervention_log([{
-            "id": 1, "student_id": "S001", "week": 3,
-            "intervention_type": "면담", "description": "상담",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
-        }], tmp_path)
+        store = _make_mock_store(
+            {
+                "S001": [(1, 0.30), (2, 0.40), (3, 0.45), (4, 0.60), (5, 0.65)],
+            }
+        )
+        log = _make_intervention_log(
+            [
+                {
+                    "id": 1,
+                    "student_id": "S001",
+                    "week": 3,
+                    "intervention_type": "면담",
+                    "description": "상담",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                }
+            ],
+            tmp_path,
+        )
 
         effects = compute_intervention_effects(log, store, window=2)
         assert len(effects) == 1
@@ -127,14 +139,25 @@ class TestComputeInterventionEffects:
         from forma.intervention_effect import compute_intervention_effects
 
         # Intervention at week 4, only 1 week of post data
-        store = _make_mock_store({
-            "S001": [(1, 0.30), (2, 0.40), (3, 0.50), (4, 0.55), (5, 0.60)],
-        })
-        log = _make_intervention_log([{
-            "id": 1, "student_id": "S001", "week": 4,
-            "intervention_type": "보충학습", "description": "",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
-        }], tmp_path)
+        store = _make_mock_store(
+            {
+                "S001": [(1, 0.30), (2, 0.40), (3, 0.50), (4, 0.55), (5, 0.60)],
+            }
+        )
+        log = _make_intervention_log(
+            [
+                {
+                    "id": 1,
+                    "student_id": "S001",
+                    "week": 4,
+                    "intervention_type": "보충학습",
+                    "description": "",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                }
+            ],
+            tmp_path,
+        )
 
         effects = compute_intervention_effects(log, store, window=2)
         assert len(effects) == 1
@@ -146,14 +169,25 @@ class TestComputeInterventionEffects:
         from forma.intervention_effect import compute_intervention_effects
 
         # Intervention at week 1 — no pre data
-        store = _make_mock_store({
-            "S001": [(1, 0.30), (2, 0.40), (3, 0.50)],
-        })
-        log = _make_intervention_log([{
-            "id": 1, "student_id": "S001", "week": 1,
-            "intervention_type": "면담", "description": "",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
-        }], tmp_path)
+        store = _make_mock_store(
+            {
+                "S001": [(1, 0.30), (2, 0.40), (3, 0.50)],
+            }
+        )
+        log = _make_intervention_log(
+            [
+                {
+                    "id": 1,
+                    "student_id": "S001",
+                    "week": 1,
+                    "intervention_type": "면담",
+                    "description": "",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                }
+            ],
+            tmp_path,
+        )
 
         effects = compute_intervention_effects(log, store, window=2)
         assert len(effects) == 1
@@ -163,18 +197,35 @@ class TestComputeInterventionEffects:
         """Multiple interventions for different students."""
         from forma.intervention_effect import compute_intervention_effects
 
-        store = _make_mock_store({
-            "S001": [(1, 0.30), (2, 0.40), (3, 0.50), (4, 0.60), (5, 0.70)],
-            "S002": [(1, 0.20), (2, 0.25), (3, 0.30), (4, 0.45), (5, 0.50)],
-        })
-        log = _make_intervention_log([
-            {"id": 1, "student_id": "S001", "week": 3,
-             "intervention_type": "면담", "description": "",
-             "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None},
-            {"id": 2, "student_id": "S002", "week": 3,
-             "intervention_type": "보충학습", "description": "",
-             "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None},
-        ], tmp_path)
+        store = _make_mock_store(
+            {
+                "S001": [(1, 0.30), (2, 0.40), (3, 0.50), (4, 0.60), (5, 0.70)],
+                "S002": [(1, 0.20), (2, 0.25), (3, 0.30), (4, 0.45), (5, 0.50)],
+            }
+        )
+        log = _make_intervention_log(
+            [
+                {
+                    "id": 1,
+                    "student_id": "S001",
+                    "week": 3,
+                    "intervention_type": "면담",
+                    "description": "",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                },
+                {
+                    "id": 2,
+                    "student_id": "S002",
+                    "week": 3,
+                    "intervention_type": "보충학습",
+                    "description": "",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                },
+            ],
+            tmp_path,
+        )
 
         effects = compute_intervention_effects(log, store, window=2)
         assert len(effects) == 2
@@ -193,11 +244,20 @@ class TestComputeInterventionEffects:
         from forma.intervention_effect import compute_intervention_effects
 
         store = _make_mock_store({"S001": []})
-        log = _make_intervention_log([{
-            "id": 1, "student_id": "S001", "week": 3,
-            "intervention_type": "면담", "description": "",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
-        }], tmp_path)
+        log = _make_intervention_log(
+            [
+                {
+                    "id": 1,
+                    "student_id": "S001",
+                    "week": 3,
+                    "intervention_type": "면담",
+                    "description": "",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                }
+            ],
+            tmp_path,
+        )
 
         effects = compute_intervention_effects(log, store, window=2)
         assert len(effects) == 1
@@ -208,14 +268,25 @@ class TestComputeInterventionEffects:
         from forma.intervention_effect import compute_intervention_effects
 
         # With window=1: pre=w2=0.40, post=w4=0.60
-        store = _make_mock_store({
-            "S001": [(1, 0.30), (2, 0.40), (3, 0.50), (4, 0.60), (5, 0.70)],
-        })
-        log = _make_intervention_log([{
-            "id": 1, "student_id": "S001", "week": 3,
-            "intervention_type": "면담", "description": "",
-            "recorded_at": "2026-01-01T00:00:00+00:00", "outcome": None,
-        }], tmp_path)
+        store = _make_mock_store(
+            {
+                "S001": [(1, 0.30), (2, 0.40), (3, 0.50), (4, 0.60), (5, 0.70)],
+            }
+        )
+        log = _make_intervention_log(
+            [
+                {
+                    "id": 1,
+                    "student_id": "S001",
+                    "week": 3,
+                    "intervention_type": "면담",
+                    "description": "",
+                    "recorded_at": "2026-01-01T00:00:00+00:00",
+                    "outcome": None,
+                }
+            ],
+            tmp_path,
+        )
 
         effects = compute_intervention_effects(log, store, window=1)
         assert len(effects) == 1

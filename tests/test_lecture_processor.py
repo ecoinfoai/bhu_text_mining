@@ -121,9 +121,7 @@ class TestExtractLectureCoveredConcepts:
         vec = np.array([[1.0, 0.0]], dtype=np.float32)
         mock_encode.side_effect = [vec, vec]
 
-        result = extract_lecture_covered_concepts(
-            "텍스트", ["개념"], threshold=1.0
-        )
+        result = extract_lecture_covered_concepts("텍스트", ["개념"], threshold=1.0)
         assert result == ["개념"]
 
 
@@ -172,9 +170,7 @@ class TestExtractTripletsFromLecture:
 
     def test_parses_raw_json_without_fences(self):
         mock_provider = MagicMock()
-        mock_provider.generate.return_value = (
-            '[{"subject": "A", "relation": "B", "object": "C"}]'
-        )
+        mock_provider.generate.return_value = '[{"subject": "A", "relation": "B", "object": "C"}]'
         triplets = extract_triplets_from_lecture("텍스트", mock_provider)
         assert len(triplets) == 1
         assert triplets[0].subject == "A"

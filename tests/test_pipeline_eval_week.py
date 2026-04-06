@@ -62,6 +62,7 @@ def _write_forma_yaml(path: Path, **overrides) -> Path:
 # T052: --class A resolves eval paths from week.yaml patterns
 # ---------------------------------------------------------------------------
 
+
 class TestEvalClassResolution:
     """Test --class resolves eval paths."""
 
@@ -82,6 +83,7 @@ class TestEvalClassResolution:
 # ---------------------------------------------------------------------------
 # T053: semester settings from forma.yaml used when not overridden
 # ---------------------------------------------------------------------------
+
 
 class TestSemesterDefaults:
     """Test forma.yaml semester settings used when week.yaml doesn't override."""
@@ -106,6 +108,7 @@ class TestSemesterDefaults:
 # T054: week.yaml overrides --eval-config values
 # ---------------------------------------------------------------------------
 
+
 class TestWeekOverridesEvalConfig:
     """Test week.yaml takes precedence over legacy --eval-config."""
 
@@ -128,6 +131,7 @@ class TestWeekOverridesEvalConfig:
 # T055: deprecation warning logged when both present
 # ---------------------------------------------------------------------------
 
+
 class TestDeprecationWarning:
     """Test deprecation warning when both eval-config and week.yaml present."""
 
@@ -149,6 +153,7 @@ class TestDeprecationWarning:
 # ---------------------------------------------------------------------------
 # T055a: exit code 2 when resolved eval file paths not found
 # ---------------------------------------------------------------------------
+
 
 class TestEvalPathsNotFound:
     """Test error when resolved eval paths don't exist."""

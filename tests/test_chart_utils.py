@@ -12,6 +12,7 @@ import io
 from unittest.mock import patch
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
