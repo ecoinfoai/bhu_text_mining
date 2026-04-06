@@ -20,10 +20,11 @@ dist/
 *.egg
 *.whl
 
-# idea documents
+# idea documents & internal plans
 new_functions_specs/
 specs/
 improve/
+idea/
 
 # direnv
 .direnv/
@@ -68,6 +69,8 @@ poetry.lock
 
 # Data files (specific to your project)
 data/
+input/
+output/
 
 # Dev snapshots & personal files
 dev-snapshots/
@@ -121,6 +124,9 @@ smtp*.yaml
 .agent-comm/
 .claude/commands/
 .specify/
+
+# Audit & workspace artifacts
+_workspace/
 
 # MkDocs
 site/
